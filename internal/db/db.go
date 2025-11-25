@@ -3,7 +3,6 @@ package db
 import (
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/conf"
 	"github.com/bestruirui/octopus/internal/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -12,7 +11,7 @@ import (
 
 var db *gorm.DB
 
-func InitDB() error {
+func InitDB(path string, debug bool) error {
 	var err error
 	params := []string{
 		"_journal_mode=WAL",
@@ -25,10 +24,10 @@ func InitDB() error {
 		"_locking_mode=NORMAL",
 	}
 	gormConfig := gorm.Config{Logger: logger.Discard}
-	if conf.IsDebug() {
+	if debug {
 		gormConfig.Logger = logger.Default.LogMode(logger.Info)
 	}
-	db, err = gorm.Open(sqlite.Open(conf.AppConfig.Database.Path+"?"+strings.Join(params, "&")), &gormConfig)
+	db, err = gorm.Open(sqlite.Open(path+"?"+strings.Join(params, "&")), &gormConfig)
 	if err != nil {
 		return err
 	}
@@ -40,6 +39,8 @@ func InitDB() error {
 		&model.LLMModel{},
 		&model.APIKey{},
 		&model.Setting{},
+		&model.StatsDaily{},
+		&model.StatsModel{},
 	)
 }
 

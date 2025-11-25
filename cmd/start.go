@@ -51,7 +51,7 @@ var startCmd = &cobra.Command{
 		}()
 		sd.Register(httpSrv.Close)
 
-		if err := db.InitDB(); err != nil {
+		if err := db.InitDB(conf.AppConfig.Database.Path, conf.IsDebug()); err != nil {
 			log.Errorf("database init error: %v", err)
 			return
 		}
@@ -61,6 +61,7 @@ var startCmd = &cobra.Command{
 			log.Errorf("cache init error: %v", err)
 			return
 		}
+		sd.Register(op.SaveCache)
 
 		if err := op.UserInit(); err != nil {
 			log.Errorf("user init error: %v", err)

@@ -21,4 +21,7 @@ type Channel struct {
 	UsedInputToken  int64       `json:"used_input_token" gorm:"bigint;default:0"`
 	UsedOutputToken int64       `json:"used_output_token" gorm:"bigint;default:0"`
 	UsedMoney       float64     `json:"used_money" gorm:"default:0"`
+	RequestCount    int64       `json:"request_count" gorm:"bigint;default:0"`
+	RequestSuccess  int64       `json:"request_success" gorm:"bigint;default:0"`
+	RequestFailed   int64       `json:"request_failed" gorm:"bigint;default:0"`
 }

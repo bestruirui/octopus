@@ -23,5 +23,15 @@ func InitCache() error {
 	if err := llmModelRefreshCache(ctx); err != nil {
 		return err
 	}
+	if err := statsRefreshCache(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func SaveCache() error {
+	if err := StatsSaveDB(); err != nil {
+		return err
+	}
 	return nil
 }
