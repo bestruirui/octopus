@@ -1,3 +1,4 @@
+import { Activity } from './activity';
 
 export function Home() {
     return (
@@ -5,9 +6,7 @@ export function Home() {
             <div className="rounded-3xl bg-card border-card-border border p-6 text-card-foreground custom-shadow">
                 <div className="h-10" />
             </div>
-            <div className="rounded-3xl bg-card border-card-border border  p-6 text-card-foreground custom-shadow">
-                <div className="h-64" />
-            </div>
+            <Activity />
             <div className="rounded-3xl bg-card border-card-border border  p-6 text-card-foreground custom-shadow">
                 <div className="h-64" />
             </div>

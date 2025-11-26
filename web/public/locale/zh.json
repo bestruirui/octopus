@@ -21,5 +21,28 @@
         "key": "密钥",
         "model": "模型",
         "setting": "设置"
+    },
+    "activity": {
+        "requestCount": "请求次数",
+        "inputToken": "输入 Token",
+        "outputToken": "输出 Token",
+        "inputCost": "输入费用",
+        "outputCost": "输出费用",
+        "waitTime": "等待时间",
+        "noData": "无数据"
+    },
+    "total": {
+        "requestStats": "请求统计",
+        "totalStats": "全部统计",
+        "inputStats": "输入统计",
+        "outputStats": "输出统计",
+        "requestCount": "请求次数",
+        "timeConsumed": "消耗时间",
+        "totalToken": "总 Token",
+        "totalCost": "总费用",
+        "inputTokens": "输入 Tokens",
+        "inputCost": "输入费用",
+        "outputTokens": "输出 Tokens",
+        "outputCost": "输出费用"
     }
 }
