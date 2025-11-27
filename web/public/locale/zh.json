@@ -7,7 +7,7 @@
         "password": "密码",
         "passwordPlaceholder": "请输入密码",
         "error": {
-            "generic": "登录失败，请检查用户名和密码"
+            "generic": "登录失败,请检查用户名和密码"
         },
         "button": {
             "loading": "登录中...",
@@ -44,5 +44,18 @@
         "inputCost": "输入费用",
         "outputTokens": "输出 Tokens",
         "outputCost": "输出费用"
+    },
+    "chart": {
+        "requests": "请求次数",
+        "inputTokens": "输入 Token",
+        "outputTokens": "输出 Token",
+        "inputCost": "输入费用",
+        "outputCost": "输出费用",
+        "period": {
+            "last7Days": "过去7天",
+            "last30Days": "过去30天",
+            "last60Days": "过去60天",
+            "last6Months": "过去6个月"
+        }
     }
 }
