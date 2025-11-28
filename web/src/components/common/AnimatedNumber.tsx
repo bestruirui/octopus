@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { animate } from 'framer-motion';
 
 interface AnimatedNumberProps {
     value: string | number | undefined;
@@ -7,12 +8,12 @@ interface AnimatedNumberProps {
 
 export function AnimatedNumber({ value, duration = 800 }: AnimatedNumberProps) {
     const [displayValue, setDisplayValue] = useState(0);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const animationRef = useRef<number | undefined>(undefined);
+    const prevValueRef = useRef(0);
 
     useEffect(() => {
         if (value === undefined || value === null || value === '-') {
             setDisplayValue(0);
+            prevValueRef.current = 0;
             return;
         }
 
@@ -24,35 +25,16 @@ export function AnimatedNumber({ value, duration = 800 }: AnimatedNumberProps) {
             return;
         }
 
-        setIsAnimating(true);
-        const startValue = displayValue;
-        const endValue = numericValue;
-        const startTime = Date.now();
-
-        const animate = () => {
-            const currentTime = Date.now();
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-
-            const easeProgress = 1 - Math.pow(1 - progress, 3);
-            const currentValue = startValue + (endValue - startValue) * easeProgress;
-
-            setDisplayValue(currentValue);
-
-            if (progress < 1) {
-                animationRef.current = requestAnimationFrame(animate);
-            } else {
-                setIsAnimating(false);
+        const controls = animate(prevValueRef.current, numericValue, {
+            duration: duration / 1000, // framer-motion uses seconds
+            ease: 'easeOut',
+            onUpdate: (latest) => {
+                setDisplayValue(latest);
+                prevValueRef.current = latest;
             }
-        };
+        });
 
-        animationRef.current = requestAnimationFrame(animate);
-
-        return () => {
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
-            }
-        };
+        return () => controls.stop();
     }, [value, duration]);
 
     if (value === undefined || value === null) {
