@@ -12,7 +12,7 @@ import { LOADING_VARIANTS, ENTRANCE_VARIANTS } from '@/lib/animations/fluid-tran
 
 export function AppContainer() {
     const { isAuthenticated, isLoading } = useAuth();
-    const { activeItem } = useNavStore();
+    const { activeItem, direction } = useNavStore();
     const t = useTranslations('navbar');
 
     if (isLoading) {
@@ -57,7 +57,35 @@ export function AppContainer() {
                     className="flex items-center gap-x-2 my-6"
                 >
                     <Logo />
-                    <div className="text-3xl font-bold mt-1">{t(activeItem)}</div>
+                    <div className="text-3xl font-bold mt-1 overflow-hidden">
+                        <AnimatePresence mode="wait" custom={direction}>
+                            <motion.div
+                                key={activeItem}
+                                custom={direction}
+                                variants={{
+                                    initial: (direction: number) => ({
+                                        y: 32 * direction,
+                                        opacity: 0
+                                    }),
+                                    animate: {
+                                        y: 0,
+                                        opacity: 1
+                                    },
+                                    exit: (direction: number) => ({
+                                        y: -32 * direction,
+                                        opacity: 0
+                                    })
+                                }}
+                                initial="initial"
+                                animate="animate"
+                                exit="exit"
+                                transition={{ duration: 0.3 }}
+                            >
+                                {t(activeItem)}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+
                 </motion.header>
                 <motion.div
                     variants={ENTRANCE_VARIANTS.content}
