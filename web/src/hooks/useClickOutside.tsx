@@ -2,10 +2,14 @@ import { RefObject, useEffect } from 'react';
 
 function useClickOutside<T extends HTMLElement>(
   ref: RefObject<T>,
-  handler: (event: MouseEvent | TouchEvent) => void
+  handler: (event: MouseEvent | TouchEvent) => void,
+  shouldIgnore?: (event: MouseEvent | TouchEvent) => boolean
 ): void {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (shouldIgnore?.(event)) {
+        return;
+      }
       if (!ref || !ref.current || ref.current.contains(event.target as Node)) {
         return;
       }
@@ -20,7 +24,7 @@ function useClickOutside<T extends HTMLElement>(
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [ref, handler]);
+  }, [ref, handler, shouldIgnore]);
 }
 
 export default useClickOutside;
