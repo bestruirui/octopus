@@ -202,7 +202,14 @@ function MorphingDialogContent({
     },
     (event) => {
       const target = event.target as HTMLElement | null;
-      return !!target?.closest('[data-slot="select-content"]');
+      if (target?.closest('[data-slot="select-content"]')) {
+        return true;
+      }
+      const openSelectContent = document.querySelector('[data-slot="select-content"]');
+      if (openSelectContent) {
+        return true;
+      }
+      return false;
     }
   );
 
@@ -249,12 +256,12 @@ function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
         <>
           <motion.div
             key={`backdrop-${uniqueId}`}
-            className='fixed inset-0 h-full w-full bg-white/40 backdrop-blur-xs dark:bg-black/40 z-60'
+            className='fixed inset-0 h-full w-full bg-white/40 backdrop-blur-xs dark:bg-black/40 z-50'
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
-          <div className='fixed inset-0 z-70 flex items-center justify-center'>
+          <div className='fixed inset-0 z-50 flex items-center justify-center'>
             {children}
           </div>
         </>

@@ -2,11 +2,11 @@ import { RefObject, useEffect } from 'react';
 
 function useClickOutside<T extends HTMLElement>(
   ref: RefObject<T>,
-  handler: (event: MouseEvent | TouchEvent) => void,
-  shouldIgnore?: (event: MouseEvent | TouchEvent) => boolean
+  handler: (event: PointerEvent | TouchEvent) => void,
+  shouldIgnore?: (event: PointerEvent | TouchEvent) => boolean
 ): void {
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+    const handleClickOutside = (event: PointerEvent | TouchEvent) => {
       if (shouldIgnore?.(event)) {
         return;
       }
@@ -17,12 +17,12 @@ function useClickOutside<T extends HTMLElement>(
       handler(event);
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside, true);
+    document.addEventListener('touchstart', handleClickOutside, true);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside, true);
     };
   }, [ref, handler, shouldIgnore]);
 }

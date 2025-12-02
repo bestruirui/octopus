@@ -35,7 +35,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
+    <div className="min-h-screen flex items-center justify-center px-6 text-foreground">
       <div className="w-full max-w-sm space-y-8">
         <header className="flex flex-col items-center gap-3">
           <Logo />

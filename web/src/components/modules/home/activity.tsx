@@ -1,6 +1,6 @@
 'use client';
 
-import { useStatsDaily, type StatsDaily } from '@/api/endpoints/stats';
+import { useStatsDaily, type StatsDailyFormatted } from '@/api/endpoints/stats';
 import { useMemo, useRef, useLayoutEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
@@ -10,13 +10,7 @@ import dayjs from 'dayjs';
 interface StatsDailyData {
     dateStr: string;
     isFuture: boolean;
-    raw: StatsDaily | null;
-    formatted: {
-        wait_time: { value: number; unit: string };
-        request_count: { value: number; unit: string };
-        total_cost: { value: number; unit: string };
-        total_token: { value: number; unit: string };
-    } | null;
+    formatted: StatsDailyFormatted | null;
 }
 
 const ACTIVITY_LEVELS = [
@@ -32,17 +26,15 @@ function getActivityLevel(value: number): number {
 }
 
 export function Activity() {
-    const { data: statsDaily, isLoading } = useStatsDaily();
+    const { data: statsDailyFormatted, isLoading } = useStatsDaily();
     const scrollRef = useRef<HTMLDivElement>(null);
     const t = useTranslations('home.activity');
 
     const [tooltip, setTooltip] = useState<{ day: StatsDailyData; x: number; y: number; visible: boolean } | null>(null);
 
     const days = useMemo(() => {
-        if (!statsDaily) return [];
-
-        const rawMap = new Map(statsDaily.raw.map(stat => [stat.date, stat]));
-        const formattedMap = new Map(statsDaily.formatted.map(stat => [stat.date, stat]));
+        if (!statsDailyFormatted) return [];
+        const formattedMap = new Map(statsDailyFormatted.map(stat => [stat.date, stat]));
 
         const today = dayjs();
         const startDate = today.subtract(today.day() + 53 * 7, 'day');
@@ -56,13 +48,12 @@ export function Activity() {
             result.push({
                 dateStr,
                 isFuture: currentDate.isAfter(today, 'day'),
-                raw: rawMap.get(dateStr) || null,
                 formatted: formattedMap.get(dateStr) || null
             });
         }
 
         return result;
-    }, [statsDaily]);
+    }, [statsDailyFormatted]);
 
     const [maskImage, setMaskImage] = useState('none');
 
@@ -96,7 +87,7 @@ export function Activity() {
     }, [days, isLoading, checkScroll]);
 
     return (
-        <div className="rounded-3xl bg-card border-card-border border custom-shadow">
+        <div className="rounded-3xl bg-card border-card-border border text-card-foreground custom-shadow">
             <div
                 ref={scrollRef}
                 onScroll={checkScroll}
@@ -116,8 +107,7 @@ export function Activity() {
                                 return <div key={day.dateStr} />;
                             }
 
-                            const requestCount = (day.raw?.request_success || 0) + (day.raw?.request_failed || 0);
-                            const level = getActivityLevel(requestCount);
+                            const level = getActivityLevel(day.formatted?.request_count.raw ?? 0);
 
                             return (
                                 <div
@@ -177,7 +167,7 @@ export function Activity() {
                                         ].map((item, index) => (
                                             <Fragment key={index}>
                                                 <span className="wrap-break-word">{t(item.labelKey)}</span>
-                                                <span className="text-foreground font-medium text-right">{item.value}{item.unit}</span>
+                                                <span className="text-foreground font-medium text-right">{item.formatted.value}{item.formatted.unit}</span>
                                             </Fragment>
                                         ))}
                                     </div>

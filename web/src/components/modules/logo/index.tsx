@@ -5,7 +5,7 @@ export default function Logo({ size = 48 }) {
             xmlns="http://www.w3.org/2000/svg"
             width={size}
             height={size}
-            className="text-[#466551] dark:text-[#8fbc8f]"
+            className="text-primary"
         >
             <path d="M50 15 C70 15 85 30 85 50 C85 65 75 75 70 80 M50 15 C30 15 15 30 15 50 C15 65 25 75 30 80" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
             <path d="M30 80 Q30 90 20 90" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />

@@ -187,3 +187,35 @@ export function useDeleteChannel() {
         },
     });
 }
+
+/**
+ * 获取渠道模型列表 Hook
+ * 
+ * @example
+ * const fetchModel = useFetchModel();
+ * 
+ * fetchModel.mutate({
+ *   name: 'OpenAI',
+ *   type: ChannelType.OpenAIChat,
+ *   base_url: 'https://api.openai.com',
+ *   key: 'sk-xxx',
+ *   model: '',
+ *   proxy: false,
+ * });
+ * 
+ * // 在 onSuccess 中获取模型列表
+ * fetchModel.data // ['gpt-4', 'gpt-3.5-turbo', ...]
+ */
+export function useFetchModel() {
+    return useMutation({
+        mutationFn: async (data: CreateChannelRequest) => {
+            return apiClient.post<string[]>('/api/v1/channel/fetch-model', data);
+        },
+        onSuccess: (data) => {
+            logger.log('模型列表获取成功:', data);
+        },
+        onError: (error) => {
+            logger.error('模型列表获取失败:', error);
+        },
+    });
+}

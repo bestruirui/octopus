@@ -11,7 +11,6 @@
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.8",
@@ -23,6 +22,7 @@
     "dayjs": "^1.11.19",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.554.0",
+    "motion": "^12.23.25",
     "next": "16.0.3",
     "next-intl": "^4.5.5",
     "next-themes": "^0.4.6",

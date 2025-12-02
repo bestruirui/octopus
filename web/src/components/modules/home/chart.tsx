@@ -19,19 +19,19 @@ export function StatsChart() {
     const chartData = useMemo(() => {
         if (period === '1') {
             if (!statsHourly) return [];
-            return statsHourly.raw.map((stat) => {
+            return statsHourly.map((stat) => {
                 return {
                     date: `${stat.hour}:00`,
-                    total_cost: stat.input_cost + stat.output_cost,
+                    total_cost: stat.total_cost.raw,
                 };
             });
         } else {
             if (!statsDaily) return [];
             const days = parseInt(period);
-            return statsDaily.raw.slice(-days).map((stat) => {
+            return statsDaily.slice(-days).map((stat) => {
                 return {
                     date: dayjs(stat.date).format('MM/DD'),
-                    total_cost: stat.input_cost + stat.output_cost,
+                    total_cost: stat.total_cost.raw,
                 };
             });
         }
@@ -41,16 +41,16 @@ export function StatsChart() {
         if (period === '1') {
             if (!statsHourly) return { requests: 0, cost: 0 };
             return {
-                requests: statsHourly.raw.reduce((acc, stat) => acc + stat.request_success + stat.request_failed, 0),
-                cost: statsHourly.raw.reduce((acc, stat) => acc + stat.input_cost + stat.output_cost, 0),
+                requests: statsHourly.reduce((acc, stat) => acc + stat.request_count.raw, 0),
+                cost: statsHourly.reduce((acc, stat) => acc + stat.total_cost.raw, 0),
             };
         } else {
             if (!statsDaily) return { requests: 0, cost: 0 };
             const days = parseInt(period);
-            const recentStats = statsDaily.raw.slice(-days);
+            const recentStats = statsDaily.slice(-days);
             return {
-                requests: recentStats.reduce((acc, stat) => acc + stat.request_success + stat.request_failed, 0),
-                cost: recentStats.reduce((acc, stat) => acc + stat.input_cost + stat.output_cost, 0),
+                requests: recentStats.reduce((acc, stat) => acc + stat.request_success.raw + stat.request_failed.raw, 0),
+                cost: recentStats.reduce((acc, stat) => acc + stat.total_cost.raw, 0),
             };
         }
     }, [statsDaily, statsHourly, period]);
@@ -81,16 +81,16 @@ export function StatsChart() {
                     <div>
                         <div className="text-xs text-muted-foreground">{t('totalRequests')}</div>
                         <div className="text-xl font-semibold">
-                            <AnimatedNumber value={formatCount(totals.requests).value} />
-                            <span className="text-base ml-0.5">{formatCount(totals.requests).unit}</span>
+                            <AnimatedNumber value={formatCount(totals.requests).formatted.value} />
+                            <span className="ml-0.5 text-sm text-muted-foreground">{formatCount(totals.requests).formatted.unit}</span>
                         </div>
                     </div>
                     <div className="w-px bg-border self-stretch"></div>
                     <div>
                         <div className="text-xs text-muted-foreground">{t('totalCost')}</div>
                         <div className="text-xl font-semibold">
-                            <AnimatedNumber value={formatMoney(totals.cost).value} />
-                            <span className="text-base ml-0.5">{formatMoney(totals.cost).unit}</span>
+                            <AnimatedNumber value={formatMoney(totals.cost).formatted.value} />
+                            <span className="ml-0.5 text-sm text-muted-foreground">{formatMoney(totals.cost).formatted.unit}</span>
                         </div>
                     </div>
                 </div>
@@ -119,7 +119,7 @@ export function StatsChart() {
                         axisLine={false}
                         tickFormatter={(value) => {
                             const formatted = formatMoney(value);
-                            return `${formatted.value}${formatted.unit}`;
+                            return `${formatted.formatted.value}${formatted.formatted.unit}`;
                         }}
                     />
                     <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />

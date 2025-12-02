@@ -17,13 +17,22 @@ function formatNumber(num: number | undefined, compare: number[], units: string[
   else return { value: toTwoDecimal(num), unit: units[5] };
 }
 
-export function formatCount(num: number | undefined): { value: number, unit: string } {
-  return formatNumber(num, [1000000000, 1000000, 1000, 1], ['', 'B', 'M', 'K', '', '']);
+export function formatCount(num: number | undefined): { raw: number, formatted: { value: number, unit: string } } {
+  return {
+    raw: num ?? 0,
+    formatted: formatNumber(num, [1000000000, 1000000, 1000, 1], ['', 'B', 'M', 'K', '', '']),
+  };
 }
-export function formatMoney(num: number | undefined): { value: number, unit: string } {
-  return formatNumber(num, [1000000000, 1000000, 1000, 1], ['$', 'B$', 'M$', 'K$', '$', '$']);
+export function formatMoney(num: number | undefined): { raw: number, formatted: { value: number, unit: string } } {
+  return {
+    raw: num ?? 0,
+    formatted: formatNumber(num, [1000000000, 1000000, 1000, 1], ['$', 'B$', 'M$', 'K$', '$', '$']),
+  };
 }
 
-export function formatTime(ms: number | undefined): { value: number, unit: string } {
-  return formatNumber(ms, [86400000, 3600000, 60000, 1000], ['', 'd', 'h', 'm', 's', 'ms']);
+export function formatTime(ms: number | undefined): { raw: number, formatted: { value: number, unit: string } } {
+  return {
+    raw: ms ?? 0,
+    formatted: formatNumber(ms, [86400000, 3600000, 60000, 1000], ['', 'd', 'h', 'm', 's', 'ms']),
+  };
 }

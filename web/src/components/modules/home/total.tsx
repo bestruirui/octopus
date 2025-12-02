@@ -20,7 +20,7 @@ import { GRID_CARD_VARIANTS } from '@/lib/animations/fluid-transitions';
 
 
 export function Total() {
-    const { data } = useStatsTotal();
+    const { data: statsTotalFormatted } = useStatsTotal();
     const t = useTranslations('home.total');
 
     const cards = [
@@ -30,19 +30,19 @@ export function Total() {
             items: [
                 {
                     label: t('requestCount'),
-                    value: data?.formatted.request_count.value,
+                    value: statsTotalFormatted?.request_count.formatted.value,
                     icon: MessageSquare,
                     color: 'text-primary',
                     bgColor: 'bg-primary/10',
-                    unit: data?.formatted.request_count.unit
+                    unit: statsTotalFormatted?.request_count.formatted.unit
                 },
                 {
                     label: t('timeConsumed'),
-                    value: data?.formatted.wait_time.value,
+                    value: statsTotalFormatted?.wait_time.formatted.value,
                     icon: Clock,
-                    color: 'text-accent',
+                    color: 'text-card-foreground',
                     bgColor: 'bg-accent/10',
-                    unit: data?.formatted.wait_time.unit
+                    unit: statsTotalFormatted?.wait_time.formatted.unit
                 }
             ]
         },
@@ -52,19 +52,19 @@ export function Total() {
             items: [
                 {
                     label: t('totalToken'),
-                    value: data?.formatted.total_token.value,
+                    value: statsTotalFormatted?.total_token.formatted.value,
                     icon: Bot,
-                    color: 'text-chart-1',
+                    color: 'text-primary',
                     bgColor: 'bg-chart-1/10',
-                    unit: data?.formatted.total_token.unit
+                    unit: statsTotalFormatted?.total_token.formatted.unit
                 },
                 {
                     label: t('totalCost'),
-                    value: data?.formatted.total_cost.value,
+                    value: statsTotalFormatted?.total_cost.formatted.value,
                     icon: DollarSign,
-                    color: 'text-chart-2',
+                    color: 'text-card-foreground',
                     bgColor: 'bg-chart-2/10',
-                    unit: data?.formatted.total_cost.unit
+                    unit: statsTotalFormatted?.total_cost.formatted.unit
                 }
             ]
         },
@@ -74,19 +74,19 @@ export function Total() {
             items: [
                 {
                     label: t('inputTokens'),
-                    value: data?.formatted.input_token.value,
+                    value: statsTotalFormatted?.input_token.formatted.value,
                     icon: Rewind,
-                    color: 'text-chart-3',
+                    color: 'text-primary',
                     bgColor: 'bg-chart-3/10',
-                    unit: data?.formatted.input_token.unit
+                    unit: statsTotalFormatted?.input_token.formatted.unit
                 },
                 {
                     label: t('inputCost'),
-                    value: data?.formatted.input_cost.value,
+                    value: statsTotalFormatted?.input_cost.formatted.value,
                     icon: DollarSign,
-                    color: 'text-chart-3',
+                    color: 'text-card-foreground',
                     bgColor: 'bg-chart-3/10',
-                    unit: data?.formatted.input_cost.unit
+                    unit: statsTotalFormatted?.input_cost.formatted.unit
                 }
             ]
         },
@@ -96,19 +96,19 @@ export function Total() {
             items: [
                 {
                     label: t('outputTokens'),
-                    value: data?.formatted.output_token.value,
+                    value: statsTotalFormatted?.output_token.formatted.value,
                     icon: FastForward,
-                    color: 'text-chart-4',
+                    color: 'text-primary',
                     bgColor: 'bg-chart-4/10',
-                    unit: data?.formatted.output_token.unit
+                    unit: statsTotalFormatted?.output_token.formatted.unit
                 },
                 {
                     label: t('outputCost'),
-                    value: data?.formatted.output_cost.value,
+                    value: statsTotalFormatted?.output_cost.formatted.value,
                     icon: DollarSign,
-                    color: 'text-chart-4',
+                    color: 'text-card-foreground',
                     bgColor: 'bg-chart-4/10',
-                    unit: data?.formatted.output_cost.unit
+                    unit: statsTotalFormatted?.output_cost.formatted.unit
                 }
             ]
         }

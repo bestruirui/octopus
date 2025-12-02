@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { useChannelList } from '@/api/endpoints/channel';
 import { GRID_CARD_VARIANTS } from '@/lib/animations/fluid-transitions';
-import { CreateCard } from './CreateCard';
+import { CreateCard } from './Create';
 import { Card } from './Card';
 
 export function Channel() {

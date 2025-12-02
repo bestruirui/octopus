@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bestruirui/octopus/internal/client"
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/server/middleware"
@@ -30,8 +31,13 @@ func init() {
 		AddRoute(
 			router.NewRoute("/delete/:id", http.MethodDelete).
 				Handle(deleteChannel),
+		).
+		AddRoute(
+			router.NewRoute("/fetch-model", http.MethodPost).
+				Handle(fetchModel),
 		)
 }
+
 func listChannel(c *gin.Context) {
 	channels, err := op.ChannelList(c.Request.Context())
 	if err != nil {
@@ -87,4 +93,17 @@ func deleteChannel(c *gin.Context) {
 		return
 	}
 	resp.Success(c, nil)
+}
+func fetchModel(c *gin.Context) {
+	var request model.Channel
+	if err := c.ShouldBindJSON(&request); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	models, err := client.FetchModel(c.Request.Context(), request)
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp.Success(c, models)
 }
