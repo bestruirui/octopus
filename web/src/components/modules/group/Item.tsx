@@ -113,13 +113,28 @@ export function GroupCard({ group }: { group: Group }) {
 
     const scaleAnim = { initial: { scale: 0 }, animate: { scale: 1 }, exit: { scale: 0 } };
 
-    const handleSaveOrCopy = () => {
+    const handleSaveOrCopy = async () => {
         if (hasChanges) {
             handleSave();
         } else {
-            navigator.clipboard.writeText(group.name);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(group.name);
+                } else {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = group.name;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-9999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                }
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
         }
     };
 
