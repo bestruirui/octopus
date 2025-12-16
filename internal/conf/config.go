@@ -3,6 +3,7 @@ package conf
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/spf13/viper"
@@ -41,6 +42,7 @@ func Load(path string) error {
 
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix(APP_NAME)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	setDefaults()
 

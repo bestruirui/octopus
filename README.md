@@ -2,13 +2,12 @@
 
 <img src="web/public/logo.svg" alt="Octopus Logo" width="120" height="120">
 
-# Octopus
+### Octopus
 
 **为个人打造的简单、美观、优雅的 LLM API 聚合与负载均衡服务**
 
 </div>
 
----
 
 ## ✨ 特性
 
@@ -18,7 +17,6 @@
 - 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪
 - 🎨 **优雅界面** - 简洁美观的 Web 管理面板
 
----
 
 ## 🚀 快速开始
 
@@ -58,7 +56,17 @@ go run main.go start
 
 > ⚠️ **安全提示**：请在首次登录后立即修改默认密码。
 
----
+### 🌐 环境变量
+
+支持通过环境变量自定义配置：
+
+| 环境变量 | 说明 | 默认值 |
+|----------|------|--------|
+| `OCTOPUS_SERVER_PORT` | 服务端口 | `8080` |
+| `OCTOPUS_SERVER_HOST` | 监听地址 | `0.0.0.0` |
+| `OCTOPUS_DATABASE_PATH` | 数据库路径 | `data/data.db` |
+| `OCTOPUS_LOGGING_LEVEL` | 日志级别 | `info` |
+
 
 ## 📸 界面预览
 
@@ -106,9 +114,26 @@ go run main.go start
 </table>
 </div>
 
----
 
 ## 📖 功能说明
+
+### 📡 渠道管理
+
+渠道是连接 LLM 供应商的基础配置单元。
+
+**Base URL 说明：**
+
+程序会根据渠道类型自动补全 API 路径，您只需填写基础 URL 即可：
+
+| 渠道类型 | 自动补全路径 | 填写 URL | 完整请求地址示例 |
+|----------|-------------|----------|-----------------|
+| OpenAI Chat | `/chat/completions` | `https://api.openai.com/v1` | `https://api.openai.com/v1/chat/completions` |
+| OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
+| Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
+
+> 💡 **提示**：填写 Base URL 时无需包含具体的 API 端点路径，程序会自动处理。
+
+---
 
 ### 📁 分组管理
 
