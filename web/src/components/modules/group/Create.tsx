@@ -28,7 +28,6 @@ function MembersSection({
     emptyText,
     channels,
     modelChannels,
-    t,
     showWeight,
 }: {
     members: SelectedMember[];
@@ -40,9 +39,9 @@ function MembersSection({
     emptyText: string;
     channels: { id: number; name: string }[];
     modelChannels: LLMChannel[];
-    t: (key: string) => string;
     showWeight: boolean;
 }) {
+    const t = useTranslations('group');
     const [isAdding, setIsAdding] = useState(false);
     const showEmpty = members.filter((m) => !removingIds.has(m.id)).length === 0 && !isAdding;
 
@@ -127,7 +126,6 @@ function MembersSection({
                                 selectedMembers={members}
                                 onConfirm={(ch) => { onAdd(ch); setIsAdding(false); }}
                                 onCancel={() => setIsAdding(false)}
-                                t={t}
                             />
                         )}
                     </div>
@@ -262,7 +260,6 @@ export function CreateDialogContent() {
                             emptyText={t('form.noItems')}
                             channels={channels}
                             modelChannels={modelChannels}
-                            t={t}
                             showWeight={mode === 4}
                         />
 

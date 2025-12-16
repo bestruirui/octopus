@@ -127,6 +127,10 @@
         }
     },
     "group": {
+        "toast": {
+            "updated": "更新成功",
+            "deleted": "删除成功"
+        },
         "create": {
             "title": "创建分组",
             "submit": "创建",

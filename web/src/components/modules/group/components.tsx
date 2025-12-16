@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { GripVertical, X, Check, Trash2 } from 'lucide-react';
+import { GripVertical, X, Trash2 } from 'lucide-react';
 import { Reorder, useDragControls, motion, AnimatePresence } from 'motion/react';
 import {
     Select,
@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { type LLMChannel } from '@/api/endpoints/model';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { getModelIcon } from '@/lib/model-icons';
 
@@ -25,6 +26,8 @@ export function MemberItem({
     member,
     onRemove,
     onWeightChange,
+    onDragStart,
+    onDragEnd,
     isRemoving,
     index,
     editable = true,
@@ -33,6 +36,8 @@ export function MemberItem({
     member: SelectedMember;
     onRemove: (id: string) => void;
     onWeightChange?: (id: string, weight: number) => void;
+    onDragStart?: () => void;
+    onDragEnd?: () => void;
     isRemoving?: boolean;
     index: number;
     editable?: boolean;
@@ -47,6 +52,8 @@ export function MemberItem({
             value={member}
             dragListener={false}
             dragControls={controls}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
             className={cn('grid transition-[grid-template-rows] duration-200', isRemoving ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]')}
             whileDrag={editable ? { scale: 1.02, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', zIndex: 50 } : undefined}
         >
@@ -136,7 +143,6 @@ export function AddMemberRow({
     selectedMembers,
     onConfirm,
     onCancel,
-    t,
 }: {
     index: number;
     channels: { id: number; name: string }[];
@@ -144,8 +150,8 @@ export function AddMemberRow({
     selectedMembers: SelectedMember[];
     onConfirm: (channel: LLMChannel) => void;
     onCancel: () => void;
-    t: (key: string) => string;
 }) {
+    const t = useTranslations('group');
     const [channelId, setChannelId] = useState('');
 
     // 过滤掉所有模型都已被选择的渠道

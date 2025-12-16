@@ -127,6 +127,10 @@
         }
     },
     "group": {
+        "toast": {
+            "updated": "Updated successfully",
+            "deleted": "Deleted successfully"
+        },
         "create": {
             "title": "Create Group",
             "submit": "Create",
