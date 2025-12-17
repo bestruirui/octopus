@@ -7,6 +7,7 @@ import (
 	"github.com/bestruirui/octopus/internal/conf"
 	_ "github.com/bestruirui/octopus/internal/server/handlers"
 	"github.com/bestruirui/octopus/internal/server/middleware"
+	"github.com/bestruirui/octopus/internal/server/resp"
 	"github.com/bestruirui/octopus/internal/server/router"
 	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/bestruirui/octopus/static"
@@ -24,12 +25,7 @@ func Start() error {
 
 	r := gin.New()
 	r.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"message": "internal server error",
-				"type":    "server_error",
-			},
-		})
+		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		c.Abort()
 	}))
 
