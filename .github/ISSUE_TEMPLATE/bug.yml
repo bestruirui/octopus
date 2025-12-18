@@ -1,32 +1,46 @@
-name: 错误反馈
-description: "提交错误反馈"
+name: Bug 反馈
+description: "报告一个 Bug 或异常行为"
 title: "[Bug] "
 labels: ["bug"]
 body:
   - type: checkboxes
     id: ensure
     attributes:
-      label: 验证步骤
-      description: 在提交之前，请勾选以下选项以证明您已经阅读并理解了以下要求，否则该 issue 将被关闭。
+      label: 提交前确认
+      description: 请确保已完成以下步骤，否则 Issue 可能会被直接关闭。
       options:
-        - label: 我已在 Issue 中寻找过我要提出的问题，并且没有找到
+        - label: 我已搜索过现有 Issue，确认没有重复问题
           required: true
-        - label: 前端BUG我已经在无痕窗口关闭所有拓展后重试，问题依旧存在
-          required: true        
+        - label: 如果是前端问题，我已在无痕模式（禁用所有扩展）下复现，问题仍然存在
+          required: true
   - type: textarea
     attributes:
-      label: 描述
-      description: 请提供错误的详细描述,如果是前端BUG请提供浏览器详细版本信息
+      label: 问题描述
+      description: 请详细描述遇到的问题。如涉及前端问题，请务必在无痕模式下截图，否则 Issue 可能会被关闭。
+      placeholder: 清晰描述你遇到了什么问题...
     validations:
       required: true
   - type: textarea
     attributes:
-      label: 重现方式
-      description: 请提供重现错误的步骤
+      label: 复现步骤
+      description: 请提供能够复现该问题的详细步骤
+      placeholder: |
+        1. 进入 '...'
+        2. 点击 '...'
+        3. 滚动至 '...'
+        4. 出现错误
     validations:
       required: true
   - type: textarea
     attributes:
-      label: 日志
-      description: 在下方附上运行日志
+      label: 相关日志
+      description: 如有相关日志或报错信息，请粘贴在下方
+      render: shell
+  - type: textarea
+    attributes:
+      label: 环境信息
+      description: 请提供浏览器版本、操作系统等相关环境信息
+      placeholder: |
+        - 浏览器: Chrome 120.0.xxx
+        - 操作系统: Windows 11 / macOS 14.x / Ubuntu 22.04
       render: shell
