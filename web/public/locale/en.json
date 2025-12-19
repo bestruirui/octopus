@@ -17,7 +17,7 @@
         "channel": "Channel",
         "group": "Group",
         "key": "Key",
-        "model": "Model",
+        "model": "Price",
         "log": "Log",
         "setting": "Setting"
     },

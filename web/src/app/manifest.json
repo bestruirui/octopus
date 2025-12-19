@@ -80,8 +80,8 @@
       ]
     },
     {
-      "name": "模型管理",
-      "short_name": "模型",
+      "name": "模型价格管理",
+      "short_name": "价格",
       "url": "/model",
       "icons": [
         {

@@ -36,7 +36,7 @@ export function Model() {
     }, [pageKey, searchTerm, setPage]);
 
     useEffect(() => {
-        setPageSize(pageKey, isMobile ? 5 : 15);
+        setPageSize(pageKey, isMobile ? 6 : 18);
     }, [isMobile, pageKey, setPageSize]);
 
     const pagedModels = useMemo(() => {

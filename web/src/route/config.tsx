@@ -24,8 +24,8 @@ const Setting_Module = lazyWithPreload(() => import('@/components/modules/settin
 export const ROUTES: RouteConfig[] = [
     { id: 'home', label: 'Home', icon: Home, component: Home_Module },
     { id: 'channel', label: 'Channel', icon: Radio, component: Channel_Module },
-    { id: 'model', label: 'Model', icon: Sparkles, component: Model_Module },
     { id: 'group', label: 'Group', icon: FolderTree, component: Group_Module },
+    { id: 'model', label: 'Model', icon: Sparkles, component: Model_Module },
     { id: 'log', label: 'Log', icon: Logs, component: Log_Module },
     { id: 'setting', label: 'Setting', icon: Settings, component: Setting_Module },
 ];
