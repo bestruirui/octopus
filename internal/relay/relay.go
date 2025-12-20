@@ -247,6 +247,7 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 	rc.c.Header("X-Accel-Buffering", "no")
 
 	firstToken := true
+	doneSent := false
 	for ev, err := range sse.Read(response.Body, nil) {
 		// 检查客户端是否断开
 		select {
@@ -262,10 +263,20 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 		}
 
 		// 转换流式数据
+		if strings.HasPrefix(ev.Data, "[DONE]") {
+			doneSent = true
+		}
+
 		data, err := rc.transformStreamData(ctx, ev.Data)
 		if err != nil || len(data) == 0 {
 			continue
 		}
+
+		// 检查转换后是否是 [DONE]
+		if strings.Contains(string(data), "[DONE]") {
+			doneSent = true
+		}
+
 		// 记录首个 Token 时间
 		if firstToken {
 			rc.metrics.SetFirstTokenTime(time.Now())
@@ -274,6 +285,15 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 
 		rc.c.Writer.Write(data)
 		rc.c.Writer.Flush()
+	}
+
+	if !doneSent {
+		log.Infof("upstream stream ended without [DONE], sending forced [DONE]")
+		data, _ := rc.transformStreamData(ctx, "[DONE]")
+		if len(data) > 0 {
+			rc.c.Writer.Write(data)
+			rc.c.Writer.Flush()
+		}
 	}
 
 	log.Infof("stream end")
