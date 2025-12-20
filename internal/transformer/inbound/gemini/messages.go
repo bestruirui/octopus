@@ -17,7 +17,7 @@ type MessagesInbound struct {
 }
 
 func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*model.InternalLLMRequest, error) {
-	var geminiReq GenerateContentRequest
+	var geminiReq model.GeminiGenerateContentRequest
 	if err := json.Unmarshal(body, &geminiReq); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal gemini request: %w", err)
 	}
@@ -189,7 +189,7 @@ func (i *MessagesInbound) GetInternalResponse(ctx context.Context) (*model.Inter
 
 // Helper functions
 
-func convertGeminiPartsToText(parts []*Part) string {
+func convertGeminiPartsToText(parts []*model.GeminiPart) string {
 	var texts []string
 	for _, part := range parts {
 		if part.Text != "" {
@@ -202,7 +202,7 @@ func convertGeminiPartsToText(parts []*Part) string {
 	return texts[0] // For simplicity, return first text part
 }
 
-func hasFunctionCall(parts []*Part) bool {
+func hasFunctionCall(parts []*model.GeminiPart) bool {
 	for _, part := range parts {
 		if part.FunctionCall != nil {
 			return true
@@ -211,7 +211,7 @@ func hasFunctionCall(parts []*Part) bool {
 	return false
 }
 
-func hasFunctionResponse(parts []*Part) bool {
+func hasFunctionResponse(parts []*model.GeminiPart) bool {
 	for _, part := range parts {
 		if part.FunctionResponse != nil {
 			return true
@@ -220,7 +220,7 @@ func hasFunctionResponse(parts []*Part) bool {
 	return false
 }
 
-func convertGeminiPartsToToolCalls(parts []*Part) []model.ToolCall {
+func convertGeminiPartsToToolCalls(parts []*model.GeminiPart) []model.ToolCall {
 	toolCalls := make([]model.ToolCall, 0)
 	for idx, part := range parts {
 		if part.FunctionCall != nil {
@@ -240,14 +240,14 @@ func convertGeminiPartsToToolCalls(parts []*Part) []model.ToolCall {
 	return toolCalls
 }
 
-func convertLLMToGeminiResponse(response *model.InternalLLMResponse, isStream bool) *GenerateContentResponse {
-	geminiResp := &GenerateContentResponse{
-		Candidates: []*Candidate{},
+func convertLLMToGeminiResponse(response *model.InternalLLMResponse, isStream bool) *model.GeminiGenerateContentResponse {
+	geminiResp := &model.GeminiGenerateContentResponse{
+		Candidates: []*model.GeminiCandidate{},
 	}
 
 	if len(response.Choices) > 0 {
 		for _, choice := range response.Choices {
-			candidate := &Candidate{
+			candidate := &model.GeminiCandidate{
 				Index: choice.Index,
 			}
 
@@ -266,14 +266,14 @@ func convertLLMToGeminiResponse(response *model.InternalLLMResponse, isStream bo
 			}
 
 			if msg != nil {
-				content := &Content{
+				content := &model.GeminiContent{
 					Role:  "model",
-					Parts: []*Part{},
+					Parts: []*model.GeminiPart{},
 				}
 
 				// Convert text content
 				if msg.Content.Content != nil && *msg.Content.Content != "" {
-					content.Parts = append(content.Parts, &Part{
+					content.Parts = append(content.Parts, &model.GeminiPart{
 						Text: *msg.Content.Content,
 					})
 				}
@@ -284,8 +284,8 @@ func convertLLMToGeminiResponse(response *model.InternalLLMResponse, isStream bo
 						if toolCall.Function.Name != "" {
 							var args map[string]interface{}
 							_ = json.Unmarshal([]byte(toolCall.Function.Arguments), &args)
-							content.Parts = append(content.Parts, &Part{
-								FunctionCall: &FunctionCall{
+							content.Parts = append(content.Parts, &model.GeminiPart{
+								FunctionCall: &model.GeminiFunctionCall{
 									Name: toolCall.Function.Name,
 									Args: args,
 								},
@@ -303,7 +303,7 @@ func convertLLMToGeminiResponse(response *model.InternalLLMResponse, isStream bo
 
 	// Add usage info if present
 	if response.Usage != nil {
-		geminiResp.UsageMetadata = &UsageMetadata{
+		geminiResp.UsageMetadata = &model.GeminiUsageMetadata{
 			PromptTokenCount:     int(response.Usage.PromptTokens),
 			CandidatesTokenCount: int(response.Usage.CompletionTokens),
 			TotalTokenCount:      int(response.Usage.TotalTokens),

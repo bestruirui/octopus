@@ -73,7 +73,7 @@ func (o *MessagesOutbound) TransformResponse(ctx context.Context, response *http
 		return nil, fmt.Errorf("response body is empty")
 	}
 
-	var geminiResp GenerateContentResponse
+	var geminiResp model.GeminiGenerateContentResponse
 	if err := json.Unmarshal(body, &geminiResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal gemini response: %w", err)
 	}
@@ -91,7 +91,7 @@ func (o *MessagesOutbound) TransformStream(ctx context.Context, eventData []byte
 	}
 
 	// Parse Gemini streaming response
-	var geminiResp GenerateContentResponse
+	var geminiResp model.GeminiGenerateContentResponse
 	if err := json.Unmarshal(eventData, &geminiResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal gemini stream chunk: %w", err)
 	}
@@ -102,48 +102,48 @@ func (o *MessagesOutbound) TransformStream(ctx context.Context, eventData []byte
 
 // Helper functions
 
-func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *GenerateContentRequest {
-	geminiReq := &GenerateContentRequest{
-		Contents: []*Content{},
+func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiGenerateContentRequest {
+	geminiReq := &model.GeminiGenerateContentRequest{
+		Contents: []*model.GeminiContent{},
 	}
 
 	// Convert messages
-	var systemInstruction *Content
+	var systemInstruction *model.GeminiContent
 	for _, msg := range request.Messages {
 		switch msg.Role {
 		case "system", "developer":
 			// Collect system messages into system instruction
 			if systemInstruction == nil {
-				systemInstruction = &Content{
-					Parts: []*Part{},
+				systemInstruction = &model.GeminiContent{
+					Parts: []*model.GeminiPart{},
 				}
 			}
 			if msg.Content.Content != nil {
-				systemInstruction.Parts = append(systemInstruction.Parts, &Part{
+				systemInstruction.Parts = append(systemInstruction.Parts, &model.GeminiPart{
 					Text: *msg.Content.Content,
 				})
 			}
 
 		case "user":
-			content := &Content{
+			content := &model.GeminiContent{
 				Role:  "user",
-				Parts: []*Part{},
+				Parts: []*model.GeminiPart{},
 			}
 			if msg.Content.Content != nil {
-				content.Parts = append(content.Parts, &Part{
+				content.Parts = append(content.Parts, &model.GeminiPart{
 					Text: *msg.Content.Content,
 				})
 			}
 			geminiReq.Contents = append(geminiReq.Contents, content)
 
 		case "assistant":
-			content := &Content{
+			content := &model.GeminiContent{
 				Role:  "model",
-				Parts: []*Part{},
+				Parts: []*model.GeminiPart{},
 			}
 			// Handle text content
 			if msg.Content.Content != nil && *msg.Content.Content != "" {
-				content.Parts = append(content.Parts, &Part{
+				content.Parts = append(content.Parts, &model.GeminiPart{
 					Text: *msg.Content.Content,
 				})
 			}
@@ -152,8 +152,8 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *GenerateConte
 				for _, toolCall := range msg.ToolCalls {
 					var args map[string]interface{}
 					_ = json.Unmarshal([]byte(toolCall.Function.Arguments), &args)
-					content.Parts = append(content.Parts, &Part{
-						FunctionCall: &FunctionCall{
+					content.Parts = append(content.Parts, &model.GeminiPart{
+						FunctionCall: &model.GeminiFunctionCall{
 							Name: toolCall.Function.Name,
 							Args: args,
 						},
@@ -164,15 +164,15 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *GenerateConte
 
 		case "tool":
 			// Tool result
-			content := &Content{
+			content := &model.GeminiContent{
 				Role:  "function",
-				Parts: []*Part{},
+				Parts: []*model.GeminiPart{},
 			}
 			if msg.ToolCallID != nil && msg.Content.Content != nil {
 				var response map[string]interface{}
 				_ = json.Unmarshal([]byte(*msg.Content.Content), &response)
-				content.Parts = append(content.Parts, &Part{
-					FunctionResponse: &FunctionResponse{
+				content.Parts = append(content.Parts, &model.GeminiPart{
+					FunctionResponse: &model.GeminiFunctionResponse{
 						Name:     *msg.ToolCallID,
 						Response: response,
 					},
@@ -185,7 +185,7 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *GenerateConte
 	geminiReq.SystemInstruction = systemInstruction
 
 	// Convert generation config
-	config := &GenerationConfig{}
+	config := &model.GeminiGenerationConfig{}
 	hasConfig := false
 
 	if request.MaxTokens != nil {
@@ -221,14 +221,14 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *GenerateConte
 
 	// Convert tools
 	if len(request.Tools) > 0 {
-		tools := []*Tool{}
-		functionDeclarations := []*FunctionDeclaration{}
+		tools := []*model.GeminiTool{}
+		functionDeclarations := []*model.GeminiFunctionDeclaration{}
 
 		for _, tool := range request.Tools {
 			if tool.Type == "function" {
 				var params map[string]interface{}
 				_ = json.Unmarshal(tool.Function.Parameters, &params)
-				funcDecl := &FunctionDeclaration{
+				funcDecl := &model.GeminiFunctionDeclaration{
 					Name:        tool.Function.Name,
 					Description: tool.Function.Description,
 					Parameters:  params,
@@ -238,7 +238,7 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *GenerateConte
 		}
 
 		if len(functionDeclarations) > 0 {
-			tools = append(tools, &Tool{
+			tools = append(tools, &model.GeminiTool{
 				FunctionDeclarations: functionDeclarations,
 			})
 		}
@@ -247,9 +247,10 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *GenerateConte
 	}
 
 	return geminiReq
+
 }
 
-func convertGeminiToLLMResponse(geminiResp *GenerateContentResponse, isStream bool) *model.InternalLLMResponse {
+func convertGeminiToLLMResponse(geminiResp *model.GeminiGenerateContentResponse, isStream bool) *model.InternalLLMResponse {
 	resp := &model.InternalLLMResponse{
 		Choices: []model.Choice{},
 	}
