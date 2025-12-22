@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/bestruirui/octopus/internal/utils/xurl"
 	"github.com/samber/lo"
 )
 
@@ -152,6 +153,30 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiG
 					Text: *msg.Content.Content,
 				})
 			}
+
+			if msg.Content.MultipleContent != nil {
+				for _, part := range msg.Content.MultipleContent {
+					switch part.Type {
+					case "text":
+						content.Parts = append(content.Parts, &model.GeminiPart{
+							Text: *part.Text,
+						})
+					case "image_url":
+						// get mime type from url extension
+						dataurl := xurl.ParseDataURL(part.ImageURL.URL)
+						if dataurl != nil && dataurl.IsBase64 {
+							content.Parts = append(content.Parts, &model.GeminiPart{
+								InlineData: &model.GeminiBlob{
+									MimeType: dataurl.MediaType,
+									Data:     dataurl.Data,
+								},
+							})
+						}
+
+					}
+				}
+			}
+
 			geminiReq.Contents = append(geminiReq.Contents, content)
 
 		case "assistant":
