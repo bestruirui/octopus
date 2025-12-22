@@ -36,8 +36,8 @@
   --sidebar-accent-foreground: oklch(0.9792 0.0091 150.6929);
   --sidebar-border: oklch(0.8795 0.0142 88.6926);
   --sidebar-ring: oklch(0.6205 0.1199 144.8607);
-  --font-sans: "MiSans", sans-serif;
-  --font-serif: "MiSans", serif;
+  --font-sans: var(--font-misans), sans-serif;
+  --font-serif: var(--font-misans), serif;
   --font-mono: monospace;
   --radius: 0.5rem;
   --shadow-x: 0;
@@ -91,9 +91,9 @@
   --sidebar-accent-foreground: oklch(0.2189 0.0281 148.5092);
   --sidebar-border: oklch(0.4006 0.0210 145.1704);
   --sidebar-ring: oklch(0.6990 0.1292 144.8727);
-  --font-sans: "MiSans", sans-serif;
-  --font-serif: "MiSans", serif;
-  --font-mono: "MiSans", monospace;
+  --font-sans: var(--font-misans), sans-serif;
+  --font-serif: var(--font-misans), serif;
+  --font-mono: var(--font-misans), monospace;
   --radius: 0.5rem;
   --shadow-x: 0;
   --shadow-y: 1px;
@@ -204,9 +204,4 @@
   .custom-shadow {
     box-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
   }
-}
-
-@font-face {
-  font-family: 'MiSans';
-  src: url('/MiSans-Normal.woff2');
 }

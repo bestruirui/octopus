@@ -97,6 +97,7 @@ self.addEventListener('fetch', (event) => {
                 const responseToCache = networkResponse.clone();
 
                 // 缓存资源（仅缓存页面和静态资源）
+                const isFont = request.destination === 'font' || /\.(woff2?|ttf|otf|eot)$/i.test(url.pathname);
                 if (
                     request.destination === 'document' ||
                     request.destination === 'script' ||
