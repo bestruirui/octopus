@@ -8,6 +8,7 @@ import { SettingLLMPrice } from './LLMPrice';
 import { SettingAccount } from './Account';
 import { SettingInfo } from './Info';
 import { SettingLLMSync } from './LLMSync';
+import { SettingLog } from './Log';
 
 export function Setting() {
     return (
@@ -23,6 +24,9 @@ export function Setting() {
             </div>
             <div>
                 <SettingSystem key="setting-system" />
+            </div>
+            <div>
+                <SettingLog key="setting-log" />
             </div>
             <div>
                 <SettingAPIKey key="setting-apikey" />

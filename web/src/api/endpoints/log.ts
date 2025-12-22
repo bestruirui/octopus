@@ -162,12 +162,14 @@ export function useLogs(options: { pageSize?: number } = {}) {
     }, [logsQuery.hasNextPage, logsQuery.isFetchingNextPage, logsQuery.fetchNextPage]);
 
     useEffect(() => {
-        let eventSource: EventSource | null = null;
+        let cancelled = false;
 
         const connect = async () => {
             try {
                 const { token } = await apiClient.get<{ token: string }>('/api/v1/log/stream-token');
-                eventSource = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/api/v1/log/stream?token=${token}`);
+                if (cancelled) return;
+
+                const eventSource = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/api/v1/log/stream?token=${token}`);
                 eventSourceRef.current = eventSource;
 
                 eventSource.onopen = () => {
@@ -200,9 +202,11 @@ export function useLogs(options: { pageSize?: number } = {}) {
                 eventSource.onerror = () => {
                     setIsConnected(false);
                     setError(new Error('SSE 连接断开'));
-                    eventSource?.close();
+                    eventSource.close();
+                    eventSourceRef.current = null;
                 };
             } catch (e) {
+                if (cancelled) return;
                 setError(e instanceof Error ? e : new Error('获取 stream token 失败'));
                 logger.error('获取 stream token 失败:', e);
             }
@@ -211,7 +215,8 @@ export function useLogs(options: { pageSize?: number } = {}) {
         connect();
 
         return () => {
-            eventSource?.close();
+            cancelled = true;
+            eventSourceRef.current?.close();
             eventSourceRef.current = null;
             setIsConnected(false);
         };

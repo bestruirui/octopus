@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/server/middleware"
 	"github.com/bestruirui/octopus/internal/server/resp"
@@ -50,17 +49,23 @@ func listLog(c *gin.Context) {
 		pageSize = 20
 	}
 
-	var logs []model.RelayLog
-	var err error
-
+	var startTime, endTime *int
 	if startTimeStr != "" && endTimeStr != "" {
-		startTime, _ := strconv.Atoi(startTimeStr)
-		endTime, _ := strconv.Atoi(endTimeStr)
-		logs, err = op.RelayLogListByTime(c.Request.Context(), startTime, endTime, page, pageSize)
-	} else {
-		logs, err = op.RelayLogList(c.Request.Context(), page, pageSize)
+		st, err := strconv.Atoi(startTimeStr)
+		if err != nil {
+			resp.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		et, err := strconv.Atoi(endTimeStr)
+		if err != nil {
+			resp.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		startTime = &st
+		endTime = &et
 	}
 
+	logs, err := op.RelayLogList(c.Request.Context(), startTime, endTime, page, pageSize)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return

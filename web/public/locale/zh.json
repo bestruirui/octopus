@@ -158,6 +158,23 @@
             "updating": "更新中...",
             "updateSuccess": "更新成功，服务即将重启",
             "updateFailed": "更新失败"
+        },
+        "log": {
+            "title": "日志设置",
+            "enabled": {
+                "label": "启用历史日志"
+            },
+            "keepPeriod": {
+                "label": "日志保存天数",
+                "placeholder": "请输入天数"
+            },
+            "clear": {
+                "label": "清空历史日志",
+                "button": "清空",
+                "clearing": "清空中..."
+            },
+            "clearSuccess": "日志已清空",
+            "clearFailed": "清空失败"
         }
     },
     "group": {

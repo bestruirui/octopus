@@ -13,6 +13,7 @@ import (
 )
 
 const relayLogMaxSize = 20
+const relayLogMaxSizeNoDB = 100 // 当不保存到数据库时，允许更大的缓存用于实时查询
 
 var relayLogCache = make([]model.RelayLog, 0, relayLogMaxSize)
 var relayLogCacheLock sync.Mutex
@@ -78,29 +79,57 @@ func notifySubscribers(relayLog model.RelayLog) {
 }
 
 func RelayLogAdd(ctx context.Context, relayLog model.RelayLog) error {
+	enabled, err := SettingGetBool(model.SettingKeyRelayLogKeepEnabled)
+	if err != nil {
+		return err
+	}
+	maxSize := relayLogMaxSize
+	if !enabled {
+		maxSize = relayLogMaxSizeNoDB
+	}
 	relayLog.ID = snowflake.GenerateID()
-
+	go notifySubscribers(relayLog)
 	relayLogCacheLock.Lock()
 	defer relayLogCacheLock.Unlock()
 	relayLogCache = append(relayLogCache, relayLog)
-	go notifySubscribers(relayLog)
-	if len(relayLogCache) >= relayLogMaxSize {
-		return relayLogSaveDBLocked(ctx)
+	if len(relayLogCache) >= maxSize {
+		if enabled {
+			return relayLogSaveDBLocked(ctx)
+		}
+		// 如果未启用日志保存，移除最旧的日志，保留最新的日志用于实时查询
+		keepSize := maxSize / 2
+		if len(relayLogCache) > keepSize {
+			relayLogCache = relayLogCache[len(relayLogCache)-keepSize:]
+		}
 	}
 	return nil
 }
 
 func RelayLogSaveDBTask(ctx context.Context) error {
+	enabled, err := SettingGetBool(model.SettingKeyRelayLogKeepEnabled)
+	if err != nil {
+		return err
+	}
+
 	relayLogCacheLock.Lock()
 	defer relayLogCacheLock.Unlock()
 
-	if len(relayLogCache) > 0 {
-		if err := relayLogSaveDBLocked(ctx); err != nil {
-			return err
+	if enabled {
+		if len(relayLogCache) > 0 {
+			if err := relayLogSaveDBLocked(ctx); err != nil {
+				return err
+			}
 		}
+		return relayLogCleanup(ctx)
 	}
 
-	return relayLogCleanup(ctx)
+	// 如果未启用日志保存，检查缓存大小，如果超过限制则清理旧日志
+	if len(relayLogCache) > relayLogMaxSizeNoDB {
+		keepSize := relayLogMaxSizeNoDB / 2
+		relayLogCache = relayLogCache[len(relayLogCache)-keepSize:]
+	}
+
+	return nil
 }
 
 func relayLogCleanup(ctx context.Context) error {
@@ -131,57 +160,24 @@ func relayLogSaveDBLocked(ctx context.Context) error {
 	return nil
 }
 
-func RelayLogList(ctx context.Context, page, pageSize int) ([]model.RelayLog, error) {
-	// 获取缓存中的日志（尚未保存到数据库的，这些是最新的）
-	relayLogCacheLock.Lock()
-	cachedLogs := make([]model.RelayLog, len(relayLogCache))
-	copy(cachedLogs, relayLogCache)
-	relayLogCacheLock.Unlock()
-
-	// 反转缓存日志顺序（原本新的在末尾，反转后新的在前面，方便分页）
-	for i, j := 0, len(cachedLogs)-1; i < j; i, j = i+1, j-1 {
-		cachedLogs[i], cachedLogs[j] = cachedLogs[j], cachedLogs[i]
+// RelayLogList 查询日志列表，支持可选的时间范围过滤
+// startTime 和 endTime 为 nil 时表示不限制时间范围
+func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize int) ([]model.RelayLog, error) {
+	enabled, err := SettingGetBool(model.SettingKeyRelayLogKeepEnabled)
+	if err != nil {
+		return nil, err
 	}
+	hasTimeFilter := startTime != nil && endTime != nil
 
-	cacheCount := len(cachedLogs)
-	offset := (page - 1) * pageSize
-
-	var result []model.RelayLog
-
-	// 先从缓存中取（缓存是最新的日志）
-	if offset < cacheCount {
-		cacheEnd := offset + pageSize
-		if cacheEnd > cacheCount {
-			cacheEnd = cacheCount
-		}
-		result = append(result, cachedLogs[offset:cacheEnd]...)
-	}
-
-	// 缓存不够，从数据库补充
-	remaining := pageSize - len(result)
-	if remaining > 0 {
-		// 计算数据库的偏移量：如果 offset 超过了缓存数量，需要跳过数据库中的一些记录
-		dbOffset := 0
-		if offset > cacheCount {
-			dbOffset = offset - cacheCount
-		}
-
-		var dbLogs []model.RelayLog
-		if err := db.GetDB().WithContext(ctx).Order("id DESC").Offset(dbOffset).Limit(remaining).Find(&dbLogs).Error; err != nil {
-			return nil, err
-		}
-		result = append(result, dbLogs...)
-	}
-
-	return result, nil
-}
-
-func RelayLogListByTime(ctx context.Context, startTime, endTime int, page, pageSize int) ([]model.RelayLog, error) {
-	// 获取缓存中符合时间范围的日志
+	// 获取缓存中符合条件的日志
 	relayLogCacheLock.Lock()
 	var cachedLogs []model.RelayLog
 	for _, log := range relayLogCache {
-		if log.Time >= int64(startTime) && log.Time <= int64(endTime) {
+		if hasTimeFilter {
+			if log.Time >= int64(*startTime) && log.Time <= int64(*endTime) {
+				cachedLogs = append(cachedLogs, log)
+			}
+		} else {
 			cachedLogs = append(cachedLogs, log)
 		}
 	}
@@ -206,25 +202,34 @@ func RelayLogListByTime(ctx context.Context, startTime, endTime int, page, pageS
 		result = append(result, cachedLogs[offset:cacheEnd]...)
 	}
 
-	// 缓存不够，从数据库补充
-	remaining := pageSize - len(result)
-	if remaining > 0 {
-		dbOffset := 0
-		if offset > cacheCount {
-			dbOffset = offset - cacheCount
-		}
+	// 如果启用了日志保存，缓存不够时从数据库补充
+	if enabled {
+		remaining := pageSize - len(result)
+		if remaining > 0 {
+			dbOffset := 0
+			if offset > cacheCount {
+				dbOffset = offset - cacheCount
+			}
 
-		var dbLogs []model.RelayLog
-		query := db.GetDB().WithContext(ctx).Where("time >= ? AND time <= ?", startTime, endTime)
-		if err := query.Order("id DESC").Offset(dbOffset).Limit(remaining).Find(&dbLogs).Error; err != nil {
-			return nil, err
+			query := db.GetDB().WithContext(ctx)
+			if hasTimeFilter {
+				query = query.Where("time >= ? AND time <= ?", *startTime, *endTime)
+			}
+
+			var dbLogs []model.RelayLog
+			if err := query.Order("id DESC").Offset(dbOffset).Limit(remaining).Find(&dbLogs).Error; err != nil {
+				return nil, err
+			}
+			result = append(result, dbLogs...)
 		}
-		result = append(result, dbLogs...)
 	}
 
 	return result, nil
 }
 
 func RelayLogClear(ctx context.Context) error {
+	relayLogCacheLock.Lock()
+	relayLogCache = make([]model.RelayLog, 0, relayLogMaxSize)
+	relayLogCacheLock.Unlock()
 	return db.GetDB().WithContext(ctx).Where("1 = 1").Delete(&model.RelayLog{}).Error
 }

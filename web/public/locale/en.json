@@ -158,6 +158,23 @@
             "updating": "Updating...",
             "updateSuccess": "Update successful, service will restart shortly",
             "updateFailed": "Update failed"
+        },
+        "log": {
+            "title": "Log Settings",
+            "enabled": {
+                "label": "Enable History Logs"
+            },
+            "keepPeriod": {
+                "label": "Log Retention (days)",
+                "placeholder": "Enter days"
+            },
+            "clear": {
+                "label": "Clear History Logs",
+                "button": "Clear",
+                "clearing": "Clearing..."
+            },
+            "clearSuccess": "Logs cleared",
+            "clearFailed": "Failed to clear logs"
         }
     },
     "group": {

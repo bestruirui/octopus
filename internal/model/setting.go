@@ -14,6 +14,7 @@ const (
 	SettingKeyModelInfoUpdateInterval SettingKey = "model_info_update_interval" // 模型信息更新间隔(小时)
 	SettingKeySyncLLMInterval         SettingKey = "sync_llm_interval"          // LLM 同步间隔(小时)
 	SettingKeyRelayLogKeepPeriod      SettingKey = "relay_log_keep_period"      // 日志保存时间范围(天)
+	SettingKeyRelayLogKeepEnabled     SettingKey = "relay_log_keep_enabled"     // 是否保留历史日志
 )
 
 type Setting struct {
@@ -26,21 +27,22 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyProxyURL, Value: ""},
 		{Key: SettingKeyModelInfoUpdateInterval, Value: "24"}, // 默认24小时更新一次模型信息
 		{Key: SettingKeySyncLLMInterval, Value: "24"},         // 默认24小时同步一次LLM
+		{Key: SettingKeyRelayLogKeepPeriod, Value: "7"},       // 默认日志保存7天
+		{Key: SettingKeyRelayLogKeepEnabled, Value: "true"},   // 默认保留历史日志
 	}
 }
 
 func (s *Setting) Validate() error {
 	switch s.Key {
-	case SettingKeyModelInfoUpdateInterval:
+	case SettingKeyModelInfoUpdateInterval, SettingKeySyncLLMInterval, SettingKeyRelayLogKeepPeriod:
 		_, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("model info update interval must be an integer")
 		}
 		return nil
-	case SettingKeySyncLLMInterval:
-		_, err := strconv.Atoi(s.Value)
-		if err != nil {
-			return fmt.Errorf("sync LLM interval must be an integer")
+	case SettingKeyRelayLogKeepEnabled:
+		if s.Value != "true" && s.Value != "false" {
+			return fmt.Errorf("relay log keep enabled must be true or false")
 		}
 		return nil
 	case SettingKeyProxyURL:

@@ -58,6 +58,14 @@ func SettingGetInt(key model.SettingKey) (int, error) {
 	return strconv.Atoi(setting)
 }
 
+func SettingGetBool(key model.SettingKey) (bool, error) {
+	setting, ok := settingCache.Get(key)
+	if !ok {
+		return false, fmt.Errorf("setting not found")
+	}
+	return strconv.ParseBool(setting)
+}
+
 func SettingSetInt(key model.SettingKey, value int) error {
 	valueCache, ok := settingCache.Get(key)
 	if !ok {
