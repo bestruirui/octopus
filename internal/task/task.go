@@ -25,6 +25,12 @@ var (
 // Register 注册一个定时任务
 // runOnStart: 是否在启动时立即执行一次
 func Register(name string, interval time.Duration, runOnStart bool, fn func()) {
+	// 如果间隔为0或负数，跳过注册（禁用该任务）
+	if interval <= 0 {
+		log.Infof("task %s disabled (interval: %v)", name, interval)
+		return
+	}
+
 	tasksMu.Lock()
 	defer tasksMu.Unlock()
 
@@ -77,6 +83,12 @@ func RUN() {
 }
 
 func runTask(entry *taskEntry) {
+	// 防御性检查：间隔必须大于0
+	if entry.interval <= 0 {
+		log.Warnf("task %s has non-positive interval, skipping", entry.name)
+		return
+	}
+
 	// 根据配置决定是否在启动时立即执行
 	if entry.runOnStart {
 		go entry.fn()
