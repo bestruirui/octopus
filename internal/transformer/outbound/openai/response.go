@@ -386,8 +386,7 @@ type ResponsesTextFormat struct {
 }
 
 type ResponsesReasoning struct {
-	Effort    string `json:"effort,omitempty"`
-	MaxTokens *int64 `json:"max_tokens,omitempty"`
+	Effort string `json:"effort,omitempty"`
 }
 
 // ResponsesResponse represents the OpenAI Responses API response format.
@@ -482,8 +481,7 @@ func convertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 	// Convert reasoning
 	if req.ReasoningEffort != "" || req.ReasoningBudget != nil {
 		result.Reasoning = &ResponsesReasoning{
-			Effort:    req.ReasoningEffort,
-			MaxTokens: req.ReasoningBudget,
+			Effort: req.ReasoningEffort,
 		}
 	}
 
