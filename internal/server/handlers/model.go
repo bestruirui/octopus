@@ -85,12 +85,15 @@ func getModelList(c *gin.Context) {
 				Type:        "model",
 			})
 		}
-		c.JSON(200, gin.H{
+		response := gin.H{
 			"data":     anthropicModels,
-			"first_id": anthropicModels[0].ID,
 			"has_more": false,
-			"last_id":  anthropicModels[len(anthropicModels)-1].ID,
-		})
+		}
+		if len(anthropicModels) > 0 {
+			response["first_id"] = anthropicModels[0].ID
+			response["last_id"] = anthropicModels[len(anthropicModels)-1].ID
+		}
+		c.JSON(200, response)
 	} else {
 		var openAIModels []model.OpenAIModel
 		for _, m := range models {
