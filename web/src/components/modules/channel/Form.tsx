@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'next-intl';
 import { useState, useRef, useEffect } from 'react';
 import { RefreshCw, X, Plus } from 'lucide-react';
@@ -98,7 +99,14 @@ export function ChannelForm({
                 onSuccess: (data) => {
                     if (data && data.length > 0) {
                         setAutoModels([...new Set([...autoModels, ...data])]);
+                        toast.success(t('modelRefreshSuccess'));
+                    } else {
+                        toast.warning(t('modelRefreshEmpty'));
                     }
+                },
+                onError: (error) => {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    toast.error(t('modelRefreshFailed'), { description: errorMessage });
                 },
             }
         );
