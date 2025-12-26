@@ -300,8 +300,10 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiG
 			if tool.Type == "function" {
 				var params map[string]interface{}
 				_ = json.Unmarshal(tool.Function.Parameters, &params)
-				// Remove $schema property if present
+				// Remove unsupported properties
 				delete(params, "$schema")
+				delete(params, "additionalProperties")
+				cleanGeminiSchema(params)
 				funcDecl := &model.GeminiFunctionDeclaration{
 					Name:        tool.Function.Name,
 					Description: tool.Function.Description,
@@ -482,5 +484,19 @@ func convertGeminiFinishReason(reason string) string {
 		return "content_filter"
 	default:
 		return "stop"
+	}
+}
+
+func cleanGeminiSchema(schema map[string]interface{}) {
+	delete(schema, "additionalProperties")
+	if props, ok := schema["properties"].(map[string]interface{}); ok {
+		for _, prop := range props {
+			if propMap, ok := prop.(map[string]interface{}); ok {
+				cleanGeminiSchema(propMap)
+			}
+		}
+	}
+	if items, ok := schema["items"].(map[string]interface{}); ok {
+		cleanGeminiSchema(items)
 	}
 }
