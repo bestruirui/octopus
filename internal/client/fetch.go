@@ -60,7 +60,7 @@ func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.C
 	return models, nil
 }
 
-// refer: ttps://ai.google.dev/api/models
+// refer: https://ai.google.dev/api/models
 func fetchGeminiModels(client *http.Client, ctx context.Context, request model.Channel) ([]string, error) {
 	var models []string
 	pageToken := ""
@@ -73,7 +73,6 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 			nil,
 		)
 		req.Header.Set("X-Goog-Api-Key", request.Key)
-		req.Header.Set("Authorization", "Bearer "+request.Key)
 
 		if pageToken != "" {
 			q := req.URL.Query()
@@ -121,7 +120,6 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 			nil,
 		)
 		req.Header.Set("X-Api-Key", request.Key)
-		req.Header.Set("Authorization", "Bearer "+request.Key) // 对部分聚合API的兼容
 		req.Header.Set("Anthropic-Version", "2023-06-01")
 
 		// 设置多页参数
