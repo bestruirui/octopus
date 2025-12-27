@@ -28,16 +28,16 @@ export function SettingAppearance() {
                     <SelectTrigger className="w-36 rounded-xl">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="light">
+                    <SelectContent className="rounded-xl">
+                        <SelectItem value="light" className="rounded-xl">
                             <Sun className="h-4 w-4" />
                             {t('theme.light')}
                         </SelectItem>
-                        <SelectItem value="dark">
+                        <SelectItem value="dark" className="rounded-xl">
                             <Moon className="h-4 w-4" />
                             {t('theme.dark')}
                         </SelectItem>
-                        <SelectItem value="system">
+                        <SelectItem value="system" className="rounded-xl">
                             <Monitor className="h-4 w-4" />
                             {t('theme.system')}
                         </SelectItem>
@@ -55,9 +55,9 @@ export function SettingAppearance() {
                     <SelectTrigger className="w-36 rounded-xl">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="zh">{t('language.zh')}</SelectItem>
-                        <SelectItem value="en">{t('language.en')}</SelectItem>
+                    <SelectContent className="rounded-xl">
+                        <SelectItem value="zh" className="rounded-xl">{t('language.zh')}</SelectItem>
+                        <SelectItem value="en" className="rounded-xl">{t('language.en')}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

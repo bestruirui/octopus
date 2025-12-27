@@ -248,6 +248,7 @@
             "versionMismatchHint": "Frontend version ({frontend}) does not match backend version ({backend}). This may be a browser cache issue. Please force refresh the page.",
             "forceRefresh": "Force Refresh",
             "newVersionAvailable": "New version available",
+            "newVersionAvailableHint": "Please backup your data first, then update the system",
             "updateNow": "Update Now",
             "updating": "Updating...",
             "updateSuccess": "Update successful, service will restart shortly",

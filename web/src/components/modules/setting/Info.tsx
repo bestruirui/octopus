@@ -141,9 +141,14 @@ export function SettingInfo() {
                 <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl space-y-2">
                     <div className="flex items-start gap-3">
                         <Download className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                        <p className="text-sm text-primary font-medium">
-                            {t('info.newVersionAvailable')}
-                        </p>
+                        <div className="flex-1 space-y-1">
+                            <p className="text-sm text-primary font-medium">
+                                {t('info.newVersionAvailable')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {t('info.newVersionAvailableHint')}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex justify-end">
                         <Button
