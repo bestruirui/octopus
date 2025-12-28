@@ -9,6 +9,7 @@ import { type StatsMetricsFormatted } from '@/api/endpoints/stats';
 import { type Channel } from '@/api/endpoints/channel';
 import { CardContent } from './CardContent';
 import { useTranslations } from 'next-intl';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/animate-ui/components/animate/tooltip';
 
 export function Card({ channel, stats }: { channel: Channel; stats: StatsMetricsFormatted }) {
     const t = useTranslations('channel.card');
@@ -18,11 +19,14 @@ export function Card({ channel, stats }: { channel: Channel; stats: StatsMetrics
         <MorphingDialog>
             <MorphingDialogTrigger className="w-full">
                 <article className="relative flex h-54 flex-col justify-between gap-5 rounded-3xl border border-border bg-card text-card-foreground p-4 custom-shadow transition-all duration-300 hover:scale-[1.02]">
-                    <header className="relative flex items-start justify-between">
-                        <h3 className="text-lg font-bold">
-                            {channel.name}
-                        </h3>
-                        <p className={`rounded-xl px-3 py-1 text-xs ${statusClasses}`}>
+                    <header className="relative flex items-start justify-between gap-2">
+                        <Tooltip side="top" sideOffset={10} align="center">
+                            <TooltipTrigger asChild>
+                                <h3 className="text-lg font-bold truncate min-w-0">{channel.name}</h3>
+                            </TooltipTrigger>
+                            <TooltipContent>{channel.name}</TooltipContent>
+                        </Tooltip>
+                        <p className={`shrink-0 rounded-xl px-3 py-1 text-xs ${statusClasses}`}>
                             {channel.enabled ? t('status.enabled') : t('status.disabled')}
                         </p>
                     </header>
