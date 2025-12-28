@@ -77,68 +77,70 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		return
 	}
 
-	// 负载均衡选择通道
-	b := balancer.GetBalancer(group.Mode)
-	item := b.Select(group.Items)
-	if item == nil {
-		resp.Error(c, http.StatusServiceUnavailable, "no available channel")
-		return
-	}
-
-	const maxRetries = 3
+	const maxRounds = 3
 	var lastErr error
-	for attempt := 0; item != nil && attempt < maxRetries; attempt++ {
-		select {
-		case <-c.Request.Context().Done():
-			log.Infof("request context canceled, stopping retry")
+	itemCount := len(group.Items)
+	b := balancer.GetBalancer(group.Mode)
+	for round := 0; round < maxRounds; round++ {
+		item := b.Select(group.Items)
+		if item == nil {
+			resp.Error(c, http.StatusServiceUnavailable, "no available channel")
 			return
-		default:
 		}
 
-		channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
-		if err != nil {
-			log.Warnf("failed to get channel: %v", err)
-			lastErr = err
+		for i := 0; i < itemCount; i++ {
+			select {
+			case <-c.Request.Context().Done():
+				log.Infof("request context canceled, stopping retry")
+				return
+			default:
+			}
+
+			channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
+			if err != nil {
+				log.Warnf("failed to get channel: %v", err)
+				lastErr = err
+				item = b.Next(group.Items, item)
+				continue
+			}
+			if channel.Enabled == false {
+				log.Warnf("channel %s is disabled", channel.Name)
+				lastErr = fmt.Errorf("channel %s is disabled", channel.Name)
+				item = b.Next(group.Items, item)
+				continue
+			}
+
+			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (round %d/%d, item %d/%d)", internalRequest.Model, group.Mode, channel.Name, item.ModelName, round+1, maxRounds, i+1, itemCount)
+
+			internalRequest.Model = item.ModelName
+			metrics.SetChannel(channel.ID, channel.Name, item.ModelName)
+
+			outAdapter := outbound.Get(channel.Type)
+			if outAdapter == nil {
+				log.Warnf("unsupported channel type: %d for channel: %s", channel.Type, channel.Name)
+				lastErr = fmt.Errorf("unsupported channel type: %d", channel.Type)
+				item = b.Next(group.Items, item)
+				continue
+			}
+
+			rc := &relayContext{
+				c:               c,
+				inAdapter:       inAdapter,
+				outAdapter:      outAdapter,
+				internalRequest: internalRequest,
+				channel:         channel,
+				metrics:         metrics,
+			}
+
+			if err := rc.forward(); err == nil {
+				rc.collectResponse()
+				metrics.Save(c.Request.Context(), true, nil)
+				return
+			} else {
+				lastErr = fmt.Errorf("channel %s failed: %v", channel.Name, err)
+			}
 			item = b.Next(group.Items, item)
-			continue
 		}
-		if channel.Enabled == false {
-			log.Warnf("channel %s is disabled", channel.Name)
-			lastErr = fmt.Errorf("channel %s is disabled", channel.Name)
-			item = b.Next(group.Items, item)
-			continue
-		}
-
-		log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d)", internalRequest.Model, group.Mode, channel.Name, item.ModelName, attempt+1, maxRetries)
-
-		internalRequest.Model = item.ModelName
-		metrics.SetChannel(channel.ID, channel.Name, item.ModelName)
-
-		outAdapter := outbound.Get(channel.Type)
-		if outAdapter == nil {
-			log.Warnf("unsupported channel type: %d for channel: %s", channel.Type, channel.Name)
-			lastErr = fmt.Errorf("unsupported channel type: %d", channel.Type)
-			item = b.Next(group.Items, item)
-			continue
-		}
-
-		rc := &relayContext{
-			c:               c,
-			inAdapter:       inAdapter,
-			outAdapter:      outAdapter,
-			internalRequest: internalRequest,
-			channel:         channel,
-			metrics:         metrics,
-		}
-
-		if err := rc.forward(); err == nil {
-			rc.collectResponse()
-			metrics.Save(c.Request.Context(), true, nil)
-			return
-		} else {
-			lastErr = fmt.Errorf("channel %s failed: %v", channel.Name, err)
-		}
-		item = b.Next(group.Items, item)
 	}
 
 	// 所有通道都失败
