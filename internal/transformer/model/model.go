@@ -407,7 +407,7 @@ type ResponseFormat struct {
 	// Any of "json_schema", "json_object", "text".
 	Type string `json:"type"`
 	// TODO: Schema
-	// json.RawMessage `json:"schema,omitempty"`
+	JSONSchema json.RawMessage `json:"json_schema,omitempty"`
 }
 
 // Response is the unified response model.
