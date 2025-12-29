@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/bestruirui/octopus/internal/utils/tokenizer"
 	"github.com/bestruirui/octopus/internal/utils/xurl"
 	"github.com/samber/lo"
 )
@@ -23,6 +24,7 @@ type MessagesInbound struct {
 	contentIndex              int64
 	stopReason                *string
 	toolCallIndices           map[int]bool // Track which tool call indices we've seen
+	inputToken                int64
 
 	// Stream chunks storage for aggregation
 	streamChunks []*model.InternalLLMResponse
@@ -62,6 +64,7 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 					Content: systemContent,
 				},
 			})
+			i.inputToken += int64(tokenizer.CountTokens(*systemContent, chatReq.Model))
 		} else if len(anthropicReq.System.MultiplePrompts) > 0 {
 			// Mark that system was originally in array format
 			chatReq.TransformerMetadata["anthropic_system_array_format"] = "true"
@@ -74,6 +77,7 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 					},
 					CacheControl: convertToLLMCacheControl(prompt.CacheControl),
 				}
+				i.inputToken += int64(tokenizer.CountTokens(prompt.Text, chatReq.Model))
 				messages = append(messages, msg)
 			}
 		}
@@ -97,6 +101,7 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 				Content: msg.Content.Content,
 			}
 			hasContent = true
+			i.inputToken += int64(tokenizer.CountTokens(*msg.Content.Content, chatReq.Model))
 		} else if len(msg.Content.MultipleContent) > 0 {
 			contentParts := make([]model.MessageContentPart, 0, len(msg.Content.MultipleContent))
 
@@ -125,6 +130,7 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 						Text:         block.Text,
 						CacheControl: convertToLLMCacheControl(block.CacheControl),
 					})
+					i.inputToken += int64(tokenizer.CountTokens(*block.Text, chatReq.Model))
 					hasContent = true
 				case "image":
 					if block.Source != nil {
@@ -173,6 +179,7 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 										Type: "text",
 										Text: contentBlock.Text,
 									})
+									i.inputToken += int64(tokenizer.CountTokens(*contentBlock.Text, chatReq.Model))
 								}
 							}
 
@@ -254,7 +261,11 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 				CacheControl: convertToLLMCacheControl(tool.CacheControl),
 			}
 			tools = append(tools, llmTool)
+			i.inputToken += int64(tokenizer.CountTokens(tool.Name, chatReq.Model))
+			i.inputToken += int64(tokenizer.CountTokens(tool.Description, chatReq.Model))
+			i.inputToken += int64(tokenizer.CountTokens(string(tool.InputSchema), chatReq.Model))
 		}
+		i.inputToken += int64(len(tools) * 3)
 
 		chatReq.Tools = tools
 	}
@@ -277,7 +288,6 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 		chatReq.ReasoningEffort = thinkingBudgetToReasoningEffort(anthropicReq.Thinking.BudgetTokens)
 		chatReq.ReasoningBudget = lo.ToPtr(anthropicReq.Thinking.BudgetTokens)
 	}
-
 	return chatReq, nil
 }
 
@@ -450,7 +460,7 @@ func (i *MessagesInbound) TransformStream(ctx context.Context, stream *model.Int
 		i.hasStarted = true
 
 		usage := &Usage{
-			InputTokens:  1,
+			InputTokens:  i.inputToken,
 			OutputTokens: 1,
 		}
 		if stream.Usage != nil {
