@@ -26,7 +26,7 @@ func APIKeyUpdate(key *model.APIKey, ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("API key not found")
 	}
-	if err := db.GetDB().WithContext(ctx).Model(key).Omit("api_key").Updates(key).Error; err != nil {
+	if err := db.GetDB().WithContext(ctx).Omit("api_key").Save(key).Error; err != nil {
 		return fmt.Errorf("failed to update API key: %w", err)
 	}
 	key.APIKey = existing.APIKey
