@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
-import { Check, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Check, ChevronDownIcon, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { useModelChannelList, type LLMChannel } from '@/api/endpoints/model';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { getModelIcon } from '@/lib/model-icons';
 import type { GroupMode } from '@/api/endpoints/group';
@@ -82,7 +83,7 @@ function ModelPickerSection({
             </div>
 
             <div className="h-96 overflow-y-auto p-2">
-                <Accordion type="multiple" className="w-full">
+                <Accordion type="multiple" className="w-full space-y-2">
                     {channels.map((channel) => {
                         const total = channel.models.length;
                         const selectedCount = channel.models.reduce(
@@ -92,16 +93,17 @@ function ModelPickerSection({
                         const available = total - selectedCount;
 
                         return (
-                            <AccordionItem key={channel.id} value={`channel-${channel.id}`} className="border-b last:border-b-0">
-                                <AccordionTrigger className="px-2">
-                                    <div className="flex items-center justify-between w-full gap-2">
+                            <AccordionItem key={channel.id} value={`channel-${channel.id}`}>
+                                <AccordionPrimitive.Header className="rounded-lg bg-muted sticky top-0 z-10 flex px-2 overflow-hidden">
+                                    <AccordionPrimitive.Trigger className="flex flex-1 min-w-0 items-center gap-4 py-4 text-left text-sm transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180">
                                         <span className="truncate">{channel.name}</span>
-                                        <span className="text-xs text-muted-foreground font-normal shrink-0">
+                                        <span className="text-xs text-muted-foreground shrink-0">
                                             {available}/{total}
                                         </span>
-                                    </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="px-2">
+                                        <ChevronDownIcon className="text-muted-foreground pointer-events-none size-4 shrink-0 transition-transform duration-200" />
+                                    </AccordionPrimitive.Trigger>
+                                </AccordionPrimitive.Header>
+                                <AccordionContent className="px-2 pt-2">
                                     <div className="flex flex-col gap-1.5">
                                         {channel.models.map((m) => {
                                             const isSelected = selectedKeys.has(memberKey(m));
