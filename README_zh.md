@@ -169,7 +169,7 @@ go run . start
 | `OCTOPUS_DATABASE_TYPE` | `database.type` |
 | `OCTOPUS_DATABASE_PATH` | `database.path` |
 | `OCTOPUS_LOG_LEVEL` | `log.level` |
-
+| `OCTOPUS_GITHUB_PAT` | 用于获取最新版本时的速率限制(可选) |
 
 ## 📸 界面预览
 

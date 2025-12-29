@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/bestruirui/octopus/internal/client"
+	"github.com/bestruirui/octopus/internal/conf"
 	"github.com/bestruirui/octopus/internal/utils/log"
 )
 
@@ -27,6 +29,8 @@ type LatestInfo struct {
 	Body        string `json:"body"`
 	Message     string `json:"message"`
 }
+
+var github_pat = os.Getenv(strings.ToUpper(conf.APP_NAME) + "_GITHUB_PAT")
 
 // doRequestWithFallback performs an HTTP GET request, first without proxy, then with proxy if failed.
 func doRequestWithFallback(url string) ([]byte, error) {
@@ -51,6 +55,10 @@ func doRequest(url string, useProxy bool) ([]byte, error) {
 	if err != nil {
 		log.Debugf("new request failed: %v", err)
 		return nil, err
+	}
+
+	if github_pat != "" {
+		req.Header.Set("Authorization", "Bearer "+github_pat)
 	}
 
 	resp, err := hc.Do(req)

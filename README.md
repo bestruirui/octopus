@@ -169,7 +169,7 @@ All configuration options can be overridden via environment variables using the 
 | `OCTOPUS_DATABASE_TYPE` | `database.type` |
 | `OCTOPUS_DATABASE_PATH` | `database.path` |
 | `OCTOPUS_LOG_LEVEL` | `log.level` |
-
+| `OCTOPUS_GITHUB_PAT` | For rate limiting when getting the latest version (optional) |
 
 ## 📸 Screenshots
 
