@@ -378,7 +378,7 @@ type MessageContentPart struct {
 	ImageURL *ImageURL `json:"image_url,omitempty"`
 
 	// Audio is the audio content, required when type is "input_audio"
-	Audio *Audio `json:"audio,omitempty"`
+	Audio *Audio `json:"input_audio,omitempty"`
 
 	// CacheControl is used for provider-specific cache control (e.g., Anthropic).
 	// This field is not serialized in JSON.

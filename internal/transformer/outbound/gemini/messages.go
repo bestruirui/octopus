@@ -120,6 +120,25 @@ func reasoningToThinkingBudget(effort string) int32 {
 	}
 }
 
+func audioTypeToMimeType(format string) string {
+	switch format {
+	case "wav":
+		return "audio/wav"
+	case "mp3":
+		return "audio/mp3"
+	case "aiff":
+		return "audio/aiff"
+	case "aac":
+		return "audio/aac"
+	case "ogg":
+		return "audio/ogg"
+	case "flac":
+		return "audio/flac"
+	default:
+		return "audio/wav"
+	}
+}
+
 func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiGenerateContentRequest {
 	geminiReq := &model.GeminiGenerateContentRequest{
 		Contents: []*model.GeminiContent{},
@@ -174,7 +193,15 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiG
 								},
 							})
 						}
-
+					case "input_audio":
+						if part.Audio != nil {
+							content.Parts = append(content.Parts, &model.GeminiPart{
+								InlineData: &model.GeminiBlob{
+									MimeType: audioTypeToMimeType(part.Audio.Format),
+									Data:     part.Audio.Data,
+								},
+							})
+						}
 					}
 				}
 			}
