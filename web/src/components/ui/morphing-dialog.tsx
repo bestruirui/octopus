@@ -25,7 +25,7 @@ export type MorphingDialogContextType = {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   uniqueId: string;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  triggerRef: React.RefObject<HTMLDivElement | null>;
 };
 
 const MorphingDialogContext =
@@ -52,7 +52,7 @@ function MorphingDialogProvider({
 }: MorphingDialogProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const uniqueId = useId();
-  const triggerRef = useRef<HTMLButtonElement>(null!);
+  const triggerRef = useRef<HTMLDivElement>(null!);
 
   const contextValue = useMemo(
     () => ({
@@ -88,23 +88,23 @@ export type MorphingDialogTriggerProps = {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  triggerRef?: React.RefObject<HTMLButtonElement>;
+  triggerRef?: React.RefObject<HTMLDivElement>;
 };
 
 function MorphingDialogTrigger({
   children,
   className,
   style,
-  triggerRef,
+  triggerRef: triggerRefProp,
 }: MorphingDialogTriggerProps) {
-  const { setIsOpen, isOpen, uniqueId } = useMorphingDialog();
+  const { setIsOpen, isOpen, uniqueId, triggerRef } = useMorphingDialog();
 
   const handleClick = useCallback(() => {
     setIsOpen(!isOpen);
   }, [isOpen, setIsOpen]);
 
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         setIsOpen(!isOpen);
@@ -114,8 +114,8 @@ function MorphingDialogTrigger({
   );
 
   return (
-    <motion.button
-      ref={triggerRef}
+    <motion.div
+      ref={triggerRefProp ?? triggerRef}
       layoutId={`dialog-${uniqueId}`}
       className={cn('relative cursor-pointer', className)}
       onClick={handleClick}
@@ -125,9 +125,11 @@ function MorphingDialogTrigger({
       aria-expanded={isOpen}
       aria-controls={`motion-ui-morphing-dialog-content-${uniqueId}`}
       aria-label={`Open dialog ${uniqueId}`}
+      role='button'
+      tabIndex={0}
     >
       {children}
-    </motion.button>
+    </motion.div>
   );
 }
 
