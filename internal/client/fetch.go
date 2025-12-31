@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -18,16 +17,13 @@ func FetchLLMName(ctx context.Context, request model.Channel) ([]string, error) 
 	}
 
 	switch request.Type {
-	case outbound.OutboundTypeOpenAIChat, outbound.OutboundTypeOpenAIResponse, outbound.OutboundTypeVolcengine:
-		return fetchOpenAIModels(client, ctx, request)
 	case outbound.OutboundTypeAnthropic:
 		return fetchAnthropicModels(client, ctx, request)
 	case outbound.OutboundTypeGemini:
 		return fetchGeminiModels(client, ctx, request)
 	default:
-		return nil, fmt.Errorf("unsupported provider: %v", request.Type)
+		return fetchOpenAIModels(client, ctx, request)
 	}
-
 }
 
 // refer: https://platform.openai.com/docs/api-reference/models/list
@@ -61,7 +57,7 @@ func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.C
 
 // refer: https://ai.google.dev/api/models
 func fetchGeminiModels(client *http.Client, ctx context.Context, request model.Channel) ([]string, error) {
-	var models []string
+	var allModels []string
 	pageToken := ""
 
 	for {
@@ -93,7 +89,7 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 
 		for _, m := range result.Models {
 			name := strings.TrimPrefix(m.Name, "models/")
-			models = append(models, name)
+			allModels = append(allModels, name)
 		}
 
 		if result.NextPageToken == "" {
@@ -101,8 +97,10 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 		}
 		pageToken = result.NextPageToken
 	}
-
-	return models, nil
+	if len(allModels) == 0 {
+		return fetchOpenAIModels(client, ctx, request)
+	}
+	return allModels, nil
 }
 
 // refer: https://platform.claude.com/docs
