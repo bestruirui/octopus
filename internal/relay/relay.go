@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +23,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tmaxmax/go-sse"
 )
+
+const defaultMaxSSEEventSize = 2 * 1024 * 1024
+
+func maxSSEEventSize() int {
+	if raw := strings.TrimSpace(os.Getenv("OCTOPUS_RELAY_MAX_SSE_EVENT_SIZE")); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			return v
+		}
+	}
+	return defaultMaxSSEEventSize
+}
 
 // hopByHopHeaders 定义不应转发的 HTTP 头
 var hopByHopHeaders = map[string]bool{
@@ -137,6 +150,12 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 				metrics.Save(c.Request.Context(), true, nil)
 				return
 			} else {
+				if c.Writer.Written() {
+					// Streaming responses may have already started; retrying would corrupt the client stream.
+					rc.collectResponse()
+					metrics.Save(c.Request.Context(), false, err)
+					return
+				}
 				lastErr = fmt.Errorf("channel %s failed: %v", channel.Name, err)
 			}
 			item = b.Next(group.Items, item)
@@ -254,7 +273,8 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 	rc.c.Header("X-Accel-Buffering", "no")
 
 	firstToken := true
-	for ev, err := range sse.Read(response.Body, nil) {
+	readCfg := &sse.ReadConfig{MaxEventSize: maxSSEEventSize()}
+	for ev, err := range sse.Read(response.Body, readCfg) {
 		// 检查客户端是否断开
 		select {
 		case <-ctx.Done():
@@ -265,7 +285,7 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 
 		if err != nil {
 			log.Warnf("failed to read event: %v", err)
-			break
+			return fmt.Errorf("failed to read stream event: %w", err)
 		}
 
 		// 转换流式数据
