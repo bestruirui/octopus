@@ -1,6 +1,6 @@
 import type { InfiniteData } from '@tanstack/react-query';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../client';
+import { apiClient, API_BASE_URL } from '../client';
 import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -36,10 +36,10 @@ export interface LogListParams {
 
 /**
  * 清空日志 Hook
- * 
+ *
  * @example
  * const clearLogs = useClearLogs();
- * 
+ *
  * clearLogs.mutate();
  */
 export function useClearLogs() {
@@ -64,13 +64,13 @@ const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize
 /**
  * 日志管理 Hook
  * 整合初始加载、SSE 实时推送、滚动加载更多
- * 
+ *
  * @example
  * const { logs, isConnected, hasMore, isLoadingMore, loadMore, clear } = useLogs();
- * 
+ *
  * // logs 自动包含历史日志和实时日志，按时间倒序
  * logs.forEach(log => console.log(log.request_model_name));
- * 
+ *
  * // 滚动到底部时加载更多
  * if (hasMore && !isLoadingMore) loadMore();
  */
@@ -137,7 +137,7 @@ export function useLogs(options: { pageSize?: number } = {}) {
                 const { token } = await apiClient.get<{ token: string }>('/api/v1/log/stream-token');
                 if (cancelled) return;
 
-                const eventSource = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/api/v1/log/stream?token=${token}`);
+                const eventSource = new EventSource(`${API_BASE_URL}/api/v1/log/stream?token=${token}`);
                 eventSourceRef.current = eventSource;
 
                 eventSource.onopen = () => {
