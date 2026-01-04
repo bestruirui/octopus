@@ -25,6 +25,46 @@ import {
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
 
+interface EditDialogContentProps {
+    group: Group;
+    displayMembers: SelectedMember[];
+    isSubmitting: boolean;
+    onSubmit: (values: GroupEditorValues, onDone?: () => void) => void;
+}
+
+function EditDialogContent({ group, displayMembers, isSubmitting, onSubmit }: EditDialogContentProps) {
+    const { setIsOpen } = useMorphingDialog();
+    const t = useTranslations('group');
+    return (
+        <div className="w-screen max-w-full md:max-w-4xl">
+            <MorphingDialogTitle>
+                <header className="mb-5 flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-card-foreground">
+                        {t('detail.actions.edit')}
+                    </h2>
+                    <MorphingDialogClose className="relative right-0 top-0" />
+                </header>
+            </MorphingDialogTitle>
+            <MorphingDialogDescription>
+                <GroupEditor
+                    key={`edit-group-${group.id}`}
+                    initial={{
+                        name: group.name,
+                        match_regex: group.match_regex ?? '',
+                        mode: group.mode,
+                        members: displayMembers,
+                    }}
+                    submitText={t('detail.actions.save')}
+                    submittingText={t('create.submitting')}
+                    isSubmitting={isSubmitting}
+                    onCancel={() => setIsOpen(false)}
+                    onSubmit={(v) => onSubmit(v, () => setIsOpen(false))}
+                />
+            </MorphingDialogDescription>
+        </div>
+    );
+}
+
 export function GroupCard({ group }: { group: Group }) {
     const t = useTranslations('group');
     const updateGroup = useUpdateGroup();
@@ -207,39 +247,6 @@ export function GroupCard({ group }: { group: Group }) {
         });
     }, [group.id, group.items, group.match_regex, group.mode, group.name, onSuccess, onError, updateGroup]);
 
-    function EditDialogContent() {
-        const { setIsOpen } = useMorphingDialog();
-        const t = useTranslations('group');
-        return (
-            <div className="w-screen max-w-full md:max-w-4xl">
-                <MorphingDialogTitle>
-                    <header className="mb-5 flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-card-foreground">
-                            {t('detail.actions.edit')}
-                        </h2>
-                        <MorphingDialogClose className="relative right-0 top-0" />
-                    </header>
-                </MorphingDialogTitle>
-                <MorphingDialogDescription>
-                    <GroupEditor
-                        key={`edit-group-${group.id}-${group.name}-${group.match_regex}-${group.mode}-${group.items?.length ?? 0}`}
-                        initial={{
-                            name: group.name,
-                            match_regex: group.match_regex ?? '',
-                            mode: group.mode,
-                            members: displayMembers,
-                        }}
-                        submitText={t('detail.actions.save')}
-                        submittingText={t('create.submitting')}
-                        isSubmitting={updateGroup.isPending}
-                        onCancel={() => setIsOpen(false)}
-                        onSubmit={(v) => handleSubmitEdit(v, () => setIsOpen(false))}
-                    />
-                </MorphingDialogDescription>
-            </div>
-        );
-    }
-
     return (
         <article className="flex flex-col rounded-3xl border border-border bg-card text-card-foreground p-4 custom-shadow">
             <header className="flex items-start justify-between mb-3 relative overflow-visible rounded-xl -mx-1 px-1 -my-1 py-1">
@@ -265,7 +272,12 @@ export function GroupCard({ group }: { group: Group }) {
 
                         <MorphingDialogContainer>
                             <MorphingDialogContent className="w-fit max-w-full bg-card text-card-foreground px-6 py-4 rounded-3xl custom-shadow max-h-[90vh] overflow-y-auto">
-                                <EditDialogContent />
+                                <EditDialogContent
+                                    group={group}
+                                    displayMembers={displayMembers}
+                                    isSubmitting={updateGroup.isPending}
+                                    onSubmit={handleSubmitEdit}
+                                />
                             </MorphingDialogContent>
                         </MorphingDialogContainer>
                     </MorphingDialog>
