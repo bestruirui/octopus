@@ -190,10 +190,8 @@ func createUpsertSettings(tx *gorm.DB, rows []model.Setting) (int64, error) {
 		return 0, nil
 	}
 	result := tx.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "key"}},
-		DoUpdates: clause.Assignments(map[string]any{
-			"value": gorm.Expr("excluded.value"),
-		}),
+		Columns:   []clause.Column{{Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value"}),
 	}).Create(&rows)
 	return result.RowsAffected, result.Error
 }
