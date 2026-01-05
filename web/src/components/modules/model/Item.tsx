@@ -105,13 +105,13 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
                 </Tooltip>
 
                 <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <ArrowDownToLine className="h-3.5 w-3.5" style={{ color: brandColor }} />
+                    <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
                     {t('card.inputCache')}
                     <span className="tabular-nums">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
                 </p>
 
                 <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <ArrowUpFromLine className="h-3.5 w-3.5" style={{ color: brandColor }} />
+                    <ArrowUpFromLine className="size-3.5" style={{ color: brandColor }} />
                     {t('card.outputCache')}
                     <span className="tabular-nums">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
                 </p>
@@ -131,7 +131,7 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
                     className="h-9 w-9 flex items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
                     title={t('card.edit')}
                 >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="size-4" />
                 </motion.button>
 
                 <motion.button
@@ -142,7 +142,7 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
                     className="h-9 w-9 flex items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50"
                     title={t('card.delete')}
                 >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="size-4" />
                 </motion.button>
             </div>
 

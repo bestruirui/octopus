@@ -85,7 +85,7 @@ export function SettingBackup() {
                     onClick={onExport}
                     disabled={exportDB.isPending}
                 >
-                    <Download className="h-4 w-4" />
+                    <Download className="size-4" />
                     {exportDB.isPending ? t('backup.export.exporting') : t('backup.export.button')}
                 </Button>
             </div>
@@ -111,7 +111,7 @@ export function SettingBackup() {
                     onClick={onImport}
                     disabled={importDB.isPending}
                 >
-                    <Upload className="h-4 w-4" />
+                    <Upload className="size-4" />
                     {importDB.isPending ? t('backup.import.importing') : t('backup.import.button')}
                 </Button>
 

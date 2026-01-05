@@ -104,7 +104,7 @@ export function SettingSystem() {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                <HelpCircle className="size-4 text-muted-foreground cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent>
                                 {t('corsAllowOrigins.hint')}

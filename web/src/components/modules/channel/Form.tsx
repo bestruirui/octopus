@@ -226,7 +226,7 @@ export function ChannelForm({
                             className="absolute rounded-lg right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                             title={t('modelAdd')}
                         >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="size-4" />
                         </Button>
                     )}
                 </div>

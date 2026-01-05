@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Trash2, X, Check, Copy, Pencil } from 'lucide-react';
+import { Trash2, X, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { type Group, useDeleteGroup, useUpdateGroup } from '@/api/endpoints/group';
 import { useModelChannelList } from '@/api/endpoints/model';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/common/Toast';
+import { CopyIconButton } from '@/components/common/CopyButton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
@@ -72,7 +73,6 @@ export function GroupCard({ group }: { group: Group }) {
     const { data: modelChannels = [] } = useModelChannelList();
 
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const [copied, setCopied] = useState(false);
     const [members, setMembers] = useState<SelectedMember[]>([]);
     const isDragging = useRef(false);
     const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -159,27 +159,6 @@ export function GroupCard({ group }: { group: Group }) {
             );
         }, 500);
     }, [group.id, priorityByItemId, updateGroup, onSuccess, onError]);
-
-    const handleCopy = async () => {
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(group.name);
-            } else {
-                const textArea = document.createElement('textarea');
-                textArea.value = group.name;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-9999px';
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-            }
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-        } catch (err) {
-            console.error('Failed to copy:', err);
-        }
-    };
 
     const handleSubmitEdit = useCallback((values: GroupEditorValues, onDone?: () => void) => {
         if (!group.id) return;
@@ -284,13 +263,12 @@ export function GroupCard({ group }: { group: Group }) {
 
                     <Tooltip side="top" sideOffset={10} align="center">
                         <TooltipTrigger>
-                            <button type="button" onClick={handleCopy} className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground">
-                                <AnimatePresence mode="wait">
-                                    <motion.div key={copied ? 'check' : 'copy'} initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                                        {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
-                                    </motion.div>
-                                </AnimatePresence>
-                            </button>
+                            <CopyIconButton
+                                text={group.name}
+                                className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+                                copyIconClassName="size-4"
+                                checkIconClassName="size-4 text-primary"
+                            />
                         </TooltipTrigger>
                         <TooltipContent>{t('detail.actions.copyName')}</TooltipContent>
                     </Tooltip>
@@ -310,10 +288,10 @@ export function GroupCard({ group }: { group: Group }) {
                     {confirmDelete && (
                         <motion.div layoutId={`delete-btn-group-${group.id}`} className="absolute inset-0 flex items-center justify-center gap-2 bg-destructive p-2 rounded-xl" transition={{ type: 'spring', stiffness: 400, damping: 30 }}>
                             <button type="button" onClick={() => setConfirmDelete(false)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive-foreground/20 text-destructive-foreground transition-all hover:bg-destructive-foreground/30 active:scale-95">
-                                <X className="h-4 w-4" />
+                                <X className="size-4" />
                             </button>
                             <button type="button" onClick={() => group.id && deleteGroup.mutate(group.id, { onSuccess: () => toast.success(t('toast.deleted')) })} disabled={deleteGroup.isPending} className="flex-1 h-7 flex items-center justify-center gap-2 rounded-lg bg-destructive-foreground text-destructive text-sm font-semibold transition-all hover:bg-destructive-foreground/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="size-3.5" />
                                 {t('detail.actions.confirmDelete')}
                             </button>
                         </motion.div>

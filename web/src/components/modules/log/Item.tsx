@@ -150,7 +150,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                             <span className="font-semibold text-card-foreground truncate" title={log.request_model_name}>
                                 {log.request_model_name}
                             </span>
-                            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+                            <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
                             <Badge
                                 variant="secondary"
                                 className="shrink-0 text-xs px-1.5 py-0"
@@ -164,27 +164,27 @@ export function LogCard({ log }: { log: RelayLog }) {
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
                             <div className="flex items-center gap-1.5">
-                                <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: brandColor }} />
+                                <Clock className="size-3.5 shrink-0" style={{ color: brandColor }} />
                                 <span>{formatTime(log.time)}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Zap className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                                <Zap className="size-3.5 shrink-0 text-amber-500" />
                                 <span>{t('firstToken')} {formatDuration(log.ftut)}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Cpu className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                                <Cpu className="size-3.5 shrink-0 text-blue-500" />
                                 <span>{t('totalTime')} {formatDuration(log.use_time)}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <ArrowDownToLine className="h-3.5 w-3.5 shrink-0 text-green-500" />
+                                <ArrowDownToLine className="size-3.5 shrink-0 text-green-500" />
                                 <span>{t('input')} {log.input_tokens.toLocaleString()}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <ArrowUpFromLine className="h-3.5 w-3.5 shrink-0 text-purple-500" />
+                                <ArrowUpFromLine className="size-3.5 shrink-0 text-purple-500" />
                                 <span>{t('output')} {log.output_tokens.toLocaleString()}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <DollarSign className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                                <DollarSign className="size-3.5 shrink-0 text-emerald-500" />
                                 <span className="font-medium text-emerald-600 dark:text-emerald-400">
                                     {t('cost')} {Number(log.cost).toFixed(6)}
                                 </span>
@@ -205,7 +205,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                     <MorphingDialogTitle className="flex items-center gap-2 mb-3 text-sm">
                         <ModelAvatar size={28} />
                         <span className="font-semibold text-card-foreground">{log.request_model_name}</span>
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+                        <ArrowRight className="size-3.5 text-muted-foreground/50" />
                         <Badge
                             variant="secondary"
                             className="text-xs px-1.5 py-0"
@@ -262,19 +262,19 @@ export function LogCard({ log }: { log: RelayLog }) {
 
                     <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-4 text-xs text-muted-foreground shrink-0">
                         <div className="flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5" style={{ color: brandColor }} />
+                            <Clock className="size-3.5" style={{ color: brandColor }} />
                             <span className="tabular-nums">{formatTime(log.time)}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <Zap className="h-3.5 w-3.5 text-amber-500" />
+                            <Zap className="size-3.5 text-amber-500" />
                             <span>{t('firstTokenTime')}: {formatDuration(log.ftut)}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <Cpu className="h-3.5 w-3.5 text-blue-500" />
+                            <Cpu className="size-3.5 text-blue-500" />
                             <span>{t('totalTime')}: {formatDuration(log.use_time)}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <DollarSign className="h-3.5 w-3.5 text-emerald-500" />
+                            <DollarSign className="size-3.5 text-emerald-500" />
                             <span className="font-medium text-emerald-600 dark:text-emerald-400">
                                 {t('cost')}: {Number(log.cost).toFixed(6)}
                             </span>

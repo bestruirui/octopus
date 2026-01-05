@@ -108,7 +108,7 @@ export function Toolbar() {
                             aria-label="Previous page"
                             onClick={() => prevPage(activeItem)}
                             disabled={page <= 1}
-                            className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
+                            className="size-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
                         >
                             <ChevronLeft className="size-4" />
                         </button>
@@ -126,7 +126,7 @@ export function Toolbar() {
                             aria-label="Next page"
                             onClick={() => nextPage(activeItem)}
                             disabled={page >= totalPages}
-                            className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
+                            className="size-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground"
                         >
                             <ChevronRight className="size-4" />
                         </button>

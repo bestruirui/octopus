@@ -9,15 +9,15 @@ import { useSettingStore } from '@/stores/setting';
 import { AnimatedNumber } from '@/components/common/AnimatedNumber';
 import Logo from '@/components/modules/logo';
 import { PageWrapper } from '@/components/common/PageWrapper';
-import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { CopyIconButton } from '@/components/common/CopyButton';
+import { useCopyToClipboard } from '@uidotdev/usehooks';
+import { useCallback } from 'react';
 import type { JSX } from 'react';
 import {
     ArrowDownToLine,
     ArrowUpFromLine,
     DollarSign,
     CheckCircle,
-    Check,
     XCircle,
     KeyRound,
     LogOut,
@@ -41,24 +41,12 @@ export function APIKeyDashboard() {
     const { logout } = useAuthStore();
     const { theme, setTheme } = useTheme();
     const { locale, setLocale } = useSettingStore();
-    const [copiedApiKey, setCopiedApiKey] = useState(false);
-    const copyTimerRef = useRef<number | null>(null);
+    const [, copyToClipboard] = useCopyToClipboard();
 
-    const copyToClipboard = useCallback(
+    const copyWithToast = useCallback(
         async (text: string, label: string) => {
             try {
-                if (navigator.clipboard && window.isSecureContext) {
-                    await navigator.clipboard.writeText(text);
-                } else {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    textArea.style.position = 'fixed';
-                    textArea.style.left = '-9999px';
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                }
+                await copyToClipboard(text);
                 toast.success(`${label} copied`);
                 return true;
             } catch {
@@ -66,24 +54,8 @@ export function APIKeyDashboard() {
                 return false;
             }
         },
-        [t]
+        [copyToClipboard, t]
     );
-
-    const handleCopyApiKey = useCallback(async () => {
-        const apiKey = data?.info.api_key;
-        if (!apiKey) return;
-        const ok = await copyToClipboard(apiKey, 'API Key');
-        if (!ok) return;
-        setCopiedApiKey(true);
-        if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-        copyTimerRef.current = window.setTimeout(() => setCopiedApiKey(false), 2000);
-    }, [copyToClipboard, data?.info.api_key]);
-
-    useEffect(() => {
-        return () => {
-            if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-        };
-    }, []);
 
     if (error || !data) {
         return (
@@ -122,7 +94,7 @@ export function APIKeyDashboard() {
             variant="secondary"
             size="sm"
             className="h-8 rounded-lg px-3 text-sm transition-colors hover:bg-primary hover:text-primary-foreground"
-            onClick={() => void copyToClipboard(model, model)}
+            onClick={() => void copyWithToast(model, model)}
         >
             {model}
         </Button>
@@ -139,15 +111,15 @@ export function APIKeyDashboard() {
                 <h1 className="ml-2 flex-1 truncate text-2xl font-bold tracking-tight">octopus</h1>
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl hover:bg-accent">
-                        <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                        <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                        <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-xl hover:bg-accent">
-                        <Languages className="h-4 w-4" />
+                        <Languages className="size-4" />
                     </Button>
                     <div className="w-px h-6 bg-border mx-1" />
                     <Button variant="ghost" size="icon" onClick={logout} className="rounded-xl hover:bg-destructive/10 hover:text-destructive">
-                        <LogOut className="h-4 w-4" />
+                        <LogOut className="size-4" />
                     </Button>
                 </div>
             </header>
@@ -165,32 +137,12 @@ export function APIKeyDashboard() {
                                     <code className="flex-1 font-mono text-sm truncate">
                                         {info.api_key.slice(0, 11)}********{info.api_key.slice(-4)}
                                     </code>
-                                    <button
-                                        onClick={handleCopyApiKey}
-                                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-95"
-                                    >
-                                        <AnimatePresence mode="wait">
-                                            {copiedApiKey ? (
-                                                <motion.div
-                                                    key="check"
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    exit={{ scale: 0 }}
-                                                >
-                                                    <Check className="w-4 h-4" />
-                                                </motion.div>
-                                            ) : (
-                                                <motion.div
-                                                    key="copy"
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    exit={{ scale: 0 }}
-                                                >
-                                                    <Copy className="w-4 h-4" />
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </button>
+                                    <CopyIconButton
+                                        text={info.api_key}
+                                        className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-95"
+                                        copyIconClassName="size-4"
+                                        checkIconClassName="size-4"
+                                    />
                                 </div>
                                 {/* Expiry & Quota inline */}
                                 <div className="mt-auto pt-6 text-sm">
@@ -233,7 +185,7 @@ export function APIKeyDashboard() {
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                         <div className="custom-shadow rounded-2xl border bg-card p-5">
                             <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                <CheckCircle className="h-4 w-4 text-chart-2" />
+                                <CheckCircle className="size-4 text-chart-2" />
                                 {t('successRequests')}
                             </div>
                             <div className="text-2xl font-bold">
@@ -244,7 +196,7 @@ export function APIKeyDashboard() {
 
                         <div className="custom-shadow rounded-2xl border bg-card p-5">
                             <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                <XCircle className="h-4 w-4 text-destructive" />
+                                <XCircle className="size-4 text-destructive" />
                                 {t('failedRequests')}
                             </div>
                             <div className="text-2xl font-bold">
@@ -255,7 +207,7 @@ export function APIKeyDashboard() {
 
                         <div className="custom-shadow rounded-2xl border bg-card p-5">
                             <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                <Zap className="h-4 w-4 text-chart-4" />
+                                <Zap className="size-4 text-chart-4" />
                                 {t('requestCount')}
                             </div>
                             <div className="text-2xl font-bold">
@@ -266,7 +218,7 @@ export function APIKeyDashboard() {
 
                         <div className="custom-shadow rounded-2xl border bg-card p-5">
                             <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                <Clock className="h-4 w-4 text-chart-5" />
+                                <Clock className="size-4 text-chart-5" />
                                 {t('timeConsumed')}
                             </div>
                             <div className="text-2xl font-bold">

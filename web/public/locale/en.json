@@ -52,6 +52,13 @@
         "log": "Log",
         "setting": "Setting"
     },
+    "common": {
+        "copy": {
+            "success": "Copied",
+            "failed": "Copy failed",
+            "noContent": "Nothing to copy"
+        }
+    },
     "home": {
         "activity": {
             "requestCount": "Requests",
@@ -177,9 +184,7 @@
                 "updateSuccess": "API key updated",
                 "updateError": "Failed to update API key",
                 "deleteSuccess": "API key deleted",
-                "deleteError": "Failed to delete API key",
-                "copySuccess": "API key copied",
-                "copyError": "Failed to copy API key"
+                "deleteError": "Failed to delete API key"
             }
         },
         "llmPrice": {

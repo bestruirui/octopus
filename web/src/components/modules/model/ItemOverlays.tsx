@@ -37,7 +37,7 @@ export function ModelDeleteOverlay({
                 onClick={onCancel}
                 className="h-9 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-destructive-foreground/20 text-destructive-foreground text-sm font-medium transition-all hover:bg-destructive-foreground/30 active:scale-[0.98]"
             >
-                <X className="h-4 w-4" />
+                <X className="size-4" />
                 {t('cancel')}
             </button>
             <button
@@ -47,9 +47,9 @@ export function ModelDeleteOverlay({
                 className="h-9 px-4 flex items-center justify-center gap-1.5 rounded-xl bg-destructive-foreground text-destructive text-sm font-medium transition-all hover:bg-destructive-foreground/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {isPending ? (
-                    <Loader className="h-4 w-4 animate-spin" />
+                    <Loader className="size-4 animate-spin" />
                 ) : (
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="size-4" />
                 )}
                 {isPending ? t('deleting') : t('confirmDelete')}
             </button>
@@ -139,7 +139,7 @@ export function ModelEditOverlay({
                     disabled={isPending}
                     className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl bg-muted text-muted-foreground text-sm font-medium transition-all hover:bg-muted/80 active:scale-[0.98] disabled:opacity-50"
                 >
-                    <X className="h-4 w-4" />
+                    <X className="size-4" />
                     {t('cancel')}
                 </button>
                 <button
@@ -149,7 +149,7 @@ export function ModelEditOverlay({
                     className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-50"
                     style={{ backgroundColor: brandColor, color: '#fff' }}
                 >
-                    {isPending ? <Loader className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    {isPending ? <Loader className="size-4 animate-spin" /> : <Check className="size-4" />}
                     {t('save')}
                 </button>
             </div>

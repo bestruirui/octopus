@@ -52,6 +52,13 @@
         "log": "日志",
         "setting": "设置"
     },
+    "common": {
+        "copy": {
+            "success": "复制成功",
+            "failed": "复制失败",
+            "noContent": "无可复制内容"
+        }
+    },
     "home": {
         "activity": {
             "requestCount": "请求次数",
@@ -177,9 +184,7 @@
                 "updateSuccess": "API 密钥更新成功",
                 "updateError": "API 密钥更新失败",
                 "deleteSuccess": "API 密钥删除成功",
-                "deleteError": "API 密钥删除失败",
-                "copySuccess": "API 密钥已复制",
-                "copyError": "API 密钥复制失败"
+                "deleteError": "API 密钥删除失败"
             }
         },
         "llmPrice": {

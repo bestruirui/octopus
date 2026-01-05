@@ -85,7 +85,7 @@ export function SettingAccount() {
             {/* 修改用户名 */}
             <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <KeyRound className="h-4 w-4" />
+                    <KeyRound className="size-4" />
                     {t('account.username.label')}
                 </div>
                 <div className="flex gap-2">
@@ -110,7 +110,7 @@ export function SettingAccount() {
             {/* 修改密码 */}
             <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Lock className="h-4 w-4" />
+                    <Lock className="size-4" />
                     {t('account.password.label')}
                 </div>
                 <div className="space-y-2">
@@ -127,7 +127,7 @@ export function SettingAccount() {
                             onClick={() => setShowOldPassword(!showOldPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         >
-                            {showOldPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showOldPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
                     </div>
                     <div className="relative">
@@ -143,7 +143,7 @@ export function SettingAccount() {
                             onClick={() => setShowNewPassword(!showNewPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         >
-                            {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
                     </div>
                     <div className="relative">
@@ -159,7 +159,7 @@ export function SettingAccount() {
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         >
-                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
                     </div>
                     <Button

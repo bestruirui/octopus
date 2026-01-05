@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { KeyRound, Plus, Loader, Copy, Trash2, Check, X, Info, CalendarDays, Pencil, Maximize2 } from 'lucide-react';
+import { KeyRound, Plus, Loader, Trash2, Check, X, Info, CalendarDays, Pencil, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
@@ -27,6 +27,7 @@ import { useGroupList } from '@/api/endpoints/group';
 import { useStatsAPIKey } from '@/api/endpoints/stats';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/common/Toast';
+import { CopyIconButton } from '@/components/common/CopyButton';
 import type { ApiError } from '@/api/types';
 
 function toExpireAt(date: Date, time: string): number {
@@ -226,7 +227,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                                 className="h-9 flex-1 flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 text-sm text-foreground transition-colors hover:bg-muted/30 disabled:opacity-50"
                             >
                                 <span className="truncate">{expireLabel}</span>
-                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                <CalendarDays className="size-4 text-muted-foreground" />
                             </button>
                         </PopoverTrigger>
                         <PopoverContent
@@ -327,7 +328,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                     disabled={isPending}
                     className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl bg-muted text-muted-foreground text-sm font-medium transition-all hover:bg-muted/80 active:scale-[0.98] disabled:opacity-50"
                 >
-                    <X className="h-4 w-4" />
+                    <X className="size-4" />
                     {t('apiKey.form.cancel')}
                 </button>
                 <button
@@ -335,7 +336,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                     disabled={isPending || !form.name.trim()}
                     className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
                 >
-                    {isPending ? <Loader className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    {isPending ? <Loader className="size-4 animate-spin" /> : <Check className="size-4" />}
                     {submitLabel}
                 </button>
             </div>
@@ -401,9 +402,9 @@ function APIKeyStatsCard({
                 <button
                     type="button"
                     onClick={onClose}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
+                    className="size-8 flex items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
                 >
-                    <X className="h-4 w-4" />
+                    <X className="size-4" />
                 </button>
             </div>
 
@@ -479,40 +480,7 @@ function APIKeyKeyItem({
     isDeleting: boolean;
 }) {
     const t = useTranslations('setting');
-    const [copied, setCopied] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const copyTimerRef = useRef<number | null>(null);
-
-    useEffect(() => {
-        return () => {
-            if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-        };
-    }, []);
-
-    const handleCopy = useCallback(async () => {
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(apiKey.api_key);
-            } else {
-                const textArea = document.createElement('textarea');
-                textArea.value = apiKey.api_key;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-9999px';
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-            }
-            setCopied(true);
-            toast.success(t('apiKey.toast.copySuccess'));
-            if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-            copyTimerRef.current = window.setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy:', err);
-            const msg = err instanceof Error ? err.message : String(err);
-            toast.error(t('apiKey.toast.copyError'), { description: msg });
-        }
-    }, [apiKey.api_key, t]);
 
     return (
         <motion.div
@@ -530,54 +498,34 @@ function APIKeyKeyItem({
                     type="button"
                     layoutId={statsLayoutId}
                     onClick={onViewStats}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+                    className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
                     title="Stats"
                 >
-                    <Info className="h-4 w-4" />
+                    <Info className="size-4" />
                 </motion.button>
                 <motion.button
                     type="button"
                     layoutId={editLayoutId}
                     onClick={onEdit}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+                    className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
                     title="Edit"
                 >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="size-4" />
                 </motion.button>
-                <button
-                    onClick={handleCopy}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-95"
-                >
-                    <AnimatePresence mode="wait">
-                        {copied ? (
-                            <motion.div
-                                key="check"
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0 }}
-                            >
-                                <Check className="h-4 w-4" />
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="copy"
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0 }}
-                            >
-                                <Copy className="h-4 w-4" />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </button>
+                <CopyIconButton
+                    text={apiKey.api_key}
+                    className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-95"
+                    copyIconClassName="size-4"
+                    checkIconClassName="size-4"
+                />
 
                 {!confirmDelete && (
                     <motion.button
                         layoutId={deleteLayoutId}
                         onClick={() => setConfirmDelete(true)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                        className="flex size-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
                     >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="size-4" />
                     </motion.button>
                 )}
             </div>
@@ -591,16 +539,16 @@ function APIKeyKeyItem({
                     >
                         <button
                             onClick={() => setConfirmDelete(false)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive-foreground/20 text-destructive-foreground transition-all hover:bg-destructive-foreground/30 active:scale-95"
+                            className="flex size-8 items-center justify-center rounded-lg bg-destructive-foreground/20 text-destructive-foreground transition-all hover:bg-destructive-foreground/30 active:scale-95"
                         >
-                            <X className="h-4 w-4" />
+                            <X className="size-4" />
                         </button>
                         <button
                             onClick={onDelete}
                             disabled={isDeleting}
                             className="flex-1 h-8 flex items-center justify-center gap-1.5 rounded-lg bg-destructive-foreground text-destructive text-sm font-medium transition-all hover:bg-destructive-foreground/90 active:scale-[0.98] disabled:opacity-50"
                         >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="size-3.5" />
                             {isDeleting ? '...' : t('apiKey.form.confirm')}
                         </button>
                     </motion.div>
@@ -710,7 +658,7 @@ function APIKeyPanelBase({
                         className="h-9 w-9 flex items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
                         title={t('apiKey.add')}
                     >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="size-4" />
                     </motion.button>
                     {renderHeaderExtra?.({ disabled: disabledHeaderActions, onCloseAllOverlays: closeAllOverlays })}
                 </div>
@@ -754,7 +702,7 @@ function APIKeyPanelBase({
             <div className={listClassName}>
                 {apiKeysLoading ? (
                     <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                        <Loader className="h-4 w-4 animate-spin" />
+                        <Loader className="size-4 animate-spin" />
                     </div>
                 ) : apiKeysError ? (
                     <div className="h-full flex items-center justify-center text-sm text-destructive">
@@ -811,7 +759,7 @@ function APIKeyDialogPanel() {
                     className="h-9 w-9 flex items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted"
                     title="Close"
                 >
-                    <X className="h-4 w-4" />
+                    <X className="size-4" />
                 </button>
             )}
         />
@@ -827,7 +775,7 @@ export function SettingAPIKey() {
             renderHeaderExtra={() => (
                 <MorphingDialog>
                     <MorphingDialogTrigger className="h-9 w-9 flex items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted">
-                        <Maximize2 className="h-4 w-4" />
+                        <Maximize2 className="size-4" />
                     </MorphingDialogTrigger>
                     <MorphingDialogContainer>
                         <MorphingDialogContent className="relative">

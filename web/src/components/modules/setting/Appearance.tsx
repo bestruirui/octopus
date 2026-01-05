@@ -30,15 +30,15 @@ export function SettingAppearance() {
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
                         <SelectItem value="light" className="rounded-xl">
-                            <Sun className="h-4 w-4" />
+                            <Sun className="size-4" />
                             {t('theme.light')}
                         </SelectItem>
                         <SelectItem value="dark" className="rounded-xl">
-                            <Moon className="h-4 w-4" />
+                            <Moon className="size-4" />
                             {t('theme.dark')}
                         </SelectItem>
                         <SelectItem value="system" className="rounded-xl">
-                            <Monitor className="h-4 w-4" />
+                            <Monitor className="size-4" />
                             {t('theme.system')}
                         </SelectItem>
                     </SelectContent>
