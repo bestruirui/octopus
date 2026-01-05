@@ -204,12 +204,15 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiG
 						}
 					case "file":
 						if part.File != nil {
-							content.Parts = append(content.Parts, &model.GeminiPart{
-								InlineData: &model.GeminiBlob{
-									MimeType: "application/pdf",
-									Data:     part.File.Data,
-								},
-							})
+							dataurl := xurl.ParseDataURL(part.File.FileData)
+							if dataurl != nil && dataurl.IsBase64 {
+								content.Parts = append(content.Parts, &model.GeminiPart{
+									InlineData: &model.GeminiBlob{
+										MimeType: dataurl.MediaType,
+										Data:     dataurl.Data,
+									},
+								})
+							}
 						}
 					}
 				}

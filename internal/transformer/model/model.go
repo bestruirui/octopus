@@ -414,7 +414,7 @@ type File struct {
 	// The filename of the file.
 	Filename string `json:"filename"`
 	// The base64 encoded data of the file.
-	Data string `json:"data"`
+	FileData string `json:"file_data"`
 }
 
 // ResponseFormat specifies the format of the response.
