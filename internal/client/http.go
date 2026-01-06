@@ -14,78 +14,100 @@ import (
 )
 
 var (
-	directClient *http.Client
-	proxyClient  *http.Client
-	clientLock   sync.RWMutex
+	systemDirectClient *http.Client
+	systemProxyClient  *http.Client
+	systemProxyURL     string
+	clientLock         sync.RWMutex
 )
 
-// GetHTTPClient returns a cached http.Client or creates a new one.
-func GetHTTPClient(useProxy bool) (*http.Client, error) {
-	clientLock.RLock()
-	if useProxy && proxyClient != nil {
+// GetHTTPClientSystemProxy returns a cached http.Client.
+// - useProxy=false: bypass proxy
+// - useProxy=true: use proxy settings from system/app settings (setting key: proxy_url)
+func GetHTTPClientSystemProxy(useProxy bool) (*http.Client, error) {
+	if useProxy {
+		currentProxyURL, err := op.SettingGetString(model.SettingKeyProxyURL)
+		if err != nil {
+			return nil, err
+		}
+		if currentProxyURL == "" {
+			return nil, fmt.Errorf("proxy url is empty")
+		}
+
+		clientLock.RLock()
+		if systemProxyClient != nil && systemProxyURL == currentProxyURL {
+			clientLock.RUnlock()
+			return systemProxyClient, nil
+		}
 		clientLock.RUnlock()
-		return proxyClient, nil
+
+		clientLock.Lock()
+		defer clientLock.Unlock()
+
+		// Re-check after acquiring write lock.
+		if systemProxyClient != nil && systemProxyURL == currentProxyURL {
+			return systemProxyClient, nil
+		}
+
+		client, err := newHTTPClientCustomProxy(currentProxyURL)
+		if err != nil {
+			return nil, err
+		}
+		systemProxyClient = client
+		systemProxyURL = currentProxyURL
+		return systemProxyClient, nil
 	}
-	if !useProxy && directClient != nil {
+
+	clientLock.RLock()
+	if !useProxy && systemDirectClient != nil {
 		clientLock.RUnlock()
-		return directClient, nil
+		return systemDirectClient, nil
 	}
 	clientLock.RUnlock()
 
 	clientLock.Lock()
 	defer clientLock.Unlock()
 
-	if useProxy {
-		if proxyClient != nil {
-			return proxyClient, nil
-		}
-		client, err := NewHTTPClient(true)
-		if err != nil {
-			return nil, err
-		}
-		proxyClient = client
-		return proxyClient, nil
+	if systemDirectClient != nil {
+		return systemDirectClient, nil
 	}
-
-	if directClient != nil {
-		return directClient, nil
-	}
-	client, err := NewHTTPClient(false)
+	client, err := newHTTPClientNoProxy()
 	if err != nil {
 		return nil, err
 	}
-	directClient = client
-	return directClient, nil
+	systemDirectClient = client
+	return systemDirectClient, nil
 }
 
-// ClearHTTPClientPool clears the cached clients (useful when proxy settings change).
-func ClearHTTPClientPool() {
-	clientLock.Lock()
-	directClient = nil
-	proxyClient = nil
-	clientLock.Unlock()
+// GetHTTPClientCustomProxy returns a NEW http.Client every time (no reuse).
+// proxyURL supports: http, https, socks, socks5
+func GetHTTPClientCustomProxy(proxyURL string) (*http.Client, error) {
+	if proxyURL == "" {
+		return nil, fmt.Errorf("proxy url is empty")
+	}
+	return newHTTPClientCustomProxy(proxyURL)
 }
 
-// NewHTTPClient returns an http.Client that can optionally use a proxy based on the setting.
-// When useProxy is false, the client bypasses any proxy configuration.
-func NewHTTPClient(useProxy bool) (*http.Client, error) {
+func clonedDefaultTransport() (*http.Transport, error) {
 	transport, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
 		return nil, fmt.Errorf("default transport is not *http.Transport")
 	}
-	cloned := transport.Clone()
+	return transport.Clone(), nil
+}
 
-	if !useProxy {
-		cloned.Proxy = nil
-		return &http.Client{Transport: cloned}, nil
-	}
-
-	proxyURLStr, err := op.SettingGetString(model.SettingKeyProxyURL)
+func newHTTPClientNoProxy() (*http.Client, error) {
+	cloned, err := clonedDefaultTransport()
 	if err != nil {
 		return nil, err
 	}
-	if proxyURLStr == "" {
-		return nil, fmt.Errorf("proxy url is empty")
+	cloned.Proxy = nil
+	return &http.Client{Transport: cloned}, nil
+}
+
+func newHTTPClientCustomProxy(proxyURLStr string) (*http.Client, error) {
+	cloned, err := clonedDefaultTransport()
+	if err != nil {
+		return nil, err
 	}
 
 	proxyURL, err := url.Parse(proxyURLStr)

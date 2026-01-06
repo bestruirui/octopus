@@ -11,7 +11,7 @@ import (
 )
 
 func FetchLLMName(ctx context.Context, request model.Channel) ([]string, error) {
-	client, err := NewHTTPClient(request.Proxy)
+	client, err := GetHTTPClientSystemProxy(request.Proxy)
 	if err != nil {
 		return nil, err
 	}

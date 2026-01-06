@@ -38,7 +38,7 @@ func UpdateLLMPrice(ctx context.Context) error {
 	defer func() {
 		log.Debugf("update LLM price task finished, update time: %s", time.Since(startTime))
 	}()
-	client, err := client.NewHTTPClient(false)
+	client, err := client.GetHTTPClientSystemProxy(false)
 	if err != nil {
 		return err
 	}

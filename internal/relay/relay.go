@@ -222,7 +222,7 @@ func (rc *relayContext) copyHeaders(outboundRequest *http.Request) {
 
 // sendRequest 发送 HTTP 请求
 func (rc *relayContext) sendRequest(req *http.Request) (*http.Response, error) {
-	httpClient, err := client.GetHTTPClient(rc.channel.Proxy)
+	httpClient, err := client.GetHTTPClientSystemProxy(rc.channel.Proxy)
 	if err != nil {
 		log.Warnf("failed to get http client: %v", err)
 		return nil, err

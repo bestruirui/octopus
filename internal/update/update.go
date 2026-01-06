@@ -46,7 +46,7 @@ func doRequest(url string, useProxy bool) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	hc, err := client.GetHTTPClient(useProxy)
+	hc, err := client.GetHTTPClientSystemProxy(useProxy)
 	if err != nil {
 		return nil, err
 	}
