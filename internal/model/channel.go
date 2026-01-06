@@ -1,6 +1,10 @@
 package model
 
-import "github.com/bestruirui/octopus/internal/transformer/outbound"
+import (
+	"time"
+
+	"github.com/bestruirui/octopus/internal/transformer/outbound"
+)
 
 type AutoGroupType int
 
@@ -55,7 +59,7 @@ type ChannelUpdateRequest struct {
 	Name          *string                `json:"name,omitempty"`
 	Type          *outbound.OutboundType `json:"type,omitempty"`
 	Enabled       *bool                  `json:"enabled,omitempty"`
-	BaseURL       *string                `json:"base_url,omitempty"`
+	BaseUrls      *[]BaseUrl             `json:"base_urls,omitempty"`
 	Model         *string                `json:"model,omitempty"`
 	CustomModel   *string                `json:"custom_model,omitempty"`
 	Proxy         *bool                  `json:"proxy,omitempty"`
@@ -87,4 +91,60 @@ type ChannelFetchModelRequest struct {
 	BaseURL string                `json:"base_url" binding:"required"`
 	Key     string                `json:"key" binding:"required"`
 	Proxy   bool                  `json:"proxy"`
+}
+
+func (c *Channel) GetBaseUrl() string {
+	if c == nil || len(c.BaseUrls) == 0 {
+		return ""
+	}
+
+	bestURL := ""
+	bestDelay := 0
+	bestSet := false
+
+	for _, bu := range c.BaseUrls {
+		if bu.URL == "" {
+			continue
+		}
+		if !bestSet || bu.Delay < bestDelay {
+			bestURL = bu.URL
+			bestDelay = bu.Delay
+			bestSet = true
+		}
+	}
+
+	return bestURL
+}
+
+func (c *Channel) GetChannelKey() ChannelKey {
+	if c == nil || len(c.Keys) == 0 {
+		return ChannelKey{}
+	}
+
+	nowSec := time.Now().Unix()
+
+	best := ChannelKey{}
+	bestCost := 0.0
+	bestSet := false
+
+	for _, k := range c.Keys {
+		if !k.Enabled || k.ChannelKey == "" {
+			continue
+		}
+		if k.StatusCode == 429 && k.LastUseTimeStamp > 0 {
+			if nowSec-k.LastUseTimeStamp < int64(5*time.Minute/time.Second) {
+				continue
+			}
+		}
+		if !bestSet || k.TotalCost < bestCost {
+			best = k
+			bestCost = k.TotalCost
+			bestSet = true
+		}
+	}
+
+	if !bestSet {
+		return ChannelKey{}
+	}
+	return best
 }
