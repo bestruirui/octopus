@@ -121,77 +121,64 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		}
 	}()
 
-	// 更新 channel 基础字段（仅在有变更时）
+	var selectFields []string
+	updates := model.Channel{ID: req.ID}
+
 	if req.Name != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("name", *req.Name).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel name: %w", err)
-		}
+		selectFields = append(selectFields, "name")
+		updates.Name = *req.Name
 	}
 	if req.Type != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("type", *req.Type).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel type: %w", err)
-		}
+		selectFields = append(selectFields, "type")
+		updates.Type = *req.Type
 	}
 	if req.Enabled != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("enabled", *req.Enabled).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel enabled: %w", err)
-		}
+		selectFields = append(selectFields, "enabled")
+		updates.Enabled = *req.Enabled
 	}
 	if req.BaseUrls != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("base_urls", *req.BaseUrls).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel base_urls: %w", err)
-		}
+		log.Infof("update channel %d base_urls: %v", req.ID, *req.BaseUrls)
+		selectFields = append(selectFields, "base_urls")
+		updates.BaseUrls = *req.BaseUrls
 	}
 	if req.Model != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("model", *req.Model).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel model: %w", err)
-		}
+		selectFields = append(selectFields, "model")
+		updates.Model = *req.Model
 	}
 	if req.CustomModel != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("custom_model", *req.CustomModel).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel custom_model: %w", err)
-		}
+		selectFields = append(selectFields, "custom_model")
+		updates.CustomModel = *req.CustomModel
 	}
 	if req.Proxy != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("proxy", *req.Proxy).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel proxy: %w", err)
-		}
+		selectFields = append(selectFields, "proxy")
+		updates.Proxy = *req.Proxy
 	}
 	if req.AutoSync != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("auto_sync", *req.AutoSync).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel auto_sync: %w", err)
-		}
+		selectFields = append(selectFields, "auto_sync")
+		updates.AutoSync = *req.AutoSync
 	}
 	if req.AutoGroup != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("auto_group", *req.AutoGroup).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel auto_group: %w", err)
-		}
+		selectFields = append(selectFields, "auto_group")
+		updates.AutoGroup = *req.AutoGroup
 	}
 	if req.CustomHeader != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("custom_header", *req.CustomHeader).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel custom_header: %w", err)
-		}
+		selectFields = append(selectFields, "custom_header")
+		updates.CustomHeader = *req.CustomHeader
 	}
 	if req.ChannelProxy != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("channel_proxy", *req.ChannelProxy).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel channel_proxy: %w", err)
-		}
+		selectFields = append(selectFields, "channel_proxy")
+		updates.ChannelProxy = req.ChannelProxy
 	}
 	if req.ParamOverride != nil {
-		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Update("param_override", *req.ParamOverride).Error; err != nil {
+		selectFields = append(selectFields, "param_override")
+		updates.ParamOverride = req.ParamOverride
+	}
+
+	// 只有当有字段需要更新时才执行 UPDATE
+	if len(selectFields) > 0 {
+		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Select(selectFields).Updates(&updates).Error; err != nil {
 			tx.Rollback()
-			return nil, fmt.Errorf("failed to update channel param_override: %w", err)
+			return nil, fmt.Errorf("failed to update channel: %w", err)
 		}
 	}
 
