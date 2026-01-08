@@ -79,6 +79,13 @@ export function GroupCard({ group }: { group: Group }) {
     const membersRef = useRef<SelectedMember[]>([]);
 
     const channelNameByKey = useMemo(() => buildChannelNameByModelKey(modelChannels), [modelChannels]);
+    const enabledByKey = useMemo(() => {
+        const map = new Map<string, boolean>();
+        modelChannels.forEach((mc) => {
+            map.set(modelChannelKey(mc.channel_id, mc.name), mc.enabled);
+        });
+        return map;
+    }, [modelChannels]);
 
     const displayMembers = useMemo((): SelectedMember[] =>
         [...(group.items || [])]
@@ -86,12 +93,13 @@ export function GroupCard({ group }: { group: Group }) {
             .map((item) => ({
                 id: modelChannelKey(item.channel_id, item.model_name),
                 name: item.model_name,
+                enabled: enabledByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? true,
                 channel_id: item.channel_id,
                 channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? `Channel ${item.channel_id}`,
                 item_id: item.id,
                 weight: item.weight,
             })),
-        [group.items, channelNameByKey]
+        [group.items, channelNameByKey, enabledByKey]
     );
 
     useEffect(() => {

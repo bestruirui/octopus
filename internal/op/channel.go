@@ -3,13 +3,13 @@ package op
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/bestruirui/octopus/internal/db"
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/utils/cache"
 	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/bestruirui/octopus/internal/utils/xstrings"
 )
 
 var channelCache = cache.New[int, model.Channel](16)
@@ -326,18 +326,17 @@ func ChannelDel(id int, ctx context.Context) error {
 func ChannelLLMList(ctx context.Context) ([]model.LLMChannel, error) {
 	models := []model.LLMChannel{}
 	for _, channel := range channelCache.GetAll() {
-		if channel.Enabled {
-			modelNames := strings.Split(channel.Model+","+channel.CustomModel, ",")
-			for _, modelName := range modelNames {
-				if modelName == "" {
-					continue
-				}
-				models = append(models, model.LLMChannel{
-					Name:        modelName,
-					ChannelID:   channel.ID,
-					ChannelName: channel.Name,
-				})
+		modelNames := xstrings.SplitTrimCompact(",", channel.Model, channel.CustomModel)
+		for _, modelName := range modelNames {
+			if modelName == "" {
+				continue
 			}
+			models = append(models, model.LLMChannel{
+				Name:        modelName,
+				Enabled:     channel.Enabled,
+				ChannelID:   channel.ID,
+				ChannelName: channel.Name,
+			})
 		}
 	}
 	return models, nil

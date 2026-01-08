@@ -14,6 +14,7 @@ type LLMInfo struct {
 
 type LLMChannel struct {
 	Name        string `json:"name"`
+	Enabled     bool   `json:"enabled"`
 	ChannelID   int    `json:"channel_id"`
 	ChannelName string `json:"channel_name"`
 }

@@ -59,6 +59,7 @@ function MemberItem({
 }) {
     const { Avatar: ModelAvatar } = getModelIcon(member.name);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const isDisabled = member.enabled === false;
 
     return (
         <div
@@ -79,25 +80,41 @@ function MemberItem({
         >
             <div className={cn(
                 'flex items-center gap-2 rounded-lg bg-background border border-border/50 px-2.5 py-2 select-none transition-opacity duration-200 relative overflow-hidden',
-                isRemoving && 'opacity-0'
+                isRemoving && 'opacity-0',
+                isDisabled && 'opacity-60 grayscale'
             )}>
-                <span className="size-5 rounded-md bg-primary/10 text-primary text-xs font-bold grid place-items-center shrink-0">
+                <span className={cn(
+                    'size-5 rounded-md text-xs font-bold grid place-items-center shrink-0',
+                    isDisabled ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
+                )}>
                     {index + 1}
                 </span>
 
                 <div
-                    className="p-0.5 rounded cursor-grab active:cursor-grabbing hover:bg-muted touch-none transition-colors"
+                    className={cn(
+                        'p-0.5 rounded touch-none transition-colors',
+                        isDisabled
+                            ? 'cursor-grab active:cursor-grabbing hover:bg-muted/60'
+                            : 'cursor-grab active:cursor-grabbing hover:bg-muted'
+                    )}
                     // eslint-disable-next-line react-hooks/refs
                     {...dnd.dragHandleProps}
                 >
                     <GripVertical className="size-3.5 text-muted-foreground" />
                 </div>
 
-                <ModelAvatar size={18} />
+                <span className={cn(isDisabled && 'opacity-70')}>
+                    <ModelAvatar size={18} />
+                </span>
 
                 <div className="flex flex-col min-w-0 flex-1">
                     <Tooltip side="top" sideOffset={10} align="start">
-                        <TooltipTrigger className="text-sm font-medium truncate leading-tight">{member.name}</TooltipTrigger>
+                        <TooltipTrigger className={cn(
+                            'text-sm font-medium truncate leading-tight',
+                            isDisabled && 'text-muted-foreground'
+                        )}>
+                            {member.name}
+                        </TooltipTrigger>
                         <TooltipContent key={member.name}>{member.name}</TooltipContent>
                     </Tooltip>
                     <span className="text-[10px] text-muted-foreground truncate leading-tight">{member.channel_name}</span>
@@ -109,7 +126,10 @@ function MemberItem({
                         min={1}
                         value={member.weight ?? 1}
                         onChange={(e) => onWeightChange?.(member.id, Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-12 h-6 text-xs text-center rounded border border-border bg-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
+                        className={cn(
+                            'w-12 h-6 text-xs text-center rounded border border-border bg-muted/50 focus:outline-none focus:ring-1 focus:ring-primary',
+                            isDisabled && 'text-muted-foreground'
+                        )}
                     />
                 )}
 
