@@ -84,6 +84,10 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 		selectFields = append(selectFields, "match_regex")
 		updates.MatchRegex = *req.MatchRegex
 	}
+	if req.FirstTokenTimeOut != nil {
+		selectFields = append(selectFields, "first_token_time_out")
+		updates.FirstTokenTimeOut = *req.FirstTokenTimeOut
+	}
 
 	if len(selectFields) > 0 {
 		if err := tx.Model(&model.Group{}).Where("id = ?", req.ID).Select(selectFields).Updates(&updates).Error; err != nil {
