@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/bestruirui/octopus/internal/conf"
 	"github.com/bestruirui/octopus/internal/transformer/model"
 )
 
@@ -17,6 +18,13 @@ type ChatOutbound struct{}
 
 func (o *ChatOutbound) TransformRequest(ctx context.Context, request *model.InternalLLMRequest, baseUrl, key string) (*http.Request, error) {
 	request.ClearHelpFields()
+
+	// Clear metadata only for providers that don't support it (e.g., Cerebras)
+	for _, provider := range conf.NoMetadataProvider {
+		if strings.Contains(strings.ToLower(baseUrl), strings.ToLower(provider)) {
+			request.Metadata = nil
+		}
+	}
 
 	// Convert developer role to system role for compatibility
 	for i := range request.Messages {
