@@ -2,6 +2,7 @@ package log
 
 import (
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -9,15 +10,25 @@ import (
 
 var Logger *zap.SugaredLogger
 var atomicLevel = zap.NewAtomicLevelAt(zap.InfoLevel)
+
+// levelFirstEncoder is a custom encoder that outputs [LEVEL] first,
+// followed by the timestamp in RFC3339-like format.
+func levelFirstEncoder(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString("[" + level.CapitalString() + "]")
+	enc.AppendString(time.Now().Format("2006-01-02T15:04:05"))
+}
+
+// TimeKey is empty to disable zap's default time output at the beginning.
+// EncodeTime is disabled since TimeKey is empty.
 var consoleEncoder = zapcore.EncoderConfig{
-	TimeKey:       "time",
+	TimeKey:       "",
 	LevelKey:      "level",
 	MessageKey:    "msg",
 	CallerKey:     "caller",
 	StacktraceKey: "stacktrace",
-	EncodeLevel:   zapcore.CapitalLevelEncoder,
-	EncodeTime:    zapcore.RFC3339TimeEncoder,
-	EncodeCaller:  zapcore.ShortCallerEncoder,
+	EncodeLevel:   levelFirstEncoder,
+	// EncodeTime:    zapcore.RFC3339TimeEncoder,
+	EncodeCaller: zapcore.ShortCallerEncoder,
 }
 
 func init() {
