@@ -10,8 +10,9 @@ type DBDump struct {
 	IncludeLogs  bool      `json:"include_logs"`
 	IncludeStats bool      `json:"include_stats"`
 
-	Channels   []Channel   `json:"channels,omitempty"`
-	Groups     []Group     `json:"groups,omitempty"`
+	Channels    []Channel    `json:"channels,omitempty"`
+	ChannelKeys []ChannelKey `json:"channel_keys,omitempty"`
+	Groups      []Group      `json:"groups,omitempty"`
 	GroupItems []GroupItem `json:"group_items,omitempty"`
 	LLMInfos   []LLMInfo   `json:"llm_infos,omitempty"`
 	APIKeys    []APIKey    `json:"api_keys,omitempty"`
