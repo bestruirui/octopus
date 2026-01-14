@@ -47,7 +47,12 @@ func (o *MessageOutbound) TransformRequest(ctx context.Context, request *model.I
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
+	// For streaming requests, Anthropic returns Server-Sent Events.
+	if request.Stream != nil && *request.Stream {
+		req.Header.Set("Accept", "text/event-stream")
+	} else {
+		req.Header.Set("Accept", "application/json")
+	}
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 	req.Header.Set("X-API-Key", key)
 
