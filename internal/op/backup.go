@@ -26,6 +26,9 @@ func DBExportAll(ctx context.Context, includeLogs, includeStats bool) (*model.DB
 	if err := conn.Find(&d.Channels).Error; err != nil {
 		return nil, fmt.Errorf("export channels: %w", err)
 	}
+	if err := conn.Find(&d.ChannelKeys).Error; err != nil {
+		return nil, fmt.Errorf("export channel_keys: %w", err)
+	}
 	if err := conn.Find(&d.Groups).Error; err != nil {
 		return nil, fmt.Errorf("export groups: %w", err)
 	}
@@ -90,6 +93,11 @@ func DBImportIncremental(ctx context.Context, dump *model.DBDump) (*model.DBImpo
 			return fmt.Errorf("import channels: %w", err)
 		} else {
 			res.RowsAffected["channels"] = n
+		}
+		if n, err := createDoNothing(tx, dump.ChannelKeys); err != nil {
+			return fmt.Errorf("import channel_keys: %w", err)
+		} else {
+			res.RowsAffected["channel_keys"] = n
 		}
 		if n, err := createDoNothing(tx, dump.Groups); err != nil {
 			return fmt.Errorf("import groups: %w", err)

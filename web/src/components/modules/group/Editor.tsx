@@ -239,9 +239,20 @@ export function GroupEditor({
     const regexKey = matchRegex.trim();
 
     const { matchedModelChannels, regexError } = useMemo(() => {
+        const parseRegex = (input: string): RegExp => {
+            const inlineMatch = input.match(/^\(\?([ism]+)\)(.+)$/);
+            if (inlineMatch) {
+                const flagMap: Record<string, string> = { i: 'i', s: 's', m: 'm' };
+                const flags = inlineMatch[1].split('').map(f => flagMap[f] || '').join('');
+                return new RegExp(inlineMatch[2], flags);
+            }
+
+            return new RegExp(input);
+        };
+
         if (regexKey) {
             try {
-                const re = new RegExp(regexKey);
+                const re = parseRegex(regexKey);
                 return { matchedModelChannels: modelChannels.filter((mc) => re.test(mc.name)), regexError: '' };
             } catch (e) {
                 return { matchedModelChannels: [], regexError: (e as Error)?.message ?? 'Invalid regex' };

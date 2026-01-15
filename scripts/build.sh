@@ -115,36 +115,38 @@ prepare_environment() {
 
     # Check git
     if ! command_exists git; then
-        install_command git git || return 1
+        log_error "git is not installed."
+        return 1
     fi
 
     # Check curl
     if ! command_exists curl; then
-        install_command curl curl || return 1
+        log_error "curl is not installed."
+        return 1
     fi
 
     # Check unzip
     if ! command_exists unzip; then
-        install_command unzip unzip || return 1
+        log_error "unzip is not installed."
+        return 1
     fi
 
     # Check tar
     if ! command_exists tar; then
-        install_command tar tar || return 1
+        log_error "tar is not installed."
+        return 1
     fi
 
     # Check zip
     if ! command_exists zip; then
-        install_command zip zip || return 1
+        log_error "zip is not installed."
+        return 1
     fi
 
     # Check md5sum (or md5 on macOS)
     if ! command_exists md5sum && ! command_exists md5; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            log_warning "md5sum not found, but md5 is available on macOS"
-        else
-            install_command md5sum coreutils || return 1
-        fi
+        log_error "md5sum or md5 is not installed."
+        return 1
     fi
 
     log_success "All required commands installed"

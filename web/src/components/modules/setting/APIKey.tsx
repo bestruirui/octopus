@@ -771,7 +771,7 @@ export function SettingAPIKey() {
         <APIKeyPanelBase
             idPrefix="apikey"
             containerClassName="rounded-3xl border border-border bg-card p-6 custom-shadow space-y-5 relative"
-            listClassName="space-y-2 h-32 overflow-y-auto"
+            listClassName="space-y-2 h-36 overflow-y-auto"
             renderHeaderExtra={() => (
                 <MorphingDialog>
                     <MorphingDialogTrigger className="h-9 w-9 flex items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted">

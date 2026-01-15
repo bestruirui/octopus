@@ -164,6 +164,9 @@ type InternalLLMRequest struct {
 	// Help fields， will not be sent to the llm service.
 	ReasoningBudget *int64 `json:"-"`
 
+	// EnableThinking is used by Alibaba Qwen models to enable thinking/reasoning output.
+	EnableThinking *bool `json:"enable_thinking,omitempty"`
+
 	// Specifies the processing type used for serving the request.
 	ServiceTier *string `json:"service_tier,omitempty"`
 
@@ -316,6 +319,10 @@ type Message struct {
 	// - https://api-docs.deepseek.com/api/create-chat-completion#responses
 	ReasoningContent *string `json:"reasoning_content,omitempty"`
 
+	// Reasoning is used by some providers (e.g., OpenRouter, Ollama cloud) as an alternative to ReasoningContent.
+	// Both fields serve the same purpose, use GetReasoningContent() to get the value.
+	Reasoning *string `json:"reasoning,omitempty"`
+
 	// Help field, will not be sent to the llm service, to adapt the anthropic think signature.
 	ReasoningSignature *string `json:"reasoning_signature,omitempty"`
 
@@ -326,7 +333,25 @@ type Message struct {
 
 func (m *Message) ClearHelpFields() {
 	m.ReasoningContent = nil
+	m.Reasoning = nil
 	m.ReasoningSignature = nil
+}
+
+// GetReasoningContent returns the reasoning content from either ReasoningContent or Reasoning field.
+// Different providers use different field names for the same purpose.
+func (m *Message) GetReasoningContent() string {
+	if m.ReasoningContent != nil {
+		return *m.ReasoningContent
+	}
+	if m.Reasoning != nil {
+		return *m.Reasoning
+	}
+	return ""
+}
+
+// SetReasoningContent sets the reasoning content to the ReasoningContent field.
+func (m *Message) SetReasoningContent(s string) {
+	m.ReasoningContent = &s
 }
 
 type MessageContent struct {

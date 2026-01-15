@@ -117,12 +117,12 @@ func (i *ChatInbound) GetInternalResponse(ctx context.Context) (*model.InternalL
 					*existingChoice.Message.Content.Content += *delta.Content.Content
 				}
 
-				// Append reasoning content
-				if delta.ReasoningContent != nil {
+				// Append reasoning content (supports both reasoning_content and reasoning fields)
+				if delta.GetReasoningContent() != "" {
 					if existingChoice.Message.ReasoningContent == nil {
 						existingChoice.Message.ReasoningContent = new(string)
 					}
-					*existingChoice.Message.ReasoningContent += *delta.ReasoningContent
+					*existingChoice.Message.ReasoningContent += delta.GetReasoningContent()
 				}
 
 				// Aggregate tool calls
