@@ -245,6 +245,13 @@ func (rc *relayContext) sendRequest(req *http.Request) (*http.Response, error) {
 
 // handleStreamResponse 处理流式响应
 func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http.Response) error {
+	// 流式响应应当是 SSE
+	// 某些上游可能会返回非SSE的JSON响应 (由于 Accept headers 配置错误)
+	if ct := response.Header.Get("Content-Type"); ct != "" && !strings.Contains(strings.ToLower(ct), "text/event-stream") {
+		body, _ := io.ReadAll(io.LimitReader(response.Body, 16*1024))
+		return fmt.Errorf("upstream returned non-SSE content-type %q for stream request: %s", ct, string(body))
+	}
+
 	// 设置 SSE 响应头
 	rc.c.Header("Content-Type", "text/event-stream")
 	rc.c.Header("Cache-Control", "no-cache")
