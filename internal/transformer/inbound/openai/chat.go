@@ -125,6 +125,14 @@ func (i *ChatInbound) GetInternalResponse(ctx context.Context) (*model.InternalL
 					)
 				}
 
+				// Append images (used by Gemini via OpenAI compat endpoint for image generation)
+				if len(delta.Images) > 0 {
+					existingChoice.Message.Content.MultipleContent = append(
+						existingChoice.Message.Content.MultipleContent,
+						delta.Images...,
+					)
+				}
+
 				// Append reasoning content (supports both reasoning_content and reasoning fields)
 				if delta.GetReasoningContent() != "" {
 					if existingChoice.Message.ReasoningContent == nil {
