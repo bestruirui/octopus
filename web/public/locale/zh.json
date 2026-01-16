@@ -380,7 +380,9 @@
             "noRequestContent": "(无请求内容)",
             "noResponseContent": "(无响应内容)",
             "firstTokenTime": "首字时间",
-            "tokens": "tokens"
+            "tokens": "tokens",
+            "delete": "删除日志",
+            "confirmDelete": "确定要删除这条日志吗？"
         }
     },
     "channel": {

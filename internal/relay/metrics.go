@@ -161,7 +161,9 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	// 设置响应内容
 	if m.InternalResponse != nil {
-		if respJSON, jsonErr := json.Marshal(m.InternalResponse); jsonErr == nil {
+		// 创建响应的浅拷贝，过滤掉 images 字段以减少存储压力
+		respForLog := m.filterResponseForLog(m.InternalResponse)
+		if respJSON, jsonErr := json.Marshal(respForLog); jsonErr == nil {
 			// 如果是 Anthropic 响应，补充 cache_creation_input_tokens 字段
 			if m.InternalResponse.Usage != nil && m.InternalResponse.Usage.AnthropicUsage {
 				respStr := string(respJSON)
@@ -180,5 +182,77 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	if logErr := op.RelayLogAdd(ctx, relayLog); logErr != nil {
 		log.Warnf("failed to save relay log: %v", logErr)
+	}
+}
+
+// filterResponseForLog 创建响应的浅拷贝，过滤掉 images 和 MultipleContent 中的图片数据以减少存储压力
+func (m *RelayMetrics) filterResponseForLog(resp *transformerModel.InternalLLMResponse) *transformerModel.InternalLLMResponse {
+	if resp == nil {
+		return nil
+	}
+
+	// 创建浅拷贝
+	filtered := *resp
+	filtered.Choices = make([]transformerModel.Choice, len(resp.Choices))
+
+	for i, choice := range resp.Choices {
+		filtered.Choices[i] = choice
+
+		// 处理 Message
+		if choice.Message != nil {
+			msgCopy := *choice.Message
+			// 清除 Images 字段
+			if len(msgCopy.Images) > 0 {
+				msgCopy.Images = nil
+			}
+			// 过滤 MultipleContent 中的图片数据
+			if len(msgCopy.Content.MultipleContent) > 0 {
+				msgCopy.Content = m.filterMessageContent(msgCopy.Content)
+			}
+			filtered.Choices[i].Message = &msgCopy
+		}
+
+		// 处理 Delta
+		if choice.Delta != nil {
+			deltaCopy := *choice.Delta
+			// 清除 Images 字段
+			if len(deltaCopy.Images) > 0 {
+				deltaCopy.Images = nil
+			}
+			// 过滤 MultipleContent 中的图片数据
+			if len(deltaCopy.Content.MultipleContent) > 0 {
+				deltaCopy.Content = m.filterMessageContent(deltaCopy.Content)
+			}
+			filtered.Choices[i].Delta = &deltaCopy
+		}
+	}
+
+	return &filtered
+}
+
+// filterMessageContent 过滤 MessageContent 中的图片数据
+func (m *RelayMetrics) filterMessageContent(content transformerModel.MessageContent) transformerModel.MessageContent {
+	if len(content.MultipleContent) == 0 {
+		return content
+	}
+
+	filteredParts := make([]transformerModel.MessageContentPart, 0, len(content.MultipleContent))
+	for _, part := range content.MultipleContent {
+		if part.Type == "image_url" && part.ImageURL != nil {
+			// 用占位符替换图片数据
+			filteredParts = append(filteredParts, transformerModel.MessageContentPart{
+				Type: "image_url",
+				ImageURL: &transformerModel.ImageURL{
+					URL: "[image data omitted for storage]",
+				},
+			})
+		} else {
+			filteredParts = append(filteredParts, part)
+		}
+	}
+
+	return transformerModel.MessageContent{
+		Content:         content.Content,
+		MultipleContent: filteredParts,
 	}
 }

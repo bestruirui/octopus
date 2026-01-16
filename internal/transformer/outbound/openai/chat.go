@@ -71,23 +71,6 @@ func (o *ChatOutbound) TransformResponse(ctx context.Context, response *http.Res
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
-
-	// Debug: log response metadata without the large base64 image data
-	if len(resp.Choices) > 0 && len(resp.Choices[0].Message.Images) > 0 {
-		imageCount := len(resp.Choices[0].Message.Images)
-		totalImageSize := 0
-		for _, img := range resp.Choices[0].Message.Images {
-			if img.ImageURL != nil {
-				totalImageSize += len(img.ImageURL.URL)
-			}
-		}
-		fmt.Printf("[DEBUG OpenAI Response] Images detected: count=%d, totalSize=%d bytes\n", imageCount, totalImageSize)
-	} else {
-		// Only log responses without large image data
-		bodyStr := string(body)
-		fmt.Printf("[DEBUG OpenAI Response] Length: %d, First 2000 chars: %s\n", len(body), bodyStr[:min(len(bodyStr), 2000)])
-	}
-
 	return &resp, nil
 }
 
@@ -111,23 +94,5 @@ func (o *ChatOutbound) TransformStream(ctx context.Context, eventData []byte) (*
 	if err := json.Unmarshal(eventData, &resp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal stream chunk: %w", err)
 	}
-
-	// Debug: log stream chunk metadata without the large base64 image data
-	debugStr := string(eventData)
-	// Hide large base64 image data in logs to reduce storage pressure
-	if len(resp.Choices) > 0 && len(resp.Choices[0].Delta.Images) > 0 {
-		imageCount := len(resp.Choices[0].Delta.Images)
-		totalImageSize := 0
-		for _, img := range resp.Choices[0].Delta.Images {
-			if img.ImageURL != nil {
-				totalImageSize += len(img.ImageURL.URL)
-			}
-		}
-		fmt.Printf("[DEBUG OpenAI Stream] Images detected: count=%d, totalSize=%d bytes\n", imageCount, totalImageSize)
-	} else {
-		// Only log non-image chunks to keep logs manageable
-		fmt.Printf("[DEBUG OpenAI Stream] Length: %d, First 2000 chars: %s\n", len(eventData), debugStr[:min(len(debugStr), 2000)])
-	}
-
 	return &resp, nil
 }

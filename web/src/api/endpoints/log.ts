@@ -58,6 +58,31 @@ export function useClearLogs() {
     });
 }
 
+/**
+ * 删除单条日志 Hook
+ * 
+ * @example
+ * const deleteLog = useDeleteLog();
+ * 
+ * deleteLog.mutate(logId);
+ */
+export function useDeleteLog() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: number) => {
+            return apiClient.delete<null>(`/api/v1/log/${id}`);
+        },
+        onSuccess: () => {
+            logger.log('日志删除成功');
+            queryClient.invalidateQueries({ queryKey: ['logs'] });
+        },
+        onError: (error) => {
+            logger.error('日志删除失败:', error);
+        },
+    });
+}
+
 const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize] as const;
 
 /**

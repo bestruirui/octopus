@@ -1,18 +1,19 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, Send, MessageSquare, Loader2 } from 'lucide-react';
+import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, Send, MessageSquare, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
 import { githubDarkTheme } from '@uiw/react-json-view/githubDark';
 import { githubLightTheme } from '@uiw/react-json-view/githubLight';
 import { useTheme } from 'next-themes';
-import { type RelayLog } from '@/api/endpoints/log';
+import { type RelayLog, useDeleteLog } from '@/api/endpoints/log';
 import { getModelIcon } from '@/lib/model-icons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CopyIconButton } from '@/components/common/CopyButton';
+import { Button } from '@/components/ui/button';
 import {
     MorphingDialog,
     MorphingDialogTrigger,
@@ -131,73 +132,100 @@ export function LogCard({ log }: { log: RelayLog }) {
         () => getModelIcon(log.actual_model_name),
         [log.actual_model_name]
     );
+    const deleteLog = useDeleteLog();
 
     const hasError = !!log.error;
 
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (confirm(t('confirmDelete'))) {
+            deleteLog.mutate(log.id);
+        }
+    };
+
     return (
         <MorphingDialog>
-            <MorphingDialogTrigger
-                className={cn(
-                    "rounded-3xl border bg-card custom-shadow w-full text-left",
-                    "hover:shadow-md transition-shadow duration-200",
-                    hasError ? "border-destructive/40" : "border-border",
-                )}
-            >
-                <div className="p-4 grid grid-cols-[auto_1fr] gap-4">
-                    <ModelAvatar size={40} />
-                    <div className="min-w-0 space-y-3">
-                        <div className="flex items-center gap-2 min-w-0 text-sm">
-                            <span className="font-semibold text-card-foreground truncate" title={log.request_model_name}>
-                                {log.request_model_name}
-                            </span>
-                            <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
-                            <Badge
-                                variant="secondary"
-                                className="shrink-0 text-xs px-1.5 py-0"
-                                style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
-                            >
-                                {log.channel_name}
-                            </Badge>
-                            <span className="text-muted-foreground truncate" title={log.actual_model_name}>
-                                {log.actual_model_name}
-                            </span>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
-                            <div className="flex items-center gap-1.5">
-                                <Clock className="size-3.5 shrink-0" style={{ color: brandColor }} />
-                                <span>{formatTime(log.time)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <Zap className="size-3.5 shrink-0 text-amber-500" />
-                                <span>{t('firstToken')} {formatDuration(log.ftut)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <Cpu className="size-3.5 shrink-0 text-blue-500" />
-                                <span>{t('totalTime')} {formatDuration(log.use_time)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <ArrowDownToLine className="size-3.5 shrink-0 text-green-500" />
-                                <span>{t('input')} {log.input_tokens.toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <ArrowUpFromLine className="size-3.5 shrink-0 text-purple-500" />
-                                <span>{t('output')} {log.output_tokens.toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <DollarSign className="size-3.5 shrink-0 text-emerald-500" />
-                                <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                                    {t('cost')} {Number(log.cost).toFixed(6)}
+            <div className="relative group">
+                <MorphingDialogTrigger
+                    className={cn(
+                        "rounded-3xl border bg-card custom-shadow w-full text-left",
+                        "hover:shadow-md transition-shadow duration-200",
+                        hasError ? "border-destructive/40" : "border-border",
+                    )}
+                >
+                    <div className="p-4 grid grid-cols-[auto_1fr_auto] gap-4">
+                        <ModelAvatar size={40} />
+                        <div className="min-w-0 space-y-3">
+                            <div className="flex items-center gap-2 min-w-0 text-sm">
+                                <span className="font-semibold text-card-foreground truncate" title={log.request_model_name}>
+                                    {log.request_model_name}
+                                </span>
+                                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
+                                <Badge
+                                    variant="secondary"
+                                    className="shrink-0 text-xs px-1.5 py-0"
+                                    style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+                                >
+                                    {log.channel_name}
+                                </Badge>
+                                <span className="text-muted-foreground truncate" title={log.actual_model_name}>
+                                    {log.actual_model_name}
                                 </span>
                             </div>
-                        </div>
-                        {hasError && (
-                            <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/20 overflow-hidden">
-                                <p className="text-xs text-destructive line-clamp-2">{log.error}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
+                                <div className="flex items-center gap-1.5">
+                                    <Clock className="size-3.5 shrink-0" style={{ color: brandColor }} />
+                                    <span>{formatTime(log.time)}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Zap className="size-3.5 shrink-0 text-amber-500" />
+                                    <span>{t('firstToken')} {formatDuration(log.ftut)}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Cpu className="size-3.5 shrink-0 text-blue-500" />
+                                    <span>{t('totalTime')} {formatDuration(log.use_time)}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <ArrowDownToLine className="size-3.5 shrink-0 text-green-500" />
+                                    <span>{t('input')} {log.input_tokens.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <ArrowUpFromLine className="size-3.5 shrink-0 text-purple-500" />
+                                    <span>{t('output')} {log.output_tokens.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <DollarSign className="size-3.5 shrink-0 text-emerald-500" />
+                                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                        {t('cost')} {Number(log.cost).toFixed(6)}
+                                    </span>
+                                </div>
                             </div>
-                        )}
+                            {hasError && (
+                                <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/20 overflow-hidden">
+                                    <p className="text-xs text-destructive line-clamp-2">{log.error}</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex items-start">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={handleDelete}
+                                disabled={deleteLog.isPending}
+                                title={t('delete')}
+                            >
+                                {deleteLog.isPending ? (
+                                    <Loader2 className="size-4 animate-spin" />
+                                ) : (
+                                    <Trash2 className="size-4" />
+                                )}
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            </MorphingDialogTrigger>
+                </MorphingDialogTrigger>
+            </div>
 
             <MorphingDialogContainer>
                 <MorphingDialogContent className="relative w-[calc(100vw-2rem)] md:w-[80vw] bg-card text-card-foreground px-6 py-4 rounded-3xl custom-shadow h-[calc(100vh-2rem)] flex flex-col overflow-hidden">

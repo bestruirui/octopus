@@ -380,7 +380,9 @@
             "noRequestContent": "(No request content)",
             "noResponseContent": "(No response content)",
             "firstTokenTime": "First Token Time",
-            "tokens": "tokens"
+            "tokens": "tokens",
+            "delete": "Delete Log",
+            "confirmDelete": "Are you sure you want to delete this log?"
         }
     },
     "channel": {
