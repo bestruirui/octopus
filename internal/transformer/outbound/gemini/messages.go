@@ -81,6 +81,17 @@ func (o *MessagesOutbound) TransformResponse(ctx context.Context, response *http
 		return nil, fmt.Errorf("failed to unmarshal gemini response: %w", err)
 	}
 
+	// Debug: log the response structure for image generation
+	if len(geminiResp.Candidates) > 0 && geminiResp.Candidates[0].Content != nil {
+		for i, part := range geminiResp.Candidates[0].Content.Parts {
+			fmt.Printf("[DEBUG] Gemini Response Part %d: Text=%t, InlineData=%t, FunctionCall=%t, Thought=%t\n",
+				i, part.Text != "", part.InlineData != nil, part.FunctionCall != nil, part.Thought)
+			if part.InlineData != nil {
+				fmt.Printf("[DEBUG] InlineData MimeType: %s, Data length: %d\n", part.InlineData.MimeType, len(part.InlineData.Data))
+			}
+		}
+	}
+
 	// Convert Gemini response to internal format
 	return convertGeminiToLLMResponse(&geminiResp, false), nil
 }
@@ -97,6 +108,17 @@ func (o *MessagesOutbound) TransformStream(ctx context.Context, eventData []byte
 	var geminiResp model.GeminiGenerateContentResponse
 	if err := json.Unmarshal(eventData, &geminiResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal gemini stream chunk: %w", err)
+	}
+
+	// Debug: log the response structure for image generation
+	if len(geminiResp.Candidates) > 0 && geminiResp.Candidates[0].Content != nil {
+		for i, part := range geminiResp.Candidates[0].Content.Parts {
+			fmt.Printf("[DEBUG STREAM] Gemini Response Part %d: Text=%t, InlineData=%t, FunctionCall=%t, Thought=%t\n",
+				i, part.Text != "", part.InlineData != nil, part.FunctionCall != nil, part.Thought)
+			if part.InlineData != nil {
+				fmt.Printf("[DEBUG STREAM] InlineData MimeType: %s, Data length: %d\n", part.InlineData.MimeType, len(part.InlineData.Data))
+			}
+		}
 	}
 
 	// Convert to internal format
@@ -315,8 +337,16 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiG
 	}
 
 	// Convert Modalities to ResponseModalities
+	// Gemini requires capitalized modalities: "Text", "Image" instead of "text", "image"
 	if len(request.Modalities) > 0 {
-		config.ResponseModalities = request.Modalities
+		convertedModalities := make([]string, len(request.Modalities))
+		for i, m := range request.Modalities {
+			// Capitalize first letter: "text" -> "Text", "image" -> "Image"
+			if len(m) > 0 {
+				convertedModalities[i] = strings.ToUpper(m[:1]) + strings.ToLower(m[1:])
+			}
+		}
+		config.ResponseModalities = convertedModalities
 		hasConfig = true
 	}
 

@@ -66,6 +66,10 @@ func (o *ChatOutbound) TransformResponse(ctx context.Context, response *http.Res
 	if len(body) == 0 {
 		return nil, fmt.Errorf("response body is empty")
 	}
+
+	// Debug: log raw response for troubleshooting
+	fmt.Printf("[DEBUG OpenAI Response] Length: %d, First 2000 chars: %s\n", len(body), string(body[:min(len(body), 2000)]))
+
 	var resp model.InternalLLMResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
@@ -79,6 +83,9 @@ func (o *ChatOutbound) TransformStream(ctx context.Context, eventData []byte) (*
 			Object: "[DONE]",
 		}, nil
 	}
+
+	// Debug: log raw stream chunk for troubleshooting (only first 2000 chars)
+	fmt.Printf("[DEBUG OpenAI Stream] Length: %d, First 2000 chars: %s\n", len(eventData), string(eventData[:min(len(eventData), 2000)]))
 
 	var errCheck struct {
 		Error *model.ErrorDetail `json:"error"`

@@ -109,12 +109,20 @@ func (i *ChatInbound) GetInternalResponse(ctx context.Context) (*model.InternalL
 					existingChoice.Message.Role = delta.Role
 				}
 
-				// Append content
+				// Append content (handle both string content and multipart content)
 				if delta.Content.Content != nil {
 					if existingChoice.Message.Content.Content == nil {
 						existingChoice.Message.Content.Content = new(string)
 					}
 					*existingChoice.Message.Content.Content += *delta.Content.Content
+				}
+
+				// Append multipart content (for images, audio, etc.)
+				if len(delta.Content.MultipleContent) > 0 {
+					existingChoice.Message.Content.MultipleContent = append(
+						existingChoice.Message.Content.MultipleContent,
+						delta.Content.MultipleContent...,
+					)
 				}
 
 				// Append reasoning content (supports both reasoning_content and reasoning fields)
