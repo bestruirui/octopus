@@ -314,6 +314,10 @@ type Message struct {
 	ToolCallIsError *bool      `json:"-"`
 	ToolCalls       []ToolCall `json:"tool_calls,omitempty"`
 
+	// Images is used by some providers (e.g., Gemini via OpenAI compat) for image generation responses.
+	// Images will be merged into Content.MultipleContent during response processing.
+	Images []MessageContentPart `json:"images,omitempty"`
+
 	// This property is used for the "reasoning" feature supported by deepseek-reasoner
 	// the doc from deepseek:
 	// - https://api-docs.deepseek.com/api/create-chat-completion#responses
