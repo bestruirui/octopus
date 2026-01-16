@@ -259,19 +259,3 @@ func RelayLogClear(ctx context.Context) error {
 	relayLogCacheLock.Unlock()
 	return db.GetDB().WithContext(ctx).Where("1 = 1").Delete(&model.RelayLog{}).Error
 }
-
-// RelayLogDelete 删除单条日志
-func RelayLogDelete(ctx context.Context, id int64) error {
-	// 从缓存中删除
-	relayLogCacheLock.Lock()
-	for i, log := range relayLogCache {
-		if log.ID == id {
-			relayLogCache = append(relayLogCache[:i], relayLogCache[i+1:]...)
-			break
-		}
-	}
-	relayLogCacheLock.Unlock()
-
-	// 从数据库中删除
-	return db.GetDB().WithContext(ctx).Where("id = ?", id).Delete(&model.RelayLog{}).Error
-}

@@ -25,10 +25,6 @@ func init() {
 				Handle(clearLog),
 		).
 		AddRoute(
-			router.NewRoute("/:id", http.MethodDelete).
-				Handle(deleteLog),
-		).
-		AddRoute(
 			router.NewRoute("/stream-token", http.MethodGet).
 				Handle(getStreamToken),
 		)
@@ -80,21 +76,6 @@ func listLog(c *gin.Context) {
 
 func clearLog(c *gin.Context) {
 	if err := op.RelayLogClear(c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	resp.Success(c, nil)
-}
-
-func deleteLog(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		resp.Error(c, http.StatusBadRequest, "invalid log id")
-		return
-	}
-
-	if err := op.RelayLogDelete(c.Request.Context(), id); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
