@@ -16,6 +16,7 @@ const (
 	APIFormatOpenAIChatCompletion  APIFormat = "openai/chat_completions"
 	APIFormatOpenAIResponse        APIFormat = "openai/responses"
 	APIFormatOpenAIImageGeneration APIFormat = "openai/image_generation"
+	APIFormatOpenAIEmbedding       APIFormat = "openai/embeddings"
 	APIFormatGeminiContents        APIFormat = "gemini/contents"
 	APIFormatAnthropicMessage      APIFormat = "anthropic/messages"
 	APIFormatAiSDKText             APIFormat = "aisdk/text"
@@ -26,7 +27,21 @@ const (
 // It choose to base on the OpenAI chat completion request, but add some extra fields to support more features.
 type InternalLLMRequest struct {
 	// Messages is a list of messages to send to the llm model.
-	Messages []Message `json:"messages" validator:"required,min=1"`
+	// For chat completion requests, this field is required.
+	// For embedding requests, this field should be empty and Input should be used instead.
+	Messages []Message `json:"messages,omitempty" validator:"required,min=1"`
+
+	// Embedding API 参数（与 Messages 互斥）
+	// EmbeddingInput is the text or texts to get embeddings for.
+	// For embedding requests, this field is required.
+	// For chat completion requests, this field should be empty.
+	EmbeddingInput *EmbeddingInput `json:"embedding_input,omitempty"` // string or string[]
+	// EmbeddingDimensions is the number of dimensions for the embedding output.
+	// Only supported for certain embedding models.
+	EmbeddingDimensions *int64 `json:"embedding_dimensions,omitempty"`
+	// EmbeddingEncodingFormat is the format of the embedding output.
+	// Can be "float" or "base64". Defaults to "float".
+	EmbeddingEncodingFormat *string `json:"embedding_encoding_format,omitempty"`
 
 	// Model is the model ID used to generate the response.
 	Model string `json:"model" validator:"required"`
@@ -224,10 +239,42 @@ func (r *InternalLLMRequest) Validate() error {
 	if r.Model == "" {
 		return errors.New("model is required")
 	}
-	if len(r.Messages) == 0 {
+
+	// 检查是否是 embedding 请求
+	isEmbeddingRequest := r.EmbeddingInput != nil
+	isChatRequest := len(r.Messages) > 0
+
+	if isEmbeddingRequest && isChatRequest {
+		return errors.New("cannot specify both messages and input")
+	}
+
+	if !isEmbeddingRequest && !isChatRequest {
+		return errors.New("either messages or input is required")
+	}
+
+	// 验证 embedding 请求
+	if isEmbeddingRequest {
+		if r.EmbeddingInput.Single == nil && len(r.EmbeddingInput.Multiple) == 0 {
+			return errors.New("input cannot be empty")
+		}
+	}
+
+	// 验证 chat 请求
+	if isChatRequest && len(r.Messages) == 0 {
 		return errors.New("messages are required")
 	}
+
 	return nil
+}
+
+// IsEmbeddingRequest returns true if this is an embedding request.
+func (r *InternalLLMRequest) IsEmbeddingRequest() bool {
+	return r.EmbeddingInput != nil
+}
+
+// IsChatRequest returns true if this is a chat completion request.
+func (r *InternalLLMRequest) IsChatRequest() bool {
+	return len(r.Messages) > 0
 }
 
 func (r *InternalLLMRequest) ClearHelpFields() {
@@ -459,10 +506,18 @@ type InternalLLMResponse struct {
 
 	// A list of chat completion choices. Can be more than one if `n` is greater
 	// than 1.
-	Choices []Choice `json:"choices"`
+	// For chat completion responses, this field is required.
+	// For embedding responses, this field should be empty and EmbeddingData should be used instead.
+	Choices []Choice `json:"choices,omitempty"`
+
+	// Embedding API 响应（与 Choices 互斥）
+	// EmbeddingData is the list of embedding objects.
+	// For embedding responses, this field is required.
+	// For chat completion responses, this field should be empty.
+	EmbeddingData []EmbeddingObject `json:"embedding_data,omitempty"`
 
 	// Object is the type of the response.
-	// e.g. "chat.completion", "chat.completion.chunk"
+	// e.g. "chat.completion", "chat.completion.chunk", "list"
 	Object string `json:"object"`
 
 	// Created is the timestamp of when the response was created.
@@ -502,6 +557,16 @@ func (r *InternalLLMResponse) ClearHelpFields() {
 
 		r.Choices[i] = choice
 	}
+}
+
+// IsEmbeddingResponse returns true if this is an embedding response.
+func (r *InternalLLMResponse) IsEmbeddingResponse() bool {
+	return len(r.EmbeddingData) > 0
+}
+
+// IsChatResponse returns true if this is a chat completion response.
+func (r *InternalLLMResponse) IsChatResponse() bool {
+	return len(r.Choices) > 0
 }
 
 // Choice represents a choice in the response.
@@ -549,6 +614,7 @@ type ResponseMeta struct {
 }
 
 // Usage Represents the total token usage per request to OpenAI.
+// For embedding requests, CompletionTokens is always 0.
 type Usage struct {
 	PromptTokens            int64                    `json:"prompt_tokens"`
 	CompletionTokens        int64                    `json:"completion_tokens"`
@@ -788,4 +854,92 @@ type ImageGeneration struct {
 	// Whether to add a watermark to the generated image. Default: false.
 	// It only works for the models support watermark, it will be ignored otherwise.
 	Watermark bool `json:"watermark,omitempty"`
+}
+
+// EmbeddingInput represents the input for embedding requests.
+// It can be a single string or an array of strings.
+type EmbeddingInput struct {
+	Single   *string
+	Multiple []string
+}
+
+func (i EmbeddingInput) MarshalJSON() ([]byte, error) {
+	if i.Single != nil {
+		return json.Marshal(i.Single)
+	}
+
+	if len(i.Multiple) > 0 {
+		return json.Marshal(i.Multiple)
+	}
+
+	return []byte("null"), nil
+}
+
+func (i *EmbeddingInput) UnmarshalJSON(data []byte) error {
+	var str string
+
+	err := json.Unmarshal(data, &str)
+	if err == nil {
+		i.Single = &str
+		return nil
+	}
+
+	var strs []string
+
+	err = json.Unmarshal(data, &strs)
+	if err == nil {
+		i.Multiple = strs
+		return nil
+	}
+
+	return errors.New("invalid input type")
+}
+
+// EmbeddingObject represents a single embedding object in the response.
+type EmbeddingObject struct {
+	// The object type, always "embedding".
+	Object string `json:"object"`
+	// The index of this embedding in the list.
+	Index int `json:"index"`
+	// The embedding vector.
+	Embedding Embedding `json:"embedding"`
+}
+
+// Embedding represents an embedding vector.
+// It can be a float array or a base64-encoded string.
+type Embedding struct {
+	FloatArray   []float64
+	Base64String *string
+}
+
+func (e Embedding) MarshalJSON() ([]byte, error) {
+	if e.Base64String != nil {
+		return json.Marshal(e.Base64String)
+	}
+
+	if len(e.FloatArray) > 0 {
+		return json.Marshal(e.FloatArray)
+	}
+
+	return []byte("[]"), nil
+}
+
+func (e *Embedding) UnmarshalJSON(data []byte) error {
+	var str string
+
+	err := json.Unmarshal(data, &str)
+	if err == nil {
+		e.Base64String = &str
+		return nil
+	}
+
+	var floats []float64
+
+	err = json.Unmarshal(data, &floats)
+	if err == nil {
+		e.FloatArray = floats
+		return nil
+	}
+
+	return errors.New("invalid embedding type")
 }

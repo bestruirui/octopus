@@ -12,6 +12,7 @@ export enum ChannelType {
     Anthropic = 2,
     Gemini = 3,
     Volcengine = 4,
+    OpenAIEmbedding = 5,
 }
 
 /**

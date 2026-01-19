@@ -13,15 +13,17 @@ const (
 	InboundTypeOpenAIResponse
 	InboundTypeAnthropic
 	InboundTypeGemini
+	InboundTypeOpenAIEmbedding
 
 	// Compatibility alias for legacy naming
 	InboundTypeOpenAI = InboundTypeOpenAIChat
 )
 
 var inboundFactories = map[InboundType]func() model.Inbound{
-	InboundTypeOpenAIChat:     func() model.Inbound { return &openai.ChatInbound{} },
-	InboundTypeOpenAIResponse: func() model.Inbound { return &openai.ResponseInbound{} },
-	InboundTypeAnthropic:      func() model.Inbound { return &anthropic.MessagesInbound{} },
+	InboundTypeOpenAIChat:      func() model.Inbound { return &openai.ChatInbound{} },
+	InboundTypeOpenAIResponse:  func() model.Inbound { return &openai.ResponseInbound{} },
+	InboundTypeOpenAIEmbedding: func() model.Inbound { return &openai.EmbeddingInbound{} },
+	InboundTypeAnthropic:       func() model.Inbound { return &anthropic.MessagesInbound{} },
 }
 
 func Get(inboundType InboundType) model.Inbound {

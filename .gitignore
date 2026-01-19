@@ -2,3 +2,4 @@ data
 build
 static/out/*
 !static/out/README.md
+.vscode

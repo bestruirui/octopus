@@ -25,6 +25,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/messages", http.MethodPost).
 				Handle(message),
+		).
+		AddRoute(
+			router.NewRoute("/embeddings", http.MethodPost).
+				Handle(embedding),
 		)
 }
 
@@ -36,4 +40,7 @@ func response(c *gin.Context) {
 }
 func message(c *gin.Context) {
 	relay.Handler(inbound.InboundTypeAnthropic, c)
+}
+func embedding(c *gin.Context) {
+	relay.Handler(inbound.InboundTypeOpenAIEmbedding, c)
 }
