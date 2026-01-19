@@ -11,7 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var maxSSEEventSize = 2 * 1024 * 1024
+// maxSSEEventSize 定义 SSE 事件的最大大小。
+// 对于图像生成模型（如 gemini-3-pro-image-preview），返回的 base64 编码图像数据
+// 可能非常大（高分辨率图像可能超过 10MB），因此需要设置足够大的缓冲区。
+// 默认 32MB，可通过环境变量 OCTOPUS_RELAY_MAX_SSE_EVENT_SIZE 覆盖。
+var maxSSEEventSize = 32 * 1024 * 1024
 
 func init() {
 	if raw := strings.TrimSpace(os.Getenv(strings.ToUpper(conf.APP_NAME) + "_RELAY_MAX_SSE_EVENT_SIZE")); raw != "" {

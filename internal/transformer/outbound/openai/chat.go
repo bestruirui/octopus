@@ -66,6 +66,7 @@ func (o *ChatOutbound) TransformResponse(ctx context.Context, response *http.Res
 	if len(body) == 0 {
 		return nil, fmt.Errorf("response body is empty")
 	}
+
 	var resp model.InternalLLMResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)

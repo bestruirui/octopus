@@ -315,8 +315,16 @@ func convertLLMToGeminiRequest(request *model.InternalLLMRequest) *model.GeminiG
 	}
 
 	// Convert Modalities to ResponseModalities
+	// Gemini requires capitalized modalities: "Text", "Image" instead of "text", "image"
 	if len(request.Modalities) > 0 {
-		config.ResponseModalities = request.Modalities
+		convertedModalities := make([]string, len(request.Modalities))
+		for i, m := range request.Modalities {
+			// Capitalize first letter: "text" -> "Text", "image" -> "Image"
+			if len(m) > 0 {
+				convertedModalities[i] = strings.ToUpper(m[:1]) + strings.ToLower(m[1:])
+			}
+		}
+		config.ResponseModalities = convertedModalities
 		hasConfig = true
 	}
 
@@ -448,10 +456,12 @@ func convertGeminiToLLMResponse(geminiResp *model.GeminiGenerateContentResponse,
 				Role: "assistant",
 			}
 
-			// Extract text and function calls from parts
+			// Extract text, images and function calls from parts
 			var textParts []string
+			var contentParts []model.MessageContentPart
 			var toolCalls []model.ToolCall
 			var reasoningContent *string
+			var hasInlineData bool
 
 			for idx, part := range candidate.Content.Parts {
 				if part.Thought {
@@ -461,6 +471,24 @@ func convertGeminiToLLMResponse(geminiResp *model.GeminiGenerateContentResponse,
 					}
 				} else if part.Text != "" {
 					textParts = append(textParts, part.Text)
+					// Also add to content parts for multimodal response
+					text := part.Text
+					contentParts = append(contentParts, model.MessageContentPart{
+						Type: "text",
+						Text: &text,
+					})
+				}
+				// Handle inline data (images, audio, etc.)
+				if part.InlineData != nil {
+					hasInlineData = true
+					// Convert to data URL format: data:{mimeType};base64,{data}
+					dataURL := fmt.Sprintf("data:%s;base64,%s", part.InlineData.MimeType, part.InlineData.Data)
+					contentParts = append(contentParts, model.MessageContentPart{
+						Type: "image_url",
+						ImageURL: &model.ImageURL{
+							URL: dataURL,
+						},
+					})
 				}
 				if part.FunctionCall != nil {
 					argsJSON, _ := json.Marshal(part.FunctionCall.Args)
@@ -477,8 +505,12 @@ func convertGeminiToLLMResponse(geminiResp *model.GeminiGenerateContentResponse,
 				}
 			}
 
-			// Set content
-			if len(textParts) > 0 {
+			// Set content - use MultipleContent if we have inline data (images)
+			if hasInlineData {
+				msg.Content = model.MessageContent{
+					MultipleContent: contentParts,
+				}
+			} else if len(textParts) > 0 {
 				text := strings.Join(textParts, "")
 				msg.Content = model.MessageContent{
 					Content: &text,
