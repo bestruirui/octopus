@@ -473,7 +473,10 @@
             "autoGroupNone": "不自动分组",
             "autoGroupFuzzy": "模糊匹配",
             "autoGroupExact": "准确匹配",
-            "autoGroupRegex": "正则匹配"
+            "autoGroupRegex": "正则匹配",
+            "matchRegex": "匹配正则",
+            "matchRegexPlaceholder": "可选：用于匹配请求模型名称的正则表达式",
+            "remark": "备注"
         }
     }
 }
