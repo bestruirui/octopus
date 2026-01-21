@@ -22,6 +22,7 @@ export interface ChannelKeyFormItem {
     status_code?: number;
     last_use_time_stamp?: number;
     total_cost?: number;
+    remark?: string;
 }
 
 export interface ChannelFormData {
@@ -327,7 +328,14 @@ export function ChannelForm({
                                 onChange={(e) => handleUpdateKey(idx, { channel_key: e.target.value })}
                                 placeholder={t('apiKey')}
                                 required={idx === 0}
-                                className="rounded-xl"
+                                className="rounded-xl flex-1"
+                            />
+                            <Input
+                                type="text"
+                                value={k.remark ?? ''}
+                                onChange={(e) => handleUpdateKey(idx, { remark: e.target.value })}
+                                placeholder={t('remark')}
+                                className="rounded-xl w-32"
                             />
                             <Switch
                                 checked={k.enabled}

@@ -79,12 +79,14 @@ type ChannelUpdateRequest struct {
 type ChannelKeyAddRequest struct {
 	Enabled    bool   `json:"enabled"`
 	ChannelKey string `json:"channel_key" binding:"required"`
+	Remark     string `json:"remark"`
 }
 
 type ChannelKeyUpdateRequest struct {
 	ID         int     `json:"id" binding:"required"`
 	Enabled    *bool   `json:"enabled,omitempty"`
 	ChannelKey *string `json:"channel_key,omitempty"`
+	Remark     *string `json:"remark,omitempty"`
 }
 
 // ChannelFetchModelRequest is used by /channel/fetch-model (not persisted).

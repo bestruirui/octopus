@@ -200,6 +200,9 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 			if ku.ChannelKey != nil {
 				updates["channel_key"] = *ku.ChannelKey
 			}
+			if ku.Remark != nil {
+				updates["remark"] = *ku.Remark
+			}
 			if len(updates) == 0 {
 				continue
 			}
@@ -220,6 +223,7 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 				ChannelID:  req.ID,
 				Enabled:    ka.Enabled,
 				ChannelKey: ka.ChannelKey,
+				Remark:     ka.Remark,
 			})
 		}
 		if err := tx.Create(&newKeys).Error; err != nil {
