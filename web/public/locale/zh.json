@@ -380,7 +380,12 @@
             "noRequestContent": "(无请求内容)",
             "noResponseContent": "(无响应内容)",
             "firstTokenTime": "首字时间",
-            "tokens": "tokens"
+            "tokens": "tokens",
+            "retryProcess": "重试过程",
+            "retryDetails": "重试详情",
+            "attempts": "次尝试",
+            "success": "成功",
+            "failed": "失败"
         }
     },
     "channel": {

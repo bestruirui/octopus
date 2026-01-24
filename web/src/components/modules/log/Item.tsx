@@ -172,7 +172,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                             <div className="flex flex-col gap-1 border-b p-3 bg-muted/50">
                                                 <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-foreground">
                                                     <RotateCw className="size-3.5" />
-                                                    重试过程
+                                                    {t('retryProcess')}
                                                 </div>
                                             </div>
                                             <div className="flex flex-col gap-1 p-2">
@@ -189,7 +189,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                                     : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
                                                             )}
                                                         >
-                                                            {attempt.success ? '成功' : '失败'}
+                                                            {attempt.success ? t('success') : t('failed')}
                                                         </Badge>
                                                         <div className="flex min-w-0 flex-col flex-1">
                                                             <span className="truncate text-xs font-semibold text-foreground">
@@ -279,7 +279,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                         <div className="flex flex-col gap-1 border-b p-3 bg-muted/50">
                                             <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-foreground">
                                                 <RotateCw className="size-3.5" />
-                                                重试过程
+                                                {t('retryProcess')}
                                             </div>
                                         </div>
                                         <div className="flex flex-col gap-1 p-2">
@@ -296,7 +296,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                                 : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
                                                         )}
                                                     >
-                                                        {attempt.success ? '成功' : '失败'}
+                                                        {attempt.success ? t('success') : t('failed')}
                                                     </Badge>
                                                     <div className="flex min-w-0 flex-col flex-1">
                                                         <span className="truncate text-xs font-semibold text-foreground">
@@ -350,9 +350,9 @@ export function LogCard({ log }: { log: RelayLog }) {
                                         onClick={() => setIsRetryDetailsExpanded(!isRetryDetailsExpanded)}
                                     >
                                         <RotateCw className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300">重试详情</span>
+                                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300">{t('retryDetails')}</span>
                                         <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
-                                            {log.total_attempts || log.attempts!.length} 次尝试
+                                            {log.total_attempts || log.attempts!.length} {t('attempts')}
                                         </Badge>
                                         {isRetryDetailsExpanded ? (
                                             <ChevronUp className="size-4 text-amber-600 dark:text-amber-400 ml-auto" />
@@ -389,7 +389,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                                             : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
                                                                     )}
                                                                 >
-                                                                    {attempt.success ? '成功' : '失败'}
+                                                                    {attempt.success ? t('success') : t('failed')}
                                                                 </Badge>
                                                                 <span className="font-semibold text-foreground">
                                                                     {attempt.channel_name}

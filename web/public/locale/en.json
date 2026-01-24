@@ -380,7 +380,12 @@
             "noRequestContent": "(No request content)",
             "noResponseContent": "(No response content)",
             "firstTokenTime": "First Token Time",
-            "tokens": "tokens"
+            "tokens": "tokens",
+            "retryProcess": "Retry Process",
+            "retryDetails": "Retry Details",
+            "attempts": "attempts",
+            "success": "Success",
+            "failed": "Failed"
         }
     },
     "channel": {
