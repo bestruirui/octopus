@@ -31,6 +31,9 @@ type RelayMetrics struct {
 
 	// 统计指标
 	Stats model.StatsMetrics
+
+	// 重试信息
+	Attempts []model.ChannelAttempt
 }
 
 // NewRelayMetrics 创建新的 RelayMetrics
@@ -60,6 +63,23 @@ func (m *RelayMetrics) SetFirstTokenTime(t time.Time) {
 // SetInternalRequest 设置内部请求
 func (m *RelayMetrics) SetInternalRequest(req *transformerModel.InternalLLMRequest) {
 	m.InternalRequest = req
+}
+
+// AddAttempt 记录单次渠道尝试的信息
+func (m *RelayMetrics) AddAttempt(channelID int, channelName string, modelName string, round int, attemptNum int, success bool, err error, duration time.Duration) {
+	attempt := model.ChannelAttempt{
+		ChannelID:   channelID,
+		ChannelName: channelName,
+		ModelName:   modelName,
+		Round:       round,
+		AttemptNum:  attemptNum,
+		Success:     success,
+		Duration:    int(duration.Milliseconds()),
+	}
+	if err != nil {
+		attempt.Error = err.Error()
+	}
+	m.Attempts = append(m.Attempts, attempt)
 }
 
 // SetInternalResponse 设置内部响应并计算费用
@@ -98,14 +118,15 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 // Save 保存日志和统计信息
 // success: 请求是否成功
 // err: 失败时的错误信息，成功时为 nil
-func (m *RelayMetrics) Save(ctx context.Context, success bool, err error) {
+// successfulRound: 成功的轮次 (1-3)，失败时为 0
+func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, successfulRound int) {
 	duration := time.Since(m.StartTime)
 
 	// 保存统计信息
 	m.saveStats(success, duration)
 
 	// 保存日志
-	m.saveLog(ctx, err, duration)
+	m.saveLog(ctx, err, duration, successfulRound)
 }
 
 // saveStats 保存统计信息
@@ -130,7 +151,7 @@ func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
 }
 
 // saveLog 保存日志
-func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration) {
+func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration, successfulRound int) {
 	relayLog := model.RelayLog{
 		Time:             m.StartTime.Unix(),
 		RequestModelName: m.RequestModel,
@@ -138,6 +159,9 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 		ChannelId:        m.ChannelID,
 		ActualModelName:  m.ActualModel,
 		UseTime:          int(duration.Milliseconds()),
+		Attempts:         m.Attempts,
+		TotalAttempts:    len(m.Attempts),
+		SuccessfulRound:  successfulRound,
 	}
 
 	// 设置首字时间（流式场景）
