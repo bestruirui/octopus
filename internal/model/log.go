@@ -27,7 +27,7 @@ type RelayLog struct {
 	RequestContent   string            `json:"request_content"`                          // 请求内容
 	ResponseContent  string            `json:"response_content"`                         // 响应内容
 	Error            string            `json:"error"`                                    // 错误信息
-	Attempts         []ChannelAttempt  `json:"attempts" gorm:"type:jsonb"`               // 所有尝试记录
+	Attempts         []ChannelAttempt  `json:"attempts" gorm:"serializer:json"`          // 所有尝试记录
 	TotalAttempts    int               `json:"total_attempts"`                           // 总尝试次数
 	SuccessfulRound  int               `json:"successful_round"`                         // 成功的轮次
 }

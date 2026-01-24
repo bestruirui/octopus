@@ -8,7 +8,7 @@ import JsonView from '@uiw/react-json-view';
 import { githubDarkTheme } from '@uiw/react-json-view/githubDark';
 import { githubLightTheme } from '@uiw/react-json-view/githubLight';
 import { useTheme } from 'next-themes';
-import { type RelayLog } from '@/api/endpoints/log';
+import { type RelayLog, type ChannelAttempt } from '@/api/endpoints/log';
 import { getModelIcon } from '@/lib/model-icons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,68 @@ function formatTime(timestamp: number): string {
 function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
+}
+
+interface RetryBadgeWithTooltipProps {
+    channelName: string;
+    brandColor: string;
+    attempts: ChannelAttempt[];
+}
+
+function RetryBadgeWithTooltip({ channelName, brandColor, attempts }: RetryBadgeWithTooltipProps) {
+    const t = useTranslations('log.card');
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Badge
+                    variant="secondary"
+                    className="shrink-0 text-xs px-1.5 py-0 cursor-help border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/30 dark:text-amber-300"
+                    style={{ borderColor: `${brandColor}40` }}
+                >
+                    <RotateCw className="size-3 mr-1 opacity-80" />
+                    {channelName}
+                </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="border bg-card p-0 min-w-[280px] shadow-sm">
+                <div className="flex flex-col">
+                    <div className="flex flex-col gap-1 border-b p-3 bg-muted/50">
+                        <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-foreground">
+                            <RotateCw className="size-3.5" />
+                            {t('retryProcess')}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-1 p-2">
+                        {attempts.map((attempt, idx) => (
+                            <div
+                                key={idx}
+                                className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+                            >
+                                <Badge
+                                    className={cn(
+                                        "h-5 shrink-0 px-1.5 text-[10px] font-bold uppercase",
+                                        attempt.success
+                                            ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
+                                            : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                                    )}
+                                >
+                                    {attempt.success ? t('success') : t('failed')}
+                                </Badge>
+                                <div className="flex min-w-0 flex-col flex-1">
+                                    <span className="truncate text-xs font-semibold text-foreground">
+                                        {attempt.channel_name}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {attempt.model_name} • {formatDuration(attempt.duration)}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </TooltipContent>
+        </Tooltip>
+    );
 }
 
 function DeferredJsonContent({ content, fallbackText }: { content: string | undefined; fallbackText: string }) {
@@ -156,55 +218,11 @@ export function LogCard({ log }: { log: RelayLog }) {
                             </span>
                             <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
                             {hasMultipleAttempts ? (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Badge
-                                            variant="secondary"
-                                            className="shrink-0 text-xs px-1.5 py-0 cursor-help border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/30 dark:text-amber-300"
-                                            style={{ borderColor: `${brandColor}40` }}
-                                        >
-                                            <RotateCw className="size-3 mr-1 opacity-80" />
-                                            {log.channel_name}
-                                        </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="border bg-card p-0 min-w-[280px] shadow-sm">
-                                        <div className="flex flex-col">
-                                            <div className="flex flex-col gap-1 border-b p-3 bg-muted/50">
-                                                <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-foreground">
-                                                    <RotateCw className="size-3.5" />
-                                                    {t('retryProcess')}
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col gap-1 p-2">
-                                                {log.attempts!.map((attempt, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
-                                                    >
-                                                        <Badge
-                                                            className={cn(
-                                                                "h-5 shrink-0 px-1.5 text-[10px] font-bold uppercase",
-                                                                attempt.success
-                                                                    ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
-                                                                    : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                                                            )}
-                                                        >
-                                                            {attempt.success ? t('success') : t('failed')}
-                                                        </Badge>
-                                                        <div className="flex min-w-0 flex-col flex-1">
-                                                            <span className="truncate text-xs font-semibold text-foreground">
-                                                                {attempt.channel_name}
-                                                            </span>
-                                                            <span className="text-[10px] text-muted-foreground">
-                                                                {attempt.model_name} • {formatDuration(attempt.duration)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </TooltipContent>
-                                </Tooltip>
+                                <RetryBadgeWithTooltip
+                                    channelName={log.channel_name}
+                                    brandColor={brandColor}
+                                    attempts={log.attempts!}
+                                />
                             ) : (
                                 <Badge
                                     variant="secondary"
@@ -263,55 +281,11 @@ export function LogCard({ log }: { log: RelayLog }) {
                         <span className="font-semibold text-card-foreground">{log.request_model_name}</span>
                         <ArrowRight className="size-3.5 text-muted-foreground/50" />
                         {hasMultipleAttempts ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        variant="secondary"
-                                        className="text-xs px-1.5 py-0 cursor-help border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/30 dark:text-amber-300"
-                                        style={{ borderColor: `${brandColor}40` }}
-                                    >
-                                        <RotateCw className="size-3 mr-1 opacity-80" />
-                                        {log.channel_name}
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent className="border-border bg-card p-0 min-w-[280px] shadow-sm">
-                                    <div className="flex flex-col">
-                                        <div className="flex flex-col gap-1 border-b p-3 bg-muted/50">
-                                            <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-foreground">
-                                                <RotateCw className="size-3.5" />
-                                                {t('retryProcess')}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-1 p-2">
-                                            {log.attempts!.map((attempt, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
-                                                >
-                                                    <Badge
-                                                        className={cn(
-                                                            "h-5 shrink-0 px-1.5 text-[10px] font-bold uppercase",
-                                                            attempt.success
-                                                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
-                                                                : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                                                        )}
-                                                    >
-                                                        {attempt.success ? t('success') : t('failed')}
-                                                    </Badge>
-                                                    <div className="flex min-w-0 flex-col flex-1">
-                                                        <span className="truncate text-xs font-semibold text-foreground">
-                                                            {attempt.channel_name}
-                                                        </span>
-                                                        <span className="text-[10px] text-muted-foreground">
-                                                            {attempt.model_name} • {formatDuration(attempt.duration)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </TooltipContent>
-                            </Tooltip>
+                            <RetryBadgeWithTooltip
+                                channelName={log.channel_name}
+                                brandColor={brandColor}
+                                attempts={log.attempts!}
+                            />
                         ) : (
                             <Badge
                                 variant="secondary"
