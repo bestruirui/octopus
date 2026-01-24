@@ -66,11 +66,11 @@ func (m *RelayMetrics) SetInternalRequest(req *transformerModel.InternalLLMReque
 }
 
 // AddAttempt 记录单次渠道尝试的信息
-func (m *RelayMetrics) AddAttempt(channelID int, channelName string, modelName string, round int, attemptNum int, success bool, err error, duration time.Duration) {
+func (m *RelayMetrics) AddAttempt(round int, attemptNum int, success bool, err error, duration time.Duration) {
 	attempt := model.ChannelAttempt{
-		ChannelID:   channelID,
-		ChannelName: channelName,
-		ModelName:   modelName,
+		ChannelID:   m.ChannelID,
+		ChannelName: m.ChannelName,
+		ModelName:   m.ActualModel,
 		Round:       round,
 		AttemptNum:  attemptNum,
 		Success:     success,
@@ -80,6 +80,7 @@ func (m *RelayMetrics) AddAttempt(channelID int, channelName string, modelName s
 		attempt.Error = err.Error()
 	}
 	m.Attempts = append(m.Attempts, attempt)
+	m.saveStats(success, duration)
 }
 
 // SetInternalResponse 设置内部响应并计算费用
@@ -121,9 +122,6 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 // successfulRound: 成功的轮次 (1-3)，失败时为 0
 func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, successfulRound int) {
 	duration := time.Since(m.StartTime)
-
-	// 保存统计信息
-	m.saveStats(success, duration)
 
 	// 保存日志
 	m.saveLog(ctx, err, duration, successfulRound)

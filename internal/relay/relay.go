@@ -125,7 +125,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			if statusCode, err := rc.forward(); err == nil {
 				// 成功
 				attemptDuration := time.Since(attemptStart)
-				metrics.AddAttempt(channel.ID, channel.Name, item.ModelName, round+1, i+1, true, nil, attemptDuration)
+				metrics.AddAttempt(round+1, i+1, true, nil, attemptDuration)
 				rc.collectResponse()
 				rc.usedKey.StatusCode = statusCode
 				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
@@ -136,7 +136,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			} else {
 				// 失败
 				attemptDuration := time.Since(attemptStart)
-				metrics.AddAttempt(channel.ID, channel.Name, item.ModelName, round+1, i+1, false, err, attemptDuration)
+				metrics.AddAttempt(round+1, i+1, false, err, attemptDuration)
 				rc.usedKey.StatusCode = statusCode
 				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
 				op.ChannelKeyUpdate(rc.usedKey)
