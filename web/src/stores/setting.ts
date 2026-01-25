@@ -11,7 +11,7 @@ interface SettingState {
 export const useSettingStore = create<SettingState>()(
     persist(
         (set) => ({
-            locale: 'zh',
+            locale: 'en',
             setLocale: (locale) => set({ locale }),
         }),
         {
