@@ -73,7 +73,7 @@ export function Rank() {
                             <div className="flex items-center gap-1 text-right shrink-0">
                                 {mode === 'count' ? (
                                     <div className="flex items-center gap-3 text-sm">
-                                        <div className="flex items-center gap-1 text-primary">
+                                        <div className="flex items-center gap-1 text-accent">
                                             <CheckCircle2 className="w-3.5 h-3.5" />
                                             <span>{channel.formatted.request_success.formatted.value}</span>
                                         </div>
