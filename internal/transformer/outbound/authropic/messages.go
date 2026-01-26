@@ -340,20 +340,13 @@ func convertSystemPrompt(req *model.InternalLLMRequest) *anthropicModel.SystemPr
 		return nil
 	}
 
-	wasArrayFormat := req.TransformerMetadata != nil && req.TransformerMetadata["anthropic_system_array_format"] == "true"
-
 	if len(systemMessages) == 1 {
-		if wasArrayFormat {
-			return &anthropicModel.SystemPrompt{
-				MultiplePrompts: []anthropicModel.SystemPromptPart{{
-					Type:         "text",
-					Text:         lo.FromPtr(systemMessages[0].Content.Content),
-					CacheControl: convertCacheControl(systemMessages[0].CacheControl),
-				}},
-			}
-		}
 		return &anthropicModel.SystemPrompt{
-			Prompt: systemMessages[0].Content.Content,
+			MultiplePrompts: []anthropicModel.SystemPromptPart{{
+				Type:         "text",
+				Text:         lo.FromPtr(systemMessages[0].Content.Content),
+				CacheControl: convertCacheControl(systemMessages[0].CacheControl),
+			}},
 		}
 	}
 
