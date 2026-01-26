@@ -56,5 +56,5 @@ func GenerateAPIKey() string {
 		}
 		b[i] = keyChars[n.Int64()]
 	}
-	return "sk-wagix" + "-" + string(b)
+	return "sk-" + conf.APP_NAME + "-" + string(b)
 }
