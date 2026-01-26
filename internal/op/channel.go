@@ -173,6 +173,10 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		selectFields = append(selectFields, "param_override")
 		updates.ParamOverride = req.ParamOverride
 	}
+	if req.MatchRegex != nil {
+		selectFields = append(selectFields, "match_regex")
+		updates.MatchRegex = req.MatchRegex
+	}
 
 	// 只有当有字段需要更新时才执行 UPDATE
 	if len(selectFields) > 0 {
