@@ -1,14 +1,14 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, Send, MessageSquare, Loader2 } from 'lucide-react';
+import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
 import { githubDarkTheme } from '@uiw/react-json-view/githubDark';
 import { githubLightTheme } from '@uiw/react-json-view/githubLight';
 import { useTheme } from 'next-themes';
-import { type RelayLog } from '@/api/endpoints/log';
+import { type RelayLog, type ChannelAttempt } from '@/api/endpoints/log';
 import { getModelIcon } from '@/lib/model-icons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ import {
     MorphingDialogDescription,
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/animate-ui/components/animate/tooltip';
 
 function formatTime(timestamp: number): string {
     const date = new Date(timestamp * 1000);
@@ -38,6 +39,68 @@ function formatTime(timestamp: number): string {
 function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
+}
+
+interface RetryBadgeWithTooltipProps {
+    channelName: string;
+    brandColor: string;
+    attempts: ChannelAttempt[];
+}
+
+function RetryBadgeWithTooltip({ channelName, brandColor, attempts }: RetryBadgeWithTooltipProps) {
+    const t = useTranslations('log.card');
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Badge
+                    variant="secondary"
+                    className="shrink-0 text-xs px-1.5 py-0 cursor-help"
+                    style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+                >
+                    <RotateCw className="size-3 mr-1 opacity-80" />
+                    {channelName}
+                </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="border bg-card p-0 min-w-[280px] shadow-sm">
+                <div className="flex flex-col">
+                    <div className="flex flex-col gap-1 border-b p-3 bg-muted/50">
+                        <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-foreground">
+                            <RotateCw className="size-3.5" />
+                            {t('retryProcess')}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-1 p-2">
+                        {attempts.map((attempt, idx) => (
+                            <div
+                                key={idx}
+                                className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+                            >
+                                <Badge
+                                    className={cn(
+                                        "h-5 shrink-0 px-1.5 text-[10px] font-bold uppercase",
+                                        attempt.success
+                                            ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
+                                            : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                                    )}
+                                >
+                                    {attempt.success ? t('success') : t('failed')}
+                                </Badge>
+                                <div className="flex min-w-0 flex-col flex-1">
+                                    <span className="truncate text-xs font-semibold text-foreground">
+                                        {attempt.channel_name}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {attempt.model_name} • {formatDuration(attempt.duration)}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </TooltipContent>
+        </Tooltip>
+    );
 }
 
 function DeferredJsonContent({ content, fallbackText }: { content: string | undefined; fallbackText: string }) {
@@ -133,9 +196,12 @@ export function LogCard({ log }: { log: RelayLog }) {
     );
 
     const hasError = !!log.error;
+    const hasMultipleAttempts = log.attempts && log.attempts.length > 1;
+    const [isRetryDetailsExpanded, setIsRetryDetailsExpanded] = useState(false);
 
     return (
-        <MorphingDialog>
+        <TooltipProvider>
+            <MorphingDialog>
             <MorphingDialogTrigger
                 className={cn(
                     "rounded-3xl border bg-card custom-shadow w-full text-left",
@@ -151,13 +217,21 @@ export function LogCard({ log }: { log: RelayLog }) {
                                 {log.request_model_name}
                             </span>
                             <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
-                            <Badge
-                                variant="secondary"
-                                className="shrink-0 text-xs px-1.5 py-0"
-                                style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
-                            >
-                                {log.channel_name}
-                            </Badge>
+                            {hasMultipleAttempts ? (
+                                <RetryBadgeWithTooltip
+                                    channelName={log.channel_name}
+                                    brandColor={brandColor}
+                                    attempts={log.attempts!}
+                                />
+                            ) : (
+                                <Badge
+                                    variant="secondary"
+                                    className="shrink-0 text-xs px-1.5 py-0"
+                                    style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+                                >
+                                    {log.channel_name}
+                                </Badge>
+                            )}
                             <span className="text-muted-foreground truncate" title={log.actual_model_name}>
                                 {log.actual_model_name}
                             </span>
@@ -206,13 +280,21 @@ export function LogCard({ log }: { log: RelayLog }) {
                         <ModelAvatar size={28} />
                         <span className="font-semibold text-card-foreground">{log.request_model_name}</span>
                         <ArrowRight className="size-3.5 text-muted-foreground/50" />
-                        <Badge
-                            variant="secondary"
-                            className="text-xs px-1.5 py-0"
-                            style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
-                        >
-                            {log.channel_name}
-                        </Badge>
+                        {hasMultipleAttempts ? (
+                            <RetryBadgeWithTooltip
+                                channelName={log.channel_name}
+                                brandColor={brandColor}
+                                attempts={log.attempts!}
+                            />
+                        ) : (
+                            <Badge
+                                variant="secondary"
+                                className="text-xs px-1.5 py-0"
+                                style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+                            >
+                                {log.channel_name}
+                            </Badge>
+                        )}
                         <span className="text-muted-foreground">{log.actual_model_name}</span>
                     </MorphingDialogTitle>
 
@@ -231,6 +313,79 @@ export function LogCard({ log }: { log: RelayLog }) {
                                         />
                                     </div>
                                     <p className="text-sm text-destructive whitespace-pre-wrap wrap-break-word">{log.error}</p>
+                                </div>
+                            )}
+
+                            {/* 新增: 独立的重试信息区域 - 无论成功失败都显示 */}
+                            {hasMultipleAttempts && (
+                                <div className="flex-initial max-h-[30%] min-h-0 p-2.5 md:p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 overflow-auto">
+                                    <div
+                                        className="flex items-center gap-2 mb-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                                        onClick={() => setIsRetryDetailsExpanded(!isRetryDetailsExpanded)}
+                                    >
+                                        <RotateCw className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300">{t('retryDetails')}</span>
+                                        <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
+                                            {log.total_attempts || log.attempts!.length} {t('attempts')}
+                                        </Badge>
+                                        {isRetryDetailsExpanded ? (
+                                            <ChevronUp className="size-4 text-amber-600 dark:text-amber-400 ml-auto" />
+                                        ) : (
+                                            <ChevronDown className="size-4 text-amber-600 dark:text-amber-400 ml-auto" />
+                                        )}
+                                    </div>
+                                    <AnimatePresence initial={false}>
+                                        {isRetryDetailsExpanded && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.2, ease: "easeInOut" }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="space-y-2">
+                                                    {log.attempts!.map((attempt, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            className={cn(
+                                                                "text-xs p-2.5 rounded-lg border transition-colors",
+                                                                attempt.success
+                                                                    ? "bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
+                                                                    : "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800/30"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-2 mb-1.5">
+                                                                <Badge
+                                                                    className={cn(
+                                                                        "h-5 shrink-0 px-1.5 text-[10px] font-bold uppercase",
+                                                                        attempt.success
+                                                                            ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
+                                                                            : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"
+                                                                    )}
+                                                                >
+                                                                    {attempt.success ? t('success') : t('failed')}
+                                                                </Badge>
+                                                                <span className="font-semibold text-foreground">
+                                                                    {attempt.channel_name}
+                                                                </span>
+                                                                <span className="text-muted-foreground">
+                                                                    ({attempt.model_name})
+                                                                </span>
+                                                                <span className="ml-auto text-muted-foreground tabular-nums">
+                                                                    {formatDuration(attempt.duration)}
+                                                                </span>
+                                                            </div>
+                                                            {attempt.error && (
+                                                                <div className="text-red-700 dark:text-red-300 break-words mt-1 pl-2 border-l-2 border-red-300 dark:border-red-800">
+                                                                    {attempt.error}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             )}
                             <div className="flex-1 min-h-0 overflow-hidden">
@@ -287,5 +442,6 @@ export function LogCard({ log }: { log: RelayLog }) {
                 </MorphingDialogContent>
             </MorphingDialogContainer>
         </MorphingDialog>
+        </TooltipProvider>
     );
 }
