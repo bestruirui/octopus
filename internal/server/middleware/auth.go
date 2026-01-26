@@ -69,6 +69,21 @@ func APIKeyAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		// Auto reset quota logic
+		if apiKeyObj.AutoResetQuota && apiKeyObj.ResetDuration > 0 {
+			now := time.Now().Unix()
+			if apiKeyObj.NextResetTime == 0 {
+				apiKeyObj.NextResetTime = now + apiKeyObj.ResetDuration
+				op.APIKeyUpdate(&apiKeyObj, c.Request.Context())
+			} else if now >= apiKeyObj.NextResetTime {
+				if err := op.StatsAPIKeyReset(apiKeyObj.ID); err == nil {
+					apiKeyObj.NextResetTime = now + apiKeyObj.ResetDuration
+					op.APIKeyUpdate(&apiKeyObj, c.Request.Context())
+				}
+			}
+		}
+
 		statsAPIKey := op.StatsAPIKeyGet(apiKeyObj.ID)
 		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost < statsAPIKey.StatsMetrics.OutputCost+statsAPIKey.StatsMetrics.InputCost {
 			resp.Error(c, http.StatusUnauthorized, "API key has reached the max cost")

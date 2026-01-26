@@ -291,6 +291,17 @@ func StatsAPIKeyUpdate(apiKeyID int, metrics model.StatsMetrics) error {
 	return nil
 }
 
+func StatsAPIKeyReset(apiKeyID int) error {
+	apiKeyCache := model.StatsAPIKey{
+		APIKeyID: apiKeyID,
+	}
+	statsAPIKeyCache.Set(apiKeyID, apiKeyCache)
+	statsAPIKeyCacheNeedUpdateLock.Lock()
+	statsAPIKeyCacheNeedUpdate[apiKeyID] = struct{}{}
+	statsAPIKeyCacheNeedUpdateLock.Unlock()
+	return nil
+}
+
 func StatsChannelDel(id int) error {
 	if _, ok := statsChannelCache.Get(id); !ok {
 		return nil

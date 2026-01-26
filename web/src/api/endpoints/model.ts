@@ -6,10 +6,12 @@ import { logger } from '@/lib/logger';
  * LLM 价格信息
  */
 export interface LLMPrice {
+    type?: string;
     input: number;
     output: number;
     cache_read: number;
     cache_write: number;
+    request?: number;
 }
 
 /**

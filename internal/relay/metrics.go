@@ -80,19 +80,25 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	if modelPrice == nil {
 		return
 	}
-	if usage.PromptTokensDetails == nil {
-		usage.PromptTokensDetails = &transformerModel.PromptTokensDetails{
-			CachedTokens: 0,
-		}
-	}
-	if usage.AnthropicUsage {
-		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
-			float64(usage.PromptTokens)*modelPrice.Input +
-			float64(usage.CacheCreationInputTokens)*modelPrice.CacheWrite) * 1e-6
+
+	if modelPrice.Type == "request" {
+		m.Stats.InputCost = modelPrice.Request
+		m.Stats.OutputCost = 0
 	} else {
-		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
+		if usage.PromptTokensDetails == nil {
+			usage.PromptTokensDetails = &transformerModel.PromptTokensDetails{
+				CachedTokens: 0,
+			}
+		}
+		if usage.AnthropicUsage {
+			m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
+				float64(usage.PromptTokens)*modelPrice.Input +
+				float64(usage.CacheCreationInputTokens)*modelPrice.CacheWrite) * 1e-6
+		} else {
+			m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
+		}
+		m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
 	}
-	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
 }
 
 // Save 保存日志和统计信息

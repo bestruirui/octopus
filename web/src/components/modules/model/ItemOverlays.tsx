@@ -4,12 +4,16 @@ import { Check, Loader, Trash2, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 type EditValues = {
+    type: string;
     input: string;
     output: string;
     cache_read: string;
     cache_write: string;
+    request: string;
 };
 
 type ModelDeleteOverlayProps = {
@@ -89,48 +93,72 @@ export function ModelEditOverlay({
                 {modelName}
             </h3>
 
-            <div className="grid grid-cols-2 gap-2">
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('input')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.input}
-                        onChange={(e) => onChange({ ...editValues, input: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('output')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.output}
-                        onChange={(e) => onChange({ ...editValues, output: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('cacheRead')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.cache_read}
-                        onChange={(e) => onChange({ ...editValues, cache_read: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('cacheWrite')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.cache_write}
-                        onChange={(e) => onChange({ ...editValues, cache_write: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
+            <div className="flex items-center gap-2 mb-3">
+                <Switch
+                    id="price-mode"
+                    checked={editValues.type === 'request'}
+                    onCheckedChange={(checked) => onChange({ ...editValues, type: checked ? 'request' : 'token' })}
+                />
+                <Label htmlFor="price-mode" className="text-sm text-muted-foreground">Pay Per Request</Label>
             </div>
+
+            {editValues.type === 'request' ? (
+                <div className="grid grid-cols-1 gap-2">
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        Request Price
+                        <Input
+                            type="number"
+                            step="any"
+                            value={editValues.request}
+                            onChange={(e) => onChange({ ...editValues, request: e.target.value })}
+                            className="h-9 text-sm rounded-xl"
+                        />
+                    </label>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('input')}
+                        <Input
+                            type="number"
+                            step="any"
+                            value={editValues.input}
+                            onChange={(e) => onChange({ ...editValues, input: e.target.value })}
+                            className="h-9 text-sm rounded-xl"
+                        />
+                    </label>
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('output')}
+                        <Input
+                            type="number"
+                            step="any"
+                            value={editValues.output}
+                            onChange={(e) => onChange({ ...editValues, output: e.target.value })}
+                            className="h-9 text-sm rounded-xl"
+                        />
+                    </label>
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('cacheRead')}
+                        <Input
+                            type="number"
+                            step="any"
+                            value={editValues.cache_read}
+                            onChange={(e) => onChange({ ...editValues, cache_read: e.target.value })}
+                            className="h-9 text-sm rounded-xl"
+                        />
+                    </label>
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('cacheWrite')}
+                        <Input
+                            type="number"
+                            step="any"
+                            value={editValues.cache_write}
+                            onChange={(e) => onChange({ ...editValues, cache_write: e.target.value })}
+                            className="h-9 text-sm rounded-xl"
+                        />
+                    </label>
+                </div>
+            )}
 
             <div className="flex gap-2 pt-2 mt-3">
                 <button

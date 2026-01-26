@@ -1,10 +1,12 @@
 package model
 
 type LLMPrice struct {
+	Type       string  `json:"type" gorm:"default:'token'"`
 	Input      float64 `json:"input"`
 	Output     float64 `json:"output"`
 	CacheRead  float64 `json:"cache_read"`
 	CacheWrite float64 `json:"cache_write"`
+	Request    float64 `json:"request"`
 }
 
 type LLMInfo struct {

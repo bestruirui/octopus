@@ -23,10 +23,12 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
     const editLayoutId = `edit-btn-${model.name}-${instanceId}`;
     const deleteLayoutId = `delete-btn-${model.name}-${instanceId}`;
     const [editValues, setEditValues] = useState(() => ({
+        type: model.type || 'token',
         input: model.input.toString(),
         output: model.output.toString(),
         cache_read: model.cache_read.toString(),
         cache_write: model.cache_write.toString(),
+        request: (model.request || 0).toString(),
     }));
 
     const updateModel = useUpdateModel();
@@ -37,10 +39,12 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
     const handleEditClick = () => {
         setConfirmDelete(false);
         setEditValues({
+            type: model.type || 'token',
             input: model.input.toString(),
             output: model.output.toString(),
             cache_read: model.cache_read.toString(),
             cache_write: model.cache_write.toString(),
+            request: (model.request || 0).toString(),
         });
         setIsEditing(true);
     };
@@ -52,10 +56,12 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
     const handleSaveEdit = () => {
         updateModel.mutate({
             name: model.name,
+            type: editValues.type,
             input: parseFloat(editValues.input) || 0,
             output: parseFloat(editValues.output) || 0,
             cache_read: parseFloat(editValues.cache_read) || 0,
             cache_write: parseFloat(editValues.cache_write) || 0,
+            request: parseFloat(editValues.request) || 0,
         }, {
             onSuccess: () => {
                 setIsEditing(false);
@@ -104,17 +110,27 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
                     </TooltipContent>
                 </Tooltip>
 
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
-                    {t('card.inputCache')}
-                    <span className="tabular-nums">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
-                </p>
+                {model.type === 'request' ? (
+                    <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
+                        Request Price
+                        <span className="tabular-nums">{(model.request || 0).toFixed(6)}$</span>
+                    </p>
+                ) : (
+                    <>
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
+                            {t('card.inputCache')}
+                            <span className="tabular-nums">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
+                        </p>
 
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <ArrowUpFromLine className="size-3.5" style={{ color: brandColor }} />
-                    {t('card.outputCache')}
-                    <span className="tabular-nums">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
-                </p>
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <ArrowUpFromLine className="size-3.5" style={{ color: brandColor }} />
+                            {t('card.outputCache')}
+                            <span className="tabular-nums">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
+                        </p>
+                    </>
+                )}
             </div>
 
             <div

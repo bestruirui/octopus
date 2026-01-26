@@ -8,6 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
     MorphingDialog,
@@ -89,6 +96,8 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         expire_at: apiKey?.expire_at,
         max_cost: apiKey?.max_cost,
         supported_models: apiKey?.supported_models,
+        auto_reset_quota: apiKey?.auto_reset_quota ?? false,
+        reset_duration: apiKey?.reset_duration ?? 0,
     }));
     const [maxCostInput, setMaxCostInput] = useState(() =>
         apiKey?.max_cost != null ? String(apiKey.max_cost) : ''
@@ -103,6 +112,22 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         return '00:00';
     });
     const [expireOpen, setExpireOpen] = useState(false);
+
+    // Auto Reset State
+    const [resetValue, setResetValue] = useState(() => {
+        const d = apiKey?.reset_duration || 0;
+        if (d === 0) return '1';
+        if (d % 86400 === 0) return (d / 86400).toString();
+        if (d % 3600 === 0) return (d / 3600).toString();
+        return (d / 60).toString();
+    });
+    const [resetUnit, setResetUnit] = useState(() => {
+        const d = apiKey?.reset_duration || 0;
+        if (d === 0) return '86400';
+        if (d % 86400 === 0) return '86400';
+        if (d % 3600 === 0) return '3600';
+        return '60';
+    });
 
     const availableModels = useMemo(() => {
         const names = groups.map((g) => g.name).filter(Boolean);
@@ -122,6 +147,17 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
     const updateForm = useCallback((updater: Partial<Omit<APIKey, 'id' | 'api_key'>>) => {
         setForm((prev) => ({ ...prev, ...updater }));
     }, []);
+
+    // Update reset_duration when inputs change
+    useEffect(() => {
+        if (form.auto_reset_quota) {
+            const val = parseFloat(resetValue);
+            const unit = parseInt(resetUnit);
+            if (!isNaN(val) && !isNaN(unit)) {
+                updateForm({ reset_duration: val * unit });
+            }
+        }
+    }, [resetValue, resetUnit, form.auto_reset_quota, updateForm]);
 
     const handleSelectDate = useCallback((d: Date | undefined) => {
         if (d) {
@@ -155,7 +191,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         updateForm({ max_cost: Number.isFinite(num) ? num : undefined });
     }, [updateForm]);
 
-    const handleClearMaxCost = useCallback(() => {
+    const handleClearMaxCost = useCallback((val: string) => {
         setMaxCostInput('');
         updateForm({ max_cost: undefined });
     }, [updateForm]);
@@ -197,7 +233,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                     </div>
                     <button
                         type="button"
-                        onClick={handleClearMaxCost}
+                        onClick={() => handleClearMaxCost('')}
                         disabled={isPending}
                         aria-pressed={isUnlimitedCost}
                         className={cn(
@@ -212,6 +248,41 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                     </button>
                 </div>
             </div>
+
+            <div className="flex items-center justify-between pt-1">
+                <span className="text-xs text-muted-foreground">Auto Reset Quota</span>
+                <Switch
+                    checked={form.auto_reset_quota}
+                    onCheckedChange={(checked) => updateForm({ auto_reset_quota: checked })}
+                    disabled={isPending}
+                />
+            </div>
+
+            {form.auto_reset_quota && (
+                <div className="grid gap-1 text-xs text-muted-foreground pl-2 border-l-2 border-muted ml-1">
+                    Reset Every
+                    <div className="flex items-center gap-2">
+                        <Input
+                            type="number"
+                            min="1"
+                            value={resetValue}
+                            onChange={(e) => setResetValue(e.target.value)}
+                            className="h-9 text-sm rounded-xl flex-1"
+                            disabled={isPending}
+                        />
+                        <Select value={resetUnit} onValueChange={setResetUnit} disabled={isPending}>
+                            <SelectTrigger className="h-9 w-[110px] rounded-xl">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="60">Minutes</SelectItem>
+                                <SelectItem value="3600">Hours</SelectItem>
+                                <SelectItem value="86400">Days</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            )}
 
             <div className="grid gap-1 text-xs text-muted-foreground">
                 {t('apiKey.form.expireAt')}
