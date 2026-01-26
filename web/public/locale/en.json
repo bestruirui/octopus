@@ -95,7 +95,8 @@
             "title": "Ranking",
             "sortByCost": "Cost",
             "sortByCount": "Count",
-            "noData": "No ranking data"
+            "noData": "No ranking data",
+            "successRate": "Success Rate"
         }
     },
     "setting": {

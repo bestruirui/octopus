@@ -95,7 +95,8 @@
             "title": "排行榜",
             "sortByCost": "金额",
             "sortByCount": "次数",
-            "noData": "暂无排行数据"
+            "noData": "暂无排行数据",
+            "successRate": "成功率"
         }
     },
     "setting": {
