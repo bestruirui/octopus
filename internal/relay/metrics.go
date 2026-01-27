@@ -12,6 +12,7 @@ import (
 	"github.com/bestruirui/octopus/internal/price"
 	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
 	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/bestruirui/octopus/internal/utils/tokenizer"
 )
 
 // RelayMetrics 统一管理请求的日志记录和统计信息
@@ -200,11 +201,92 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 func (m *RelayMetrics) Save(ctx context.Context, success bool, err error) {
 	duration := time.Since(m.StartTime)
 
+	// Ensure stats are calculated even if usage info was missing
+	m.resolveMissingStats()
+
 	// 保存统计信息
 	m.saveStats(success, duration)
 
 	// 保存日志
 	m.saveLog(ctx, err, duration)
+}
+
+func (m *RelayMetrics) resolveMissingStats() {
+	// If InputToken is 0, try to calculate it from request
+	if m.Stats.InputToken == 0 && m.InternalRequest != nil {
+		m.Stats.InputToken = int64(countRequestTokens(m.InternalRequest, m.ActualModel))
+	}
+
+	// If OutputToken is 0, try to calculate it from response (if available)
+	if m.Stats.OutputToken == 0 && m.InternalResponse != nil {
+		m.Stats.OutputToken = int64(countResponseTokens(m.InternalResponse, m.ActualModel))
+	}
+
+	// Recalculate cost if needed (if cost is 0 but tokens are > 0)
+	modelPrice := price.GetLLMPrice(m.ActualModel)
+	if modelPrice == nil {
+		return
+	}
+
+	if modelPrice.Type == "request" {
+		m.Stats.InputCost = modelPrice.Request
+		m.Stats.OutputCost = 0
+	} else {
+		// Simple recalculation based on tokens
+		// We don't have detailed usage (cache read/write) here, so assume standard input/output
+		if m.Stats.InputCost == 0 && m.Stats.InputToken > 0 {
+			m.Stats.InputCost = float64(m.Stats.InputToken) * modelPrice.Input * 1e-6
+		}
+		if m.Stats.OutputCost == 0 && m.Stats.OutputToken > 0 {
+			m.Stats.OutputCost = float64(m.Stats.OutputToken) * modelPrice.Output * 1e-6
+		}
+	}
+}
+
+func countRequestTokens(req *transformerModel.InternalLLMRequest, modelName string) int {
+	if req == nil {
+		return 0
+	}
+	text := ""
+	if req.EmbeddingInput != nil {
+		if req.EmbeddingInput.Single != nil {
+			text += *req.EmbeddingInput.Single
+		}
+		for _, s := range req.EmbeddingInput.Multiple {
+			text += s
+		}
+	}
+	for _, msg := range req.Messages {
+		if msg.Content.Content != nil {
+			text += *msg.Content.Content
+		}
+		for _, part := range msg.Content.MultipleContent {
+			if part.Text != nil {
+				text += *part.Text
+			}
+		}
+	}
+	return tokenizer.CountTokens(text, modelName)
+}
+
+func countResponseTokens(resp *transformerModel.InternalLLMResponse, modelName string) int {
+	if resp == nil {
+		return 0
+	}
+	text := ""
+	for _, choice := range resp.Choices {
+		if choice.Message != nil {
+			if choice.Message.Content.Content != nil {
+				text += *choice.Message.Content.Content
+			}
+			for _, part := range choice.Message.Content.MultipleContent {
+				if part.Text != nil {
+					text += *part.Text
+				}
+			}
+		}
+	}
+	return tokenizer.CountTokens(text, modelName)
 }
 
 // saveStats 保存统计信息
