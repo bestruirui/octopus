@@ -3,7 +3,7 @@
 import { useChannelList } from '@/api/endpoints/channel';
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { TrendingUp, CheckCircle2, XCircle } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/components/animate-ui/components/animate/tabs';
 
 type SortMode = 'cost' | 'count';
@@ -75,15 +75,20 @@ export function Rank() {
 
                             <div className="flex items-center gap-1 text-right shrink-0">
                                 {mode === 'count' ? (
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <div className="flex items-center gap-1 text-accent">
-                                            <CheckCircle2 className="w-3.5 h-3.5" />
-                                            <span>{channel.formatted.request_success.formatted.value}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1 text-destructive">
-                                            <XCircle className="w-3.5 h-3.5" />
-                                            <span>{channel.formatted.request_failed.formatted.value}</span>
-                                        </div>
+                                    <div className="flex items-center gap-1 text-sm font-medium tabular-nums">
+                                        <span className="text-accent">
+                                            {channel.formatted.request_success.formatted.value}
+                                            <span className="text-xs text-muted-foreground">
+                                                {channel.formatted.request_success.formatted.unit}
+                                            </span>
+                                        </span>
+                                        <span className="text-muted-foreground/40 font-light">/</span>
+                                        <span className="text-destructive">
+                                            {channel.formatted.request_failed.formatted.value}
+                                            <span className="text-xs text-muted-foreground">
+                                                {channel.formatted.request_failed.formatted.unit}
+                                            </span>
+                                        </span>
                                     </div>
                                 ) : (
                                     <span className="font-semibold text-base">
