@@ -190,7 +190,8 @@ func (o *ResponseOutbound) TransformStream(ctx context.Context, eventData []byte
 								ID:    streamEvent.Item.CallID,
 								Type:  "function",
 								Function: model.FunctionCall{
-									Name: streamEvent.Item.Name,
+									Name:      streamEvent.Item.Name,
+									Arguments: "{}",
 								},
 							},
 						},
