@@ -72,9 +72,13 @@ func (m *RelayMetrics) EstimateAndDeductCost(ctx context.Context) {
 		// 按请求计费的模型，使用固定成本
 		m.EstimatedCost = modelPrice.Request
 	} else {
-		// 按 token 计费的模型，估算最小成本
-		// 假设最少 1 个输入 token 和 1 个输出 token
-		m.EstimatedCost = (modelPrice.Input + modelPrice.Output) * 1e-6
+		// 按 token 计费的模型，估算合理的最小成本
+		// 使用更合理的估算：假设最少 100 个输入 token 和 50 个输出 token
+		// 这样可以减少大部分请求的成本调整幅度
+		estimatedInputTokens := 100.0
+		estimatedOutputTokens := 50.0
+		m.EstimatedCost = (estimatedInputTokens*modelPrice.Input + estimatedOutputTokens*modelPrice.Output) * 1e-6
+		
 		// 如果估算成本太小，使用最小成本
 		if m.EstimatedCost < 0.0001 {
 			m.EstimatedCost = 0.0001
@@ -94,7 +98,7 @@ func (m *RelayMetrics) EstimateAndDeductCost(ctx context.Context) {
 
 	m.CostDeducted = true
 
-	log.Infof("Upfront cost deducted: channel %d, model %s, estimated cost: %f", 
+	log.Debugf("Upfront cost deducted: channel %d, model %s, estimated cost: %f", 
 		m.ChannelID, m.ActualModel, m.EstimatedCost)
 }
 
@@ -158,10 +162,24 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 		m.Stats.OutputCost = actualOutputCost
 		
 		// 只更新差额部分到统计
+		// 将差额按照实际成本的比例分配到 InputCost 和 OutputCost
 		if costDifference != 0 {
+			totalActualCost := actualInputCost + actualOutputCost
+			var inputDiff, outputDiff float64
+			
+			if totalActualCost > 0 {
+				// 按实际成本比例分配差额
+				inputDiff = costDifference * (actualInputCost / totalActualCost)
+				outputDiff = costDifference * (actualOutputCost / totalActualCost)
+			} else {
+				// 如果实际成本为0，将差额全部计入 InputCost（退回预估成本）
+				inputDiff = costDifference
+				outputDiff = 0
+			}
+			
 			adjustmentMetrics := model.StatsMetrics{
-				InputCost:  costDifference,
-				OutputCost: 0,
+				InputCost:  inputDiff,
+				OutputCost: outputDiff,
 			}
 			op.StatsChannelUpdate(m.ChannelID, adjustmentMetrics)
 			op.StatsTotalUpdate(adjustmentMetrics)
@@ -202,13 +220,6 @@ func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
 		updateMetrics.RequestSuccess = 1
 	} else {
 		updateMetrics.RequestFailed = 1
-	}
-
-	// 如果成本还没有被保存过（例如请求在扣费前就失败了），现在保存
-	if !m.ActualCostSaved && !m.CostDeducted {
-		// 这种情况理论上不应该发生，但为了安全起见，我们还是处理一下
-		updateMetrics.InputCost = m.Stats.InputCost
-		updateMetrics.OutputCost = m.Stats.OutputCost
 	}
 
 	op.StatsChannelUpdate(m.ChannelID, updateMetrics)
