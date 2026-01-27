@@ -31,6 +31,11 @@ type RelayMetrics struct {
 
 	// 统计指标
 	Stats model.StatsMetrics
+
+	// 预估成本（用于严格计费）
+	EstimatedCost    float64
+	CostDeducted     bool
+	ActualCostSaved  bool
 }
 
 // NewRelayMetrics 创建新的 RelayMetrics
@@ -50,6 +55,51 @@ func (m *RelayMetrics) SetChannel(channelID int, channelName string, actualModel
 	m.ChannelID = channelID
 	m.ChannelName = channelName
 	m.ActualModel = actualModel
+}
+
+// EstimateAndDeductCost 在请求发送前估算并扣除成本
+// 这确保了即使请求被中断，也会扣除相应的费用
+func (m *RelayMetrics) EstimateAndDeductCost(ctx context.Context) {
+	if m.CostDeducted {
+		return // 已经扣除过，避免重复扣除
+	}
+
+	modelPrice := price.GetLLMPrice(m.ActualModel)
+	if modelPrice == nil {
+		// 没有定价信息，使用默认最小成本
+		m.EstimatedCost = 0.0001 // $0.0001 作为最小成本
+	} else if modelPrice.Type == "request" {
+		// 按请求计费的模型，使用固定成本
+		m.EstimatedCost = modelPrice.Request
+	} else {
+		// 按 token 计费的模型，估算合理的最小成本
+		// 使用更合理的估算：假设最少 100 个输入 token 和 50 个输出 token
+		// 这样可以减少大部分请求的成本调整幅度
+		estimatedInputTokens := 100.0
+		estimatedOutputTokens := 50.0
+		m.EstimatedCost = (estimatedInputTokens*modelPrice.Input + estimatedOutputTokens*modelPrice.Output) * 1e-6
+		
+		// 如果估算成本太小，使用最小成本
+		if m.EstimatedCost < 0.0001 {
+			m.EstimatedCost = 0.0001
+		}
+	}
+
+	// 立即扣除估算成本
+	m.Stats.InputCost = m.EstimatedCost
+	m.Stats.OutputCost = 0
+
+	// 更新统计信息（标记为请求开始）
+	op.StatsChannelUpdate(m.ChannelID, m.Stats)
+	op.StatsTotalUpdate(m.Stats)
+	op.StatsHourlyUpdate(m.Stats)
+	op.StatsDailyUpdate(ctx, m.Stats)
+	op.StatsAPIKeyUpdate(m.APIKeyID, m.Stats)
+
+	m.CostDeducted = true
+
+	log.Debugf("Upfront cost deducted: channel %d, model %s, estimated cost: %f", 
+		m.ChannelID, m.ActualModel, m.EstimatedCost)
 }
 
 // SetFirstTokenTime 设置首个 Token 时间
@@ -75,15 +125,17 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.InputToken = usage.PromptTokens
 	m.Stats.OutputToken = usage.CompletionTokens
 
-	// 计算费用
+	// 计算实际费用
 	modelPrice := price.GetLLMPrice(m.ActualModel)
 	if modelPrice == nil {
 		return
 	}
 
+	var actualInputCost, actualOutputCost float64
+
 	if modelPrice.Type == "request" {
-		m.Stats.InputCost = modelPrice.Request
-		m.Stats.OutputCost = 0
+		actualInputCost = modelPrice.Request
+		actualOutputCost = 0
 	} else {
 		if usage.PromptTokensDetails == nil {
 			usage.PromptTokensDetails = &transformerModel.PromptTokensDetails{
@@ -91,13 +143,54 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 			}
 		}
 		if usage.AnthropicUsage {
-			m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
+			actualInputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
 				float64(usage.PromptTokens)*modelPrice.Input +
 				float64(usage.CacheCreationInputTokens)*modelPrice.CacheWrite) * 1e-6
 		} else {
-			m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
+			actualInputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
 		}
-		m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
+		actualOutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
+	}
+
+	// 如果已经扣除过预估成本，需要调整差额
+	if m.CostDeducted {
+		// 计算差额（实际成本 - 已扣除的预估成本）
+		costDifference := (actualInputCost + actualOutputCost) - m.EstimatedCost
+		
+		// 更新为实际成本
+		m.Stats.InputCost = actualInputCost
+		m.Stats.OutputCost = actualOutputCost
+		
+		// 只更新差额部分到统计
+		// 将差额按照实际成本的比例分配到 InputCost 和 OutputCost
+		if costDifference != 0 {
+			totalActualCost := actualInputCost + actualOutputCost
+			var inputDiff, outputDiff float64
+			
+			if totalActualCost > 0 {
+				// 按实际成本比例分配差额
+				inputDiff = costDifference * (actualInputCost / totalActualCost)
+				outputDiff = costDifference * (actualOutputCost / totalActualCost)
+			} else {
+				// 如果实际成本为0，将差额全部计入 InputCost（退回预估成本）
+				inputDiff = costDifference
+				outputDiff = 0
+			}
+			
+			adjustmentMetrics := model.StatsMetrics{
+				InputCost:  inputDiff,
+				OutputCost: outputDiff,
+			}
+			op.StatsChannelUpdate(m.ChannelID, adjustmentMetrics)
+			op.StatsTotalUpdate(adjustmentMetrics)
+			op.StatsHourlyUpdate(adjustmentMetrics)
+			op.StatsDailyUpdate(context.Background(), adjustmentMetrics)
+			op.StatsAPIKeyUpdate(m.APIKeyID, adjustmentMetrics)
+		}
+	} else {
+		// 如果之前没有扣除预估成本，直接设置实际成本
+		m.Stats.InputCost = actualInputCost
+		m.Stats.OutputCost = actualOutputCost
 	}
 }
 
@@ -116,21 +209,29 @@ func (m *RelayMetrics) Save(ctx context.Context, success bool, err error) {
 
 // saveStats 保存统计信息
 func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
-	if success {
-		m.Stats.RequestSuccess = 1
-	} else {
-		m.Stats.RequestFailed = 1
+	// 创建用于更新的指标（不包括成本，因为成本已经在前面扣除了）
+	updateMetrics := model.StatsMetrics{
+		InputToken:  m.Stats.InputToken,
+		OutputToken: m.Stats.OutputToken,
+		WaitTime:    duration.Milliseconds(),
 	}
-	m.Stats.WaitTime = duration.Milliseconds()
 
-	op.StatsChannelUpdate(m.ChannelID, m.Stats)
-	op.StatsTotalUpdate(m.Stats)
-	op.StatsHourlyUpdate(m.Stats)
-	op.StatsDailyUpdate(context.Background(), m.Stats)
-	op.StatsAPIKeyUpdate(m.APIKeyID, m.Stats)
+	if success {
+		updateMetrics.RequestSuccess = 1
+	} else {
+		updateMetrics.RequestFailed = 1
+	}
+
+	op.StatsChannelUpdate(m.ChannelID, updateMetrics)
+	op.StatsTotalUpdate(updateMetrics)
+	op.StatsHourlyUpdate(updateMetrics)
+	op.StatsDailyUpdate(context.Background(), updateMetrics)
+	op.StatsAPIKeyUpdate(m.APIKeyID, updateMetrics)
+
+	m.ActualCostSaved = true
 
 	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f",
-		m.ChannelID, m.ActualModel, success, m.Stats.WaitTime,
+		m.ChannelID, m.ActualModel, success, updateMetrics.WaitTime,
 		m.Stats.InputToken, m.Stats.OutputToken,
 		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost)
 }
