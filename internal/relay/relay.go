@@ -121,6 +121,9 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 				firstTokenTimeOutSec: group.FirstTokenTimeOut,
 			}
 
+			// 立即扣除预估成本（严格计费：请求一旦发送就必须付费）
+			metrics.EstimateAndDeductCost(c.Request.Context())
+
 			if statusCode, err := rc.forward(); err == nil {
 				rc.collectResponse()
 				rc.usedKey.StatusCode = statusCode
