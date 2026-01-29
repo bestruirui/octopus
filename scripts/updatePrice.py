@@ -51,7 +51,11 @@ var llmPrice = map[string]model.LLMPrice{{
 
 def fetch_price_data() -> dict:
     """从 API 获取价格数据"""
-    with urllib.request.urlopen(LLM_PRICE_URL) as response:
+    req = urllib.request.Request(
+        LLM_PRICE_URL, 
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+    )
+    with urllib.request.urlopen(req) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
