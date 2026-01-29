@@ -125,8 +125,8 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			if statusCode, err := rc.forward(); err == nil {
 				// 成功
 				attemptDuration := time.Since(attemptStart)
-				metrics.AddAttempt(round+1, i+1, true, nil, attemptDuration)
 				rc.collectResponse()
+				metrics.AddAttempt(round+1, i+1, true, nil, attemptDuration)
 				rc.usedKey.StatusCode = statusCode
 				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
 				rc.usedKey.TotalCost += metrics.Stats.InputCost + metrics.Stats.OutputCost
