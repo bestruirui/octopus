@@ -57,6 +57,27 @@
             "success": "Copied",
             "failed": "Copy failed",
             "noContent": "Nothing to copy"
+        },
+        "layout": {
+            "grid": "Grid Layout",
+            "singleColumn": "Single Column"
+        },
+        "sort": {
+            "label": "Sort",
+            "field": {
+                "id": "ID",
+                "name": "Name"
+            },
+            "order": {
+                "asc": "Ascending",
+                "desc": "Descending"
+            },
+            "options": {
+                "idAsc": "ID Ascending",
+                "idDesc": "ID Descending",
+                "nameAsc": "Name Ascending",
+                "nameDesc": "Name Descending"
+            }
         }
     },
     "home": {
@@ -392,6 +413,11 @@
         "card": {
             "requestCount": "Requests",
             "totalCost": "Total Cost",
+            "successRequests": "Successful",
+            "failedRequests": "Failed",
+            "keysCount": "Keys",
+            "autoSync": "Auto Sync",
+            "proxy": "Proxy",
             "toast": {
                 "enabled": "Channel enabled",
                 "disabled": "Channel disabled"
