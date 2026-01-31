@@ -57,6 +57,10 @@
             "success": "Copied",
             "failed": "Copy failed",
             "noContent": "Nothing to copy"
+        },
+        "layout": {
+            "grid": "Grid Layout",
+            "singleColumn": "Single Column"
         }
     },
     "home": {
@@ -392,6 +396,11 @@
         "card": {
             "requestCount": "Requests",
             "totalCost": "Total Cost",
+            "successRequests": "Successful",
+            "failedRequests": "Failed",
+            "keysCount": "Keys",
+            "autoSync": "Auto Sync",
+            "proxy": "Proxy",
             "toast": {
                 "enabled": "Channel enabled",
                 "disabled": "Channel disabled"

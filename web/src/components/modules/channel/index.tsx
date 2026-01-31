@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useChannelList } from '@/api/endpoints/channel';
 import { Card } from './Card';
-import { usePaginationStore, useSearchStore } from '@/components/modules/toolbar';
+import { usePaginationStore, useSearchStore, useLayoutStore } from '@/components/modules/toolbar';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { useGridPageSize } from '@/hooks/use-grid-page-size';
 
@@ -14,6 +14,7 @@ const CHANNEL_CARD_HEIGHT = 216;
 export function Channel() {
     const { data: channelsData } = useChannelList();
     const pageKey = 'channel' as const;
+    const currentLayout = useLayoutStore((s) => s.getLayout(pageKey));
     const pageSize = useGridPageSize({
         itemHeight: CHANNEL_CARD_HEIGHT,
         gap: 16,
@@ -50,10 +51,22 @@ export function Channel() {
         return filteredChannels.slice(start, start + pageSize);
     }, [filteredChannels, page, pageSize]);
 
+    // 根据布局类型确定网格类名
+    const gridClassName = useMemo(() => {
+        switch (currentLayout) {
+            case 'grid':
+                return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
+            case 'single-column':
+                return 'grid grid-cols-1 gap-4';
+            default:
+                return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
+        }
+    }, [currentLayout]);
+
     return (
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
             <motion.div
-                key={`channel-page-${page}`}
+                key={`channel-page-${page}-${currentLayout}`}
                 custom={direction}
                 variants={{
                     enter: (d: number) => ({ x: d >= 0 ? 24 : -24, opacity: 0 }),
@@ -65,7 +78,7 @@ export function Channel() {
                 exit="exit"
                 transition={{ duration: 0.25, ease: EASING.easeOutExpo }}
             >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className={gridClassName}>
                     <AnimatePresence mode="popLayout">
                         {pagedChannels.map((channel, index) => (
                             <motion.div
@@ -84,7 +97,7 @@ export function Channel() {
                                 }}
                                 layout={!searchTerm.trim()}
                             >
-                                <Card channel={channel.raw} stats={channel.formatted} />
+                                <Card channel={channel.raw} stats={channel.formatted} layout={currentLayout} />
                             </motion.div>
                         ))}
                     </AnimatePresence>

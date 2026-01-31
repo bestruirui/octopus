@@ -57,6 +57,10 @@
             "success": "复制成功",
             "failed": "复制失败",
             "noContent": "无可复制内容"
+        },
+        "layout": {
+            "grid": "网格布局",
+            "singleColumn": "单列布局"
         }
     },
     "home": {
@@ -392,6 +396,11 @@
         "card": {
             "requestCount": "请求次数",
             "totalCost": "总成本",
+            "successRequests": "成功请求",
+            "failedRequests": "失败请求",
+            "keysCount": "Keys",
+            "autoSync": "自动同步",
+            "proxy": "代理",
             "toast": {
                 "enabled": "渠道已启用",
                 "disabled": "渠道已禁用"
