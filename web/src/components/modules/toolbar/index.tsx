@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Search, X, LayoutGrid, Rows3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Search, X, LayoutGrid, Rows3, ArrowUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
     MorphingDialog,
@@ -17,7 +17,9 @@ import { CreateDialogContent as ModelCreateContent } from '@/components/modules/
 import { useSearchStore } from './search-store';
 import { usePaginationStore } from './pagination-store';
 import { useLayoutStore } from './layout-store';
+import { useSortStore } from './sort-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useTranslations } from 'next-intl';
 
 const TOOLBAR_PAGES: NavItem[] = ['channel', 'group', 'model'];
@@ -38,6 +40,7 @@ function CreateDialogContent({ activeItem }: { activeItem: NavItem }) {
 export function Toolbar() {
     const { activeItem } = useNavStore();
     const t = useTranslations('common.layout');
+    const tSort = useTranslations('common.sort');
     const searchTerm = useSearchStore((s) => s.searchTerms[activeItem] || '');
     const setSearchTerm = useSearchStore((s) => s.setSearchTerm);
     const page = usePaginationStore((s) => s.getPage(activeItem));
@@ -47,7 +50,10 @@ export function Toolbar() {
     const setPage = usePaginationStore((s) => s.setPage);
     const currentLayout = useLayoutStore((s) => s.getLayout(activeItem));
     const setLayout = useLayoutStore((s) => s.setLayout);
+    const sortConfig = useSortStore((s) => s.getSortConfig(activeItem));
+    const setSortConfig = useSortStore((s) => s.setSortConfig);
     const [searchExpanded, setSearchExpanded] = useState(false);
+    const [sortPopoverOpen, setSortPopoverOpen] = useState(false);
 
     useEffect(() => {
         queueMicrotask(() => {
@@ -109,7 +115,17 @@ export function Toolbar() {
 
                     {/* 布局切换按钮 - 仅在渠道页面显示 */}
                     {activeItem === 'channel' && (
-                        <div className="flex items-center h-9 rounded-xl border">
+                        <motion.div
+                            initial={false}
+                            animate={{
+                                opacity: searchExpanded ? 0 : 1,
+                                scale: searchExpanded ? 0.8 : 1,
+                                width: searchExpanded ? 0 : 'auto',
+                            }}
+                            transition={{ duration: 0.2, ease: 'easeInOut' }}
+                            className="flex items-center h-9 rounded-xl border overflow-hidden"
+                            style={{ display: searchExpanded ? 'none' : 'flex' }}
+                        >
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <button
@@ -144,7 +160,98 @@ export function Toolbar() {
                                 </TooltipTrigger>
                                 <TooltipContent>{t('singleColumn')}</TooltipContent>
                             </Tooltip>
-                        </div>
+                        </motion.div>
+                    )}
+
+                    {/* 排序按钮 - 在渠道和分组页面显示 */}
+                    {(activeItem === 'channel' || activeItem === 'group') && (
+                        <motion.div
+                            initial={false}
+                            animate={{
+                                opacity: searchExpanded ? 0 : 1,
+                                scale: searchExpanded ? 0.8 : 1,
+                                width: searchExpanded ? 0 : 'auto',
+                            }}
+                            transition={{ duration: 0.2, ease: 'easeInOut' }}
+                            style={{ display: searchExpanded ? 'none' : 'block' }}
+                        >
+                            <Popover open={sortPopoverOpen} onOpenChange={setSortPopoverOpen}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <PopoverTrigger asChild>
+                                            <button
+                                                type="button"
+                                                aria-label="Sort"
+                                                className="size-9 inline-flex items-center justify-center rounded-xl border bg-transparent text-muted-foreground hover:text-foreground transition-colors"
+                                            >
+                                                <ArrowUpDown className="size-4" />
+                                            </button>
+                                        </PopoverTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{tSort('label')}</TooltipContent>
+                                </Tooltip>
+                                <PopoverContent className="w-auto p-1" align="end">
+                                    <div className="flex flex-col gap-0.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSortConfig(activeItem, { field: 'id', order: 'asc' });
+                                                setSortPopoverOpen(false);
+                                            }}
+                                            className={`px-3 py-1.5 text-sm rounded-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors ${
+                                                sortConfig.field === 'id' && sortConfig.order === 'asc'
+                                                    ? 'bg-accent text-accent-foreground'
+                                                    : ''
+                                            }`}
+                                        >
+                                            {tSort('options.idAsc')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSortConfig(activeItem, { field: 'id', order: 'desc' });
+                                                setSortPopoverOpen(false);
+                                            }}
+                                            className={`px-3 py-1.5 text-sm rounded-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors ${
+                                                sortConfig.field === 'id' && sortConfig.order === 'desc'
+                                                    ? 'bg-accent text-accent-foreground'
+                                                    : ''
+                                            }`}
+                                        >
+                                            {tSort('options.idDesc')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSortConfig(activeItem, { field: 'name', order: 'asc' });
+                                                setSortPopoverOpen(false);
+                                            }}
+                                            className={`px-3 py-1.5 text-sm rounded-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors ${
+                                                sortConfig.field === 'name' && sortConfig.order === 'asc'
+                                                    ? 'bg-accent text-accent-foreground'
+                                                    : ''
+                                            }`}
+                                        >
+                                            {tSort('options.nameAsc')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSortConfig(activeItem, { field: 'name', order: 'desc' });
+                                                setSortPopoverOpen(false);
+                                            }}
+                                            className={`px-3 py-1.5 text-sm rounded-sm text-left hover:bg-accent hover:text-accent-foreground transition-colors ${
+                                                sortConfig.field === 'name' && sortConfig.order === 'desc'
+                                                    ? 'bg-accent text-accent-foreground'
+                                                    : ''
+                                            }`}
+                                        >
+                                            {tSort('options.nameDesc')}
+                                        </button>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </motion.div>
                     )}
 
                     {/* 页码指示器 */}
@@ -199,3 +306,4 @@ export function Toolbar() {
 export { useSearchStore } from './search-store';
 export { usePaginationStore } from './pagination-store';
 export { useLayoutStore } from './layout-store';
+export { useSortStore } from './sort-store';

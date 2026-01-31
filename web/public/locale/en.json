@@ -61,6 +61,23 @@
         "layout": {
             "grid": "Grid Layout",
             "singleColumn": "Single Column"
+        },
+        "sort": {
+            "label": "Sort",
+            "field": {
+                "id": "ID",
+                "name": "Name"
+            },
+            "order": {
+                "asc": "Ascending",
+                "desc": "Descending"
+            },
+            "options": {
+                "idAsc": "ID Ascending",
+                "idDesc": "ID Descending",
+                "nameAsc": "Name Ascending",
+                "nameDesc": "Name Descending"
+            }
         }
     },
     "home": {

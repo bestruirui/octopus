@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useChannelList } from '@/api/endpoints/channel';
 import { Card } from './Card';
-import { usePaginationStore, useSearchStore, useLayoutStore } from '@/components/modules/toolbar';
+import { usePaginationStore, useSearchStore, useLayoutStore, useSortStore } from '@/components/modules/toolbar';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { useGridPageSize } from '@/hooks/use-grid-page-size';
 
@@ -21,6 +21,7 @@ export function Channel() {
         columns: { default: 1, md: 2, lg: 3, xl: 4 },
     });
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
+    const sortConfig = useSortStore((s) => s.getSortConfig(pageKey));
     const page = usePaginationStore((s) => s.getPage(pageKey));
     const setPage = usePaginationStore((s) => s.setPage);
     const setTotalItems = usePaginationStore((s) => s.setTotalItems);
@@ -29,11 +30,27 @@ export function Channel() {
 
     const filteredChannels = useMemo(() => {
         if (!channelsData) return [];
-        const sorted = [...channelsData].sort((a, b) => a.raw.id - b.raw.id);
-        if (!searchTerm.trim()) return sorted;
-        const term = searchTerm.toLowerCase();
-        return sorted.filter((c) => c.raw.name.toLowerCase().includes(term));
-    }, [channelsData, searchTerm]);
+
+        // 先筛选
+        let result = [...channelsData];
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter((c) => c.raw.name.toLowerCase().includes(term));
+        }
+
+        // 再排序
+        result.sort((a, b) => {
+            let compareResult = 0;
+            if (sortConfig.field === 'id') {
+                compareResult = a.raw.id - b.raw.id;
+            } else if (sortConfig.field === 'name') {
+                compareResult = a.raw.name.localeCompare(b.raw.name, 'zh-CN');
+            }
+            return sortConfig.order === 'asc' ? compareResult : -compareResult;
+        });
+
+        return result;
+    }, [channelsData, searchTerm, sortConfig.field, sortConfig.order]);
 
     // Sync to store for Toolbar to display pagination info
     useEffect(() => {
@@ -41,10 +58,10 @@ export function Channel() {
         setPageSize(pageKey, pageSize);
     }, [filteredChannels.length, pageSize, pageKey, setTotalItems, setPageSize]);
 
-    // Reset to page 1 when search term changes
+    // Reset to page 1 when search term or sort config changes
     useEffect(() => {
         setPage(pageKey, 1);
-    }, [searchTerm, pageKey, setPage]);
+    }, [searchTerm, sortConfig.field, sortConfig.order, pageKey, setPage]);
 
     const pagedChannels = useMemo(() => {
         const start = (page - 1) * pageSize;

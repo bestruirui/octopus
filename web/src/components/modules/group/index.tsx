@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { GroupCard } from './Card';
 import { useGroupList } from '@/api/endpoints/group';
-import { usePaginationStore, useSearchStore } from '@/components/modules/toolbar';
+import { usePaginationStore, useSearchStore, useSortStore } from '@/components/modules/toolbar';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { useGridPageSize } from '@/hooks/use-grid-page-size';
 
@@ -20,6 +20,7 @@ export function Group() {
         columns: { default: 1, md: 2, lg: 3 },
     });
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
+    const sortConfig = useSortStore((s) => s.getSortConfig(pageKey));
     const page = usePaginationStore((s) => s.getPage(pageKey));
     const setPage = usePaginationStore((s) => s.setPage);
     const setTotalItems = usePaginationStore((s) => s.setTotalItems);
@@ -28,11 +29,27 @@ export function Group() {
 
     const filteredGroups = useMemo(() => {
         if (!groups) return [];
-        const sorted = [...groups].sort((a, b) => a.id! - b.id!);
-        if (!searchTerm.trim()) return sorted;
-        const term = searchTerm.toLowerCase();
-        return sorted.filter((g) => g.name.toLowerCase().includes(term));
-    }, [groups, searchTerm]);
+
+        // 先筛选
+        let result = [...groups];
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter((g) => g.name.toLowerCase().includes(term));
+        }
+
+        // 再排序
+        result.sort((a, b) => {
+            let compareResult = 0;
+            if (sortConfig.field === 'id') {
+                compareResult = (a.id || 0) - (b.id || 0);
+            } else if (sortConfig.field === 'name') {
+                compareResult = a.name.localeCompare(b.name, 'zh-CN');
+            }
+            return sortConfig.order === 'asc' ? compareResult : -compareResult;
+        });
+
+        return result;
+    }, [groups, searchTerm, sortConfig.field, sortConfig.order]);
 
     // Sync to store for Toolbar to display pagination info
     useEffect(() => {
@@ -40,10 +57,10 @@ export function Group() {
         setPageSize(pageKey, pageSize);
     }, [filteredGroups.length, pageSize, pageKey, setTotalItems, setPageSize]);
 
-    // Reset to page 1 when search term changes
+    // Reset to page 1 when search term or sort config changes
     useEffect(() => {
         setPage(pageKey, 1);
-    }, [searchTerm, pageKey, setPage]);
+    }, [searchTerm, sortConfig.field, sortConfig.order, pageKey, setPage]);
 
     const pagedGroups = useMemo(() => {
         const start = (page - 1) * pageSize;

@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/morphing-dialog';
 import { DollarSign, MessageSquare, Key, Globe, CheckCircle2, XCircle } from 'lucide-react';
 import { type StatsMetricsFormatted } from '@/api/endpoints/stats';
-import { type Channel, useEnableChannel } from '@/api/endpoints/channel';
+import { type Channel, useEnableChannel, ChannelType } from '@/api/endpoints/channel';
 import { CardContent } from './CardContent';
 import { useTranslations } from 'next-intl';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/animate-ui/components/animate/tooltip';
@@ -28,6 +28,32 @@ function SingleColumnCardContent({ channel, stats, handleEnableChange, enableCha
     enableChannel: ReturnType<typeof useEnableChannel>;
     t: (key: string) => string;
 }) {
+    // 根据 ChannelType 枚举获取类型标签文本
+    const getChannelTypeLabel = (type: number) => {
+        switch (type) {
+            case ChannelType.OpenAIChat:
+                return 'OpenAI Chat';
+            case ChannelType.OpenAIResponse:
+                return 'OpenAI Response';
+            case ChannelType.Anthropic:
+                return 'Anthropic';
+            case ChannelType.Gemini:
+                return 'Gemini';
+            case ChannelType.Volcengine:
+                return 'Volcengine';
+            case ChannelType.OpenAIEmbedding:
+                return 'OpenAI Embedding';
+            default:
+                return `Type ${type}`;
+        }
+    };
+
+    // 根据类型获取标签颜色
+    const getChannelTypeVariant = (type: number): "default" | "secondary" | "destructive" | "outline" => {
+        // 所有类型统一使用 outline 样式
+        return 'outline';
+    };
+
     return (
         <article className="relative flex flex-col gap-3 rounded-3xl border border-border bg-card text-card-foreground p-4 custom-shadow transition-all duration-300 hover:scale-[1.01]">
             {/* 头部：名称、类型、开关 */}
@@ -40,8 +66,8 @@ function SingleColumnCardContent({ channel, stats, handleEnableChange, enableCha
                             </TooltipTrigger>
                             <TooltipContent>{channel.name}</TooltipContent>
                         </Tooltip>
-                        <Badge variant="secondary" className="text-xs shrink-0 h-5">
-                            {channel.type}
+                        <Badge variant={getChannelTypeVariant(channel.type)} className="text-xs shrink-0 h-5">
+                            {getChannelTypeLabel(channel.type)}
                         </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

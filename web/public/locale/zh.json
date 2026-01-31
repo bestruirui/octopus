@@ -61,6 +61,23 @@
         "layout": {
             "grid": "网格布局",
             "singleColumn": "单列布局"
+        },
+        "sort": {
+            "label": "排序",
+            "field": {
+                "id": "ID",
+                "name": "名称"
+            },
+            "order": {
+                "asc": "正序",
+                "desc": "倒序"
+            },
+            "options": {
+                "idAsc": "ID 正序",
+                "idDesc": "ID 倒序",
+                "nameAsc": "名称正序",
+                "nameDesc": "名称倒序"
+            }
         }
     },
     "home": {
