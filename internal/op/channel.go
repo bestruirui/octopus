@@ -3,6 +3,7 @@ package op
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/bestruirui/octopus/internal/db"
@@ -11,6 +12,14 @@ import (
 	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/bestruirui/octopus/internal/utils/xstrings"
 )
+
+// normalizeOptionalString 将空/空白字符串转换为 nil，实现 patch 语义。
+func normalizeOptionalString(s *string) *string {
+	if s == nil || strings.TrimSpace(*s) == "" {
+		return nil
+	}
+	return s
+}
 
 var channelCache = cache.New[int, model.Channel](16)
 var channelKeyCache = cache.New[int, model.ChannelKey](16)
@@ -167,15 +176,15 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 	}
 	if req.ChannelProxy != nil {
 		selectFields = append(selectFields, "channel_proxy")
-		updates.ChannelProxy = req.ChannelProxy
+		updates.ChannelProxy = normalizeOptionalString(req.ChannelProxy)
 	}
 	if req.ParamOverride != nil {
 		selectFields = append(selectFields, "param_override")
-		updates.ParamOverride = req.ParamOverride
+		updates.ParamOverride = normalizeOptionalString(req.ParamOverride)
 	}
 	if req.MatchRegex != nil {
 		selectFields = append(selectFields, "match_regex")
-		updates.MatchRegex = req.MatchRegex
+		updates.MatchRegex = normalizeOptionalString(req.MatchRegex)
 	}
 
 	// 只有当有字段需要更新时才执行 UPDATE
