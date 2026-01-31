@@ -225,6 +225,10 @@ type InternalLLMRequest struct {
 	// This is a help field and will not be sent to the llm service.
 	TransformerMetadata map[string]string `json:"-"`
 
+	// TransformOptions stores transformer-specific options for preserving request format.
+	// This is a help field and will not be sent to the llm service.
+	TransformOptions TransformOptions `json:"-"`
+
 	// Include specifies additional output data to include in the model response.
 	// This is a help field and will not be sent to the llm service.
 	// e.g., "file_search_call.results", "message.input_image.image_url", "reasoning.encrypted_content"
@@ -290,6 +294,12 @@ func (r *InternalLLMRequest) ClearHelpFields() {
 func (r *InternalLLMRequest) IsImageGenerationRequest() bool {
 	return len(r.Modalities) > 0 && slices.Contains(r.Modalities, "image")
 }
+
+type TransformOptions struct {
+	// ArrayInputs specifies whether the original input was an array.
+	ArrayInputs *bool `json:"-"`
+}
+
 
 type StreamOptions struct {
 	// If set, an additional chunk will be streamed before the data: [DONE] message.

@@ -456,7 +456,7 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 	result.Instructions = convertInstructionsFromMessages(req.Messages)
 
 	// Convert input from messages
-	result.Input = convertInputFromMessages(req.Messages)
+	result.Input = convertInputFromMessages(req.Messages, req.TransformOptions)
 
 	// Convert tools
 	if len(req.Tools) > 0 {
@@ -515,10 +515,12 @@ func convertInstructionsFromMessages(msgs []model.Message) string {
 	return strings.Join(instructions, "\n")
 }
 
-func convertInputFromMessages(msgs []model.Message) ResponsesInput {
+func convertInputFromMessages(msgs []model.Message, transformOptions model.TransformOptions) ResponsesInput {
 	if len(msgs) == 0 {
 		return ResponsesInput{}
 	}
+
+	wasArrayFormat := transformOptions.ArrayInputs != nil && *transformOptions.ArrayInputs
 
 	// Check for simple single user message
 	nonSystemMsgs := make([]model.Message, 0)
@@ -528,7 +530,7 @@ func convertInputFromMessages(msgs []model.Message) ResponsesInput {
 		}
 	}
 
-	if len(nonSystemMsgs) == 1 && nonSystemMsgs[0].Content.Content != nil && nonSystemMsgs[0].Role == "user" {
+	if !wasArrayFormat && len(nonSystemMsgs) == 1 && nonSystemMsgs[0].Content.Content != nil && nonSystemMsgs[0].Role == "user" {
 		return ResponsesInput{Text: nonSystemMsgs[0].Content.Content}
 	}
 
