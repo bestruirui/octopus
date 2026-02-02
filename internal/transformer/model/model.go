@@ -172,6 +172,11 @@ type InternalLLMRequest struct {
 	// Any of "text", "audio", "image".
 	Modalities []string `json:"modalities,omitempty"`
 
+	Audio *struct {
+		Format string `json:"format,omitempty"`
+		Voice  string `json:"voice,omitempty"`
+	} `json:"audio,omitempty"`
+
 	// Controls effort on reasoning for reasoning models. It can be set to "low", "medium", or "high".
 	ReasoningEffort string `json:"reasoning_effort,omitempty"`
 
@@ -300,7 +305,6 @@ type TransformOptions struct {
 	ArrayInputs *bool `json:"-"`
 }
 
-
 type StreamOptions struct {
 	// If set, an additional chunk will be streamed before the data: [DONE] message.
 	// The usage field on this chunk shows the token usage statistics for the entire request,
@@ -374,6 +378,13 @@ type Message struct {
 	// Images is used by some providers (e.g., Gemini via OpenAI compat) for image generation responses.
 	// Images will be merged into Content.MultipleContent during response processing.
 	Images []MessageContentPart `json:"images,omitempty"`
+
+	Audio *struct {
+		Data       string `json:"data,omitempty"`
+		ExpiresAt  int64  `json:"expires_at,omitempty"`
+		ID         string `json:"id,omitempty"`
+		Transcript string `json:"transcript,omitempty"`
+	} `json:"audio,omitempty"`
 
 	// This property is used for the "reasoning" feature supported by deepseek-reasoner
 	// the doc from deepseek:

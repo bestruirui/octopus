@@ -13,7 +13,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
 )
 
 // ResponseOutbound implements the Outbound interface for OpenAI Responses API.
@@ -466,7 +465,6 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 	// Convert tool choice
 	if req.ToolChoice != nil {
 		result.ToolChoice = convertToolChoiceToResponses(req.ToolChoice)
-		log.Infof("tool choice %v", result.ToolChoice)
 	}
 
 	// Convert text options

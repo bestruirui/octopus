@@ -58,9 +58,9 @@ export function CreateDialogContent() {
                 auto_sync: formData.auto_sync,
                 auto_group: formData.auto_group,
                 custom_header: normalizedHeaders,
-                channel_proxy: channelProxy ? channelProxy : null,
-                param_override: paramOverride ? paramOverride : null,
-                match_regex: formData.match_regex.trim() ? formData.match_regex.trim() : null,
+                channel_proxy: channelProxy,
+                param_override: paramOverride,
+                match_regex: formData.match_regex.trim(),
             },
             {
                 onSuccess: () => {
