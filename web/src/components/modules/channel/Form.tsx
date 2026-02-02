@@ -85,9 +85,6 @@ export function ChannelForm({
             onFormDataChange({ ...formData, keys: [{ enabled: true, channel_key: '' }] });
             return;
         }
-        if (!formData.custom_header || formData.custom_header.length === 0) {
-            onFormDataChange({ ...formData, custom_header: [{ header_key: '', header_value: '' }] });
-        }
     }, [formData, onFormDataChange]);
 
     const autoModels = formData.model
