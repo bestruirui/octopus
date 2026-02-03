@@ -58,7 +58,9 @@ func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.C
 	)
 	req.Header.Set("Authorization", "Bearer "+request.GetChannelKey().ChannelKey)
 	for _, header := range request.CustomHeader {
-		req.Header.Set(header.HeaderKey, header.HeaderValue)
+		if header.HeaderKey != "" {
+			req.Header.Set(header.HeaderKey, header.HeaderValue)
+		}
 	}
 
 	resp, err := client.Do(req)
@@ -94,7 +96,9 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 		)
 		req.Header.Set("X-Goog-Api-Key", request.GetChannelKey().ChannelKey)
 		for _, header := range request.CustomHeader {
-			req.Header.Set(header.HeaderKey, header.HeaderValue)
+			if header.HeaderKey != "" {
+				req.Header.Set(header.HeaderKey, header.HeaderValue)
+			}
 		}
 		if pageToken != "" {
 			q := req.URL.Query()
@@ -146,7 +150,9 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 		req.Header.Set("X-Api-Key", request.GetChannelKey().ChannelKey)
 		req.Header.Set("Anthropic-Version", "2023-06-01")
 		for _, header := range request.CustomHeader {
-			req.Header.Set(header.HeaderKey, header.HeaderValue)
+			if header.HeaderKey != "" {
+				req.Header.Set(header.HeaderKey, header.HeaderValue)
+			}
 		}
 		// 设置多页参数
 		q := req.URL.Query()
