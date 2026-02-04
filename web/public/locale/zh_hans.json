@@ -110,7 +110,8 @@
         },
         "language": {
             "label": "语言",
-            "zh": "中文",
+            "zh_hans": "简体中文",
+            "zh_hant": "繁体中文",
             "en": "English"
         },
         "proxyUrl": {
