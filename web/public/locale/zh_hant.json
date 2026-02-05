@@ -45,7 +45,7 @@
     },
     "navbar": {
         "home": "主頁",
-        "channel": "供應來源",
+        "channel": "供應源",
         "group": "分組",
         "key": "金鑰",
         "model": "價格",
@@ -206,20 +206,20 @@
             "updateFailed": "價格更新失敗"
         },
         "llmSync": {
-            "title": "渠道同步",
+            "title": "供應源同步",
             "syncInterval": {
                 "label": "自動同步間隔（小時）",
                 "placeholder": "請輸入間隔（小時）"
             },
             "manualSync": {
-                "label": "手動同步渠道",
+                "label": "手動同步供應源",
                 "button": "立即同步",
                 "syncing": "同步中..."
             },
             "lastSync": "上次同步",
             "neverSynced": "從未同步",
-            "syncSuccess": "渠道同步成功",
-            "syncFailed": "渠道同步失敗"
+            "syncSuccess": "供應源同步成功",
+            "syncFailed": "供應源同步失敗"
         },
         "account": {
             "title": "帳戶設定",
@@ -320,7 +320,7 @@
             "addItem": "新增模型",
             "autoAdd": "自動新增",
             "clear": "清空",
-            "selectChannel": "渠道",
+            "selectChannel": "供應源",
             "selectModel": "模型"
         },
         "mode": {
@@ -394,14 +394,14 @@
             "requestCount": "請求次數",
             "totalCost": "總成本",
             "toast": {
-                "enabled": "渠道已啟用",
-                "disabled": "渠道已停用"
+                "enabled": "供應源已啟用",
+                "disabled": "供應源已停用"
             }
         },
         "detail": {
             "title": {
-                "edit": "編輯渠道",
-                "view": "渠道詳情"
+                "edit": "編輯供應源",
+                "view": "供應源詳情"
             },
             "sections": {
                 "requests": "請求詳情",
@@ -435,14 +435,14 @@
             }
         },
         "create": {
-            "dialogTitle": "建立新渠道",
-            "submit": "建立渠道",
+            "dialogTitle": "建立新供應源",
+            "submit": "建立供應源",
             "submitting": "建立中..."
         },
         "form": {
             "add": "新增",
-            "name": "渠道名稱",
-            "type": "渠道類型",
+            "name": "供應源名稱",
+            "type": "供應源類型",
             "baseUrls": "Base URLs",
             "baseUrlUrl": "地址",
             "baseUrlDelay": "延遲(ms)",
@@ -452,8 +452,8 @@
             "customHeaderKey": "Header Key",
             "customHeaderValue": "Header Value",
             "customHeaderAdd": "新增 Header",
-            "channelProxy": "渠道代理",
-            "channelProxyPlaceholder": "可選：僅對該渠道生效（覆蓋全域代理）",
+            "channelProxy": "供應源代理",
+            "channelProxyPlaceholder": "可選：僅對該供應源生效（覆蓋全域代理）",
             "paramOverride": "參數覆蓋",
             "paramOverridePlaceholder": "可選：JSON 字串，用於覆蓋請求參數",
             "model": "模型",
