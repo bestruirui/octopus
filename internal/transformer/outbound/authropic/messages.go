@@ -318,14 +318,19 @@ func convertToAnthropicRequest(req *model.InternalLLMRequest) *anthropicModel.Me
 }
 
 func resolveMaxTokens(req *model.InternalLLMRequest) int64 {
+	var maxtoken int64 = 1
 	switch {
 	case req.MaxTokens != nil:
-		return *req.MaxTokens
+		maxtoken = *req.MaxTokens
 	case req.MaxCompletionTokens != nil:
-		return *req.MaxCompletionTokens
+		maxtoken = *req.MaxCompletionTokens
 	default:
-		return 8192
+		maxtoken = 8192
 	}
+	if maxtoken < 1 {
+		maxtoken = 1
+	}
+	return maxtoken
 }
 
 func convertSystemPrompt(req *model.InternalLLMRequest) *anthropicModel.SystemPrompt {

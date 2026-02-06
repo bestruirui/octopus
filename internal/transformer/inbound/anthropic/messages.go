@@ -37,6 +37,9 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 	if err := json.Unmarshal(body, &anthropicReq); err != nil {
 		return nil, err
 	}
+	if anthropicReq.MaxTokens < 1 {
+		anthropicReq.MaxTokens = 1
+	}
 	chatReq := &model.InternalLLMRequest{
 		Model:               anthropicReq.Model,
 		MaxTokens:           &anthropicReq.MaxTokens,
