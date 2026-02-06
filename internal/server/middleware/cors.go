@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/bestruirui/octopus/internal/model"
@@ -16,46 +17,81 @@ func Cors() gin.HandlerFunc {
 	config.AllowHeaders = []string{"*"}
 	config.ExposeHeaders = []string{"Content-Disposition"}
 	// CORS 白名单:
-	// - 为空: 不允许跨域
+	// - 为空: 仅允许本机来源(localhost/127.0.0.1/::1)，方便前端本地调试
 	// - "*": 允许所有来源
 	// - 逗号分隔的域名列表: 只允许指定的域名 (如 "https://example.com,https://example2.com")
 	config.AllowOriginFunc = func(origin string) bool {
-		allowed, err := op.SettingGetString(model.SettingKeyCORSAllowOrigins)
-		if err != nil {
-			return false
-		}
-		allowed = strings.TrimSpace(allowed)
-		if allowed == "" {
-			return false
-		}
-		if allowed == "*" {
-			return true
-		}
-
 		origin = strings.TrimSpace(origin)
 		if origin == "" {
 			return false
 		}
 
-		// 提取 origin 的 host 部分用于匹配
-		originHost := origin
-		if idx := strings.Index(origin, "://"); idx != -1 {
-			originHost = origin[idx+3:]
+		allowed, err := op.SettingGetString(model.SettingKeyCORSAllowOrigins)
+		if err != nil {
+			return isLocalOrigin(origin)
 		}
-		originHost = strings.TrimRight(originHost, "/")
+		allowed = strings.TrimSpace(allowed)
+		if allowed == "" {
+			return isLocalOrigin(origin)
+		}
+		if allowed == "*" {
+			return true
+		}
 
 		for _, item := range strings.Split(allowed, ",") {
 			item = strings.TrimSpace(item)
-			item = strings.TrimRight(item, "/")
 			if item == "" {
 				continue
 			}
-			// 支持完整 origin (https://example.com) 或仅域名 (example.com)
-			if item == origin || item == originHost {
+			// 支持:
+			// - 完整 origin: https://example.com
+			// - host:port: example.com:3000
+			// - 仅域名: example.com
+			if isOriginMatched(origin, item) {
 				return true
 			}
 		}
 		return false
 	}
 	return cors.New(config)
+}
+
+func isOriginMatched(origin, allowed string) bool {
+	parsedOrigin, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+
+	originScheme := strings.ToLower(parsedOrigin.Scheme)
+	originHost := strings.ToLower(parsedOrigin.Host)
+	originHostname := strings.ToLower(parsedOrigin.Hostname())
+	if originScheme == "" || originHost == "" || originHostname == "" {
+		return false
+	}
+
+	allowed = strings.ToLower(strings.TrimSpace(strings.TrimRight(allowed, "/")))
+	if allowed == "" {
+		return false
+	}
+
+	// 完整 origin: scheme://host[:port]
+	if strings.Contains(allowed, "://") {
+		parsedAllowed, err := url.Parse(allowed)
+		if err != nil {
+			return false
+		}
+		return originScheme == strings.ToLower(parsedAllowed.Scheme) && originHost == strings.ToLower(parsedAllowed.Host)
+	}
+
+	// host:port 或 host
+	return allowed == originHost || allowed == originHostname
+}
+
+func isLocalOrigin(origin string) bool {
+	parsedOrigin, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(parsedOrigin.Hostname())
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
