@@ -367,7 +367,8 @@
     },
     "log": {
         "list": {
-            "noMore": "沒有更多日誌了"
+            "noMore": "沒有更多日誌了",
+            "timeGap": "較早日誌 · {time}"
         },
         "card": {
             "error": "錯誤",

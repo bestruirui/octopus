@@ -367,7 +367,8 @@
     },
     "log": {
         "list": {
-            "noMore": "No more logs"
+            "noMore": "No more logs",
+            "timeGap": "Older logs: {time}"
         },
         "card": {
             "error": "Error",
