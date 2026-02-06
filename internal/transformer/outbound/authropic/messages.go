@@ -150,7 +150,11 @@ func (o *MessageOutbound) TransformStream(ctx context.Context, eventData []byte)
 			resp.ID = o.streamID
 			resp.Model = o.streamModel
 
-			if streamEvent.Message.Usage != nil {
+			if streamEvent.Message.Usage != nil &&
+				(streamEvent.Message.Usage.InputTokens > 0 ||
+					streamEvent.Message.Usage.OutputTokens > 0 ||
+					streamEvent.Message.Usage.CacheReadInputTokens > 0 ||
+					streamEvent.Message.Usage.CacheCreationInputTokens > 0) {
 				o.streamUsage = convertAnthropicUsage(streamEvent.Message.Usage)
 				resp.Usage = o.streamUsage
 			}
