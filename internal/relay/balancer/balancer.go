@@ -13,7 +13,7 @@ var roundRobinCounter uint64
 // Balancer selects channel based on load balancing mode
 type Balancer interface {
 	Select(items []model.GroupItem) *model.GroupItem
-	Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem
+	Next(items []model.GroupItem, current *model.GroupItem) (*model.GroupItem, bool)
 }
 
 // GetBalancer returns balancer by mode
@@ -43,8 +43,11 @@ func (b *RoundRobin) Select(items []model.GroupItem) *model.GroupItem {
 	return &items[idx]
 }
 
-func (b *RoundRobin) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	return b.Select(items)
+func (b *RoundRobin) Next(items []model.GroupItem, current *model.GroupItem) (*model.GroupItem, bool) {
+	if len(items) == 0 {
+		return nil, false
+	}
+	return b.Select(items), true
 }
 
 // Random balancer
@@ -57,8 +60,11 @@ func (b *Random) Select(items []model.GroupItem) *model.GroupItem {
 	return &items[rand.Intn(len(items))]
 }
 
-func (b *Random) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	return b.Select(items)
+func (b *Random) Next(items []model.GroupItem, current *model.GroupItem) (*model.GroupItem, bool) {
+	if len(items) == 0 {
+		return nil, false
+	}
+	return b.Select(items), true
 }
 
 // Failover balancer - tries by priority, falls back on failure
@@ -72,17 +78,15 @@ func (b *Failover) Select(items []model.GroupItem) *model.GroupItem {
 	return &sorted[0]
 }
 
-func (b *Failover) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	if len(items) == 0 || current == nil {
-		return nil
+func (b *Failover) Next(items []model.GroupItem, current *model.GroupItem) (*model.GroupItem, bool) {
+	if len(items) == 0 {
+		return nil, false
 	}
-	sorted := sortByPriority(items)
-	for i, item := range sorted {
-		if item.ID == current.ID && i+1 < len(sorted) {
-			return &sorted[i+1]
-		}
+	next := b.Select(items)
+	if next == nil {
+		return nil, false
 	}
-	return nil
+	return next, true
 }
 
 // Weighted balancer
@@ -109,8 +113,11 @@ func (b *Weighted) Select(items []model.GroupItem) *model.GroupItem {
 	return &items[0]
 }
 
-func (b *Weighted) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	return b.Select(items)
+func (b *Weighted) Next(items []model.GroupItem, current *model.GroupItem) (*model.GroupItem, bool) {
+	if len(items) == 0 {
+		return nil, false
+	}
+	return b.Select(items), true
 }
 
 func sortByPriority(items []model.GroupItem) []model.GroupItem {

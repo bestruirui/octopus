@@ -10,12 +10,13 @@ const (
 )
 
 type Group struct {
-	ID                int         `json:"id" gorm:"primaryKey"`
-	Name              string      `json:"name" gorm:"unique;not null"`
-	Mode              GroupMode   `json:"mode" gorm:"not null"`
-	MatchRegex        string      `json:"match_regex"`
-	FirstTokenTimeOut int         `json:"first_token_time_out"` // 单个渠道首个Token响应超时时间(秒)
-	Items             []GroupItem `json:"items,omitempty" gorm:"foreignKey:GroupID"`
+	ID                int       `json:"id" gorm:"primaryKey"`
+	Name              string    `json:"name" gorm:"unique;not null"`
+	Mode              GroupMode `json:"mode" gorm:"not null"`
+	MatchRegex        string    `json:"match_regex"`
+	FirstTokenTimeOut int       `json:"first_token_time_out"` // 单个渠道首个Token响应超时时间(秒)
+
+	Items []GroupItem `json:"items,omitempty" gorm:"foreignKey:GroupID"`
 }
 
 type GroupItem struct {
@@ -25,6 +26,7 @@ type GroupItem struct {
 	ModelName string `json:"model_name" gorm:"not null;index:idx_group_channel_model,unique"`
 	Priority  int    `json:"priority"`
 	Weight    int    `json:"weight"`
+	CBEnabled bool   `json:"-" gorm:"default:false"`
 }
 
 // GroupUpdateRequest 分组更新请求 - 仅包含变更的数据

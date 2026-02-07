@@ -16,6 +16,19 @@ export interface ChannelAttempt {
     success: boolean;
     error?: string;
     duration: number;       // 耗时(毫秒)
+    relay_status_code?: number;
+    relay_error_source?: string;
+    relay_retryable?: boolean;
+    relay_trippable?: boolean;
+    breaker_key?: string;
+    cb_decision?: string;
+    cb_state_before?: string;
+    cb_state_after?: string;
+    cb_trip_count?: number;
+    cb_open_until?: string;
+    probe_in_flight?: boolean;
+    earliest_retry_at?: string;
+    retry_after_seconds?: number;
 }
 
 /**
@@ -39,6 +52,7 @@ export interface RelayLog {
     attempts?: ChannelAttempt[]; // 所有尝试记录
     total_attempts?: number;     // 总尝试次数
     successful_round?: number;   // 成功的轮次
+    cb_log_level_max?: number;
 }
 
 /**

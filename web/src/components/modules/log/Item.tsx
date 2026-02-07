@@ -292,6 +292,11 @@ export function LogCard({ log }: { log: RelayLog }) {
                                 </Badge>
                             )}
                             <span className="text-muted-foreground">{log.actual_model_name}</span>
+                            {typeof log.cb_log_level_max === 'number' && (
+                                <Badge variant="outline" className="text-[10px] h-5 px-2">
+                                    CB-L{log.cb_log_level_max}
+                                </Badge>
+                            )}
                         </MorphingDialogTitle>
 
                         <MorphingDialogDescription className="flex-1 min-h-0">
@@ -395,6 +400,14 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                                         {attempt.error && (
                                                                             <div className="text-destructive/90 pl-2 border-l-2 border-destructive/30 text-[11px] leading-relaxed">
                                                                                 {attempt.error}
+                                                                            </div>
+                                                                        )}
+                                                                        {(attempt.cb_decision || attempt.cb_state_after) && (
+                                                                            <div className="text-[11px] text-muted-foreground space-y-0.5">
+                                                                                {attempt.cb_decision && <div>CB: {attempt.cb_decision}</div>}
+                                                                                {attempt.cb_state_after && <div>State: {attempt.cb_state_before || '-'} → {attempt.cb_state_after}</div>}
+                                                                                {typeof attempt.cb_trip_count === 'number' && <div>Trip: {attempt.cb_trip_count}</div>}
+                                                                                {attempt.cb_open_until && <div>OpenUntil: {attempt.cb_open_until}</div>}
                                                                             </div>
                                                                         )}
                                                                     </div>

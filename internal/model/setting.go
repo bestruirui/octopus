@@ -16,6 +16,15 @@ const (
 	SettingKeyRelayLogKeepPeriod      SettingKey = "relay_log_keep_period"      // 日志保存时间范围(天)
 	SettingKeyRelayLogKeepEnabled     SettingKey = "relay_log_keep_enabled"     // 是否保留历史日志
 	SettingKeyCORSAllowOrigins        SettingKey = "cors_allow_origins"         // 跨域白名单(逗号分隔, 如 "example.com,example2.com"). 为空不允许跨域, "*"允许所有
+
+	SettingKeyCBEnabled          SettingKey = "cb_enabled"
+	SettingKeyCBFailureThreshold SettingKey = "cb_failure_threshold"
+	SettingKeyCBBaseCooldownMS   SettingKey = "cb_base_cooldown_ms"
+	SettingKeyCBMaxCooldownMS    SettingKey = "cb_max_cooldown_ms"
+	SettingKeyCBBackoffFactor    SettingKey = "cb_backoff_factor"
+	SettingKeyCBJitterMin        SettingKey = "cb_jitter_min"
+	SettingKeyCBJitterMax        SettingKey = "cb_jitter_max"
+	SettingKeyCBDecayWindowMS    SettingKey = "cb_decay_window_ms"
 )
 
 type Setting struct {
@@ -32,20 +41,39 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeySyncLLMInterval, Value: "24"},         // 默认24小时同步一次LLM
 		{Key: SettingKeyRelayLogKeepPeriod, Value: "7"},       // 默认日志保存7天
 		{Key: SettingKeyRelayLogKeepEnabled, Value: "true"},   // 默认保留历史日志
+		{Key: SettingKeyCBEnabled, Value: "true"},
+		{Key: SettingKeyCBFailureThreshold, Value: "3"},
+		{Key: SettingKeyCBBaseCooldownMS, Value: "180000"},
+		{Key: SettingKeyCBMaxCooldownMS, Value: "3600000"},
+		{Key: SettingKeyCBBackoffFactor, Value: "2"},
+		{Key: SettingKeyCBJitterMin, Value: "0.5"},
+		{Key: SettingKeyCBJitterMax, Value: "1.5"},
+		{Key: SettingKeyCBDecayWindowMS, Value: "21600000"}, // 6h
 	}
 }
 
 func (s *Setting) Validate() error {
 	switch s.Key {
-	case SettingKeyModelInfoUpdateInterval, SettingKeySyncLLMInterval, SettingKeyRelayLogKeepPeriod:
+	case SettingKeyModelInfoUpdateInterval, SettingKeySyncLLMInterval, SettingKeyRelayLogKeepPeriod,
+		SettingKeyStatsSaveInterval, SettingKeyCBFailureThreshold, SettingKeyCBBaseCooldownMS,
+		SettingKeyCBMaxCooldownMS, SettingKeyCBDecayWindowMS:
 		_, err := strconv.Atoi(s.Value)
 		if err != nil {
-			return fmt.Errorf("model info update interval must be an integer")
+			return fmt.Errorf("%s must be an integer", s.Key)
 		}
 		return nil
-	case SettingKeyRelayLogKeepEnabled:
+	case SettingKeyRelayLogKeepEnabled, SettingKeyCBEnabled:
 		if s.Value != "true" && s.Value != "false" {
-			return fmt.Errorf("relay log keep enabled must be true or false")
+			return fmt.Errorf("%s must be true or false", s.Key)
+		}
+		return nil
+	case SettingKeyCBBackoffFactor, SettingKeyCBJitterMin, SettingKeyCBJitterMax:
+		v, err := strconv.ParseFloat(s.Value, 64)
+		if err != nil {
+			return fmt.Errorf("%s must be a number", s.Key)
+		}
+		if v <= 0 {
+			return fmt.Errorf("%s must be greater than 0", s.Key)
 		}
 		return nil
 	case SettingKeyProxyURL:

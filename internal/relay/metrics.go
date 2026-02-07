@@ -10,6 +10,7 @@ import (
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/price"
+	"github.com/bestruirui/octopus/internal/relay/breaker"
 	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
 	"github.com/bestruirui/octopus/internal/utils/log"
 )
@@ -18,7 +19,9 @@ import (
 type RelayMetrics struct {
 	// 基础信息
 	ChannelID      int
+	GroupID        int
 	APIKeyID       int
+	GroupName      string
 	ChannelName    string // 渠道名称
 	RequestModel   string // 请求的模型名称
 	ActualModel    string // 实际使用的模型名称
@@ -48,6 +51,11 @@ func (m *RelayMetrics) SetAPIKeyID(apiKeyID int) {
 	m.APIKeyID = apiKeyID
 }
 
+func (m *RelayMetrics) SetGroup(groupID int, groupName string) {
+	m.GroupID = groupID
+	m.GroupName = groupName
+}
+
 // SetChannel 设置通道信息
 func (m *RelayMetrics) SetChannel(channelID int, channelName string, actualModel string) {
 	m.ChannelID = channelID
@@ -66,18 +74,19 @@ func (m *RelayMetrics) SetInternalRequest(req *transformerModel.InternalLLMReque
 }
 
 // AddAttempt 记录单次渠道尝试的信息
-func (m *RelayMetrics) AddAttempt(round int, attemptNum int, success bool, err error, duration time.Duration) {
-	attempt := model.ChannelAttempt{
-		ChannelID:   m.ChannelID,
-		ChannelName: m.ChannelName,
-		ModelName:   m.ActualModel,
-		Round:       round,
-		AttemptNum:  attemptNum,
-		Success:     success,
-		Duration:    int(duration.Milliseconds()),
+func (m *RelayMetrics) AddAttempt(attempt model.ChannelAttempt, success bool, duration time.Duration) {
+	if attempt.ChannelID == 0 {
+		attempt.ChannelID = m.ChannelID
 	}
-	if err != nil {
-		attempt.Error = err.Error()
+	if attempt.ChannelName == "" {
+		attempt.ChannelName = m.ChannelName
+	}
+	if attempt.ModelName == "" {
+		attempt.ModelName = m.ActualModel
+	}
+	attempt.Success = success
+	if attempt.Duration <= 0 {
+		attempt.Duration = int(duration.Milliseconds())
 	}
 	m.Attempts = append(m.Attempts, attempt)
 	m.saveStats(success, duration)
@@ -160,6 +169,7 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 		Attempts:         m.Attempts,
 		TotalAttempts:    len(m.Attempts),
 		SuccessfulRound:  successfulRound,
+		CBLogLevelMax:    calcCBLogLevelMax(m.Attempts),
 	}
 
 	// 设置首字时间（流式场景）
@@ -205,6 +215,23 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	if logErr := op.RelayLogAdd(ctx, relayLog); logErr != nil {
 		log.Warnf("failed to save relay log: %v", logErr)
 	}
+}
+
+func calcCBLogLevelMax(attempts []model.ChannelAttempt) int {
+	maxLevel := 1
+	for _, attempt := range attempts {
+		level := 1
+		switch attempt.CBDecision {
+		case string(breaker.DecisionAllOpen), string(breaker.DecisionProbeFailed):
+			level = 3
+		case string(breaker.DecisionSkipOpen), string(breaker.DecisionProbeAllow), string(breaker.DecisionProbeDenied), string(breaker.DecisionRecordFail):
+			level = 2
+		}
+		if level > maxLevel {
+			maxLevel = level
+		}
+	}
+	return maxLevel
 }
 
 // filterResponseForLog 创建响应的浅拷贝，过滤掉 images、MultipleContent 中的图片数据和 Audio.Data 以减少存储压力
