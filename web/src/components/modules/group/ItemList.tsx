@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
-import { Layers, GripVertical, X, Trash2 } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { Layers, GripVertical, X, Trash2, RefreshCcw } from 'lucide-react';
 import {
     DragDropContext,
     Draggable,
@@ -20,6 +20,10 @@ export interface SelectedMember extends LLMChannel {
     id: string;
     item_id?: number;
     weight?: number;
+    cb_state?: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+    cb_trip_count?: number;
+    cb_open_until?: string;
+    cb_open_remaining_second?: number;
 }
 
 function reorderList<T>(list: T[], startIndex: number, endIndex: number): T[] {
@@ -36,6 +40,11 @@ type MemberItemDnd = {
     isDragging: boolean;
 };
 
+const cbHoverStyle = {
+    '--cb-hover-muted-foreground': 'lab(44.2956% .774592 7.66346)',
+    '--cb-hover-bg': 'lab(44.2956% .774592 7.66346 / 0.10)',
+} as CSSProperties;
+
 function MemberItem({
     member,
     onRemove,
@@ -46,6 +55,8 @@ function MemberItem({
     showConfirmDelete = true,
     layoutScope,
     dnd,
+    showCircuitBreaker = false,
+    onCBReset,
 }: {
     member: SelectedMember;
     onRemove: (id: string) => void;
@@ -56,10 +67,14 @@ function MemberItem({
     showConfirmDelete?: boolean;
     layoutScope?: string;
     dnd: MemberItemDnd;
+    showCircuitBreaker?: boolean;
+    onCBReset?: (id: string) => void;
 }) {
     const { Avatar: ModelAvatar } = getModelIcon(member.name);
+    const t = useTranslations('group');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const isDisabled = member.enabled === false;
+    const remainingSeconds = member.cb_open_remaining_second ?? 0;
 
     return (
         <div
@@ -133,12 +148,60 @@ function MemberItem({
                     />
                 )}
 
+                {showCircuitBreaker && (
+                    <div className="flex items-center gap-[30px] shrink-0 text-[11px]" style={cbHoverStyle}>
+                        <Tooltip side="top" sideOffset={10} align="center">
+                            <TooltipTrigger asChild>
+                                <span className={cn(
+                                    'inline-flex w-fit justify-self-start whitespace-nowrap px-1.5 py-0.5 rounded border text-left',
+                                    member.cb_state === 'OPEN'
+                                        ? 'text-destructive border-destructive/30 bg-destructive/10'
+                                        : member.cb_state === 'HALF_OPEN'
+                                            ? 'text-amber-600 border-amber-500/30 bg-amber-500/10'
+                                            : 'text-emerald-600 border-emerald-500/30 bg-emerald-500/10'
+                                )}>
+                                    {member.cb_state ?? 'CLOSED'}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('circuitBreaker.col.state')}</TooltipContent>
+                        </Tooltip>
+                        <Tooltip side="top" sideOffset={10} align="center">
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex h-6 w-6 items-center justify-center rounded tabular-nums text-muted-foreground text-left transition-colors hover:bg-[var(--cb-hover-bg)] hover:text-[var(--cb-hover-muted-foreground)]">
+                                    {member.cb_trip_count ?? 0}
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('circuitBreaker.col.trip')}</TooltipContent>
+                        </Tooltip>
+                        <Tooltip side="top" sideOffset={10} align="center">
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex h-6 items-center rounded px-1.5 tabular-nums text-muted-foreground text-left transition-colors hover:bg-[var(--cb-hover-bg)] hover:text-[var(--cb-hover-muted-foreground)]">
+                                    {remainingSeconds}s
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('circuitBreaker.col.openUntil')}</TooltipContent>
+                        </Tooltip>
+                        <Tooltip side="top" sideOffset={10} align="center">
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="group h-6 w-6 justify-self-start grid place-items-center rounded hover:bg-[var(--cb-hover-bg)] hover:text-[var(--cb-hover-muted-foreground)] transition-colors"
+                                    onClick={() => onCBReset?.(member.id)}
+                                >
+                                    <RefreshCcw className="size-3.5 text-muted-foreground transition-colors group-hover:text-[var(--cb-hover-muted-foreground)]" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('circuitBreaker.col.action')}</TooltipContent>
+                        </Tooltip>
+                    </div>
+                )}
+
                 {(!showConfirmDelete || !confirmDelete) && (
                     <motion.button
                         layoutId={`delete-btn-member-${layoutScope ?? 'default'}-${member.id}`}
                         type="button"
                         onClick={() => showConfirmDelete ? setConfirmDelete(true) : onRemove(member.id)}
-                        className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        className="h-6 w-6 shrink-0 grid place-items-center rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
                         initial={false}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.15 }}
@@ -207,6 +270,8 @@ export interface MemberListProps {
      */
     showConfirmDelete?: boolean;
     layoutScope?: string;
+    showCircuitBreaker?: boolean;
+    onCBReset?: (id: string) => void;
 }
 
 export function MemberList({
@@ -222,6 +287,8 @@ export function MemberList({
     showWeight = false,
     showConfirmDelete = true,
     layoutScope: externalLayoutScope,
+    showCircuitBreaker = false,
+    onCBReset,
 }: MemberListProps) {
     const internalLayoutScope = useId();
     const layoutScope = externalLayoutScope ?? internalLayoutScope;
@@ -325,6 +392,8 @@ export function MemberList({
                                                 showWeight={showWeight}
                                                 showConfirmDelete={showConfirmDelete}
                                                 layoutScope={layoutScope}
+                                                showCircuitBreaker={showCircuitBreaker}
+                                                onCBReset={onCBReset}
                                                 dnd={{
                                                     innerRef: draggableProvided.innerRef,
                                                     draggableProps: draggableProvided.draggableProps,

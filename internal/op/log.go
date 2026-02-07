@@ -173,17 +173,17 @@ func RelayLogSaveDBTask(ctx context.Context) error {
 }
 
 func relayLogCleanup(ctx context.Context) error {
-	keepPeriod, err := SettingGetInt(model.SettingKeyRelayLogKeepPeriod)
-	if err != nil {
-		return err
-	}
+	now := time.Now()
+	cutoffL1 := now.Add(-14 * 24 * time.Hour).Unix()
+	cutoffL2 := now.Add(-7 * 24 * time.Hour).Unix()
+	cutoffL3 := now.Add(-72 * time.Hour).Unix()
 
-	if keepPeriod <= 0 {
-		return nil
-	}
-
-	cutoffTime := time.Now().Add(-time.Duration(keepPeriod) * 24 * time.Hour).Unix()
-	return db.GetDB().WithContext(ctx).Where("time < ?", cutoffTime).Delete(&model.RelayLog{}).Error
+	return db.GetDB().WithContext(ctx).
+		Where(
+			"(cb_log_level_max IS NULL OR cb_log_level_max <= 1) AND time < ? OR cb_log_level_max = 2 AND time < ? OR cb_log_level_max >= 3 AND time < ?",
+			cutoffL1, cutoffL2, cutoffL3,
+		).
+		Delete(&model.RelayLog{}).Error
 }
 
 // RelayLogList 查询日志列表，支持可选的时间范围过滤

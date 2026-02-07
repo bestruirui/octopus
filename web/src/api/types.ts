@@ -13,6 +13,7 @@ export interface ApiResponse<T = unknown> {
 export interface ApiError {
     code: number;
     message: string;
+    data?: unknown;
 }
 
 /**

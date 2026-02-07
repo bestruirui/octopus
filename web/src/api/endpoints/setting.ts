@@ -19,6 +19,14 @@ export const SettingKey = {
     RelayLogKeepEnabled: 'relay_log_keep_enabled',
     RelayLogKeepPeriod: 'relay_log_keep_period',
     CORSAllowOrigins: 'cors_allow_origins',
+    CBEnabled: 'cb_enabled',
+    CBFailureThreshold: 'cb_failure_threshold',
+    CBBaseCooldownMS: 'cb_base_cooldown_ms',
+    CBMaxCooldownMS: 'cb_max_cooldown_ms',
+    CBBackoffFactor: 'cb_backoff_factor',
+    CBJitterMin: 'cb_jitter_min',
+    CBJitterMax: 'cb_jitter_max',
+    CBDecayWindowMS: 'cb_decay_window_ms',
 } as const;
 
 /**
@@ -206,4 +214,3 @@ export function useImportDB() {
         },
     });
 }
-

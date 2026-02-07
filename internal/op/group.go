@@ -117,12 +117,13 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 		priorityCase += " END"
 		weightCase += " END"
 
+		updateMap := map[string]interface{}{
+			"priority": gorm.Expr(priorityCase),
+			"weight":   gorm.Expr(weightCase),
+		}
 		if err := tx.Model(&model.GroupItem{}).
 			Where("id IN ? AND group_id = ?", ids, req.ID).
-			Updates(map[string]interface{}{
-				"priority": gorm.Expr(priorityCase),
-				"weight":   gorm.Expr(weightCase),
-			}).Error; err != nil {
+			Updates(updateMap).Error; err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to update items: %w", err)
 		}
@@ -248,6 +249,7 @@ func GroupItemBatchAdd(groupID int, items []model.GroupIDAndLLMName, ctx context
 			ModelName: it.ModelName,
 			Priority:  nextPriority,
 			Weight:    1,
+			CBEnabled: false,
 		})
 		nextPriority++
 	}

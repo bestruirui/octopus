@@ -4,17 +4,21 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bestruirui/octopus/internal/helper"
+	dbmodel "github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/relay/balancer"
+	"github.com/bestruirui/octopus/internal/relay/breaker"
 	"github.com/bestruirui/octopus/internal/server/resp"
 	"github.com/bestruirui/octopus/internal/transformer/inbound"
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	tmodel "github.com/bestruirui/octopus/internal/transformer/model"
 	"github.com/bestruirui/octopus/internal/transformer/outbound"
 	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/gin-gonic/gin"
@@ -39,7 +43,8 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 
 	// 初始化统计和日志
 	apiKeyID := c.GetInt("api_key_id")
-	metrics := NewRelayMetrics(internalRequest.Model)
+	requestModel := internalRequest.Model
+	metrics := NewRelayMetrics(requestModel)
 	metrics.SetInternalRequest(internalRequest)
 	metrics.SetAPIKeyID(apiKeyID)
 	// 获取通道分组
@@ -48,66 +53,196 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
 	}
+	metrics.SetGroup(group.ID, group.Name)
+	cbCfg := breaker.ResolveEffectiveConfig()
+	cbManager := breaker.GetManager()
 
-	const maxRounds = 3
-	var lastErr error
-	itemCount := len(group.Items)
+	const maxAttempts = 3
+	var lastRelayErr *RelayError
+	var lastStatusCode int
 	b := balancer.GetBalancer(group.Mode)
-	for round := 0; round < maxRounds; round++ {
-		item := b.Select(group.Items)
-		if item == nil {
-			resp.Error(c, http.StatusServiceUnavailable, "no available channel")
+	for round := 1; round <= maxAttempts; round++ {
+		now := time.Now()
+		snapshotItems := cloneGroupItems(group.Items)
+		filteredItems, earliestRetryAt := cbManager.FilterAvailable(snapshotItems, now, cbCfg)
+		if cbCfg.Enabled && len(filteredItems) == 0 && len(snapshotItems) > 0 {
+			cbData := buildAllOpenData(group.ID, requestModel, earliestRetryAt, now)
+			retryAfter := cbData.RetryAfterSeconds
+			c.Header("Retry-After", strconv.Itoa(retryAfter))
+			metrics.AddAttempt(dbmodel.ChannelAttempt{
+				Round:             round,
+				AttemptNum:        1,
+				Success:           false,
+				Error:             "all upstream circuit breakers are open",
+				CBDecision:        string(breaker.DecisionAllOpen),
+				EarliestRetryAt:   cbData.EarliestRetryAt,
+				RetryAfterSeconds: cbData.RetryAfterSeconds,
+			}, false, 0)
+			rerr := newRelayError(http.StatusServiceUnavailable, RelayErrorSourceLocal, true, false, nil, "all upstream circuit breakers are open")
+			metrics.Save(c.Request.Context(), false, rerr, 0)
+			resp.ErrorWithData(c, http.StatusServiceUnavailable, rerr.Error(), gin.H{
+				"circuit_breaker": cbData,
+			})
 			return
 		}
 
-		for i := 0; i < itemCount; i++ {
+		remainingItems := cloneGroupItems(filteredItems)
+		attemptNum := 0
+		for len(remainingItems) > 0 {
+			attemptNum++
 			select {
 			case <-c.Request.Context().Done():
 				log.Infof("request context canceled, stopping retry")
 				return
 			default:
 			}
+			item := b.Select(remainingItems)
+			if item == nil {
+				break
+			}
+			remainingItems = removeGroupItem(remainingItems, item.ID)
 
 			attemptStart := time.Now()
+			breakerKey := breaker.BuildKey(item.ChannelID, item.ModelName)
+			cbActive := cbCfg.Enabled
 			channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
 			if err != nil {
-				log.Warnf("failed to get channel: %v", err)
-				lastErr = err
-				item = b.Next(group.Items, item)
+				rerr := newRelayError(http.StatusBadGateway, RelayErrorSourceLocal, true, false, err, fmt.Sprintf("failed to get channel: %v", err))
+				metrics.AddAttempt(dbmodel.ChannelAttempt{
+					Round:            round,
+					AttemptNum:       attemptNum,
+					ChannelID:        item.ChannelID,
+					ModelName:        item.ModelName,
+					Error:            rerr.Error(),
+					RelayStatusCode:  rerr.StatusCode,
+					RelayErrorSource: string(rerr.Source),
+					RelayRetryable:   rerr.Retryable,
+					RelayTrippable:   rerr.Trippable,
+					BreakerKey:       breakerKey,
+				}, false, time.Since(attemptStart))
+				lastRelayErr = rerr
+				lastStatusCode = rerr.StatusCode
 				continue
 			}
 			if channel.Enabled == false {
-				log.Warnf("channel %s is disabled", channel.Name)
-				lastErr = fmt.Errorf("channel %s is disabled", channel.Name)
-				item = b.Next(group.Items, item)
+				rerr := newRelayError(http.StatusBadGateway, RelayErrorSourceLocal, true, false, nil, fmt.Sprintf("channel %s is disabled", channel.Name))
+				metrics.AddAttempt(dbmodel.ChannelAttempt{
+					Round:            round,
+					AttemptNum:       attemptNum,
+					ChannelID:        channel.ID,
+					ChannelName:      channel.Name,
+					ModelName:        item.ModelName,
+					Error:            rerr.Error(),
+					RelayStatusCode:  rerr.StatusCode,
+					RelayErrorSource: string(rerr.Source),
+					RelayRetryable:   rerr.Retryable,
+					RelayTrippable:   rerr.Trippable,
+					BreakerKey:       breakerKey,
+				}, false, time.Since(attemptStart))
+				lastRelayErr = rerr
+				lastStatusCode = rerr.StatusCode
 				continue
 			}
 
-			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (round %d/%d, item %d/%d)", internalRequest.Model, group.Mode, channel.Name, item.ModelName, round+1, maxRounds, i+1, itemCount)
+			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (round %d/%d, item %d)", internalRequest.Model, group.Mode, channel.Name, item.ModelName, round, maxAttempts, attemptNum)
 
 			internalRequest.Model = item.ModelName
 			metrics.SetChannel(channel.ID, channel.Name, item.ModelName)
 
 			outAdapter := outbound.Get(channel.Type)
 			if outAdapter == nil {
-				log.Warnf("unsupported channel type: %d for channel: %s", channel.Type, channel.Name)
-				lastErr = fmt.Errorf("unsupported channel type: %d", channel.Type)
-				item = b.Next(group.Items, item)
+				rerr := newRelayError(http.StatusBadGateway, RelayErrorSourceLocal, true, false, nil, fmt.Sprintf("unsupported channel type: %d", channel.Type))
+				metrics.AddAttempt(dbmodel.ChannelAttempt{
+					Round:            round,
+					AttemptNum:       attemptNum,
+					ChannelID:        channel.ID,
+					ChannelName:      channel.Name,
+					ModelName:        item.ModelName,
+					Error:            rerr.Error(),
+					RelayStatusCode:  rerr.StatusCode,
+					RelayErrorSource: string(rerr.Source),
+					RelayRetryable:   rerr.Retryable,
+					RelayTrippable:   rerr.Trippable,
+					BreakerKey:       breakerKey,
+				}, false, time.Since(attemptStart))
+				lastRelayErr = rerr
+				lastStatusCode = rerr.StatusCode
 				continue
 			}
 
 			// 验证 channel 类型与请求类型匹配
 			if internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
-				log.Warnf("channel type %d is not compatible with embedding request for channel: %s", channel.Type, channel.Name)
-				lastErr = fmt.Errorf("channel type %d not compatible with embedding request", channel.Type)
-				item = b.Next(group.Items, item)
+				rerr := newRelayError(http.StatusBadGateway, RelayErrorSourceLocal, true, false, nil, fmt.Sprintf("channel type %d not compatible with embedding request", channel.Type))
+				metrics.AddAttempt(dbmodel.ChannelAttempt{
+					Round:            round,
+					AttemptNum:       attemptNum,
+					ChannelID:        channel.ID,
+					ChannelName:      channel.Name,
+					ModelName:        item.ModelName,
+					Error:            rerr.Error(),
+					RelayStatusCode:  rerr.StatusCode,
+					RelayErrorSource: string(rerr.Source),
+					RelayRetryable:   rerr.Retryable,
+					RelayTrippable:   rerr.Trippable,
+					BreakerKey:       breakerKey,
+				}, false, time.Since(attemptStart))
+				lastRelayErr = rerr
+				lastStatusCode = rerr.StatusCode
 				continue
 			}
 
 			if internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
-				log.Warnf("channel type %d is not compatible with chat request for channel: %s", channel.Type, channel.Name)
-				lastErr = fmt.Errorf("channel type %d not compatible with chat request", channel.Type)
-				item = b.Next(group.Items, item)
+				rerr := newRelayError(http.StatusBadGateway, RelayErrorSourceLocal, true, false, nil, fmt.Sprintf("channel type %d not compatible with chat request", channel.Type))
+				metrics.AddAttempt(dbmodel.ChannelAttempt{
+					Round:            round,
+					AttemptNum:       attemptNum,
+					ChannelID:        channel.ID,
+					ChannelName:      channel.Name,
+					ModelName:        item.ModelName,
+					Error:            rerr.Error(),
+					RelayStatusCode:  rerr.StatusCode,
+					RelayErrorSource: string(rerr.Source),
+					RelayRetryable:   rerr.Retryable,
+					RelayTrippable:   rerr.Trippable,
+					BreakerKey:       breakerKey,
+				}, false, time.Since(attemptStart))
+				lastRelayErr = rerr
+				lastStatusCode = rerr.StatusCode
+				continue
+			}
+
+			acquire := breaker.AttemptAcquire{
+				Key:         breakerKey,
+				Allowed:     true,
+				Decision:    breaker.DecisionDisabled,
+				StateBefore: dbmodel.CircuitBreakerStateClosed,
+				StateAfter:  dbmodel.CircuitBreakerStateClosed,
+			}
+			if cbActive {
+				acquire = cbManager.Acquire(breakerKey, time.Now(), cbCfg)
+			}
+			if cbActive && !acquire.Allowed {
+				metrics.AddAttempt(dbmodel.ChannelAttempt{
+					Round:            round,
+					AttemptNum:       attemptNum,
+					ChannelID:        channel.ID,
+					ChannelName:      channel.Name,
+					ModelName:        item.ModelName,
+					Error:            string(acquire.Decision),
+					RelayStatusCode:  http.StatusServiceUnavailable,
+					RelayErrorSource: string(RelayErrorSourceLocal),
+					RelayRetryable:   true,
+					RelayTrippable:   false,
+					BreakerKey:       breakerKey,
+					CBDecision:       string(acquire.Decision),
+					CBStateBefore:    string(acquire.StateBefore),
+					CBStateAfter:     string(acquire.StateAfter),
+					CBTripCount:      acquire.TripCount,
+					CBOpenUntil:      formatTimeRFC3339(acquire.OpenUntil),
+					ProbeInFlight:    acquire.ProbeInFlight,
+				}, false, time.Since(attemptStart))
+				lastRelayErr = newRelayError(http.StatusServiceUnavailable, RelayErrorSourceLocal, true, false, nil, string(acquire.Decision))
+				lastStatusCode = http.StatusServiceUnavailable
 				continue
 			}
 
@@ -122,43 +257,111 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 				firstTokenTimeOutSec: group.FirstTokenTimeOut,
 			}
 
-			if statusCode, err := rc.forward(); err == nil {
+			statusCode, rerr := rc.forward()
+			if rerr == nil {
 				// 成功
 				attemptDuration := time.Since(attemptStart)
+				cbResult := breaker.RecordResult{
+					Decision:   acquire.Decision,
+					StateAfter: dbmodel.CircuitBreakerStateClosed,
+				}
+				if cbActive {
+					cbResult = cbManager.RecordSuccess(breakerKey, acquire, cbCfg, time.Now())
+				}
 				rc.collectResponse()
-				metrics.AddAttempt(round+1, i+1, true, nil, attemptDuration)
+				metrics.AddAttempt(dbmodel.ChannelAttempt{
+					Round:           round,
+					AttemptNum:      attemptNum,
+					ChannelID:       channel.ID,
+					ChannelName:     channel.Name,
+					ModelName:       item.ModelName,
+					RelayStatusCode: statusCode,
+					BreakerKey:      breakerKey,
+					CBDecision:      string(acquire.Decision),
+					CBStateBefore:   string(acquire.StateBefore),
+					CBStateAfter:    string(cbResult.StateAfter),
+					CBTripCount:     cbResult.TripCount,
+					CBOpenUntil:     formatTimeRFC3339(cbResult.OpenUntil),
+					ProbeInFlight:   cbResult.ProbeInFlight,
+				}, true, attemptDuration)
 				rc.usedKey.StatusCode = statusCode
 				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
 				rc.usedKey.TotalCost += metrics.Stats.InputCost + metrics.Stats.OutputCost
 				op.ChannelKeyUpdate(rc.usedKey)
-				metrics.Save(c.Request.Context(), true, nil, round+1)
+				metrics.Save(c.Request.Context(), true, nil, round)
 				return
-			} else {
-				// 失败
-				attemptDuration := time.Since(attemptStart)
-				metrics.AddAttempt(round+1, i+1, false, err, attemptDuration)
-				rc.usedKey.StatusCode = statusCode
-				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
-				op.ChannelKeyUpdate(rc.usedKey)
-				if c.Writer.Written() {
-					// Streaming responses may have already started; retrying would corrupt the client stream.
-					rc.collectResponse()
-					metrics.Save(c.Request.Context(), false, err, 0)
-					return
-				}
-				lastErr = fmt.Errorf("channel %s failed: %v", channel.Name, err)
 			}
-			item = b.Next(group.Items, item)
+			attemptDuration := time.Since(attemptStart)
+			cbResult := breaker.RecordResult{
+				Decision:   acquire.Decision,
+				StateAfter: dbmodel.CircuitBreakerStateClosed,
+			}
+			if cbActive {
+				cbResult = cbManager.RecordNonTrippable(breakerKey, acquire, cbCfg)
+				if rerr.Trippable {
+					cbResult = cbManager.RecordFailure(breakerKey, rerr.Error(), acquire, cbCfg, time.Now())
+				}
+			}
+
+			metrics.AddAttempt(dbmodel.ChannelAttempt{
+				Round:            round,
+				AttemptNum:       attemptNum,
+				ChannelID:        channel.ID,
+				ChannelName:      channel.Name,
+				ModelName:        item.ModelName,
+				Error:            rerr.Error(),
+				RelayStatusCode:  statusCode,
+				RelayErrorSource: string(rerr.Source),
+				RelayRetryable:   rerr.Retryable,
+				RelayTrippable:   rerr.Trippable,
+				BreakerKey:       breakerKey,
+				CBDecision:       string(cbResult.Decision),
+				CBStateBefore:    string(acquire.StateBefore),
+				CBStateAfter:     string(cbResult.StateAfter),
+				CBTripCount:      cbResult.TripCount,
+				CBOpenUntil:      formatTimeRFC3339(cbResult.OpenUntil),
+				ProbeInFlight:    cbResult.ProbeInFlight,
+			}, false, attemptDuration)
+
+			rc.usedKey.StatusCode = statusCode
+			rc.usedKey.LastUseTimeStamp = time.Now().Unix()
+			op.ChannelKeyUpdate(rc.usedKey)
+
+			if c.Writer.Written() {
+				// Streaming responses may have already started; retrying would corrupt the client stream.
+				rc.collectResponse()
+				metrics.Save(c.Request.Context(), false, rerr, 0)
+				return
+			}
+			lastRelayErr = rerr
+			if statusCode > 0 {
+				lastStatusCode = statusCode
+			} else if rerr.StatusCode > 0 {
+				lastStatusCode = rerr.StatusCode
+			}
+			if !rerr.Retryable {
+				metrics.Save(c.Request.Context(), false, rerr, 0)
+				resp.Error(c, relayStatusCode(rerr, lastStatusCode), rerr.Error())
+				return
+			}
+
+			nextItem, ok := b.Next(remainingItems, item)
+			if !ok || nextItem == nil {
+				break
+			}
 		}
 	}
 
 	// 所有通道都失败
-	metrics.Save(c.Request.Context(), false, lastErr, 0)
-	resp.Error(c, http.StatusBadGateway, "all channels failed")
+	if lastRelayErr == nil {
+		lastRelayErr = newRelayError(http.StatusBadGateway, RelayErrorSourceLocal, true, false, nil, "all channels failed")
+	}
+	metrics.Save(c.Request.Context(), false, lastRelayErr, 0)
+	resp.Error(c, relayStatusCode(lastRelayErr, lastStatusCode), "all channels failed")
 }
 
 // parseRequest 解析并验证入站请求
-func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.InternalLLMRequest, model.Inbound, error) {
+func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*tmodel.InternalLLMRequest, tmodel.Inbound, error) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
@@ -184,7 +387,7 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 }
 
 // forward 转发请求到上游服务
-func (rc *relayContext) forward() (int, error) {
+func (rc *relayContext) forward() (int, *RelayError) {
 	ctx := rc.c.Request.Context()
 
 	// 构建出站请求
@@ -196,7 +399,7 @@ func (rc *relayContext) forward() (int, error) {
 	)
 	if err != nil {
 		log.Warnf("failed to create request: %v", err)
-		return 0, fmt.Errorf("failed to create request: %w", err)
+		return 0, newRelayError(http.StatusBadRequest, RelayErrorSourceLocal, false, false, err, fmt.Sprintf("failed to create request: %v", err))
 	}
 
 	// 复制请求头
@@ -205,28 +408,31 @@ func (rc *relayContext) forward() (int, error) {
 	// 发送请求
 	response, err := rc.sendRequest(outboundRequest)
 	if err != nil {
-		return 0, fmt.Errorf("failed to send request: %w", err)
+		return 0, classifyTransportError(fmt.Errorf("failed to send request: %w", err))
 	}
 	defer response.Body.Close()
 
 	// 检查响应状态
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		body, err := io.ReadAll(response.Body)
+		body, err := io.ReadAll(io.LimitReader(response.Body, 16*1024))
 		if err != nil {
-			return 0, fmt.Errorf("failed to read response body: %w", err)
+			return response.StatusCode, classifyUpstreamStatus(response.StatusCode, "")
 		}
-		return 0, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
+		return response.StatusCode, classifyUpstreamStatus(response.StatusCode, string(body))
 	}
 
 	// 处理响应
 	if rc.internalRequest.Stream != nil && *rc.internalRequest.Stream {
 		if err := rc.handleStreamResponse(ctx, response); err != nil {
-			return 0, err
+			if rc.c.Writer.Written() {
+				return response.StatusCode, newRelayError(response.StatusCode, RelayErrorSourceNetwork, false, false, err, err.Error())
+			}
+			return response.StatusCode, classifyTransportError(err)
 		}
 		return response.StatusCode, nil
 	}
 	if err := rc.handleResponse(ctx, response); err != nil {
-		return 0, err
+		return response.StatusCode, newRelayError(response.StatusCode, RelayErrorSourceLocal, false, false, err, err.Error())
 	}
 	return response.StatusCode, nil
 }
@@ -413,4 +619,65 @@ func (rc *relayContext) collectResponse() {
 
 	// 设置响应内容
 	rc.metrics.SetInternalResponse(internalResponse)
+}
+
+func cloneGroupItems(items []dbmodel.GroupItem) []dbmodel.GroupItem {
+	out := make([]dbmodel.GroupItem, len(items))
+	copy(out, items)
+	return out
+}
+
+func removeGroupItem(items []dbmodel.GroupItem, itemID int) []dbmodel.GroupItem {
+	if len(items) == 0 {
+		return items
+	}
+	out := make([]dbmodel.GroupItem, 0, len(items)-1)
+	removed := false
+	for _, item := range items {
+		if !removed && item.ID == itemID {
+			removed = true
+			continue
+		}
+		out = append(out, item)
+	}
+	if !removed {
+		return items
+	}
+	return out
+}
+
+func buildAllOpenData(groupID int, modelName string, earliestRetryAt, now time.Time) dbmodel.CircuitBreakerAllOpenData {
+	if earliestRetryAt.IsZero() || earliestRetryAt.Before(now) {
+		earliestRetryAt = now.Add(1 * time.Second)
+	}
+	retryAfter := int(math.Ceil(earliestRetryAt.Sub(now).Seconds()))
+	if retryAfter < 1 {
+		retryAfter = 1
+	}
+	return dbmodel.CircuitBreakerAllOpenData{
+		Reason:            "all_open",
+		EarliestRetryAt:   earliestRetryAt.UTC().Format(time.RFC3339Nano),
+		RetryAfterSeconds: retryAfter,
+		Scope: dbmodel.CircuitBreakerAllOpenScope{
+			GroupID:   groupID,
+			ModelName: modelName,
+		},
+	}
+}
+
+func relayStatusCode(rerr *RelayError, fallback int) int {
+	if rerr != nil && rerr.StatusCode > 0 {
+		return rerr.StatusCode
+	}
+	if fallback > 0 {
+		return fallback
+	}
+	return http.StatusBadGateway
+}
+
+func formatTimeRFC3339(ts time.Time) string {
+	if ts.IsZero() {
+		return ""
+	}
+	return ts.UTC().Format(time.RFC3339Nano)
 }

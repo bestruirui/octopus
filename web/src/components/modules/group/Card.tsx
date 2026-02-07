@@ -5,6 +5,8 @@ import { Trash2, X, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { type Group, useDeleteGroup, useUpdateGroup } from '@/api/endpoints/group';
 import { useModelChannelList } from '@/api/endpoints/model';
+import { useSettingList, SettingKey } from '@/api/endpoints/setting';
+import { useGroupCircuitBreakerStates, useResetCircuitBreakerItem } from '@/api/endpoints/circuit-breaker';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/common/Toast';
@@ -72,6 +74,10 @@ export function GroupCard({ group }: { group: Group }) {
     const updateGroup = useUpdateGroup();
     const deleteGroup = useDeleteGroup();
     const { data: modelChannels = [] } = useModelChannelList();
+    const { data: settings = [] } = useSettingList();
+    const cbFeatureEnabled = settings.find(s => s.key === SettingKey.CBEnabled)?.value === 'true';
+    const { data: cbStates } = useGroupCircuitBreakerStates(group.id ?? 0, cbFeatureEnabled);
+    const resetCBItem = useResetCircuitBreakerItem();
 
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [members, setMembers] = useState<SelectedMember[]>([]);
@@ -87,24 +93,41 @@ export function GroupCard({ group }: { group: Group }) {
         });
         return map;
     }, [modelChannels]);
+    const cbStateByKey = useMemo(() => {
+        const map = new Map<string, NonNullable<typeof cbStates>['items'][number]>();
+        (cbStates?.items ?? []).forEach((s) => {
+            map.set(modelChannelKey(s.channel_id, s.model_name), s);
+        });
+        return map;
+    }, [cbStates?.items]);
 
     const displayMembers = useMemo((): SelectedMember[] =>
         [...(group.items || [])]
             .sort((a, b) => a.priority - b.priority)
-            .map((item) => ({
-                id: modelChannelKey(item.channel_id, item.model_name),
-                name: item.model_name,
-                enabled: enabledByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? true,
-                channel_id: item.channel_id,
-                channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? `Channel ${item.channel_id}`,
-                item_id: item.id,
-                weight: item.weight,
-            })),
-        [group.items, channelNameByKey, enabledByKey]
+            .map((item) => {
+                const key = modelChannelKey(item.channel_id, item.model_name);
+                const state = cbStateByKey.get(key);
+                return {
+                    id: key,
+                    name: item.model_name,
+                    enabled: enabledByKey.get(key) ?? true,
+                    channel_id: item.channel_id,
+                    channel_name: channelNameByKey.get(key) ?? `Channel ${item.channel_id}`,
+                    item_id: item.id,
+                    weight: item.weight,
+                    cb_state: state?.state ?? 'CLOSED',
+                    cb_trip_count: state?.trip_count ?? 0,
+                    cb_open_until: state?.open_until ?? '',
+                    cb_open_remaining_second: state?.open_remaining_second ?? 0,
+                };
+            }),
+        [group.items, channelNameByKey, enabledByKey, cbStateByKey]
     );
 
     useEffect(() => {
-        if (!isDragging.current) setMembers([...displayMembers]);
+        if (!isDragging.current) {
+            queueMicrotask(() => setMembers([...displayMembers]));
+        }
     }, [displayMembers]);
 
     useEffect(() => {
@@ -168,6 +191,18 @@ export function GroupCard({ group }: { group: Group }) {
             );
         }, 500);
     }, [group.id, priorityByItemId, updateGroup, onSuccess, onError]);
+
+    const handleCBReset = useCallback((id: string) => {
+        const member = membersRef.current.find((m) => m.id === id);
+        if (!member) return;
+        resetCBItem.mutate(
+            { channel_id: member.channel_id, model_name: member.name },
+            {
+                onSuccess: () => toast.success(t('circuitBreaker.resetChannelSuccess')),
+                onError: (error) => toast.error(t('toast.updateFailed'), { description: (error as Error).message }),
+            }
+        );
+    }, [resetCBItem, t]);
 
     const handleSubmitEdit = useCallback((values: GroupEditorValues, onDone?: () => void) => {
         if (!group.id) return;
@@ -346,6 +381,8 @@ export function GroupCard({ group }: { group: Group }) {
                     autoScrollOnAdd={false}
                     showWeight={group.mode === GroupMode.Weighted}
                     layoutScope={`card-${group.id ?? 'unknown'}`}
+                    showCircuitBreaker={cbFeatureEnabled}
+                    onCBReset={handleCBReset}
                 />
             </section>
         </article >

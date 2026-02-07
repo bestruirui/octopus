@@ -280,6 +280,18 @@
             },
             "clearSuccess": "日誌已清空",
             "clearFailed": "清空失敗"
+        },
+        "circuitBreaker": {
+            "title": "熔斷設定",
+            "enabled": "啟用熔斷",
+            "failureThreshold": "失敗閾值",
+            "failureThresholdTip": "連續失敗達到該值後進入 OPEN。",
+            "baseCooldownS": "基礎冷卻（秒）",
+            "baseCooldownSTip": "首次 OPEN 時的冷卻時長（秒）。",
+            "maxCooldownS": "最大冷卻（秒）",
+            "maxCooldownSTip": "冷卻時長上限（秒）。",
+            "backoffFactor": "退避係數",
+            "backoffFactorTip": "每次 trip 後冷卻倍增係數，例如 2 表示指數增長。"
         }
     },
     "group": {
@@ -322,6 +334,18 @@
             "clear": "清空",
             "selectChannel": "供應源",
             "selectModel": "模型"
+        },
+        "circuitBreaker": {
+            "itemInfo": "模型（渠道）",
+            "resetChannel": "重置模型項",
+            "resetChannelSuccess": "模型熔斷狀態已重置",
+            "col": {
+                "state": "熔斷狀態",
+                "trip": "退避級別",
+                "openUntil": "恢復時間",
+                "action": "重置熔斷",
+                "switch": "熔斷"
+            }
         },
         "mode": {
             "roundRobin": "輪詢",

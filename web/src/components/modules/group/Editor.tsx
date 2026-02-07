@@ -443,5 +443,3 @@ export function GroupEditor({
         </form>
     );
 }
-
-

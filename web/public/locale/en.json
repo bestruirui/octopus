@@ -280,6 +280,18 @@
             },
             "clearSuccess": "Logs cleared",
             "clearFailed": "Failed to clear logs"
+        },
+        "circuitBreaker": {
+            "title": "Circuit Breaker",
+            "enabled": "Enable Circuit Breaker",
+            "failureThreshold": "Failure Threshold",
+            "failureThresholdTip": "Consecutive failures needed before entering OPEN.",
+            "baseCooldownS": "Base Cooldown (s)",
+            "baseCooldownSTip": "Initial OPEN cooldown duration in seconds.",
+            "maxCooldownS": "Max Cooldown (s)",
+            "maxCooldownSTip": "Upper bound of cooldown duration in seconds.",
+            "backoffFactor": "Backoff Factor",
+            "backoffFactorTip": "Cooldown multiplier per trip, e.g. 2 means exponential growth."
         }
     },
     "group": {
@@ -322,6 +334,18 @@
             "clear": "Clear",
             "selectChannel": "Channel",
             "selectModel": "Model"
+        },
+        "circuitBreaker": {
+            "itemInfo": "Model (Channel)",
+            "resetChannel": "Reset Item",
+            "resetChannelSuccess": "Model breaker reset",
+            "col": {
+                "state": "State",
+                "trip": "Backoff Level",
+                "openUntil": "Open Until",
+                "action": "Reset Breaker",
+                "switch": "Breaker"
+            }
         },
         "mode": {
             "roundRobin": "Round Robin",

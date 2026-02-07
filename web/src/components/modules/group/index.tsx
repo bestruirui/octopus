@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { GroupCard } from './Card';
 import { useGroupList } from '@/api/endpoints/group';
+import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { usePaginationStore, useSearchStore } from '@/components/modules/toolbar';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { useGridPageSize } from '@/hooks/use-grid-page-size';
@@ -13,11 +14,13 @@ const GROUP_CARD_HEIGHT = 280;
 
 export function Group() {
     const { data: groups } = useGroupList();
+    const { data: settings = [] } = useSettingList();
+    const cbFeatureEnabled = settings.find(s => s.key === SettingKey.CBEnabled)?.value === 'true';
     const pageKey = 'group' as const;
     const pageSize = useGridPageSize({
         itemHeight: GROUP_CARD_HEIGHT,
         gap: 16,
-        columns: { default: 1, md: 2, lg: 3 },
+        columns: cbFeatureEnabled ? { default: 1 } : { default: 1, md: 2, lg: 3 },
     });
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
     const page = usePaginationStore((s) => s.getPage(pageKey));
@@ -65,7 +68,7 @@ export function Group() {
                 exit="exit"
                 transition={{ duration: 0.25, ease: EASING.easeOutExpo }}
             >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className={cbFeatureEnabled ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}>
                     <AnimatePresence mode="popLayout">
                         {pagedGroups.map((group, index) => (
                             <motion.div

@@ -26,3 +26,11 @@ func Error(c *gin.Context, code int, err string) {
 		Message: err,
 	})
 }
+
+func ErrorWithData(c *gin.Context, code int, err string, data any) {
+	c.AbortWithStatusJSON(code, ResponseStruct{
+		Code:    code,
+		Message: err,
+		Data:    data,
+	})
+}
