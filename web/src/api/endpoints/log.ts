@@ -5,17 +5,23 @@ import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
+ * 尝试状态
+ */
+export type AttemptStatus = 'success' | 'failed' | 'circuit_break' | 'skipped';
+
+/**
  * 单次渠道尝试信息
  */
 export interface ChannelAttempt {
     channel_id: number;
+    channel_key_id?: number;
     channel_name: string;
     model_name: string;
-    round: number;          // 第几轮 (1-3)
     attempt_num: number;    // 第几次尝试
-    success: boolean;
-    error?: string;
+    status: AttemptStatus;
     duration: number;       // 耗时(毫秒)
+    sticky?: boolean;
+    msg?: string;
 }
 
 /**
@@ -38,7 +44,6 @@ export interface RelayLog {
     error: string;               // 错误信息
     attempts?: ChannelAttempt[]; // 所有尝试记录
     total_attempts?: number;     // 总尝试次数
-    successful_round?: number;   // 成功的轮次
 }
 
 /**

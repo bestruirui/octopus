@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
@@ -69,12 +69,12 @@ function RetryBadgeWithTooltip({ channelName, brandColor, attempts }: RetryBadge
                             <Badge
                                 className={cn(
                                     "h-5 shrink-0 px-1.5 text-[10px] font-bold uppercase shadow-none border-0",
-                                    attempt.success
+                                    attempt.status === 'success'
                                         ? "bg-primary/15 text-primary"
                                         : "bg-destructive/15 text-destructive"
                                 )}
                             >
-                                {attempt.success ? t('success') : t('failed')}
+                                {attempt.status === 'success' ? t('success') : t('failed')}
                             </Badge>
                             <div className="flex min-w-0 flex-col flex-1">
                                 <span className="truncate text-xs font-semibold text-foreground">
@@ -231,6 +231,9 @@ export function LogCard({ log }: { log: RelayLog }) {
                                 <span className="text-muted-foreground truncate" title={log.actual_model_name}>
                                     {log.actual_model_name}
                                 </span>
+                                {log.attempts?.some(a => a.sticky) && (
+                                    <Pin className="size-3.5 shrink-0 text-amber-500" />
+                                )}
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
                                 <div className="flex items-center gap-1.5">
@@ -292,6 +295,9 @@ export function LogCard({ log }: { log: RelayLog }) {
                                 </Badge>
                             )}
                             <span className="text-muted-foreground">{log.actual_model_name}</span>
+                            {log.attempts?.some(a => a.sticky) && (
+                                <Pin className="size-3.5 shrink-0 text-amber-500" />
+                            )}
                         </MorphingDialogTitle>
 
                         <MorphingDialogDescription className="flex-1 min-h-0">
@@ -376,7 +382,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                                         key={idx}
                                                                         className={cn(
                                                                             "text-xs p-2.5 rounded-xl border transition-colors flex flex-col gap-2",
-                                                                            attempt.success
+                                                                            attempt.status === 'success'
                                                                                 ? "bg-primary/5 border-primary/20 hover:bg-primary/10"
                                                                                 : "bg-destructive/5 border-destructive/20 hover:bg-destructive/10"
                                                                         )}
@@ -392,9 +398,9 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                                                 {formatDuration(attempt.duration)}
                                                                             </span>
                                                                         </div>
-                                                                        {attempt.error && (
+                                                                        {attempt.msg && (
                                                                             <div className="text-destructive/90 pl-2 border-l-2 border-destructive/30 text-[11px] leading-relaxed">
-                                                                                {attempt.error}
+                                                                                {attempt.msg}
                                                                             </div>
                                                                         )}
                                                                     </div>
