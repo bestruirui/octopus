@@ -25,6 +25,7 @@ export type GroupEditorValues = {
     match_regex: string;
     mode: GroupMode;
     first_token_time_out: number;
+    session_keep_time: number;
     members: SelectedMember[];
 };
 
@@ -232,6 +233,7 @@ export function GroupEditor({
     const [matchRegex, setMatchRegex] = useState(initial?.match_regex ?? '');
     const [mode, setMode] = useState<GroupMode>((initial?.mode ?? 1) as GroupMode);
     const [firstTokenTimeOut, setFirstTokenTimeOut] = useState<number>(initial?.first_token_time_out ?? 0);
+    const [sessionKeepTime, setSessionKeepTime] = useState<number>(initial?.session_keep_time ?? 0);
     const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>(initial?.members ?? []);
     const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
@@ -314,6 +316,7 @@ export function GroupEditor({
             match_regex: regexKey,
             mode,
             first_token_time_out: firstTokenTimeOut,
+            session_keep_time: sessionKeepTime,
             members: selectedMembers,
         });
     };
@@ -323,7 +326,7 @@ export function GroupEditor({
         <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 ">
             <div className="flex-1 min-h-0 overflow-hidden pr-1">
                 <FieldGroup className="gap-4 flex flex-col min-h-0 h-full">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <Field>
                             <FieldLabel htmlFor="group-name">{t('form.name')}</FieldLabel>
                             <Input
@@ -378,6 +381,40 @@ export function GroupEditor({
                                     }
                                     const n = Number.parseInt(raw, 10);
                                     setFirstTokenTimeOut(Number.isFinite(n) && n > 0 ? n : 0);
+                                }}
+                                className="rounded-xl"
+                            />
+                        </Field>
+
+                        <Field>
+                            <FieldLabel htmlFor="group-session-keep-time">
+                                {t('form.sessionKeepTime')}
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <HelpCircle className="size-4 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {t('form.sessionKeepTimeHint')}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </FieldLabel>
+                            <Input
+                                id="group-session-keep-time"
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                step={1}
+                                value={String(sessionKeepTime)}
+                                onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw.trim() === '') {
+                                        setSessionKeepTime(0);
+                                        return;
+                                    }
+                                    const n = Number.parseInt(raw, 10);
+                                    setSessionKeepTime(Number.isFinite(n) && n > 0 ? n : 0);
                                 }}
                                 className="rounded-xl"
                             />

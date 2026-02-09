@@ -316,6 +316,8 @@
             "matchRegexInvalid": "Invalid regex",
             "firstTokenTimeOut": "First Token Timeout",
             "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
+            "sessionKeepTime": "Session Keep Time",
+            "sessionKeepTimeHint": "Unit: seconds, keeps using the same channel within a session, 0 = disabled",
             "items": "Selected Models",
             "addItem": "Add Model",
             "autoAdd": "Auto Add",

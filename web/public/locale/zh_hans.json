@@ -316,6 +316,8 @@
             "matchRegexInvalid": "正则无效",
             "firstTokenTimeOut": "首字超时",
             "firstTokenTimeOutHint": "单位秒，仅流式响应起效，0 表示不限制",
+            "sessionKeepTime": "会话保持",
+            "sessionKeepTimeHint": "单位秒，会话期间保持使用同一渠道，0 表示禁用",
             "items": "已选模型",
             "addItem": "添加模型",
             "autoAdd": "自动添加",
