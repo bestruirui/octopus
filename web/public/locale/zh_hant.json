@@ -127,6 +127,22 @@
             "hint": "為空禁止跨網域，* 允許所有",
             "example": "只允許指定域名: https://example.com,https://example2.com"
         },
+        "circuitBreaker": {
+            "title": "熔斷器配置",
+            "threshold": {
+                "label": "熔斷觸發閾值（連續失敗次數）",
+                "placeholder": "請輸入閾值"
+            },
+            "cooldown": {
+                "label": "基礎冷卻時間（秒）",
+                "placeholder": "請輸入冷卻時間"
+            },
+            "maxCooldown": {
+                "label": "最大冷卻時間（秒）",
+                "placeholder": "請輸入最大冷卻時間"
+            },
+            "hint": "當渠道連續失敗達到閾值後觸發熔斷，冷卻時間按指數退避增長，上限為最大冷卻時間"
+        },
         "saved": "已儲存",
         "backup": {
             "title": "備份 / 復原",

@@ -127,6 +127,22 @@
             "hint": "Empty = deny all, * = allow all",
             "example": "Only allow specific domains: https://example.com,https://example2.com"
         },
+        "circuitBreaker": {
+            "title": "Circuit Breaker",
+            "threshold": {
+                "label": "Failure Threshold (consecutive failures)",
+                "placeholder": "Enter threshold"
+            },
+            "cooldown": {
+                "label": "Base Cooldown (seconds)",
+                "placeholder": "Enter cooldown in seconds"
+            },
+            "maxCooldown": {
+                "label": "Max Cooldown (seconds)",
+                "placeholder": "Enter max cooldown in seconds"
+            },
+            "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
+        },
         "saved": "Saved",
         "backup": {
             "title": "Backup / Restore",
