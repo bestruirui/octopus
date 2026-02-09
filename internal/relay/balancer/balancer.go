@@ -10,13 +10,14 @@ import (
 
 var roundRobinCounter uint64
 
-// Balancer selects channel based on load balancing mode
+// Balancer 根据负载均衡模式选择通道
 type Balancer interface {
-	Select(items []model.GroupItem) *model.GroupItem
-	Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem
+	// Candidates 返回按策略排序的候选列表
+	// 调用方在遍历候选列表时自行检查熔断状态
+	Candidates(items []model.GroupItem) []model.GroupItem
 }
 
-// GetBalancer returns balancer by mode
+// GetBalancer 根据模式返回对应的负载均衡器
 func GetBalancer(mode model.GroupMode) Balancer {
 	switch mode {
 	case model.GroupModeRoundRobin:
@@ -32,85 +33,95 @@ func GetBalancer(mode model.GroupMode) Balancer {
 	}
 }
 
-// RoundRobin balancer
+// RoundRobin 轮询：从上次位置开始轮转排列
 type RoundRobin struct{}
 
-func (b *RoundRobin) Select(items []model.GroupItem) *model.GroupItem {
-	if len(items) == 0 {
+func (b *RoundRobin) Candidates(items []model.GroupItem) []model.GroupItem {
+	n := len(items)
+	if n == 0 {
 		return nil
 	}
-	idx := atomic.AddUint64(&roundRobinCounter, 1) % uint64(len(items))
-	return &items[idx]
+	idx := int(atomic.AddUint64(&roundRobinCounter, 1) % uint64(n))
+	result := make([]model.GroupItem, n)
+	for i := 0; i < n; i++ {
+		result[i] = items[(idx+i)%n]
+	}
+	return result
 }
 
-func (b *RoundRobin) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	return b.Select(items)
-}
-
-// Random balancer
+// Random 随机：随机打乱所有 items
 type Random struct{}
 
-func (b *Random) Select(items []model.GroupItem) *model.GroupItem {
-	if len(items) == 0 {
+func (b *Random) Candidates(items []model.GroupItem) []model.GroupItem {
+	n := len(items)
+	if n == 0 {
 		return nil
 	}
-	return &items[rand.Intn(len(items))]
+	result := make([]model.GroupItem, n)
+	copy(result, items)
+	rand.Shuffle(n, func(i, j int) {
+		result[i], result[j] = result[j], result[i]
+	})
+	return result
 }
 
-func (b *Random) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	return b.Select(items)
-}
-
-// Failover balancer - tries by priority, falls back on failure
+// Failover 故障转移：按优先级排序
 type Failover struct{}
 
-func (b *Failover) Select(items []model.GroupItem) *model.GroupItem {
+func (b *Failover) Candidates(items []model.GroupItem) []model.GroupItem {
 	if len(items) == 0 {
 		return nil
 	}
-	sorted := sortByPriority(items)
-	return &sorted[0]
+	return sortByPriority(items)
 }
 
-func (b *Failover) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	if len(items) == 0 || current == nil {
-		return nil
-	}
-	sorted := sortByPriority(items)
-	for i, item := range sorted {
-		if item.ID == current.ID && i+1 < len(sorted) {
-			return &sorted[i+1]
-		}
-	}
-	return nil
-}
-
-// Weighted balancer
+// Weighted 加权分配：按权重概率排序
 type Weighted struct{}
 
-func (b *Weighted) Select(items []model.GroupItem) *model.GroupItem {
-	if len(items) == 0 {
+func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
+	n := len(items)
+	if n == 0 {
 		return nil
 	}
+
+	// 构建加权随机排序
+	type weightedItem struct {
+		item   model.GroupItem
+		score  float64
+	}
+
 	totalWeight := 0
 	for _, item := range items {
-		totalWeight += item.Weight
+		w := item.Weight
+		if w <= 0 {
+			w = 1
+		}
+		totalWeight += w
 	}
-	if totalWeight == 0 {
-		return &items[0]
-	}
-	r := rand.Intn(totalWeight)
-	for i := range items {
-		r -= items[i].Weight
-		if r < 0 {
-			return &items[i]
+
+	scored := make([]weightedItem, n)
+	for i, item := range items {
+		w := item.Weight
+		if w <= 0 {
+			w = 1
+		}
+		// 给每个 item 一个加权随机分数：weight/totalWeight 作为概率基础，加上随机扰动
+		scored[i] = weightedItem{
+			item:  item,
+			score: rand.Float64() * float64(w) / float64(totalWeight),
 		}
 	}
-	return &items[0]
-}
 
-func (b *Weighted) Next(items []model.GroupItem, current *model.GroupItem) *model.GroupItem {
-	return b.Select(items)
+	// 按分数降序排列（分数越高优先级越高）
+	sort.Slice(scored, func(i, j int) bool {
+		return scored[i].score > scored[j].score
+	})
+
+	result := make([]model.GroupItem, n)
+	for i := range scored {
+		result[i] = scored[i].item
+	}
+	return result
 }
 
 func sortByPriority(items []model.GroupItem) []model.GroupItem {

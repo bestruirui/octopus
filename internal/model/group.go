@@ -15,6 +15,7 @@ type Group struct {
 	Mode              GroupMode   `json:"mode" gorm:"not null"`
 	MatchRegex        string      `json:"match_regex"`
 	FirstTokenTimeOut int         `json:"first_token_time_out"` // 单个渠道首个Token响应超时时间(秒)
+	SessionKeepTime   int         `json:"session_keep_time"`    // 会话保持时间(秒) 0 为禁用
 	Items             []GroupItem `json:"items,omitempty" gorm:"foreignKey:GroupID"`
 }
 
