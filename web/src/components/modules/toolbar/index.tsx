@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { ChevronLeft, ChevronRight, Plus, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
     MorphingDialog,
@@ -16,8 +17,15 @@ import { CreateDialogContent as GroupCreateContent } from '@/components/modules/
 import { CreateDialogContent as ModelCreateContent } from '@/components/modules/model/Create';
 import { useSearchStore } from './search-store';
 import { usePaginationStore } from './pagination-store';
+import { useSortStore, type SortField } from './sort-store';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 
 const TOOLBAR_PAGES: NavItem[] = ['channel', 'group', 'model'];
+const SORTABLE_PAGES: NavItem[] = ['channel', 'group'];
 
 function CreateDialogContent({ activeItem }: { activeItem: NavItem }) {
     switch (activeItem) {
@@ -33,6 +41,7 @@ function CreateDialogContent({ activeItem }: { activeItem: NavItem }) {
 }
 
 export function Toolbar() {
+    const t = useTranslations('toolbar');
     const { activeItem } = useNavStore();
     const searchTerm = useSearchStore((s) => s.searchTerms[activeItem] || '');
     const setSearchTerm = useSearchStore((s) => s.setSearchTerm);
@@ -42,6 +51,21 @@ export function Toolbar() {
     const nextPage = usePaginationStore((s) => s.nextPage);
     const setPage = usePaginationStore((s) => s.setPage);
     const [searchExpanded, setSearchExpanded] = useState(false);
+
+    const sortField = useSortStore((s) => s.getSortField(activeItem));
+    const sortOrder = useSortStore((s) => s.getSortOrder(activeItem));
+    const setSortField = useSortStore((s) => s.setSortField);
+    const toggleSortOrder = useSortStore((s) => s.toggleSortOrder);
+
+    const showSortButton = SORTABLE_PAGES.includes(activeItem);
+
+    const handleSortFieldChange = (field: SortField) => {
+        if (sortField === field) {
+            toggleSortOrder(activeItem);
+        } else {
+            setSortField(activeItem, field);
+        }
+    };
 
     useEffect(() => {
         queueMicrotask(() => {
@@ -131,6 +155,35 @@ export function Toolbar() {
                             <ChevronRight className="size-4" />
                         </button>
                     </div>
+
+                    {/* 排序按钮 */}
+                    {showSortButton && (
+                        <Popover>
+                            <PopoverTrigger className={buttonVariants({ variant: "ghost", size: "icon", className: "rounded-xl transition-none hover:bg-transparent text-muted-foreground hover:text-foreground" })}>
+                                <ArrowUpDown className="size-4 transition-colors duration-300" />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-36 p-1" align="end">
+                                <button
+                                    onClick={() => handleSortFieldChange('id')}
+                                    className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-accent transition-colors"
+                                >
+                                    <span>{t('sort.id')}</span>
+                                    {sortField === 'id' && (
+                                        sortOrder === 'asc' ? <ArrowUp className="size-3.5" /> : <ArrowDown className="size-3.5" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => handleSortFieldChange('name')}
+                                    className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-accent transition-colors"
+                                >
+                                    <span>{t('sort.name')}</span>
+                                    {sortField === 'name' && (
+                                        sortOrder === 'asc' ? <ArrowUp className="size-3.5" /> : <ArrowDown className="size-3.5" />
+                                    )}
+                                </button>
+                            </PopoverContent>
+                        </Popover>
+                    )}
 
                     {/* 创建按钮 */}
                     <MorphingDialog>
