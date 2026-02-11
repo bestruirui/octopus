@@ -59,6 +59,12 @@
             "noContent": "無可複製內容"
         }
     },
+    "toolbar": {
+        "sort": {
+            "id": "ID",
+            "name": "名稱"
+        }
+    },
     "home": {
         "activity": {
             "requestCount": "請求次數",
@@ -449,7 +455,8 @@
                 "saving": "儲存中...",
                 "delete": "刪除",
                 "confirmDelete": "確認刪除",
-                "deleting": "刪除中..."
+                "deleting": "刪除中...",
+                "copy": "複製"
             }
         },
         "create": {

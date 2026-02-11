@@ -9,9 +9,11 @@ import {
     Activity,
     TrendingUp,
     Globe,
-    Key
+    Key,
+    Copy
 } from 'lucide-react';
-import { useUpdateChannel, useDeleteChannel, type Channel, type UpdateChannelRequest } from '@/api/endpoints/channel';
+import { useUpdateChannel, useDeleteChannel, useCreateChannel, type Channel, type UpdateChannelRequest, type CreateChannelRequest } from '@/api/endpoints/channel';
+import { toast } from '@/components/common/Toast';
 import {
     MorphingDialogTitle,
     MorphingDialogDescription,
@@ -31,6 +33,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
     const { setIsOpen } = useMorphingDialog();
     const updateChannel = useUpdateChannel();
     const deleteChannel = useDeleteChannel();
+    const createChannel = useCreateChannel();
     const [isEditing, setIsEditing] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     const [formData, setFormData] = useState<ChannelFormData>({
@@ -160,6 +163,34 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         setTimeout(() => {
             deleteChannel.mutate(channel.id);
         }, 300);
+    };
+
+    const handleCopyClick = () => {
+        const copyData: CreateChannelRequest = {
+            name: `${channel.name}-copy`,
+            type: channel.type,
+            enabled: channel.enabled,
+            base_urls: channel.base_urls?.map(u => ({ url: u.url, delay: u.delay })) ?? [],
+            keys: [], // 不复制 API Keys
+            model: channel.model,
+            custom_model: channel.custom_model,
+            proxy: channel.proxy,
+            auto_sync: channel.auto_sync,
+            auto_group: channel.auto_group,
+            custom_header: channel.custom_header?.map(h => ({ header_key: h.header_key, header_value: h.header_value })) ?? [],
+            channel_proxy: channel.channel_proxy,
+            param_override: channel.param_override,
+            match_regex: channel.match_regex,
+        };
+        createChannel.mutate(copyData, {
+            onSuccess: () => {
+                toast.success(t('actions.copySuccess'));
+                setIsOpen(false);
+            },
+            onError: (error) => {
+                toast.error(error.message);
+            },
+        });
     };
 
     return (
@@ -422,13 +453,22 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                             </div>
 
                             {/* 操作按钮 */}
-                            <div className="grid gap-3 sm:grid-cols-2 pt-2">
+                            <div className="grid gap-3 grid-cols-3 pt-2">
                                 <Button
                                     onClick={() => (isConfirmingDelete ? setIsConfirmingDelete(false) : setIsEditing(true))}
                                     variant={isConfirmingDelete ? 'secondary' : 'default'}
                                     className="w-full rounded-2xl h-12"
                                 >
                                     {isConfirmingDelete ? t('actions.cancel') : t('actions.edit')}
+                                </Button>
+                                <Button
+                                    onClick={handleCopyClick}
+                                    disabled={createChannel.isPending}
+                                    variant="secondary"
+                                    className="w-full rounded-2xl h-12"
+                                >
+                                    <Copy className="size-4" />
+                                    {createChannel.isPending ? t('actions.copying') : t('actions.copy')}
                                 </Button>
                                 <Button
                                     onClick={handleDeleteClick}
