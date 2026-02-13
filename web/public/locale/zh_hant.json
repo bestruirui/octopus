@@ -292,10 +292,27 @@
             "clear": {
                 "label": "清空歷史日誌",
                 "button": "清空",
-                "clearing": "清空中..."
+                "clearing": "清空中...",
+                "confirmTitle": "清空歷史日誌",
+                "confirmDescription": "這將永久刪除所有歷史日誌，此操作無法撤銷。",
+                "confirmButton": "確認",
+                "cancelButton": "取消"
             },
             "clearSuccess": "日誌已清空",
             "clearFailed": "清空失敗"
+        },
+        "stats": {
+            "clear": {
+                "label": "清空統計數據",
+                "button": "清空",
+                "clearing": "清空中...",
+                "confirmTitle": "清空統計數據",
+                "confirmDescription": "這將永久刪除所有統計數據，包括儀表盤、排行榜等，此操作無法撤銷。",
+                "confirmButton": "確認",
+                "cancelButton": "取消"
+            },
+            "clearSuccess": "統計數據已清空",
+            "clearFailed": "清空統計數據失敗"
         }
     },
     "group": {

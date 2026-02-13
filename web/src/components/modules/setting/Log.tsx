@@ -6,8 +6,20 @@ import { ScrollText, Calendar, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogTrigger,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { useSettingList, useSetSetting, SettingKey } from '@/api/endpoints/setting';
 import { useClearLogs } from '@/api/endpoints/log';
+import { useClearStats } from '@/api/endpoints/stats';
 import { toast } from '@/components/common/Toast';
 
 export function SettingLog() {
@@ -15,10 +27,12 @@ export function SettingLog() {
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const clearLogs = useClearLogs();
+    const clearStats = useClearStats();
 
     const [enabled, setEnabled] = useState(true);
     const [keepPeriod, setKeepPeriod] = useState('7');
     const [isClearing, setIsClearing] = useState(false);
+    const [isClearingStats, setIsClearingStats] = useState(false);
 
     const initialEnabled = useRef(true);
     const initialKeepPeriod = useRef('7');
@@ -80,6 +94,20 @@ export function SettingLog() {
         });
     };
 
+    const handleClearStats = () => {
+        setIsClearingStats(true);
+        clearStats.mutate(undefined, {
+            onSuccess: () => {
+                toast.success(t('stats.clearSuccess'));
+                setIsClearingStats(false);
+            },
+            onError: () => {
+                toast.error(t('stats.clearFailed'));
+                setIsClearingStats(false);
+            }
+        });
+    };
+
     return (
         <div className="rounded-3xl border border-border bg-card p-6 custom-shadow space-y-5">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
@@ -122,17 +150,59 @@ export function SettingLog() {
                     <Trash2 className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('log.clear.label')}</span>
                 </div>
-                <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleClearLogs}
-                    disabled={isClearing}
-                    className="rounded-xl"
-                >
-                    {isClearing ? t('log.clear.clearing') : t('log.clear.button')}
-                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={isClearing}
+                            className="rounded-xl"
+                        >
+                            {isClearing ? t('log.clear.clearing') : t('log.clear.button')}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-3xl">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>{t('log.clear.confirmTitle')}</AlertDialogTitle>
+                            <AlertDialogDescription>{t('log.clear.confirmDescription')}</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="rounded-xl">{t('log.clear.cancelButton')}</AlertDialogCancel>
+                            <AlertDialogAction className="rounded-xl" onClick={handleClearLogs}>{t('log.clear.confirmButton')}</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
+
+            {/* 清空统计数据 */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <Trash2 className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">{t('stats.clear.label')}</span>
+                </div>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={isClearingStats}
+                            className="rounded-xl"
+                        >
+                            {isClearingStats ? t('stats.clear.clearing') : t('stats.clear.button')}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-3xl">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>{t('stats.clear.confirmTitle')}</AlertDialogTitle>
+                            <AlertDialogDescription>{t('stats.clear.confirmDescription')}</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="rounded-xl">{t('stats.clear.cancelButton')}</AlertDialogCancel>
+                            <AlertDialogAction className="rounded-xl" onClick={handleClearStats}>{t('stats.clear.confirmButton')}</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     );
 }
-
