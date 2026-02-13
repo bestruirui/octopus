@@ -292,10 +292,27 @@
             "clear": {
                 "label": "Clear History Logs",
                 "button": "Clear",
-                "clearing": "Clearing..."
+                "clearing": "Clearing...",
+                "confirmTitle": "Clear History Logs",
+                "confirmDescription": "This will permanently delete all history logs. This action cannot be undone.",
+                "confirmButton": "Confirm",
+                "cancelButton": "Cancel"
             },
             "clearSuccess": "Logs cleared",
             "clearFailed": "Failed to clear logs"
+        },
+        "stats": {
+            "clear": {
+                "label": "Clear Statistics",
+                "button": "Clear",
+                "clearing": "Clearing...",
+                "confirmTitle": "Clear Statistics",
+                "confirmDescription": "This will permanently delete all statistics data including dashboard, leaderboard, etc. This action cannot be undone.",
+                "confirmButton": "Confirm",
+                "cancelButton": "Cancel"
+            },
+            "clearSuccess": "Statistics cleared",
+            "clearFailed": "Failed to clear statistics"
         }
     },
     "group": {

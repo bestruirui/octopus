@@ -8,7 +8,7 @@ import JsonView from '@uiw/react-json-view';
 import { githubDarkTheme } from '@uiw/react-json-view/githubDark';
 import { githubLightTheme } from '@uiw/react-json-view/githubLight';
 import { useTheme } from 'next-themes';
-import { type RelayLog, type ChannelAttempt } from '@/api/endpoints/log';
+import { type RelayLog, type ChannelAttempt, useLogDetail } from '@/api/endpoints/log';
 import { getModelIcon } from '@/lib/model-icons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -99,10 +99,13 @@ function RetryBadgeWithTooltip({ channelName, brandColor, attempts }: RetryBadge
     );
 }
 
-function DeferredJsonContent({ content, fallbackText }: { content: string | undefined; fallbackText: string }) {
+function DeferredJsonContent({ logId, field, fallbackText }: { logId: number; field: 'request_content' | 'response_content'; fallbackText: string }) {
     const { resolvedTheme } = useTheme();
     const { isOpen } = useMorphingDialog();
     const [shouldRender, setShouldRender] = useState(false);
+    const { data: detail, isLoading: isDetailLoading } = useLogDetail(isOpen ? logId : null);
+
+    const content = detail?.[field];
 
     const parsed = useMemo(() => {
         if (!content) return { isJson: false, data: null };
@@ -114,18 +117,25 @@ function DeferredJsonContent({ content, fallbackText }: { content: string | unde
     }, [content]);
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && content) {
             const timer = setTimeout(() => setShouldRender(true), 300);
             return () => clearTimeout(timer);
         }
-    }, [isOpen]);
+    }, [isOpen, content]);
 
     if (!isOpen) {
         if (shouldRender) setShouldRender(false);
         return null;
     }
 
-    if (!content) {
+    if (isDetailLoading || !content) {
+        if (isDetailLoading) {
+            return (
+                <div className="p-4 flex items-center justify-center h-full">
+                    <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                </div>
+            );
+        }
         return (
             <pre className="p-4 text-xs text-muted-foreground whitespace-pre-wrap wrap-break-word leading-relaxed">
                 {fallbackText}
@@ -424,7 +434,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                 </Badge>
                                             </div>
                                             <div className="flex-1 overflow-auto min-h-0">
-                                                <DeferredJsonContent content={log.request_content} fallbackText={t('noRequestContent')} />
+                                                <DeferredJsonContent logId={log.id} field="request_content" fallbackText={t('noRequestContent')} />
                                             </div>
                                         </div>
                                         <div className="flex flex-col rounded-2xl border border-border bg-muted/30 overflow-hidden min-h-0">
@@ -436,7 +446,7 @@ export function LogCard({ log }: { log: RelayLog }) {
                                                 </Badge>
                                             </div>
                                             <div className="flex-1 overflow-auto min-h-0">
-                                                <DeferredJsonContent content={log.response_content} fallbackText={t('noResponseContent')} />
+                                                <DeferredJsonContent logId={log.id} field="response_content" fallbackText={t('noResponseContent')} />
                                             </div>
                                         </div>
                                     </div>

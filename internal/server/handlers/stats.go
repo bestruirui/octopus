@@ -32,6 +32,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/apikey", http.MethodGet).
 				Handle(getStatsAPIKey),
+		).
+		AddRoute(
+			router.NewRoute("/clear", http.MethodDelete).
+				Handle(clearStats),
 		)
 }
 
@@ -58,4 +62,12 @@ func getStatsTotal(c *gin.Context) {
 
 func getStatsAPIKey(c *gin.Context) {
 	resp.Success(c, op.StatsAPIKeyList())
+}
+
+func clearStats(c *gin.Context) {
+	if err := op.StatsClear(c.Request.Context()); err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp.Success(c, nil)
 }
