@@ -21,6 +21,10 @@ func init() {
 				Handle(listLog),
 		).
 		AddRoute(
+			router.NewRoute("/detail/:id", http.MethodGet).
+				Handle(detailLog),
+		).
+		AddRoute(
 			router.NewRoute("/clear", http.MethodDelete).
 				Handle(clearLog),
 		).
@@ -72,6 +76,23 @@ func listLog(c *gin.Context) {
 	}
 
 	resp.Success(c, logs)
+}
+
+func detailLog(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, "invalid log id")
+		return
+	}
+
+	logEntry, err := op.RelayLogDetail(c.Request.Context(), id)
+	if err != nil {
+		resp.Error(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	resp.Success(c, logEntry)
 }
 
 func clearLog(c *gin.Context) {

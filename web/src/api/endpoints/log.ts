@@ -1,5 +1,5 @@
 import type { InfiniteData } from '@tanstack/react-query';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, API_BASE_URL } from '../client';
 import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -82,6 +82,22 @@ export function useClearLogs() {
 }
 
 const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize] as const;
+
+/**
+ * 日志详情查询 Hook
+ * 按需加载单条日志的完整内容（包含 request_content 和 response_content）
+ */
+export function useLogDetail(logId: number | null) {
+    return useQuery({
+        queryKey: ['log', 'detail', logId],
+        queryFn: async () => {
+            const result = await apiClient.get<RelayLog>(`/api/v1/log/detail/${logId}`);
+            return result;
+        },
+        enabled: logId !== null,
+        staleTime: 5 * 60 * 1000,
+    });
+}
 
 /**
  * 日志管理 Hook

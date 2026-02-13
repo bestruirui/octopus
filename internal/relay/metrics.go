@@ -99,6 +99,16 @@ func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attemp
 
 	channelID, channelName := finalChannel(attempts)
 
+	// 补充 Channel 维度的 token/cost 统计（WaitTime 和请求计数已在 attempt() 中传入）
+	if channelID != 0 {
+		op.StatsChannelUpdate(channelID, model.StatsMetrics{
+			InputToken:  m.Stats.InputToken,
+			OutputToken: m.Stats.OutputToken,
+			InputCost:   m.Stats.InputCost,
+			OutputCost:  m.Stats.OutputCost,
+		})
+	}
+
 	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d",
 		m.RequestModel, channelID, channelName, success, duration.Milliseconds(),
 		m.Stats.InputToken, m.Stats.OutputToken,
