@@ -10,6 +10,7 @@ import { SettingInfo } from './Info';
 import { SettingLLMSync } from './LLMSync';
 import { SettingLog } from './Log';
 import { SettingBackup } from './Backup';
+import { SettingCircuitBreaker } from './CircuitBreaker';
 
 export function Setting() {
     return (
@@ -37,6 +38,9 @@ export function Setting() {
             </div>
             <div>
                 <SettingLLMSync key="setting-llmsync" />
+            </div>
+            <div>
+                <SettingCircuitBreaker key="setting-circuit-breaker" />
             </div>
             <div>
                 <SettingBackup key="setting-backup" />

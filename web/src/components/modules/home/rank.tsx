@@ -46,6 +46,7 @@ export function Rank() {
                 {channels.map((channel, index) => {
                     const rank = index + 1;
                     const medal = getMedalEmoji(rank);
+
                     return (
                         <div
                             key={channel.raw.id}
@@ -57,19 +58,46 @@ export function Rank() {
 
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm truncate">{channel.raw.name}</p>
+                                {mode === 'count' && (() => {
+                                    const successCount = channel.formatted.request_success.raw;
+                                    const failedCount = channel.formatted.request_failed.raw;
+                                    const totalCount = successCount + failedCount;
+                                    const successRate = totalCount > 0 ? (successCount / totalCount) * 100 : 0;
+
+                                    return (
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                            <span>{t('successRate')}:</span>
+                                            <span>{successRate.toFixed(1)}%</span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
-                            <div className="flex items-baseline gap-1 text-right shrink-0">
-                                <span className="font-semibold text-base">
-                                    {mode === 'cost'
-                                        ? channel.formatted.total_cost.formatted.value
-                                        : channel.formatted.request_count.formatted.value}
-                                    <span className="text-xs text-muted-foreground">
-                                        {mode === 'cost'
-                                            ? channel.formatted.total_cost.formatted.unit
-                                            : channel.formatted.request_count.formatted.unit}
+                            <div className="flex items-center gap-1 text-right shrink-0">
+                                {mode === 'count' ? (
+                                    <div className="flex items-center gap-1 text-sm font-medium tabular-nums">
+                                        <span className="text-accent">
+                                            {channel.formatted.request_success.formatted.value}
+                                            <span className="text-xs text-muted-foreground">
+                                                {channel.formatted.request_success.formatted.unit}
+                                            </span>
+                                        </span>
+                                        <span className="text-muted-foreground/40 font-light">/</span>
+                                        <span className="text-destructive">
+                                            {channel.formatted.request_failed.formatted.value}
+                                            <span className="text-xs text-muted-foreground">
+                                                {channel.formatted.request_failed.formatted.unit}
+                                            </span>
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <span className="font-semibold text-base">
+                                        {channel.formatted.total_cost.formatted.value}
+                                        <span className="text-xs text-muted-foreground">
+                                            {channel.formatted.total_cost.formatted.unit}
+                                        </span>
                                     </span>
-                                </span>
+                                )}
                             </div>
                         </div>
                     );

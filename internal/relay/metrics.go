@@ -14,59 +14,41 @@ import (
 	"github.com/bestruirui/octopus/internal/utils/log"
 )
 
-// RelayMetrics 统一管理请求的日志记录和统计信息
+// RelayMetrics 负责最终的日志收集与持久化
 type RelayMetrics struct {
-	// 基础信息
-	ChannelID      int
-	APIKeyID       int
-	ChannelName    string // 渠道名称
-	RequestModel   string // 请求的模型名称
-	ActualModel    string // 实际使用的模型名称
-	StartTime      time.Time
-	FirstTokenTime time.Time // 首个 Token 时间（流式场景）
+	APIKeyID     int
+	RequestModel string
+	StartTime    time.Time
+
+	// 首 Token 时间
+	FirstTokenTime time.Time
 
 	// 请求和响应内容
 	InternalRequest  *transformerModel.InternalLLMRequest
 	InternalResponse *transformerModel.InternalLLMResponse
 
 	// 统计指标
-	Stats model.StatsMetrics
+	ActualModel string
+	Stats       model.StatsMetrics
 }
 
-// NewRelayMetrics 创建新的 RelayMetrics
-func NewRelayMetrics(requestModel string) *RelayMetrics {
+func NewRelayMetrics(apiKeyID int, requestModel string, req *transformerModel.InternalLLMRequest) *RelayMetrics {
 	return &RelayMetrics{
-		RequestModel: requestModel,
-		StartTime:    time.Now(),
+		APIKeyID:        apiKeyID,
+		RequestModel:    requestModel,
+		StartTime:       time.Now(),
+		InternalRequest: req,
 	}
 }
 
-func (m *RelayMetrics) SetAPIKeyID(apiKeyID int) {
-	m.APIKeyID = apiKeyID
-}
-
-// SetChannel 设置通道信息
-func (m *RelayMetrics) SetChannel(channelID int, channelName string, actualModel string) {
-	m.ChannelID = channelID
-	m.ChannelName = channelName
-	m.ActualModel = actualModel
-}
-
-// SetFirstTokenTime 设置首个 Token 时间
 func (m *RelayMetrics) SetFirstTokenTime(t time.Time) {
 	m.FirstTokenTime = t
 }
 
-// SetInternalRequest 设置内部请求
-func (m *RelayMetrics) SetInternalRequest(req *transformerModel.InternalLLMRequest) {
-	m.InternalRequest = req
-}
-
-// SetInternalResponse 设置内部响应并计算费用
-func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMResponse) {
+func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMResponse, actualModel string) {
 	m.InternalResponse = resp
+	m.ActualModel = actualModel
 
-	// 从响应中提取 Usage 并计算费用
 	if resp == nil || resp.Usage == nil {
 		return
 	}
@@ -75,8 +57,7 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.InputToken = usage.PromptTokens
 	m.Stats.OutputToken = usage.CompletionTokens
 
-	// 计算费用
-	modelPrice := price.GetLLMPrice(m.ActualModel)
+	modelPrice := price.GetLLMPrice(actualModel)
 	if modelPrice == nil {
 		return
 	}
@@ -95,76 +76,94 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
 }
 
-// Save 保存日志和统计信息
-// success: 请求是否成功
-// err: 失败时的错误信息，成功时为 nil
-func (m *RelayMetrics) Save(ctx context.Context, success bool, err error) {
+func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attempts []model.ChannelAttempt) {
 	duration := time.Since(m.StartTime)
 
-	// 保存统计信息
-	m.saveStats(success, duration)
-
-	// 保存日志
-	m.saveLog(ctx, err, duration)
-}
-
-// saveStats 保存统计信息
-func (m *RelayMetrics) saveStats(success bool, duration time.Duration) {
-	if success {
-		m.Stats.RequestSuccess = 1
-	} else {
-		m.Stats.RequestFailed = 1
+	globalStats := model.StatsMetrics{
+		WaitTime:    duration.Milliseconds(),
+		InputToken:  m.Stats.InputToken,
+		OutputToken: m.Stats.OutputToken,
+		InputCost:   m.Stats.InputCost,
+		OutputCost:  m.Stats.OutputCost,
 	}
-	m.Stats.WaitTime = duration.Milliseconds()
+	if success {
+		globalStats.RequestSuccess = 1
+	} else {
+		globalStats.RequestFailed = 1
+	}
 
-	op.StatsChannelUpdate(m.ChannelID, m.Stats)
-	op.StatsTotalUpdate(m.Stats)
-	op.StatsHourlyUpdate(m.Stats)
-	op.StatsDailyUpdate(context.Background(), m.Stats)
-	op.StatsAPIKeyUpdate(m.APIKeyID, m.Stats)
+	op.StatsTotalUpdate(globalStats)
+	op.StatsHourlyUpdate(globalStats)
+	op.StatsDailyUpdate(context.Background(), globalStats)
+	op.StatsAPIKeyUpdate(m.APIKeyID, globalStats)
 
-	log.Infof("channel: %d, model: %s, success: %t, wait time: %d, input token: %d, output token: %d, input cost: %f, output cost: %f total cost: %f",
-		m.ChannelID, m.ActualModel, success, m.Stats.WaitTime,
+	channelID, channelName := finalChannel(attempts)
+
+	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d",
+		m.RequestModel, channelID, channelName, success, duration.Milliseconds(),
 		m.Stats.InputToken, m.Stats.OutputToken,
-		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost)
+		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost,
+		len(attempts))
+
+	m.saveLog(ctx, err, duration, attempts, channelID, channelName)
 }
 
-// saveLog 保存日志
-func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration) {
+func finalChannel(attempts []model.ChannelAttempt) (int, string) {
+	var lastID int
+	var lastName string
+	for i := len(attempts) - 1; i >= 0; i-- {
+		a := attempts[i]
+		if a.Status == model.AttemptSuccess {
+			return a.ChannelID, a.ChannelName
+		}
+		if a.Status == model.AttemptFailed && lastID == 0 {
+			lastID = a.ChannelID
+			lastName = a.ChannelName
+		}
+	}
+	return lastID, lastName
+}
+
+func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration, attempts []model.ChannelAttempt, channelID int, channelName string) {
+	actualModel := m.ActualModel
+	if actualModel == "" {
+		actualModel = m.RequestModel
+	}
+
 	relayLog := model.RelayLog{
 		Time:             m.StartTime.Unix(),
 		RequestModelName: m.RequestModel,
-		ChannelName:      m.ChannelName,
-		ChannelId:        m.ChannelID,
-		ActualModelName:  m.ActualModel,
+		ChannelName:      channelName,
+		ChannelId:        channelID,
+		ActualModelName:  actualModel,
 		UseTime:          int(duration.Milliseconds()),
+		Attempts:         attempts,
+		TotalAttempts:    len(attempts),
 	}
 
-	// 设置首字时间（流式场景）
+	// 首字时间
 	if !m.FirstTokenTime.IsZero() {
 		relayLog.Ftut = int(m.FirstTokenTime.Sub(m.StartTime).Milliseconds())
 	}
 
-	// 设置 Usage 信息
+	// Usage
 	if m.InternalResponse != nil && m.InternalResponse.Usage != nil {
 		relayLog.InputTokens = int(m.InternalResponse.Usage.PromptTokens)
 		relayLog.OutputTokens = int(m.InternalResponse.Usage.CompletionTokens)
 		relayLog.Cost = m.Stats.InputCost + m.Stats.OutputCost
 	}
 
-	// 设置请求内容
+	// 请求内容
 	if m.InternalRequest != nil {
 		if reqJSON, jsonErr := json.Marshal(m.InternalRequest); jsonErr == nil {
 			relayLog.RequestContent = string(reqJSON)
 		}
 	}
 
-	// 设置响应内容
+	// 响应内容
 	if m.InternalResponse != nil {
-		// 创建响应的浅拷贝，过滤掉 images 字段以减少存储压力
 		respForLog := m.filterResponseForLog(m.InternalResponse)
 		if respJSON, jsonErr := json.Marshal(respForLog); jsonErr == nil {
-			// 如果是 Anthropic 响应，补充 cache_creation_input_tokens 字段
 			if m.InternalResponse.Usage != nil && m.InternalResponse.Usage.AnthropicUsage {
 				respStr := string(respJSON)
 				old := `"usage":{`
@@ -175,7 +174,7 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 		}
 	}
 
-	// 设置错误信息
+	// 错误信息
 	if err != nil {
 		relayLog.Error = err.Error()
 	}
@@ -185,74 +184,46 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	}
 }
 
-// filterResponseForLog 创建响应的浅拷贝，过滤掉 images 和 MultipleContent 中的图片数据以减少存储压力
+// filterResponseForLog 创建响应的浅拷贝，过滤掉 images、MultipleContent 中的图片数据和 Audio.Data 以减少存储压力
 func (m *RelayMetrics) filterResponseForLog(resp *transformerModel.InternalLLMResponse) *transformerModel.InternalLLMResponse {
 	if resp == nil {
 		return nil
 	}
 
-	// 创建浅拷贝
+	filterMsg := func(msg *transformerModel.Message) *transformerModel.Message {
+		if msg == nil {
+			return nil
+		}
+		c := *msg
+		c.Images = nil
+		if len(c.Content.MultipleContent) > 0 {
+			parts := make([]transformerModel.MessageContentPart, 0, len(c.Content.MultipleContent))
+			for _, p := range c.Content.MultipleContent {
+				if p.Type == "image_url" && p.ImageURL != nil {
+					parts = append(parts, transformerModel.MessageContentPart{
+						Type:     "image_url",
+						ImageURL: &transformerModel.ImageURL{URL: "[image data omitted for storage]"},
+					})
+				} else {
+					parts = append(parts, p)
+				}
+			}
+			c.Content = transformerModel.MessageContent{Content: c.Content.Content, MultipleContent: parts}
+		}
+		if c.Audio != nil && c.Audio.Data != "" {
+			a := *c.Audio
+			a.Data = "[audio data omitted for storage]"
+			c.Audio = &a
+		}
+		return &c
+	}
+
 	filtered := *resp
 	filtered.Choices = make([]transformerModel.Choice, len(resp.Choices))
-
 	for i, choice := range resp.Choices {
 		filtered.Choices[i] = choice
-
-		// 处理 Message
-		if choice.Message != nil {
-			msgCopy := *choice.Message
-			// 清除 Images 字段
-			if len(msgCopy.Images) > 0 {
-				msgCopy.Images = nil
-			}
-			// 过滤 MultipleContent 中的图片数据
-			if len(msgCopy.Content.MultipleContent) > 0 {
-				msgCopy.Content = m.filterMessageContent(msgCopy.Content)
-			}
-			filtered.Choices[i].Message = &msgCopy
-		}
-
-		// 处理 Delta
-		if choice.Delta != nil {
-			deltaCopy := *choice.Delta
-			// 清除 Images 字段
-			if len(deltaCopy.Images) > 0 {
-				deltaCopy.Images = nil
-			}
-			// 过滤 MultipleContent 中的图片数据
-			if len(deltaCopy.Content.MultipleContent) > 0 {
-				deltaCopy.Content = m.filterMessageContent(deltaCopy.Content)
-			}
-			filtered.Choices[i].Delta = &deltaCopy
-		}
+		filtered.Choices[i].Message = filterMsg(choice.Message)
+		filtered.Choices[i].Delta = filterMsg(choice.Delta)
 	}
-
 	return &filtered
-}
-
-// filterMessageContent 过滤 MessageContent 中的图片数据
-func (m *RelayMetrics) filterMessageContent(content transformerModel.MessageContent) transformerModel.MessageContent {
-	if len(content.MultipleContent) == 0 {
-		return content
-	}
-
-	filteredParts := make([]transformerModel.MessageContentPart, 0, len(content.MultipleContent))
-	for _, part := range content.MultipleContent {
-		if part.Type == "image_url" && part.ImageURL != nil {
-			// 用占位符替换图片数据
-			filteredParts = append(filteredParts, transformerModel.MessageContentPart{
-				Type: "image_url",
-				ImageURL: &transformerModel.ImageURL{
-					URL: "[image data omitted for storage]",
-				},
-			})
-		} else {
-			filteredParts = append(filteredParts, part)
-		}
-	}
-
-	return transformerModel.MessageContent{
-		Content:         content.Content,
-		MultipleContent: filteredParts,
-	}
 }

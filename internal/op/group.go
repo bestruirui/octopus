@@ -88,6 +88,10 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 		selectFields = append(selectFields, "first_token_time_out")
 		updates.FirstTokenTimeOut = *req.FirstTokenTimeOut
 	}
+	if req.SessionKeepTime != nil {
+		selectFields = append(selectFields, "session_keep_time")
+		updates.SessionKeepTime = *req.SessionKeepTime
+	}
 
 	if len(selectFields) > 0 {
 		if err := tx.Model(&model.Group{}).Where("id = ?", req.ID).Select(selectFields).Updates(&updates).Error; err != nil {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bestruirui/octopus/internal/helper"
+	dbmodel "github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/relay/balancer"
 	"github.com/bestruirui/octopus/internal/server/resp"
@@ -37,117 +38,179 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		}
 	}
 
-	// 初始化统计和日志
+	requestModel := internalRequest.Model
 	apiKeyID := c.GetInt("api_key_id")
-	metrics := NewRelayMetrics(internalRequest.Model)
-	metrics.SetInternalRequest(internalRequest)
-	metrics.SetAPIKeyID(apiKeyID)
+
 	// 获取通道分组
-	group, err := op.GroupGetMap(internalRequest.Model, c.Request.Context())
+	group, err := op.GroupGetMap(requestModel, c.Request.Context())
 	if err != nil {
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
 	}
 
-	const maxRounds = 3
+	// 创建迭代器（策略排序 + 粘性优先）
+	iter := balancer.NewIterator(group, apiKeyID, requestModel)
+	if iter.Len() == 0 {
+		resp.Error(c, http.StatusServiceUnavailable, "no available channel")
+		return
+	}
+
+	// 初始化 Metrics
+	metrics := NewRelayMetrics(apiKeyID, requestModel, internalRequest)
+
+	// 请求级上下文
+	req := &relayRequest{
+		c:               c,
+		inAdapter:       inAdapter,
+		internalRequest: internalRequest,
+		metrics:         metrics,
+		apiKeyID:        apiKeyID,
+		requestModel:    requestModel,
+		iter:            iter,
+	}
+
 	var lastErr error
-	itemCount := len(group.Items)
-	b := balancer.GetBalancer(group.Mode)
-	for round := 0; round < maxRounds; round++ {
-		item := b.Select(group.Items)
-		if item == nil {
-			resp.Error(c, http.StatusServiceUnavailable, "no available channel")
+
+	for iter.Next() {
+		select {
+		case <-c.Request.Context().Done():
+			log.Infof("request context canceled, stopping retry")
+			metrics.Save(c.Request.Context(), false, context.Canceled, iter.Attempts())
+			return
+		default:
+		}
+
+		item := iter.Item()
+
+		// 获取通道
+		channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
+		if err != nil {
+			log.Warnf("failed to get channel %d: %v", item.ChannelID, err)
+			iter.Skip(item.ChannelID, 0, fmt.Sprintf("channel_%d", item.ChannelID), fmt.Sprintf("channel not found: %v", err))
+			lastErr = err
+			continue
+		}
+		if !channel.Enabled {
+			iter.Skip(channel.ID, 0, channel.Name, "channel disabled")
+			continue
+		}
+
+		usedKey := channel.GetChannelKey()
+		if usedKey.ChannelKey == "" {
+			iter.Skip(channel.ID, 0, channel.Name, "no available key")
+			continue
+		}
+
+		// 熔断检查
+		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+			continue
+		}
+
+		// 出站适配器
+		outAdapter := outbound.Get(channel.Type)
+		if outAdapter == nil {
+			iter.Skip(channel.ID, usedKey.ID, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
+			continue
+		}
+
+		// 类型兼容性检查
+		if internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
+			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with embedding request")
+			continue
+		}
+		if internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
+			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with chat request")
+			continue
+		}
+
+		// 设置实际模型
+		internalRequest.Model = item.ModelName
+
+		log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
+			requestModel, group.Mode, channel.Name, item.ModelName,
+			iter.Index()+1, iter.Len(), iter.IsSticky())
+
+		// 构造尝试级上下文 -- 只写变化的 4 个字段
+		ra := &relayAttempt{
+			relayRequest:         req,
+			outAdapter:           outAdapter,
+			channel:              channel,
+			usedKey:              usedKey,
+			firstTokenTimeOutSec: group.FirstTokenTimeOut,
+		}
+
+		result := ra.attempt()
+		if result.Success {
+			metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
 			return
 		}
-
-		for i := 0; i < itemCount; i++ {
-			select {
-			case <-c.Request.Context().Done():
-				log.Infof("request context canceled, stopping retry")
-				return
-			default:
-			}
-
-			channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
-			if err != nil {
-				log.Warnf("failed to get channel: %v", err)
-				lastErr = err
-				item = b.Next(group.Items, item)
-				continue
-			}
-			if channel.Enabled == false {
-				log.Warnf("channel %s is disabled", channel.Name)
-				lastErr = fmt.Errorf("channel %s is disabled", channel.Name)
-				item = b.Next(group.Items, item)
-				continue
-			}
-
-			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (round %d/%d, item %d/%d)", internalRequest.Model, group.Mode, channel.Name, item.ModelName, round+1, maxRounds, i+1, itemCount)
-
-			internalRequest.Model = item.ModelName
-			metrics.SetChannel(channel.ID, channel.Name, item.ModelName)
-
-			outAdapter := outbound.Get(channel.Type)
-			if outAdapter == nil {
-				log.Warnf("unsupported channel type: %d for channel: %s", channel.Type, channel.Name)
-				lastErr = fmt.Errorf("unsupported channel type: %d", channel.Type)
-				item = b.Next(group.Items, item)
-				continue
-			}
-
-			// 验证 channel 类型与请求类型匹配
-			if internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
-				log.Warnf("channel type %d is not compatible with embedding request for channel: %s", channel.Type, channel.Name)
-				lastErr = fmt.Errorf("channel type %d not compatible with embedding request", channel.Type)
-				item = b.Next(group.Items, item)
-				continue
-			}
-
-			if internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
-				log.Warnf("channel type %d is not compatible with chat request for channel: %s", channel.Type, channel.Name)
-				lastErr = fmt.Errorf("channel type %d not compatible with chat request", channel.Type)
-				item = b.Next(group.Items, item)
-				continue
-			}
-
-			rc := &relayContext{
-				c:                    c,
-				inAdapter:            inAdapter,
-				outAdapter:           outAdapter,
-				internalRequest:      internalRequest,
-				channel:              channel,
-				metrics:              metrics,
-				usedKey:              channel.GetChannelKey(),
-				firstTokenTimeOutSec: group.FirstTokenTimeOut,
-			}
-
-			if statusCode, err := rc.forward(); err == nil {
-				rc.collectResponse()
-				rc.usedKey.StatusCode = statusCode
-				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
-				rc.usedKey.TotalCost += metrics.Stats.InputCost + metrics.Stats.OutputCost
-				op.ChannelKeyUpdate(rc.usedKey)
-				metrics.Save(c.Request.Context(), true, nil)
-				return
-			} else {
-				rc.usedKey.StatusCode = statusCode
-				rc.usedKey.LastUseTimeStamp = time.Now().Unix()
-				op.ChannelKeyUpdate(rc.usedKey)
-				if c.Writer.Written() {
-					// Streaming responses may have already started; retrying would corrupt the client stream.
-					rc.collectResponse()
-					metrics.Save(c.Request.Context(), false, err)
-					return
-				}
-				lastErr = fmt.Errorf("channel %s failed: %v", channel.Name, err)
-			}
-			item = b.Next(group.Items, item)
+		if result.Written {
+			metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
+			return
 		}
+		lastErr = result.Err
 	}
 
 	// 所有通道都失败
-	metrics.Save(c.Request.Context(), false, lastErr)
+	metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
 	resp.Error(c, http.StatusBadGateway, "all channels failed")
+}
+
+// attempt 统一管理一次通道尝试的完整生命周期
+func (ra *relayAttempt) attempt() attemptResult {
+	span := ra.iter.StartAttempt(ra.channel.ID, ra.usedKey.ID, ra.channel.Name)
+
+	// 转发请求
+	statusCode, fwdErr := ra.forward()
+
+	// 更新 channel key 状态
+	ra.usedKey.StatusCode = statusCode
+	ra.usedKey.LastUseTimeStamp = time.Now().Unix()
+
+	if fwdErr == nil {
+		// ====== 成功 ======
+		ra.collectResponse()
+		ra.usedKey.TotalCost += ra.metrics.Stats.InputCost + ra.metrics.Stats.OutputCost
+		op.ChannelKeyUpdate(ra.usedKey)
+
+		span.End(dbmodel.AttemptSuccess, statusCode, "")
+
+		// Channel 维度统计
+		op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
+			WaitTime:       span.Duration().Milliseconds(),
+			RequestSuccess: 1,
+		})
+
+		// 熔断器：记录成功
+		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		// 会话保持：更新粘性记录
+		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
+
+		return attemptResult{Success: true}
+	}
+
+	// ====== 失败 ======
+	op.ChannelKeyUpdate(ra.usedKey)
+	span.End(dbmodel.AttemptFailed, statusCode, fwdErr.Error())
+
+	// Channel 维度统计
+	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
+		WaitTime:      span.Duration().Milliseconds(),
+		RequestFailed: 1,
+	})
+
+	// 熔断器：记录失败
+	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+
+	written := ra.c.Writer.Written()
+	if written {
+		ra.collectResponse()
+	}
+	return attemptResult{
+		Success: false,
+		Written: written,
+		Err:     fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr),
+	}
 }
 
 // parseRequest 解析并验证入站请求
@@ -177,15 +240,15 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 }
 
 // forward 转发请求到上游服务
-func (rc *relayContext) forward() (int, error) {
-	ctx := rc.c.Request.Context()
+func (ra *relayAttempt) forward() (int, error) {
+	ctx := ra.c.Request.Context()
 
 	// 构建出站请求
-	outboundRequest, err := rc.outAdapter.TransformRequest(
+	outboundRequest, err := ra.outAdapter.TransformRequest(
 		ctx,
-		rc.internalRequest,
-		rc.channel.GetBaseUrl(),
-		rc.usedKey.ChannelKey,
+		ra.internalRequest,
+		ra.channel.GetBaseUrl(),
+		ra.usedKey.ChannelKey,
 	)
 	if err != nil {
 		log.Warnf("failed to create request: %v", err)
@@ -193,10 +256,10 @@ func (rc *relayContext) forward() (int, error) {
 	}
 
 	// 复制请求头
-	rc.copyHeaders(outboundRequest)
+	ra.copyHeaders(outboundRequest)
 
 	// 发送请求
-	response, err := rc.sendRequest(outboundRequest)
+	response, err := ra.sendRequest(outboundRequest)
 	if err != nil {
 		return 0, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -212,21 +275,21 @@ func (rc *relayContext) forward() (int, error) {
 	}
 
 	// 处理响应
-	if rc.internalRequest.Stream != nil && *rc.internalRequest.Stream {
-		if err := rc.handleStreamResponse(ctx, response); err != nil {
+	if ra.internalRequest.Stream != nil && *ra.internalRequest.Stream {
+		if err := ra.handleStreamResponse(ctx, response); err != nil {
 			return 0, err
 		}
 		return response.StatusCode, nil
 	}
-	if err := rc.handleResponse(ctx, response); err != nil {
+	if err := ra.handleResponse(ctx, response); err != nil {
 		return 0, err
 	}
 	return response.StatusCode, nil
 }
 
 // copyHeaders 复制请求头，过滤 hop-by-hop 头
-func (rc *relayContext) copyHeaders(outboundRequest *http.Request) {
-	for key, values := range rc.c.Request.Header {
+func (ra *relayAttempt) copyHeaders(outboundRequest *http.Request) {
+	for key, values := range ra.c.Request.Header {
 		if hopByHopHeaders[strings.ToLower(key)] {
 			continue
 		}
@@ -234,16 +297,16 @@ func (rc *relayContext) copyHeaders(outboundRequest *http.Request) {
 			outboundRequest.Header.Set(key, value)
 		}
 	}
-	if len(rc.channel.CustomHeader) > 0 {
-		for _, header := range rc.channel.CustomHeader {
+	if len(ra.channel.CustomHeader) > 0 {
+		for _, header := range ra.channel.CustomHeader {
 			outboundRequest.Header.Set(header.HeaderKey, header.HeaderValue)
 		}
 	}
 }
 
 // sendRequest 发送 HTTP 请求
-func (rc *relayContext) sendRequest(req *http.Request) (*http.Response, error) {
-	httpClient, err := helper.ChannelHttpClient(rc.channel)
+func (ra *relayAttempt) sendRequest(req *http.Request) (*http.Response, error) {
+	httpClient, err := helper.ChannelHttpClient(ra.channel)
 	if err != nil {
 		log.Warnf("failed to get http client: %v", err)
 		return nil, err
@@ -259,24 +322,20 @@ func (rc *relayContext) sendRequest(req *http.Request) (*http.Response, error) {
 }
 
 // handleStreamResponse 处理流式响应
-func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http.Response) error {
-	// 流式响应应当是 SSE
-	// 某些上游可能会返回非SSE的JSON响应 (由于 Accept headers 配置错误)
+func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http.Response) error {
 	if ct := response.Header.Get("Content-Type"); ct != "" && !strings.Contains(strings.ToLower(ct), "text/event-stream") {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 16*1024))
 		return fmt.Errorf("upstream returned non-SSE content-type %q for stream request: %s", ct, string(body))
 	}
 
 	// 设置 SSE 响应头
-	rc.c.Header("Content-Type", "text/event-stream")
-	rc.c.Header("Cache-Control", "no-cache")
-	rc.c.Header("Connection", "keep-alive")
-	rc.c.Header("X-Accel-Buffering", "no")
+	ra.c.Header("Content-Type", "text/event-stream")
+	ra.c.Header("Cache-Control", "no-cache")
+	ra.c.Header("Connection", "keep-alive")
+	ra.c.Header("X-Accel-Buffering", "no")
 
 	firstToken := true
 
-	// Streaming "time to first token" timeout: only applies before we write anything to the client.
-	// We read SSE events in a goroutine so we can race the first meaningful output against a timer.
 	type sseReadResult struct {
 		data string
 		err  error
@@ -296,8 +355,8 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 
 	var firstTokenTimer *time.Timer
 	var firstTokenC <-chan time.Time
-	if firstToken && rc.firstTokenTimeOutSec > 0 {
-		firstTokenTimer = time.NewTimer(time.Duration(rc.firstTokenTimeOutSec) * time.Second)
+	if firstToken && ra.firstTokenTimeOutSec > 0 {
+		firstTokenTimer = time.NewTimer(time.Duration(ra.firstTokenTimeOutSec) * time.Second)
 		firstTokenC = firstTokenTimer.C
 		defer func() {
 			if firstTokenTimer != nil {
@@ -307,16 +366,14 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 	}
 
 	for {
-		// 检查客户端是否断开
 		select {
 		case <-ctx.Done():
 			log.Infof("client disconnected, stopping stream")
 			return nil
 		case <-firstTokenC:
-			// Abort upstream stream before any client writes; caller will retry next channel.
-			log.Warnf("first token timeout (%ds), switching channel", rc.firstTokenTimeOutSec)
+			log.Warnf("first token timeout (%ds), switching channel", ra.firstTokenTimeOutSec)
 			_ = response.Body.Close()
-			return fmt.Errorf("first token timeout (%ds)", rc.firstTokenTimeOutSec)
+			return fmt.Errorf("first token timeout (%ds)", ra.firstTokenTimeOutSec)
 		case r, ok := <-results:
 			if !ok {
 				log.Infof("stream end")
@@ -327,16 +384,13 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 				return fmt.Errorf("failed to read stream event: %w", r.err)
 			}
 
-			// 转换流式数据
-			data, err := rc.transformStreamData(ctx, r.data)
+			data, err := ra.transformStreamData(ctx, r.data)
 			if err != nil || len(data) == 0 {
 				continue
 			}
-			// 记录首个 Token 时间
 			if firstToken {
-				rc.metrics.SetFirstTokenTime(time.Now())
+				ra.metrics.SetFirstTokenTime(time.Now())
 				firstToken = false
-				// Disable the first-token timer once we have meaningful output.
 				if firstTokenTimer != nil {
 					if !firstTokenTimer.Stop() {
 						select {
@@ -349,16 +403,15 @@ func (rc *relayContext) handleStreamResponse(ctx context.Context, response *http
 				}
 			}
 
-			rc.c.Writer.Write(data)
-			rc.c.Writer.Flush()
+			ra.c.Writer.Write(data)
+			ra.c.Writer.Flush()
 		}
 	}
 }
 
 // transformStreamData 转换流式数据
-func (rc *relayContext) transformStreamData(ctx context.Context, data string) ([]byte, error) {
-	// 上游格式 → 内部格式
-	internalStream, err := rc.outAdapter.TransformStream(ctx, []byte(data))
+func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([]byte, error) {
+	internalStream, err := ra.outAdapter.TransformStream(ctx, []byte(data))
 	if err != nil {
 		log.Warnf("failed to transform stream: %v", err)
 		return nil, err
@@ -367,8 +420,7 @@ func (rc *relayContext) transformStreamData(ctx context.Context, data string) ([
 		return nil, nil
 	}
 
-	// 内部格式 → 入站格式
-	inStream, err := rc.inAdapter.TransformStream(ctx, internalStream)
+	inStream, err := ra.inAdapter.TransformStream(ctx, internalStream)
 	if err != nil {
 		log.Warnf("failed to transform stream: %v", err)
 		return nil, err
@@ -378,32 +430,29 @@ func (rc *relayContext) transformStreamData(ctx context.Context, data string) ([
 }
 
 // handleResponse 处理非流式响应
-func (rc *relayContext) handleResponse(ctx context.Context, response *http.Response) error {
-	// 上游格式 → 内部格式
-	internalResponse, err := rc.outAdapter.TransformResponse(ctx, response)
+func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Response) error {
+	internalResponse, err := ra.outAdapter.TransformResponse(ctx, response)
 	if err != nil {
 		log.Warnf("failed to transform response: %v", err)
 		return fmt.Errorf("failed to transform outbound response: %w", err)
 	}
 
-	// 内部格式 → 入站格式
-	inResponse, err := rc.inAdapter.TransformResponse(ctx, internalResponse)
+	inResponse, err := ra.inAdapter.TransformResponse(ctx, internalResponse)
 	if err != nil {
 		log.Warnf("failed to transform response: %v", err)
 		return fmt.Errorf("failed to transform inbound response: %w", err)
 	}
 
-	rc.c.Data(http.StatusOK, "application/json", inResponse)
+	ra.c.Data(http.StatusOK, "application/json", inResponse)
 	return nil
 }
 
 // collectResponse 收集响应信息
-func (rc *relayContext) collectResponse() {
-	internalResponse, err := rc.inAdapter.GetInternalResponse(rc.c.Request.Context())
+func (ra *relayAttempt) collectResponse() {
+	internalResponse, err := ra.inAdapter.GetInternalResponse(ra.c.Request.Context())
 	if err != nil || internalResponse == nil {
 		return
 	}
 
-	// 设置响应内容
-	rc.metrics.SetInternalResponse(internalResponse)
+	ra.metrics.SetInternalResponse(internalResponse, ra.internalRequest.Model)
 }

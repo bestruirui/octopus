@@ -41,7 +41,25 @@ func (i *ChatInbound) TransformStream(ctx context.Context, stream *model.Interna
 	// Store the chunk for aggregation
 	i.streamChunks = append(i.streamChunks, stream)
 
-	body, err := json.Marshal(stream)
+	var body []byte
+	var err error
+
+	// Handle the case where choices are empty but we need them to be present as an empty array
+	// This is to satisfy some clients (like Cherry Studio) that require choices field to be present
+	if len(stream.Choices) == 0 && stream.Object == "chat.completion.chunk" {
+		type Alias model.InternalLLMResponse
+		aux := &struct {
+			*Alias
+			Choices []model.Choice `json:"choices"`
+		}{
+			Alias:   (*Alias)(stream),
+			Choices: []model.Choice{},
+		}
+		body, err = json.Marshal(aux)
+	} else {
+		body, err = json.Marshal(stream)
+	}
+
 	if err != nil {
 		return nil, err
 	}

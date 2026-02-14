@@ -150,7 +150,11 @@ func (o *MessageOutbound) TransformStream(ctx context.Context, eventData []byte)
 			resp.ID = o.streamID
 			resp.Model = o.streamModel
 
-			if streamEvent.Message.Usage != nil {
+			if streamEvent.Message.Usage != nil &&
+				(streamEvent.Message.Usage.InputTokens > 0 ||
+					streamEvent.Message.Usage.OutputTokens > 0 ||
+					streamEvent.Message.Usage.CacheReadInputTokens > 0 ||
+					streamEvent.Message.Usage.CacheCreationInputTokens > 0) {
 				o.streamUsage = convertAnthropicUsage(streamEvent.Message.Usage)
 				resp.Usage = o.streamUsage
 			}
@@ -318,14 +322,19 @@ func convertToAnthropicRequest(req *model.InternalLLMRequest) *anthropicModel.Me
 }
 
 func resolveMaxTokens(req *model.InternalLLMRequest) int64 {
+	var maxtoken int64 = 1
 	switch {
 	case req.MaxTokens != nil:
-		return *req.MaxTokens
+		maxtoken = *req.MaxTokens
 	case req.MaxCompletionTokens != nil:
-		return *req.MaxCompletionTokens
+		maxtoken = *req.MaxCompletionTokens
 	default:
-		return 8192
+		maxtoken = 8192
 	}
+	if maxtoken < 1 {
+		maxtoken = 1
+	}
+	return maxtoken
 }
 
 func convertSystemPrompt(req *model.InternalLLMRequest) *anthropicModel.SystemPrompt {
@@ -340,20 +349,13 @@ func convertSystemPrompt(req *model.InternalLLMRequest) *anthropicModel.SystemPr
 		return nil
 	}
 
-	wasArrayFormat := req.TransformerMetadata != nil && req.TransformerMetadata["anthropic_system_array_format"] == "true"
-
 	if len(systemMessages) == 1 {
-		if wasArrayFormat {
-			return &anthropicModel.SystemPrompt{
-				MultiplePrompts: []anthropicModel.SystemPromptPart{{
-					Type:         "text",
-					Text:         lo.FromPtr(systemMessages[0].Content.Content),
-					CacheControl: convertCacheControl(systemMessages[0].CacheControl),
-				}},
-			}
-		}
 		return &anthropicModel.SystemPrompt{
-			Prompt: systemMessages[0].Content.Content,
+			MultiplePrompts: []anthropicModel.SystemPromptPart{{
+				Type:         "text",
+				Text:         lo.FromPtr(systemMessages[0].Content.Content),
+				CacheControl: convertCacheControl(systemMessages[0].CacheControl),
+			}},
 		}
 	}
 

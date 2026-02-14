@@ -172,6 +172,11 @@ type InternalLLMRequest struct {
 	// Any of "text", "audio", "image".
 	Modalities []string `json:"modalities,omitempty"`
 
+	Audio *struct {
+		Format string `json:"format,omitempty"`
+		Voice  string `json:"voice,omitempty"`
+	} `json:"audio,omitempty"`
+
 	// Controls effort on reasoning for reasoning models. It can be set to "low", "medium", or "high".
 	ReasoningEffort string `json:"reasoning_effort,omitempty"`
 
@@ -224,6 +229,10 @@ type InternalLLMRequest struct {
 	// TransformerMetadata stores transformer-specific metadata for preserving format during transformations.
 	// This is a help field and will not be sent to the llm service.
 	TransformerMetadata map[string]string `json:"-"`
+
+	// TransformOptions stores transformer-specific options for preserving request format.
+	// This is a help field and will not be sent to the llm service.
+	TransformOptions TransformOptions `json:"-"`
 
 	// Include specifies additional output data to include in the model response.
 	// This is a help field and will not be sent to the llm service.
@@ -289,6 +298,11 @@ func (r *InternalLLMRequest) ClearHelpFields() {
 
 func (r *InternalLLMRequest) IsImageGenerationRequest() bool {
 	return len(r.Modalities) > 0 && slices.Contains(r.Modalities, "image")
+}
+
+type TransformOptions struct {
+	// ArrayInputs specifies whether the original input was an array.
+	ArrayInputs *bool `json:"-"`
 }
 
 type StreamOptions struct {
@@ -364,6 +378,13 @@ type Message struct {
 	// Images is used by some providers (e.g., Gemini via OpenAI compat) for image generation responses.
 	// Images will be merged into Content.MultipleContent during response processing.
 	Images []MessageContentPart `json:"images,omitempty"`
+
+	Audio *struct {
+		Data       string `json:"data,omitempty"`
+		ExpiresAt  int64  `json:"expires_at,omitempty"`
+		ID         string `json:"id,omitempty"`
+		Transcript string `json:"transcript,omitempty"`
+	} `json:"audio,omitempty"`
 
 	// This property is used for the "reasoning" feature supported by deepseek-reasoner
 	// the doc from deepseek:

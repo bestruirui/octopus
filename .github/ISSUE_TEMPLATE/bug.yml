@@ -15,6 +15,50 @@ body:
           required: true
         - label: 此Issue仅包含一个Bug反馈，而不是多个Bug反馈
           required: true
+  - type: dropdown
+    id: upstream-interface
+    attributes:
+      label: 上游接口类型
+      description: 上游是以什么接口接入 Octopus 的？(添加渠道时选的什么渠道类型)
+      options:
+        - OpenAI Chat Completions
+        - OpenAI Responses
+        - Anthropic Messages
+        - Google Gemini
+    validations:
+      required: true
+  - type: dropdown
+    id: client-interface
+    attributes:
+      label: 客户端接口类型
+      description: 客户端是以什么格式请求的Octopus?
+      options:
+        - OpenAI Chat Completions
+        - OpenAI Responses
+        - Anthropic Messages
+    validations:
+      required: true
+  - type: input
+    id: client-version
+    attributes:
+      label: 客户端版本号
+      description: 请提供客户端的详细版本号
+      placeholder: "例如: Cursor 0.48.9, Claude Desktop 1.2.3"
+    validations:
+      required: true
+  - type: textarea
+    id: client-config
+    attributes:
+      label: 客户端配置
+      description: 请提供客户端的配置（截图或者直接粘贴配置文件,请不要以文件的形式上传配置文件）
+    validations:
+      required: true
+  - type: input
+    id: browser-version
+    attributes:
+      label: 浏览器版本号
+      description: 如果是前端BUG请提供浏览器的详细版本号
+      placeholder: "例如: Chrome 120.0.xxx, Firefox 120.0.xxx"
   - type: textarea
     attributes:
       label: 问题描述
@@ -35,18 +79,14 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: 相关日志
-      description: WEB端的请求日志和后端控制台日志
-      render: shell
+      label: WEB日志
+      description: WEB端的日志截图（请直接粘贴图片）
     validations:
       required: true
   - type: textarea
     attributes:
-      label: 环境信息
-      description: 请提供浏览器版本、操作系统等相关环境信息
-      placeholder: |
-        - 浏览器: Chrome 120.0.xxx
-        - 操作系统: Windows 11 / macOS 14.x / Ubuntu 22.04
+      label: 后端日志
+      description: 后端的日志（请直接粘贴日志）
       render: shell
     validations:
       required: true

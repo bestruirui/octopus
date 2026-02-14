@@ -8,6 +8,7 @@ import (
 
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/dlclark/regexp2"
 )
 
 func FetchModels(ctx context.Context, request model.Channel) ([]string, error) {
@@ -15,14 +16,36 @@ func FetchModels(ctx context.Context, request model.Channel) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	fetchModel := make([]string, 0)
 	switch request.Type {
 	case outbound.OutboundTypeAnthropic:
-		return fetchAnthropicModels(client, ctx, request)
+		fetchModel, err = fetchAnthropicModels(client, ctx, request)
 	case outbound.OutboundTypeGemini:
-		return fetchGeminiModels(client, ctx, request)
+		fetchModel, err = fetchGeminiModels(client, ctx, request)
 	default:
-		return fetchOpenAIModels(client, ctx, request)
+		fetchModel, err = fetchOpenAIModels(client, ctx, request)
 	}
+	if err != nil {
+		return nil, err
+	}
+	if request.MatchRegex != nil && *request.MatchRegex != "" {
+		matchModel := make([]string, 0)
+		re, err := regexp2.Compile(*request.MatchRegex, regexp2.ECMAScript)
+		if err != nil {
+			return nil, err
+		}
+		for _, model := range fetchModel {
+			matched, err := re.MatchString(model)
+			if err != nil {
+				return nil, err
+			}
+			if matched {
+				matchModel = append(matchModel, model)
+			}
+		}
+		return matchModel, nil
+	}
+	return fetchModel, nil
 }
 
 // refer: https://platform.openai.com/docs/api-reference/models/list
@@ -34,6 +57,11 @@ func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.C
 		nil,
 	)
 	req.Header.Set("Authorization", "Bearer "+request.GetChannelKey().ChannelKey)
+	for _, header := range request.CustomHeader {
+		if header.HeaderKey != "" {
+			req.Header.Set(header.HeaderKey, header.HeaderValue)
+		}
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -67,7 +95,11 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 			nil,
 		)
 		req.Header.Set("X-Goog-Api-Key", request.GetChannelKey().ChannelKey)
-
+		for _, header := range request.CustomHeader {
+			if header.HeaderKey != "" {
+				req.Header.Set(header.HeaderKey, header.HeaderValue)
+			}
+		}
 		if pageToken != "" {
 			q := req.URL.Query()
 			q.Add("pageToken", pageToken)
@@ -117,7 +149,11 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 		)
 		req.Header.Set("X-Api-Key", request.GetChannelKey().ChannelKey)
 		req.Header.Set("Anthropic-Version", "2023-06-01")
-
+		for _, header := range request.CustomHeader {
+			if header.HeaderKey != "" {
+				req.Header.Set(header.HeaderKey, header.HeaderValue)
+			}
+		}
 		// 设置多页参数
 		q := req.URL.Query()
 

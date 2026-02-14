@@ -19,13 +19,14 @@ export function CreateDialogContent() {
         custom_header: [],
         channel_proxy: '',
         param_override: '',
-        keys: [{ enabled: true, channel_key: '' }],
+        keys: [{ enabled: true, channel_key: '', remark: '' }],
         model: '',
         custom_model: '',
         auto_sync: false,
         auto_group: AutoGroupType.None,
         enabled: true,
         proxy: false,
+        match_regex: '',
     });
     const t = useTranslations('channel.create');
 
@@ -37,7 +38,7 @@ export function CreateDialogContent() {
         }));
         const normalizedKeys = formData.keys
             .filter((k) => k.channel_key.trim())
-            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key }));
+            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key, remark: k.remark ?? '' }));
         const normalizedHeaders = (formData.custom_header ?? [])
             .map((h) => ({ header_key: h.header_key.trim(), header_value: h.header_value }))
             .filter((h) => h.header_key && h.header_value !== '');
@@ -57,8 +58,9 @@ export function CreateDialogContent() {
                 auto_sync: formData.auto_sync,
                 auto_group: formData.auto_group,
                 custom_header: normalizedHeaders,
-                channel_proxy: channelProxy ? channelProxy : null,
-                param_override: paramOverride ? paramOverride : null,
+                channel_proxy: channelProxy,
+                param_override: paramOverride,
+                match_regex: formData.match_regex.trim(),
             },
             {
                 onSuccess: () => {
@@ -69,13 +71,14 @@ export function CreateDialogContent() {
                         custom_header: [],
                         channel_proxy: '',
                         param_override: '',
-                        keys: [{ enabled: true, channel_key: '' }],
+                        keys: [{ enabled: true, channel_key: '', remark: '' }],
                         model: '',
                         custom_model: '',
                         auto_sync: false,
                         auto_group: AutoGroupType.None,
                         enabled: true,
                         proxy: false,
+                        match_regex: '',
                     });
                     setIsOpen(false);
                 }

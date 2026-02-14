@@ -22,6 +22,7 @@ export interface ChannelKeyFormItem {
     status_code?: number;
     last_use_time_stamp?: number;
     total_cost?: number;
+    remark?: string;
 }
 
 export interface ChannelFormData {
@@ -38,6 +39,7 @@ export interface ChannelFormData {
     proxy: boolean;
     auto_sync: boolean;
     auto_group: AutoGroupType;
+    match_regex: string;
 }
 
 export interface ChannelFormProps {
@@ -119,6 +121,8 @@ export function ChannelForm({
                     .filter((k) => k.channel_key.trim())
                     .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key.trim() })),
                 proxy: formData.proxy,
+                match_regex: formData.match_regex.trim() || null,
+                custom_header: formData.custom_header,
             },
             {
                 onSuccess: (data) => {
@@ -325,7 +329,14 @@ export function ChannelForm({
                                 onChange={(e) => handleUpdateKey(idx, { channel_key: e.target.value })}
                                 placeholder={t('apiKey')}
                                 required={idx === 0}
-                                className="rounded-xl"
+                                className="rounded-xl flex-1"
+                            />
+                            <Input
+                                type="text"
+                                value={k.remark ?? ''}
+                                onChange={(e) => handleUpdateKey(idx, { remark: e.target.value })}
+                                placeholder={t('remark')}
+                                className="rounded-xl w-32"
                             />
                             <Switch
                                 checked={k.enabled}
@@ -534,6 +545,20 @@ export function ChannelForm({
                                     </div>
                                 ))}
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label htmlFor={`${idPrefix}-match-regex`} className="text-sm font-medium text-card-foreground">
+                                {t('matchRegex')}
+                            </label>
+                            <Input
+                                id={`${idPrefix}-match-regex`}
+                                type="text"
+                                value={formData.match_regex}
+                                onChange={(e) => onFormDataChange({ ...formData, match_regex: e.target.value })}
+                                placeholder={t('matchRegexPlaceholder')}
+                                className="rounded-xl"
+                            />
                         </div>
 
                         <div className="space-y-2">

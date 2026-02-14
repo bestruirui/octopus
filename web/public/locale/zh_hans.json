@@ -95,7 +95,8 @@
             "title": "排行榜",
             "sortByCost": "金额",
             "sortByCount": "次数",
-            "noData": "暂无排行数据"
+            "noData": "暂无排行数据",
+            "successRate": "成功率"
         }
     },
     "setting": {
@@ -109,7 +110,8 @@
         },
         "language": {
             "label": "语言",
-            "zh": "中文",
+            "zh_hans": "简体中文",
+            "zh_hant": "繁体中文",
             "en": "English"
         },
         "proxyUrl": {
@@ -124,6 +126,22 @@
             "label": "CORS 跨域白名单",
             "hint": "为空禁止跨域，* 允许所有",
             "example": "只允许指定域名: https://example.com,https://example2.com"
+        },
+        "circuitBreaker": {
+            "title": "熔断器配置",
+            "threshold": {
+                "label": "熔断触发阈值（连续失败次数）",
+                "placeholder": "请输入阈值"
+            },
+            "cooldown": {
+                "label": "基础冷却时间（秒）",
+                "placeholder": "请输入冷却时间"
+            },
+            "maxCooldown": {
+                "label": "最大冷却时间（秒）",
+                "placeholder": "请输入最大冷却时间"
+            },
+            "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间"
         },
         "saved": "已保存",
         "backup": {
@@ -314,6 +332,8 @@
             "matchRegexInvalid": "正则无效",
             "firstTokenTimeOut": "首字超时",
             "firstTokenTimeOutHint": "单位秒，仅流式响应起效，0 表示不限制",
+            "sessionKeepTime": "会话保持",
+            "sessionKeepTimeHint": "单位秒，会话期间保持使用同一渠道，0 表示禁用",
             "items": "已选模型",
             "addItem": "添加模型",
             "autoAdd": "自动添加",
@@ -380,7 +400,11 @@
             "noRequestContent": "(无请求内容)",
             "noResponseContent": "(无响应内容)",
             "firstTokenTime": "首字时间",
-            "tokens": "tokens"
+            "tokens": "tokens",
+            "retryDetails": "重试详情",
+            "attempts": "次尝试",
+            "success": "成功",
+            "failed": "失败"
         }
     },
     "channel": {
@@ -473,7 +497,10 @@
             "autoGroupNone": "不自动分组",
             "autoGroupFuzzy": "模糊匹配",
             "autoGroupExact": "准确匹配",
-            "autoGroupRegex": "正则匹配"
+            "autoGroupRegex": "正则匹配",
+            "matchRegex": "匹配正则",
+            "matchRegexPlaceholder": "可选：用于匹配请求模型名称的正则表达式",
+            "remark": "备注"
         }
     }
 }

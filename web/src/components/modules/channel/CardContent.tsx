@@ -49,13 +49,15 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                 status_code: k.status_code,
                 last_use_time_stamp: k.last_use_time_stamp,
                 total_cost: k.total_cost,
+                remark: k.remark,
             }))
-            : [{ enabled: true, channel_key: '' }],
+            : [{ enabled: true, channel_key: '', remark: '' }],
         model: channel.model,
         custom_model: channel.custom_model,
         proxy: channel.proxy,
         auto_sync: channel.auto_sync,
         auto_group: channel.auto_group,
+        match_regex: channel.match_regex ?? '',
     });
     const t = useTranslations('channel.detail');
 
@@ -95,13 +97,22 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         const nextChannelProxy = formData.channel_proxy.trim();
         const curChannelProxy = channel.channel_proxy ?? '';
         if (nextChannelProxy !== curChannelProxy) {
-            req.channel_proxy = nextChannelProxy ? nextChannelProxy : null;
+            // Empty string means "clear" for patch semantics; backend maps it to NULL.
+            req.channel_proxy = nextChannelProxy;
         }
 
         const nextParamOverride = formData.param_override.trim();
         const curParamOverride = channel.param_override ?? '';
         if (nextParamOverride !== curParamOverride) {
-            req.param_override = nextParamOverride ? nextParamOverride : null;
+            // Empty string means "clear" for patch semantics; backend maps it to NULL.
+            req.param_override = nextParamOverride;
+        }
+
+        const nextMatchRegex = formData.match_regex.trim();
+        const curMatchRegex = channel.match_regex ?? '';
+        if (nextMatchRegex !== curMatchRegex) {
+            // Empty string means "clear" for patch semantics; backend maps it to NULL.
+            req.match_regex = nextMatchRegex;
         }
 
         const originalKeys = channel.keys;
@@ -113,18 +124,19 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
 
         const keys_to_add = nextKeys
             .filter((k) => !k.id && k.channel_key.trim())
-            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key }));
+            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key, remark: k.remark ?? '' }));
 
         const keys_to_update = nextKeys
             .filter((k) => typeof k.id === 'number' && originalByID.has(k.id as number))
             .map((k) => {
                 const orig = originalByID.get(k.id as number)!;
-                const u: { id: number; enabled?: boolean; channel_key?: string } = { id: k.id as number };
+                const u: { id: number; enabled?: boolean; channel_key?: string; remark?: string } = { id: k.id as number };
                 if (k.enabled !== orig.enabled) u.enabled = k.enabled;
                 if (k.channel_key !== orig.channel_key) u.channel_key = k.channel_key;
+                if ((k.remark ?? '') !== orig.remark) u.remark = k.remark ?? '';
                 return Object.keys(u).length > 1 ? u : null;
             })
-            .filter((u) => u !== null) as Array<{ id: number; enabled?: boolean; channel_key?: string }>;
+            .filter((u) => u !== null) as Array<{ id: number; enabled?: boolean; channel_key?: string; remark?: string }>;
 
         if (keys_to_add.length > 0) req.keys_to_add = keys_to_add;
         if (keys_to_update.length > 0) req.keys_to_update = keys_to_update;
@@ -350,6 +362,12 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                                         ? `${key.channel_key.slice(0, 4)}...${key.channel_key.slice(-4)}`
                                                         : key.channel_key}
                                                 </span>
+
+                                                {key.remark && (
+                                                    <span className="text-xs text-muted-foreground truncate max-w-24" title={key.remark}>
+                                                        {key.remark}
+                                                    </span>
+                                                )}
 
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     {key.last_use_time_stamp > 0 && (

@@ -14,6 +14,7 @@ import (
 )
 
 var supportedReasoningEffortModel = map[string]bool{
+	"doubao-seed-1-8-251228":      true,
 	"doubao-seed-1-6-lite-251015": true,
 	"doubao-seed-1-6-251015":      true,
 }

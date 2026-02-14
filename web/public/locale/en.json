@@ -95,7 +95,8 @@
             "title": "Ranking",
             "sortByCost": "Cost",
             "sortByCount": "Count",
-            "noData": "No ranking data"
+            "noData": "No ranking data",
+            "successRate": "Success Rate"
         }
     },
     "setting": {
@@ -109,7 +110,8 @@
         },
         "language": {
             "label": "Language",
-            "zh": "中文",
+            "zh_hans": "Chinese (Simplified)",
+            "zh_hant": "Chinese (Traditional)",
             "en": "English"
         },
         "proxyUrl": {
@@ -124,6 +126,22 @@
             "label": "CORS Allowed Origins",
             "hint": "Empty = deny all, * = allow all",
             "example": "Only allow specific domains: https://example.com,https://example2.com"
+        },
+        "circuitBreaker": {
+            "title": "Circuit Breaker",
+            "threshold": {
+                "label": "Failure Threshold (consecutive failures)",
+                "placeholder": "Enter threshold"
+            },
+            "cooldown": {
+                "label": "Base Cooldown (seconds)",
+                "placeholder": "Enter cooldown in seconds"
+            },
+            "maxCooldown": {
+                "label": "Max Cooldown (seconds)",
+                "placeholder": "Enter max cooldown in seconds"
+            },
+            "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
         },
         "saved": "Saved",
         "backup": {
@@ -314,6 +332,8 @@
             "matchRegexInvalid": "Invalid regex",
             "firstTokenTimeOut": "First Token Timeout",
             "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
+            "sessionKeepTime": "Session Keep Time",
+            "sessionKeepTimeHint": "Unit: seconds, keeps using the same channel within a session, 0 = disabled",
             "items": "Selected Models",
             "addItem": "Add Model",
             "autoAdd": "Auto Add",
@@ -380,7 +400,11 @@
             "noRequestContent": "(No request content)",
             "noResponseContent": "(No response content)",
             "firstTokenTime": "First Token Time",
-            "tokens": "tokens"
+            "tokens": "tokens",
+            "retryDetails": "Retry Details",
+            "attempts": "attempts",
+            "success": "Success",
+            "failed": "Failed"
         }
     },
     "channel": {
@@ -473,7 +497,10 @@
             "autoGroupNone": "None",
             "autoGroupFuzzy": "Fuzzy",
             "autoGroupExact": "Exact",
-            "autoGroupRegex": "Regex"
+            "autoGroupRegex": "Regex",
+            "matchRegex": "Match Regex",
+            "matchRegexPlaceholder": "Optional: regex pattern to match request model names",
+            "remark": "Remark"
         }
     }
 }

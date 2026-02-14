@@ -173,6 +173,10 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		selectFields = append(selectFields, "param_override")
 		updates.ParamOverride = req.ParamOverride
 	}
+	if req.MatchRegex != nil {
+		selectFields = append(selectFields, "match_regex")
+		updates.MatchRegex = req.MatchRegex
+	}
 
 	// 只有当有字段需要更新时才执行 UPDATE
 	if len(selectFields) > 0 {
@@ -200,6 +204,9 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 			if ku.ChannelKey != nil {
 				updates["channel_key"] = *ku.ChannelKey
 			}
+			if ku.Remark != nil {
+				updates["remark"] = *ku.Remark
+			}
 			if len(updates) == 0 {
 				continue
 			}
@@ -220,6 +227,7 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 				ChannelID:  req.ID,
 				Enabled:    ka.Enabled,
 				ChannelKey: ka.ChannelKey,
+				Remark:     ka.Remark,
 			})
 		}
 		if err := tx.Create(&newKeys).Error; err != nil {

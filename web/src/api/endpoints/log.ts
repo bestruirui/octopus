@@ -3,6 +3,27 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { apiClient, API_BASE_URL } from '../client';
 import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+/**
+ * 尝试状态
+ */
+export type AttemptStatus = 'success' | 'failed' | 'circuit_break' | 'skipped';
+
+/**
+ * 单次渠道尝试信息
+ */
+export interface ChannelAttempt {
+    channel_id: number;
+    channel_key_id?: number;
+    channel_name: string;
+    model_name: string;
+    attempt_num: number;    // 第几次尝试
+    status: AttemptStatus;
+    duration: number;       // 耗时(毫秒)
+    sticky?: boolean;
+    msg?: string;
+}
+
 /**
  * 日志数据
  */
@@ -20,7 +41,9 @@ export interface RelayLog {
     cost: number;                // 消耗费用
     request_content: string;     // 请求内容
     response_content: string;    // 响应内容
-    error: string;                // 错误信息
+    error: string;               // 错误信息
+    attempts?: ChannelAttempt[]; // 所有尝试记录
+    total_attempts?: number;     // 总尝试次数
 }
 
 /**
