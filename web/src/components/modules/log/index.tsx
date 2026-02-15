@@ -23,12 +23,20 @@ import {
  */
 export function Log() {
     const t = useTranslations('log');
-    const { logs, hasMore, isLoading, isLoadingMore, loadMore } = useLogs({ pageSize: 10 });
-    const { data: groups = [] } = useGroupList();
     const [selectedGroup, setSelectedGroup] = useState('all');
     const [selectedModel, setSelectedModel] = useState('all');
     const [selectedRetried, setSelectedRetried] = useState<'all' | 'yes' | 'no'>('all');
     const [selectedChannel, setSelectedChannel] = useState('all');
+    const { logs, hasMore, isLoading, isLoadingMore, loadMore } = useLogs({
+        pageSize: 10,
+        filters: {
+            group: selectedGroup === 'all' ? '' : selectedGroup,
+            model: selectedModel === 'all' ? '' : selectedModel,
+            retried: selectedRetried,
+            channel: selectedChannel === 'all' ? '' : selectedChannel,
+        },
+    });
+    const { data: groups = [] } = useGroupList();
     const loadMoreRef = useRef<HTMLDivElement>(null);
     const armedRef = useRef(true);
 
@@ -60,37 +68,6 @@ export function Log() {
         });
         return Array.from(names).sort((a, b) => a.localeCompare(b));
     }, [logs]);
-
-    const filteredLogs = useMemo(() => {
-        return logs.filter((log) => {
-            if (selectedGroup !== 'all' && log.request_model_name !== selectedGroup) {
-                return false;
-            }
-
-            if (selectedModel !== 'all' && log.actual_model_name !== selectedModel) {
-                return false;
-            }
-
-            const retried = (log.total_attempts ?? log.attempts?.length ?? 0) > 1;
-            if (selectedRetried === 'yes' && !retried) {
-                return false;
-            }
-            if (selectedRetried === 'no' && retried) {
-                return false;
-            }
-
-            if (selectedChannel !== 'all') {
-                const channelMatched =
-                    log.channel_name === selectedChannel ||
-                    !!log.attempts?.some((attempt) => attempt.channel_name === selectedChannel);
-                if (!channelMatched) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-    }, [logs, selectedChannel, selectedGroup, selectedModel, selectedRetried]);
 
     useEffect(() => {
         const target = loadMoreRef.current;
@@ -170,7 +147,7 @@ export function Log() {
                 </Select>
             </div>
 
-            {filteredLogs.map((log) => (
+            {logs.map((log) => (
                 <LogCard key={`log-${log.id}`} log={log} />
             ))}
 

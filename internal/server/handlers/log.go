@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
+	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/server/middleware"
 	"github.com/bestruirui/octopus/internal/server/resp"
@@ -65,7 +67,13 @@ func listLog(c *gin.Context) {
 		endTime = &et
 	}
 
-	logs, err := op.RelayLogList(c.Request.Context(), startTime, endTime, page, pageSize)
+	filter, err := parseRelayLogFilter(c)
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	logs, err := op.RelayLogList(c.Request.Context(), startTime, endTime, page, pageSize, filter)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -126,4 +134,35 @@ func streamLog(c *gin.Context) {
 			c.Writer.Flush()
 		}
 	}
+}
+
+func parseRelayLogFilter(c *gin.Context) (*model.RelayLogListFilter, error) {
+	group := strings.TrimSpace(c.Query("group"))
+	modelName := strings.TrimSpace(c.Query("model"))
+	channel := strings.TrimSpace(c.Query("channel"))
+	retriedStr := strings.TrimSpace(c.Query("retried"))
+
+	if group == "" && modelName == "" && channel == "" && retriedStr == "" {
+		return nil, nil
+	}
+
+	filter := &model.RelayLogListFilter{}
+	if group != "" {
+		filter.Group = &group
+	}
+	if modelName != "" {
+		filter.Model = &modelName
+	}
+	if channel != "" {
+		filter.Channel = &channel
+	}
+	if retriedStr != "" {
+		retried, err := strconv.ParseBool(retriedStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid retried value")
+		}
+		filter.Retried = &retried
+	}
+
+	return filter, nil
 }
