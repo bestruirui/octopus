@@ -416,7 +416,9 @@
             "allRetries": "全部重试状态",
             "retriedYes": "重试过",
             "retriedNo": "未重试",
-            "allChannels": "全部渠道"
+            "allChannels": "全部渠道",
+            "searchPlaceholder": "输入关键字筛选",
+            "noResult": "无匹配项"
         }
     },
     "channel": {

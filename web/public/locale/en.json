@@ -416,7 +416,9 @@
             "allRetries": "All Retry States",
             "retriedYes": "Retried",
             "retriedNo": "Not Retried",
-            "allChannels": "All Channels"
+            "allChannels": "All Channels",
+            "searchPlaceholder": "Type to filter",
+            "noResult": "No matches"
         }
     },
     "channel": {
