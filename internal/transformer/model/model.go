@@ -274,7 +274,8 @@ func (r *InternalLLMRequest) Validate() error {
 	}
 
 	if isChatRequest {
-		r.fillMissingToolCallIDs()
+		r.fillMissingToolCallIDsFromToolMessages()
+		// r.fillMissingToolCallIDs()
 	}
 
 	return nil
@@ -312,6 +313,58 @@ func (r *InternalLLMRequest) fillMissingToolCallIDs() {
 
 			toolCall.ID = candidate
 			usedIDs[candidate] = struct{}{}
+		}
+	}
+}
+
+
+func (r *InternalLLMRequest) fillMissingToolCallIDsFromToolMessages() {
+	for msgIndex := 0; msgIndex < len(r.Messages); msgIndex++ {
+		msg := &r.Messages[msgIndex]
+		if msg.Role != "assistant" || len(msg.ToolCalls) == 0 {
+			continue
+		}
+
+		candidates := make([]string, 0, len(msg.ToolCalls))
+		for nextIndex := msgIndex + 1; nextIndex < len(r.Messages); nextIndex++ {
+			nextMsg := r.Messages[nextIndex]
+			if nextMsg.Role != "tool" {
+				break
+			}
+			if nextMsg.ToolCallID == nil || *nextMsg.ToolCallID == "" {
+				continue
+			}
+			candidates = append(candidates, *nextMsg.ToolCallID)
+		}
+
+		if len(candidates) == 0 {
+			continue
+		}
+
+		used := make(map[string]struct{})
+		for _, toolCall := range msg.ToolCalls {
+			if toolCall.ID == "" {
+				continue
+			}
+			used[toolCall.ID] = struct{}{}
+		}
+
+		candidateIndex := 0
+		for toolCallIndex := range msg.ToolCalls {
+			if msg.ToolCalls[toolCallIndex].ID != "" {
+				continue
+			}
+
+			for candidateIndex < len(candidates) {
+				candidate := candidates[candidateIndex]
+				candidateIndex++
+				if _, exists := used[candidate]; exists {
+					continue
+				}
+				msg.ToolCalls[toolCallIndex].ID = candidate
+				used[candidate] = struct{}{}
+				break
+			}
 		}
 	}
 }
