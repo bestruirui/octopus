@@ -949,8 +949,10 @@ func convertToInternalRequest(req *ResponsesRequest) (*model.InternalLLMRequest,
 		Metadata:            req.Metadata,
 		MaxCompletionTokens: req.MaxOutputTokens,
 		TopLogprobs:         req.TopLogprobs,
+		ParallelToolCalls:   req.ParallelToolCalls,
 		RawAPIFormat:        model.APIFormatOpenAIResponse,
 		TransformerMetadata: map[string]string{},
+		Include:             append([]string(nil), req.Include...),
 	}
 
 	if req.Input.Text == nil && len(req.Input.Items) > 0 {

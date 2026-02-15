@@ -273,7 +273,47 @@ func (r *InternalLLMRequest) Validate() error {
 		return errors.New("messages are required")
 	}
 
+	if isChatRequest {
+		r.fillMissingToolCallIDs()
+	}
+
 	return nil
+}
+
+func (r *InternalLLMRequest) fillMissingToolCallIDs() {
+	usedIDs := make(map[string]struct{})
+	for _, msg := range r.Messages {
+		for _, tc := range msg.ToolCalls {
+			if tc.ID == "" {
+				continue
+			}
+			usedIDs[tc.ID] = struct{}{}
+		}
+	}
+
+	sequence := 0
+	for messageIndex := range r.Messages {
+		for toolCallIndex := range r.Messages[messageIndex].ToolCalls {
+			toolCall := &r.Messages[messageIndex].ToolCalls[toolCallIndex]
+			if toolCall.ID != "" {
+				continue
+			}
+
+			candidate := fmt.Sprintf("call_octopus_%d_%d", messageIndex, toolCallIndex)
+			if _, exists := usedIDs[candidate]; exists {
+				for {
+					candidate = fmt.Sprintf("call_octopus_%d", sequence)
+					sequence++
+					if _, conflict := usedIDs[candidate]; !conflict {
+						break
+					}
+				}
+			}
+
+			toolCall.ID = candidate
+			usedIDs[candidate] = struct{}{}
+		}
+	}
 }
 
 // IsEmbeddingRequest returns true if this is an embedding request.
