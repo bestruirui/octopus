@@ -1104,11 +1104,16 @@ func convertItemToMessage(item *ResponsesItem) (*model.Message, error) {
 		return nil, nil
 
 	case "function_call":
+		callID := item.CallID
+		if callID == "" {
+			callID = item.ID
+		}
+
 		return &model.Message{
 			Role: "assistant",
 			ToolCalls: []model.ToolCall{
 				{
-					ID:   item.CallID,
+					ID:   callID,
 					Type: "function",
 					Function: model.FunctionCall{
 						Name:      item.Name,
@@ -1119,9 +1124,19 @@ func convertItemToMessage(item *ResponsesItem) (*model.Message, error) {
 		}, nil
 
 	case "function_call_output":
+		callID := item.CallID
+		if callID == "" {
+			callID = item.ID
+		}
+
+		var toolCallID *string
+		if callID != "" {
+			toolCallID = lo.ToPtr(callID)
+		}
+
 		return &model.Message{
 			Role:       "tool",
-			ToolCallID: lo.ToPtr(item.CallID),
+			ToolCallID: toolCallID,
 			Content:    convertInputToMessageContent(*item.Output),
 		}, nil
 

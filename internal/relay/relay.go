@@ -228,6 +228,9 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 		return nil, nil, err
 	}
 
+	// Preserve raw client request for relay logs.
+	internalRequest.RawRequest = append([]byte(nil), body...)
+
 	// Pass through the original query parameters
 	internalRequest.Query = c.Request.URL.Query()
 
@@ -425,6 +428,9 @@ func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([
 		log.Warnf("failed to transform stream: %v", err)
 		return nil, err
 	}
+	if len(inStream) > 0 {
+		ra.metrics.AppendClientResponse(inStream)
+	}
 
 	return inStream, nil
 }
@@ -443,6 +449,7 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 		return fmt.Errorf("failed to transform inbound response: %w", err)
 	}
 
+	ra.metrics.SetClientResponse(inResponse)
 	ra.c.Data(http.StatusOK, "application/json", inResponse)
 	return nil
 }
