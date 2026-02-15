@@ -36,6 +36,7 @@ export interface ChannelFormData {
     model: string;
     custom_model: string;
     enabled: boolean;
+    enable_circuit_breaker: boolean;
     proxy: boolean;
     auto_sync: boolean;
     auto_group: AutoGroupType;
@@ -586,6 +587,13 @@ export function ChannelForm({
                     <span className="text-sm font-medium text-card-foreground">{t('enabled')}</span>
                 </label>
                 <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                            checked={formData.enable_circuit_breaker}
+                            onCheckedChange={(checked) => onFormDataChange({ ...formData, enable_circuit_breaker: checked })}
+                        />
+                        <span className="text-sm text-card-foreground">{t('enableCircuitBreaker')}</span>
+                    </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                         <Switch
                             checked={formData.proxy}

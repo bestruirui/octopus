@@ -476,6 +476,7 @@
             "paramOverridePlaceholder": "Optional: JSON string to override request params",
             "model": "Model",
             "enabled": "Enabled",
+            "enableCircuitBreaker": "Enable Circuit Breaker",
             "proxy": "Use Proxy",
             "modelCustomPlaceholder": "Custom model name",
             "modelAdd": "Add",

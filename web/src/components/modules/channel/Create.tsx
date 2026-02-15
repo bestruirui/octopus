@@ -25,6 +25,7 @@ export function CreateDialogContent() {
         auto_sync: false,
         auto_group: AutoGroupType.None,
         enabled: true,
+        enable_circuit_breaker: true,
         proxy: false,
         match_regex: '',
     });
@@ -50,6 +51,7 @@ export function CreateDialogContent() {
                 name: formData.name,
                 type: formData.type,
                 enabled: formData.enabled,
+                enable_circuit_breaker: formData.enable_circuit_breaker,
                 base_urls: normalizedBaseUrls,
                 keys: normalizedKeys,
                 model: formData.model,
@@ -77,6 +79,7 @@ export function CreateDialogContent() {
                         auto_sync: false,
                         auto_group: AutoGroupType.None,
                         enabled: true,
+                        enable_circuit_breaker: true,
                         proxy: false,
                         match_regex: '',
                     });

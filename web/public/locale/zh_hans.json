@@ -476,6 +476,7 @@
             "paramOverridePlaceholder": "可选：JSON 字符串，用于覆盖请求参数",
             "model": "模型",
             "enabled": "启用",
+            "enableCircuitBreaker": "启用熔断器",
             "proxy": "使用代理",
             "modelCustomPlaceholder": "自定义模型名称",
             "modelAdd": "添加",
