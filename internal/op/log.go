@@ -11,6 +11,7 @@ import (
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/bestruirui/octopus/internal/utils/snowflake"
+	"gorm.io/gorm"
 )
 
 const relayLogMaxSize = 20
@@ -188,24 +189,25 @@ func relayLogCleanup(ctx context.Context) error {
 
 // RelayLogList 查询日志列表，支持可选的时间范围过滤
 // startTime 和 endTime 为 nil 时表示不限制时间范围
-func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize int) ([]model.RelayLog, error) {
+func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize int, filter *model.RelayLogListFilter) ([]model.RelayLog, error) {
 	enabled, err := SettingGetBool(model.SettingKeyRelayLogKeepEnabled)
 	if err != nil {
 		return nil, err
 	}
 	hasTimeFilter := startTime != nil && endTime != nil
+	hasFilter := filter != nil
 
 	// 获取缓存中符合条件的日志
 	relayLogCacheLock.Lock()
 	var cachedLogs []model.RelayLog
 	for _, log := range relayLogCache {
-		if hasTimeFilter {
-			if log.Time >= int64(*startTime) && log.Time <= int64(*endTime) {
-				cachedLogs = append(cachedLogs, log)
-			}
-		} else {
-			cachedLogs = append(cachedLogs, log)
+		if hasTimeFilter && (log.Time < int64(*startTime) || log.Time > int64(*endTime)) {
+			continue
 		}
+		if hasFilter && !relayLogMatchFilter(log, filter) {
+			continue
+		}
+		cachedLogs = append(cachedLogs, log)
 	}
 	relayLogCacheLock.Unlock()
 
@@ -241,6 +243,9 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 			if hasTimeFilter {
 				query = query.Where("time >= ? AND time <= ?", *startTime, *endTime)
 			}
+			if hasFilter {
+				query = applyRelayLogFilterQuery(query, filter)
+			}
 
 			var dbLogs []model.RelayLog
 			if err := query.Order("id DESC").Offset(dbOffset).Limit(remaining).Find(&dbLogs).Error; err != nil {
@@ -258,4 +263,57 @@ func RelayLogClear(ctx context.Context) error {
 	relayLogCache = make([]model.RelayLog, 0, relayLogMaxSize)
 	relayLogCacheLock.Unlock()
 	return db.GetDB().WithContext(ctx).Where("1 = 1").Delete(&model.RelayLog{}).Error
+}
+
+func applyRelayLogFilterQuery(query *gorm.DB, filter *model.RelayLogListFilter) *gorm.DB {
+	if filter == nil {
+		return query
+	}
+	if filter.Group != nil && *filter.Group != "" {
+		query = query.Where("request_model_name = ?", *filter.Group)
+	}
+	if filter.Model != nil && *filter.Model != "" {
+		query = query.Where("actual_model_name = ?", *filter.Model)
+	}
+	if filter.Retried != nil {
+		if *filter.Retried {
+			query = query.Where("total_attempts > ?", 1)
+		} else {
+			query = query.Where("total_attempts <= ?", 1)
+		}
+	}
+	if filter.Channel != nil && *filter.Channel != "" {
+		query = query.Where("channel_name = ? OR attempts LIKE ?", *filter.Channel, "%\"channel_name\":\""+*filter.Channel+"\"%")
+	}
+	return query
+}
+
+func relayLogMatchFilter(log model.RelayLog, filter *model.RelayLogListFilter) bool {
+	if filter == nil {
+		return true
+	}
+	if filter.Group != nil && *filter.Group != "" && log.RequestModelName != *filter.Group {
+		return false
+	}
+	if filter.Model != nil && *filter.Model != "" && log.ActualModelName != *filter.Model {
+		return false
+	}
+	if filter.Retried != nil {
+		retried := log.TotalAttempts > 1
+		if retried != *filter.Retried {
+			return false
+		}
+	}
+	if filter.Channel != nil && *filter.Channel != "" {
+		if log.ChannelName == *filter.Channel {
+			return true
+		}
+		for _, attempt := range log.Attempts {
+			if attempt.ChannelName == *filter.Channel {
+				return true
+			}
+		}
+		return false
+	}
+	return true
 }
