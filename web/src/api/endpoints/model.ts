@@ -27,6 +27,7 @@ export interface LLMChannel {
     enabled: boolean;
     channel_id: number;
     channel_name: string;
+    tags: string[];
 }
 
 /**
@@ -68,6 +69,10 @@ export function useModelChannelList() {
         queryFn: async () => {
             return apiClient.get<LLMChannel[]>('/api/v1/model/channel');
         },
+        select: (data) => data.map((item) => ({
+            ...item,
+            tags: item.tags ?? [],
+        })),
         refetchInterval: 30000,
     });
 }

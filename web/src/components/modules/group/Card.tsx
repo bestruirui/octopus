@@ -49,6 +49,7 @@ function EditDialogContent({ group, displayMembers, isSubmitting, onSubmit }: Ed
             <MorphingDialogDescription className="flex-1 min-h-0 overflow-hidden">
                 <GroupEditor
                     key={`edit-group-${group.id}`}
+                    groupId={group.id}
                     initial={{
                         name: group.name,
                         match_regex: group.match_regex ?? '',
@@ -89,6 +90,14 @@ export function GroupCard({ group }: { group: Group }) {
         return map;
     }, [modelChannels]);
 
+    const tagsByKey = useMemo(() => {
+        const map = new Map<string, string[]>();
+        modelChannels.forEach((mc) => {
+            map.set(modelChannelKey(mc.channel_id, mc.name), mc.tags ?? []);
+        });
+        return map;
+    }, [modelChannels]);
+
     const displayMembers = useMemo((): SelectedMember[] =>
         [...(group.items || [])]
             .sort((a, b) => a.priority - b.priority)
@@ -98,10 +107,11 @@ export function GroupCard({ group }: { group: Group }) {
                 enabled: enabledByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? true,
                 channel_id: item.channel_id,
                 channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? `Channel ${item.channel_id}`,
+                tags: tagsByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? [],
                 item_id: item.id,
                 weight: item.weight,
             })),
-        [group.items, channelNameByKey, enabledByKey]
+        [group.items, channelNameByKey, enabledByKey, tagsByKey]
     );
 
     useEffect(() => {

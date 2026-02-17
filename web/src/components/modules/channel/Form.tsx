@@ -1,4 +1,4 @@
-import { AutoGroupType, ChannelType, type Channel, useFetchModel } from '@/api/endpoints/channel';
+import { AutoGroupType, ChannelType, type Channel, useFetchModel, useChannelList } from '@/api/endpoints/channel';
 import {
     Select,
     SelectContent,
@@ -12,8 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw, X, Plus } from 'lucide-react';
+import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 
 export interface ChannelKeyFormItem {
     id?: number;
@@ -40,6 +41,7 @@ export interface ChannelFormData {
     auto_sync: boolean;
     auto_group: AutoGroupType;
     match_regex: string;
+    tags: string[];
 }
 
 export interface ChannelFormProps {
@@ -218,6 +220,45 @@ export function ChannelForm({
         const curr = formData.custom_header ?? [];
         if (curr.length <= 1) return;
         onFormDataChange({ ...formData, custom_header: curr.filter((_, i) => i !== idx) });
+    };
+
+    const [tagInputValue, setTagInputValue] = useState('');
+    const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+    const tagAnchorRef = useRef<HTMLDivElement>(null);
+    const { data: channelListData } = useChannelList();
+
+    const allExistingTags = useMemo(() => {
+        const tagSet = new Set<string>();
+        channelListData?.forEach((ch) => ch.raw.tags?.forEach((t) => tagSet.add(t)));
+        return Array.from(tagSet).sort();
+    }, [channelListData]);
+
+    const tagSuggestions = useMemo(() => {
+        const currentTags = new Set(formData.tags ?? []);
+        const available = allExistingTags.filter((t) => !currentTags.has(t));
+        if (!tagInputValue.trim()) return available;
+        const lower = tagInputValue.trim().toLowerCase();
+        return available.filter((t) => t.toLowerCase().includes(lower));
+    }, [allExistingTags, formData.tags, tagInputValue]);
+
+    const handleAddTag = (tag: string) => {
+        const trimmed = tag.trim();
+        if (trimmed && !(formData.tags ?? []).includes(trimmed)) {
+            onFormDataChange({ ...formData, tags: [...(formData.tags ?? []), trimmed] });
+        }
+        setTagInputValue('');
+        setTagPopoverOpen(false);
+    };
+
+    const handleRemoveTag = (tag: string) => {
+        onFormDataChange({ ...formData, tags: (formData.tags ?? []).filter(t => t !== tag) });
+    };
+
+    const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (tagInputValue.trim()) handleAddTag(tagInputValue);
+        }
     };
 
     return (
@@ -545,6 +586,82 @@ export function ChannelForm({
                                     </div>
                                 ))}
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-card-foreground">
+                                {t('tags')} {(formData.tags ?? []).length > 0 ? `(${(formData.tags ?? []).length})` : ''}
+                            </label>
+                            <Popover open={tagPopoverOpen && tagSuggestions.length > 0} onOpenChange={setTagPopoverOpen}>
+                                <PopoverAnchor asChild>
+                                    <div className="relative" ref={tagAnchorRef}>
+                                        <Input
+                                            id={`${idPrefix}-tag-input`}
+                                            type="text"
+                                            value={tagInputValue}
+                                            onChange={(e) => {
+                                                setTagInputValue(e.target.value);
+                                                setTagPopoverOpen(true);
+                                            }}
+                                            onFocus={() => setTagPopoverOpen(true)}
+                                            onKeyDown={handleTagInputKeyDown}
+                                            placeholder={t('tagsPlaceholder')}
+                                            className="pr-10 rounded-xl"
+                                        />
+                                        {tagInputValue.trim() && !(formData.tags ?? []).includes(tagInputValue.trim()) && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleAddTag(tagInputValue)}
+                                                className="absolute rounded-lg right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                                                title={t('add')}
+                                            >
+                                                <Plus className="size-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </PopoverAnchor>
+                                <PopoverContent
+                                    className="p-2 rounded-xl"
+                                    align="start"
+                                    onOpenAutoFocus={(e) => e.preventDefault()}
+                                    onInteractOutside={(e) => {
+                                        if (tagAnchorRef.current?.contains(e.target as Node)) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                >
+                                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                                        {tagSuggestions.map((tag) => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => handleAddTag(tag)}
+                                                className="px-2 py-0.5 text-xs rounded-md transition-colors bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            {(formData.tags ?? []).length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {(formData.tags ?? []).map((tag) => (
+                                        <Badge key={tag} variant="secondary" className="bg-muted hover:bg-muted/80">
+                                            {tag}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveTag(tag)}
+                                                className="ml-1 rounded-sm opacity-70 hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-ring"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2">
