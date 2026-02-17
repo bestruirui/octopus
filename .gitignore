@@ -3,3 +3,8 @@ build
 static/out/*
 !static/out/README.md
 .vscode
+*_test.go
+progress.md
+findings.md
+task_plan.md
+AGENTS.md

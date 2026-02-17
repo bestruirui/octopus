@@ -101,8 +101,8 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			continue
 		}
 
-		// 熔断检查
-		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+		// 熔断检查（可按渠道开关控制）
+		if channel.EnableCircuitBreaker && iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
 			continue
 		}
 
@@ -182,7 +182,9 @@ func (ra *relayAttempt) attempt() attemptResult {
 		})
 
 		// 熔断器：记录成功
-		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		if ra.channel.EnableCircuitBreaker {
+			balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		}
 		// 会话保持：更新粘性记录
 		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
 
@@ -200,7 +202,9 @@ func (ra *relayAttempt) attempt() attemptResult {
 	})
 
 	// 熔断器：记录失败
-	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	if ra.channel.EnableCircuitBreaker {
+		balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	}
 
 	written := ra.c.Writer.Written()
 	if written {
@@ -227,6 +231,9 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return nil, nil, err
 	}
+
+	// Preserve raw client request for relay logs.
+	internalRequest.RawRequest = append([]byte(nil), body...)
 
 	// Pass through the original query parameters
 	internalRequest.Query = c.Request.URL.Query()
@@ -425,6 +432,9 @@ func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([
 		log.Warnf("failed to transform stream: %v", err)
 		return nil, err
 	}
+	if len(inStream) > 0 {
+		ra.metrics.AppendClientResponse(inStream)
+	}
 
 	return inStream, nil
 }
@@ -443,6 +453,7 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 		return fmt.Errorf("failed to transform inbound response: %w", err)
 	}
 
+	ra.metrics.SetClientResponse(inResponse)
 	ra.c.Data(http.StatusOK, "application/json", inResponse)
 	return nil
 }
