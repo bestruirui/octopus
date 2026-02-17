@@ -339,7 +339,9 @@
             "autoAdd": "自動新增",
             "clear": "清空",
             "selectChannel": "供應源",
-            "selectModel": "模型"
+            "selectModel": "模型",
+            "filterByTag": "按標籤篩選",
+            "allChannels": "全部"
         },
         "mode": {
             "roundRobin": "輪詢",
@@ -500,7 +502,9 @@
             "autoGroupRegex": "正規比對",
             "matchRegex": "匹配正規",
             "matchRegexPlaceholder": "可選：用於匹配請求模型名稱的正規表示式",
-            "remark": "備註"
+            "remark": "備註",
+            "tags": "標籤",
+            "tagsPlaceholder": "輸入標籤名後按回車"
         }
     }
 }

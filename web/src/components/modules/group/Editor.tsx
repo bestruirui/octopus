@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
-import { Check, ChevronDownIcon, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { Check, ChevronDownIcon, Plus, Sparkles, Tag, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { useModelChannelList, type LLMChannel } from '@/api/endpoints/model';
@@ -18,7 +20,37 @@ import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS } from './utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
 import { HelpCircle } from 'lucide-react';
 
+const EMPTY_TAGS: string[] = [];
 
+const useTagFilterStore = create<{
+    tagsByGroup: Record<string, string[]>;
+    setSelectedTags: (groupId: string, tags: string[]) => void;
+    toggleTag: (groupId: string, tag: string) => void;
+}>()(
+    persist(
+        (set) => ({
+            tagsByGroup: {},
+            setSelectedTags: (groupId, tags) => set((state) => ({
+                tagsByGroup: { ...state.tagsByGroup, [groupId]: tags },
+            })),
+            toggleTag: (groupId, tag) => set((state) => {
+                const current = state.tagsByGroup[groupId] ?? [];
+                return {
+                    tagsByGroup: {
+                        ...state.tagsByGroup,
+                        [groupId]: current.includes(tag)
+                            ? current.filter((t) => t !== tag)
+                            : [...current, tag],
+                    },
+                };
+            }),
+        }),
+        {
+            name: 'tag-filter-storage',
+            partialize: (state) => ({ tagsByGroup: state.tagsByGroup }),
+        }
+    )
+);
 
 export type GroupEditorValues = {
     name: string;
@@ -212,6 +244,7 @@ function SortSection({
 }
 
 export function GroupEditor({
+    groupId,
     initial,
     submitText,
     submittingText,
@@ -219,6 +252,7 @@ export function GroupEditor({
     onSubmit,
     onCancel,
 }: {
+    groupId?: number;
     initial?: Partial<GroupEditorValues>;
     submitText: string;
     submittingText: string;
@@ -236,6 +270,47 @@ export function GroupEditor({
     const [sessionKeepTime, setSessionKeepTime] = useState<number>(initial?.session_keep_time ?? 0);
     const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>(initial?.members ?? []);
     const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+
+    // Per-group tag filter: use store for edit (has groupId), local state for create
+    const storeKey = groupId != null ? String(groupId) : '';
+    const storeSelectedTags = useTagFilterStore((s) => s.tagsByGroup[storeKey]) ?? EMPTY_TAGS;
+    const storeSetSelectedTags = useTagFilterStore((s) => s.setSelectedTags);
+    const storeToggleTag = useTagFilterStore((s) => s.toggleTag);
+    const [localSelectedTags, setLocalSelectedTags] = useState<string[]>([]);
+
+    const selectedTags = groupId != null ? storeSelectedTags : localSelectedTags;
+    const setSelectedTags = useCallback((tags: string[]) => {
+        if (groupId != null) storeSetSelectedTags(storeKey, tags);
+        else setLocalSelectedTags(tags);
+    }, [groupId, storeKey, storeSetSelectedTags]);
+    const toggleTag = useCallback((tag: string) => {
+        if (groupId != null) storeToggleTag(storeKey, tag);
+        else setLocalSelectedTags((prev) =>
+            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+        );
+    }, [groupId, storeKey, storeToggleTag]);
+
+    const allTags = useMemo(() => {
+        const tagSet = new Set<string>();
+        modelChannels.forEach((mc) => mc.tags?.forEach((t) => tagSet.add(t)));
+        return Array.from(tagSet).sort();
+    }, [modelChannels]);
+
+    // Derive effective tags: prune any selectedTags that no longer exist in
+    // allTags. This avoids an empty model list when persisted tags become stale
+    // (e.g., all channel tags removed), without needing a useEffect + setState.
+    const effectiveTags = useMemo(() => {
+        if (selectedTags.length === 0) return selectedTags;
+        const validSet = new Set(allTags);
+        return selectedTags.filter((t) => validSet.has(t));
+    }, [selectedTags, allTags]);
+
+    const filteredModelChannels = useMemo(() => {
+        if (effectiveTags.length === 0) return modelChannels;
+        return modelChannels.filter((mc) =>
+            mc.tags?.some((t) => effectiveTags.includes(t))
+        );
+    }, [modelChannels, effectiveTags]);
 
     const groupKey = normalizeKey(groupName);
     const regexKey = matchRegex.trim();
@@ -255,14 +330,14 @@ export function GroupEditor({
         if (regexKey) {
             try {
                 const re = parseRegex(regexKey);
-                return { matchedModelChannels: modelChannels.filter((mc) => re.test(mc.name)), regexError: '' };
+                return { matchedModelChannels: filteredModelChannels.filter((mc) => re.test(mc.name)), regexError: '' };
             } catch (e) {
                 return { matchedModelChannels: [], regexError: (e as Error)?.message ?? 'Invalid regex' };
             }
         }
         if (!groupKey) return { matchedModelChannels: [], regexError: '' };
-        return { matchedModelChannels: modelChannels.filter((mc) => matchesGroupName(mc.name, groupKey)), regexError: '' };
-    }, [groupKey, regexKey, modelChannels]);
+        return { matchedModelChannels: filteredModelChannels.filter((mc) => matchesGroupName(mc.name, groupKey)), regexError: '' };
+    }, [groupKey, regexKey, filteredModelChannels]);
 
     const handleAddMember = useCallback((channel: LLMChannel) => {
         const key = memberKey(channel);
@@ -438,10 +513,44 @@ export function GroupEditor({
                         ))}
                     </div>
 
+                    {/* Tag filter */}
+                    {allTags.length > 0 && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                                <Tag className="size-3" />
+                                {t('form.filterByTag')}
+                            </span>
+                            {allTags.map((tag) => (
+                                <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => toggleTag(tag)}
+                                    className={cn(
+                                        'px-2 py-0.5 text-xs rounded-md transition-colors',
+                                        effectiveTags.includes(tag)
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                    )}
+                                >
+                                    {tag}
+                                </button>
+                            ))}
+                            {effectiveTags.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedTags([])}
+                                    className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    {t('form.allChannels')}
+                                </button>
+                            )}
+                        </div>
+                    )}
+
                     <div className="flex-1 min-h-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-0">
                             <ModelPickerSection
-                                modelChannels={modelChannels}
+                                modelChannels={filteredModelChannels}
                                 selectedMembers={selectedMembers}
                                 onAdd={handleAddMember}
                                 onAutoAdd={handleAutoAdd}

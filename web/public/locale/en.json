@@ -339,7 +339,9 @@
             "autoAdd": "Auto Add",
             "clear": "Clear",
             "selectChannel": "Channel",
-            "selectModel": "Model"
+            "selectModel": "Model",
+            "filterByTag": "Filter by Tag",
+            "allChannels": "All"
         },
         "mode": {
             "roundRobin": "Round Robin",
@@ -500,7 +502,9 @@
             "autoGroupRegex": "Regex",
             "matchRegex": "Match Regex",
             "matchRegexPlaceholder": "Optional: regex pattern to match request model names",
-            "remark": "Remark"
+            "remark": "Remark",
+            "tags": "Tags",
+            "tagsPlaceholder": "Enter tag name and press Enter"
         }
     }
 }
