@@ -275,7 +275,8 @@ func (r *InternalLLMRequest) Validate() error {
 
 	if isChatRequest {
 		r.fillMissingToolCallIDsFromToolMessages()
-		// r.fillMissingToolCallIDs()
+		r.fillMissingToolCallIDs()
+		r.sanitizeToolCallMessages()
 	}
 
 	return nil
@@ -366,6 +367,105 @@ func (r *InternalLLMRequest) fillMissingToolCallIDsFromToolMessages() {
 			}
 		}
 	}
+}
+
+func (r *InternalLLMRequest) sanitizeToolCallMessages() {
+	sanitized := make([]Message, 0, len(r.Messages))
+	pendingIDs := make([]string, 0)
+	pendingSet := make(map[string]struct{})
+	usedPendingIDs := make(map[string]struct{})
+
+	resetPending := func() {
+		pendingIDs = pendingIDs[:0]
+		for k := range pendingSet {
+			delete(pendingSet, k)
+		}
+		for k := range usedPendingIDs {
+			delete(usedPendingIDs, k)
+		}
+	}
+
+	for _, original := range r.Messages {
+		msg := original
+
+		switch msg.Role {
+		case "assistant":
+			resetPending()
+
+			if len(msg.ToolCalls) > 0 {
+				filtered := make([]ToolCall, 0, len(msg.ToolCalls))
+				seenToolCallIDs := make(map[string]struct{}, len(msg.ToolCalls))
+
+				for _, tc := range msg.ToolCalls {
+					tc.ID = strings.TrimSpace(tc.ID)
+					tc.Function.Name = strings.TrimSpace(tc.Function.Name)
+					if tc.Function.Name == "" {
+						continue
+					}
+					if tc.ID != "" {
+						if _, exists := seenToolCallIDs[tc.ID]; exists {
+							continue
+						}
+						seenToolCallIDs[tc.ID] = struct{}{}
+					}
+					filtered = append(filtered, tc)
+				}
+
+				msg.ToolCalls = filtered
+				for _, tc := range msg.ToolCalls {
+					if tc.ID == "" {
+						continue
+					}
+					pendingIDs = append(pendingIDs, tc.ID)
+					pendingSet[tc.ID] = struct{}{}
+				}
+			}
+
+			sanitized = append(sanitized, msg)
+		case "tool":
+			assignedID := ""
+			hasExplicitToolCallID := false
+
+			if msg.ToolCallID != nil {
+				trimmed := strings.TrimSpace(*msg.ToolCallID)
+				if trimmed != "" {
+					hasExplicitToolCallID = true
+					if _, exists := pendingSet[trimmed]; exists {
+						if _, used := usedPendingIDs[trimmed]; !used {
+							assignedID = trimmed
+						}
+					}
+				}
+			}
+
+			if assignedID == "" {
+				if hasExplicitToolCallID {
+					continue
+				}
+				for _, candidate := range pendingIDs {
+					if _, used := usedPendingIDs[candidate]; used {
+						continue
+					}
+					assignedID = candidate
+					break
+				}
+			}
+
+			if assignedID == "" {
+				continue
+			}
+
+			usedPendingIDs[assignedID] = struct{}{}
+			id := assignedID
+			msg.ToolCallID = &id
+			sanitized = append(sanitized, msg)
+		default:
+			resetPending()
+			sanitized = append(sanitized, msg)
+		}
+	}
+
+	r.Messages = sanitized
 }
 
 // IsEmbeddingRequest returns true if this is an embedding request.
