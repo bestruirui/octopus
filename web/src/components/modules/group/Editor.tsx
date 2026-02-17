@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Check, ChevronDownIcon, Plus, Sparkles, Tag, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
@@ -25,23 +26,31 @@ const useTagFilterStore = create<{
     tagsByGroup: Record<string, string[]>;
     setSelectedTags: (groupId: string, tags: string[]) => void;
     toggleTag: (groupId: string, tag: string) => void;
-}>((set) => ({
-    tagsByGroup: {},
-    setSelectedTags: (groupId, tags) => set((state) => ({
-        tagsByGroup: { ...state.tagsByGroup, [groupId]: tags },
-    })),
-    toggleTag: (groupId, tag) => set((state) => {
-        const current = state.tagsByGroup[groupId] ?? [];
-        return {
-            tagsByGroup: {
-                ...state.tagsByGroup,
-                [groupId]: current.includes(tag)
-                    ? current.filter((t) => t !== tag)
-                    : [...current, tag],
-            },
-        };
-    }),
-}));
+}>()(
+    persist(
+        (set) => ({
+            tagsByGroup: {},
+            setSelectedTags: (groupId, tags) => set((state) => ({
+                tagsByGroup: { ...state.tagsByGroup, [groupId]: tags },
+            })),
+            toggleTag: (groupId, tag) => set((state) => {
+                const current = state.tagsByGroup[groupId] ?? [];
+                return {
+                    tagsByGroup: {
+                        ...state.tagsByGroup,
+                        [groupId]: current.includes(tag)
+                            ? current.filter((t) => t !== tag)
+                            : [...current, tag],
+                    },
+                };
+            }),
+        }),
+        {
+            name: 'tag-filter-storage',
+            partialize: (state) => ({ tagsByGroup: state.tagsByGroup }),
+        }
+    )
+);
 
 export type GroupEditorValues = {
     name: string;
