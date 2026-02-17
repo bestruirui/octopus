@@ -277,6 +277,7 @@ func (r *InternalLLMRequest) Validate() error {
 		r.fillMissingToolCallIDsFromToolMessages()
 		r.fillMissingToolCallIDs()
 		r.sanitizeToolCallMessages()
+		r.ensureReasoningContentForToolCalls()
 	}
 
 	return nil
@@ -468,6 +469,49 @@ func (r *InternalLLMRequest) sanitizeToolCallMessages() {
 	r.Messages = sanitized
 }
 
+func (r *InternalLLMRequest) ensureReasoningContentForToolCalls() {
+	if !r.isReasoningEnabled() {
+		return
+	}
+
+	for i := range r.Messages {
+		msg := &r.Messages[i]
+		if msg.Role != "assistant" || len(msg.ToolCalls) == 0 {
+			continue
+		}
+
+		if msg.ReasoningContent != nil {
+			continue
+		}
+
+		if msg.Reasoning != nil {
+			content := *msg.Reasoning
+			msg.ReasoningContent = &content
+			continue
+		}
+
+		empty := ""
+		msg.ReasoningContent = &empty
+	}
+}
+
+func (r *InternalLLMRequest) isReasoningEnabled() bool {
+	if r.EnableThinking != nil && *r.EnableThinking {
+		return true
+	}
+
+	effort := strings.ToLower(strings.TrimSpace(r.ReasoningEffort))
+	if effort != "" && effort != "false" && effort != "off" && effort != "none" && effort != "disabled" && effort != "0" && effort != "no" {
+		return true
+	}
+
+	if r.ReasoningBudget != nil {
+		return true
+	}
+
+	return false
+}
+
 // IsEmbeddingRequest returns true if this is an embedding request.
 func (r *InternalLLMRequest) IsEmbeddingRequest() bool {
 	return r.EmbeddingInput != nil
@@ -479,8 +523,13 @@ func (r *InternalLLMRequest) IsChatRequest() bool {
 }
 
 func (r *InternalLLMRequest) ClearHelpFields() {
+	reasoningEnabled := r.isReasoningEnabled()
+
 	for i, msg := range r.Messages {
 		msg.ClearHelpFields()
+		if !reasoningEnabled {
+			msg.ReasoningContent = nil
+		}
 		r.Messages[i] = msg
 	}
 
@@ -596,7 +645,6 @@ type Message struct {
 }
 
 func (m *Message) ClearHelpFields() {
-	m.ReasoningContent = nil
 	m.Reasoning = nil
 	m.ReasoningSignature = nil
 }
