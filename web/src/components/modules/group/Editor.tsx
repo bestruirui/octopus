@@ -527,7 +527,7 @@ export function GroupEditor({
                                     onClick={() => toggleTag(tag)}
                                     className={cn(
                                         'px-2 py-0.5 text-xs rounded-md transition-colors',
-                                        selectedTags.includes(tag)
+                                        effectiveTags.includes(tag)
                                             ? 'bg-primary text-primary-foreground'
                                             : 'bg-muted text-muted-foreground hover:bg-muted/80'
                                     )}
@@ -535,7 +535,7 @@ export function GroupEditor({
                                     {tag}
                                 </button>
                             ))}
-                            {selectedTags.length > 0 && (
+                            {effectiveTags.length > 0 && (
                                 <button
                                     type="button"
                                     onClick={() => setSelectedTags([])}
