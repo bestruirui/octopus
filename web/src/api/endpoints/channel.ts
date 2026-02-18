@@ -54,6 +54,7 @@ export type Channel = {
     name: string;
     type: ChannelType;
     enabled: boolean;
+    enable_circuit_breaker: boolean;
     base_urls: BaseUrl[];
     keys: ChannelKey[];
     model: string;
@@ -69,7 +70,8 @@ export type Channel = {
 };
 
 // Internal type: backend may return null for slice fields; normalize to [] in select()
-type ChannelServer = Omit<Channel, 'base_urls' | 'custom_header' | 'keys'> & {
+type ChannelServer = Omit<Channel, 'base_urls' | 'custom_header' | 'keys' | 'enable_circuit_breaker'> & {
+    enable_circuit_breaker?: boolean | null;
     base_urls: BaseUrl[] | null;
     custom_header: CustomHeader[] | null;
     keys: ChannelKey[] | null;
@@ -82,6 +84,7 @@ export type CreateChannelRequest = {
     name: string;
     type: ChannelType;
     enabled?: boolean;
+    enable_circuit_breaker?: boolean;
     base_urls: BaseUrl[];
     keys: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'remark'>>;
     model: string;
@@ -103,6 +106,7 @@ export type UpdateChannelRequest = {
     name?: string;
     type?: ChannelType;
     enabled?: boolean;
+    enable_circuit_breaker?: boolean;
     base_urls?: BaseUrl[];
     model?: string;
     custom_model?: string;
@@ -148,6 +152,7 @@ export function useChannelList() {
         select: (data) => data.map((item) => ({
             raw: ({
                 ...item,
+                enable_circuit_breaker: item.enable_circuit_breaker ?? true,
                 base_urls: item.base_urls ?? [],
                 custom_header: item.custom_header ?? [],
                 keys: item.keys ?? [],

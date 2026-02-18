@@ -137,6 +137,10 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		selectFields = append(selectFields, "enabled")
 		updates.Enabled = *req.Enabled
 	}
+	if req.EnableCircuitBreaker != nil {
+		selectFields = append(selectFields, "enable_circuit_breaker")
+		updates.EnableCircuitBreaker = *req.EnableCircuitBreaker
+	}
 	if req.BaseUrls != nil {
 		selectFields = append(selectFields, "base_urls")
 		updates.BaseUrls = *req.BaseUrls

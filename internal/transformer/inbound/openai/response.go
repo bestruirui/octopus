@@ -949,8 +949,10 @@ func convertToInternalRequest(req *ResponsesRequest) (*model.InternalLLMRequest,
 		Metadata:            req.Metadata,
 		MaxCompletionTokens: req.MaxOutputTokens,
 		TopLogprobs:         req.TopLogprobs,
+		ParallelToolCalls:   req.ParallelToolCalls,
 		RawAPIFormat:        model.APIFormatOpenAIResponse,
 		TransformerMetadata: map[string]string{},
+		Include:             append([]string(nil), req.Include...),
 	}
 
 	if req.Input.Text == nil && len(req.Input.Items) > 0 {
@@ -1030,35 +1032,7 @@ func convertToolChoiceToInternal(src *ResponsesToolChoice) *model.ToolChoice {
 }
 
 func convertInputToMessages(input *ResponsesInput) ([]model.Message, error) {
-	if input == nil {
-		return nil, nil
-	}
-
-	// Simple text input
-	if input.Text != nil {
-		return []model.Message{
-			{
-				Role: "user",
-				Content: model.MessageContent{
-					Content: input.Text,
-				},
-			},
-		}, nil
-	}
-
-	// Array of items
-	messages := make([]model.Message, 0, len(input.Items))
-	for _, item := range input.Items {
-		msg, err := convertItemToMessage(&item)
-		if err != nil {
-			return nil, err
-		}
-		if msg != nil {
-			messages = append(messages, *msg)
-		}
-	}
-
-	return messages, nil
+	return convertResponsesInputToChatMessages(input)
 }
 
 func convertItemToMessage(item *ResponsesItem) (*model.Message, error) {
@@ -1102,11 +1076,16 @@ func convertItemToMessage(item *ResponsesItem) (*model.Message, error) {
 		return nil, nil
 
 	case "function_call":
+		callID := item.CallID
+		if callID == "" {
+			callID = item.ID
+		}
+
 		return &model.Message{
 			Role: "assistant",
 			ToolCalls: []model.ToolCall{
 				{
-					ID:   item.CallID,
+					ID:   callID,
 					Type: "function",
 					Function: model.FunctionCall{
 						Name:      item.Name,
@@ -1117,9 +1096,19 @@ func convertItemToMessage(item *ResponsesItem) (*model.Message, error) {
 		}, nil
 
 	case "function_call_output":
+		callID := item.CallID
+		if callID == "" {
+			callID = item.ID
+		}
+
+		var toolCallID *string
+		if callID != "" {
+			toolCallID = lo.ToPtr(callID)
+		}
+
 		return &model.Message{
 			Role:       "tool",
-			ToolCallID: lo.ToPtr(item.CallID),
+			ToolCallID: toolCallID,
 			Content:    convertInputToMessageContent(*item.Output),
 		}, nil
 
