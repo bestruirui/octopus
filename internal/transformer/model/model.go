@@ -375,6 +375,8 @@ func (r *InternalLLMRequest) sanitizeToolCallMessages() {
 	pendingIDs := make([]string, 0)
 	pendingSet := make(map[string]struct{})
 	usedPendingIDs := make(map[string]struct{})
+	lastRole := ""
+	lastAssistantHadToolCalls := false
 
 	resetPending := func() {
 		pendingIDs = pendingIDs[:0]
@@ -391,9 +393,15 @@ func (r *InternalLLMRequest) sanitizeToolCallMessages() {
 
 		switch msg.Role {
 		case "assistant":
-			resetPending()
-
-			if len(msg.ToolCalls) > 0 {
+			hasToolCalls := len(msg.ToolCalls) > 0
+			if !hasToolCalls {
+				resetPending()
+			} else {
+				// Keep pending IDs across consecutive assistant tool_call messages.
+				// Responses input may emit one assistant item per tool call.
+				if !(lastRole == "assistant" && lastAssistantHadToolCalls) {
+					resetPending()
+				}
 				filtered := make([]ToolCall, 0, len(msg.ToolCalls))
 				seenToolCallIDs := make(map[string]struct{}, len(msg.ToolCalls))
 
@@ -423,7 +431,12 @@ func (r *InternalLLMRequest) sanitizeToolCallMessages() {
 			}
 
 			sanitized = append(sanitized, msg)
+			lastRole = "assistant"
+			lastAssistantHadToolCalls = hasToolCalls
 		case "tool":
+			lastRole = "tool"
+			lastAssistantHadToolCalls = false
+
 			assignedID := ""
 			hasExplicitToolCallID := false
 
@@ -460,9 +473,18 @@ func (r *InternalLLMRequest) sanitizeToolCallMessages() {
 			id := assignedID
 			msg.ToolCallID = &id
 			sanitized = append(sanitized, msg)
+		case "user":
+			// Keep pending tool-call IDs across interleaved user messages.
+			// Some upstream protocols can place user-side status/warning items
+			// before the corresponding function_call_output arrives.
+			sanitized = append(sanitized, msg)
+			lastRole = "user"
+			lastAssistantHadToolCalls = false
 		default:
 			resetPending()
 			sanitized = append(sanitized, msg)
+			lastRole = msg.Role
+			lastAssistantHadToolCalls = false
 		}
 	}
 

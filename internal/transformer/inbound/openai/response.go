@@ -1032,35 +1032,7 @@ func convertToolChoiceToInternal(src *ResponsesToolChoice) *model.ToolChoice {
 }
 
 func convertInputToMessages(input *ResponsesInput) ([]model.Message, error) {
-	if input == nil {
-		return nil, nil
-	}
-
-	// Simple text input
-	if input.Text != nil {
-		return []model.Message{
-			{
-				Role: "user",
-				Content: model.MessageContent{
-					Content: input.Text,
-				},
-			},
-		}, nil
-	}
-
-	// Array of items
-	messages := make([]model.Message, 0, len(input.Items))
-	for _, item := range input.Items {
-		msg, err := convertItemToMessage(&item)
-		if err != nil {
-			return nil, err
-		}
-		if msg != nil {
-			messages = append(messages, *msg)
-		}
-	}
-
-	return messages, nil
+	return convertResponsesInputToChatMessages(input)
 }
 
 func convertItemToMessage(item *ResponsesItem) (*model.Message, error) {
