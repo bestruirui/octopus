@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -26,6 +27,12 @@ var relayLogSubscribersLock sync.RWMutex
 
 var relayLogStreamTokens = make(map[string]struct{})
 var relayLogStreamTokensLock sync.RWMutex
+
+var relayLogRedundantFields = []string{
+	"_octopus_raw_request",
+	"_octopus_raw_response",
+	"_octopus_client_response",
+}
 
 func RelayLogStreamTokenCreate() (string, error) {
 	bytes := make([]byte, 32)
@@ -124,7 +131,11 @@ func RelayLogAdd(ctx context.Context, relayLog model.RelayLog) error {
 		maxSize = relayLogMaxSizeNoDB
 	}
 	relayLog.ID = snowflake.GenerateID()
-	go notifySubscribers(relayLog)
+	notifyLog := relayLog
+	if !isRelayLogRedundantFieldsEnabled() {
+		notifyLog = stripRelayLogRedundantFields(notifyLog)
+	}
+	go notifySubscribers(notifyLog)
 
 	relayLogCacheLock.Lock()
 	relayLogCache = append(relayLogCache, relayLog)
@@ -250,7 +261,58 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 		}
 	}
 
+	if !isRelayLogRedundantFieldsEnabled() {
+		for i := range result {
+			result[i] = stripRelayLogRedundantFields(result[i])
+		}
+	}
+
 	return result, nil
+}
+
+func isRelayLogRedundantFieldsEnabled() bool {
+	enabled, err := SettingGetBool(model.SettingKeyRelayLogRedundantFieldsEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
+}
+
+func stripRelayLogRedundantFields(relayLog model.RelayLog) model.RelayLog {
+	relayLog.RequestContent = stripJSONFields(relayLog.RequestContent, relayLogRedundantFields...)
+	relayLog.ResponseContent = stripJSONFields(relayLog.ResponseContent, relayLogRedundantFields...)
+	return relayLog
+}
+
+func stripJSONFields(payload string, fields ...string) string {
+	if payload == "" {
+		return payload
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(payload), &obj); err != nil {
+		return payload
+	}
+	if obj == nil {
+		return payload
+	}
+
+	changed := false
+	for _, field := range fields {
+		if _, exists := obj[field]; exists {
+			delete(obj, field)
+			changed = true
+		}
+	}
+	if !changed {
+		return payload
+	}
+
+	updated, err := json.Marshal(obj)
+	if err != nil {
+		return payload
+	}
+	return string(updated)
 }
 
 func RelayLogClear(ctx context.Context) error {

@@ -17,20 +17,28 @@ export function SettingLog() {
     const clearLogs = useClearLogs();
 
     const [enabled, setEnabled] = useState(true);
+    const [redundantFieldsEnabled, setRedundantFieldsEnabled] = useState(true);
     const [keepPeriod, setKeepPeriod] = useState('7');
     const [isClearing, setIsClearing] = useState(false);
 
     const initialEnabled = useRef(true);
+    const initialRedundantFieldsEnabled = useRef(true);
     const initialKeepPeriod = useRef('7');
 
     useEffect(() => {
         if (settings) {
             const enabledSetting = settings.find(s => s.key === SettingKey.RelayLogKeepEnabled);
+            const redundantFieldsSetting = settings.find(s => s.key === SettingKey.RelayLogRedundantFieldsEnabled);
             const periodSetting = settings.find(s => s.key === SettingKey.RelayLogKeepPeriod);
             if (enabledSetting) {
                 const isEnabled = enabledSetting.value === 'true';
                 queueMicrotask(() => setEnabled(isEnabled));
                 initialEnabled.current = isEnabled;
+            }
+            if (redundantFieldsSetting) {
+                const isEnabled = redundantFieldsSetting.value === 'true';
+                queueMicrotask(() => setRedundantFieldsEnabled(isEnabled));
+                initialRedundantFieldsEnabled.current = isEnabled;
             }
             if (periodSetting) {
                 queueMicrotask(() => setKeepPeriod(periodSetting.value));
@@ -61,6 +69,19 @@ export function SettingLog() {
                 onSuccess: () => {
                     toast.success(t('saved'));
                     initialKeepPeriod.current = keepPeriod;
+                }
+            }
+        );
+    };
+
+    const handleRedundantFieldsEnabledChange = (checked: boolean) => {
+        setRedundantFieldsEnabled(checked);
+        setSetting.mutate(
+            { key: SettingKey.RelayLogRedundantFieldsEnabled, value: checked ? 'true' : 'false' },
+            {
+                onSuccess: () => {
+                    toast.success(t('saved'));
+                    initialRedundantFieldsEnabled.current = checked;
                 }
             }
         );
@@ -116,6 +137,18 @@ export function SettingLog() {
                 />
             </div>
 
+            {/* 日志冗余字段记录与读取 */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <ScrollText className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">{t('log.redundantFields.label')}</span>
+                </div>
+                <Switch
+                    checked={redundantFieldsEnabled}
+                    onCheckedChange={handleRedundantFieldsEnabledChange}
+                />
+            </div>
+
             {/* 清空历史日志 */}
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -135,4 +168,3 @@ export function SettingLog() {
         </div>
     );
 }
-

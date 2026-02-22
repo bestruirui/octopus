@@ -1,506 +1,511 @@
 {
-    "login": {
-        "username": "Username",
-        "usernamePlaceholder": "Enter your username",
-        "password": "Password",
-        "passwordPlaceholder": "Enter your password",
-        "apikey": "API Key",
-        "apikeyPlaceholder": "Enter your API Key (sk-octopus-...)",
-        "mode": {
-            "user": "Account",
-            "apikey": "API Key"
-        },
-        "error": {
-            "generic": "Login failed, please check your credentials"
-        },
-        "button": {
-            "loading": "Logging in...",
-            "submit": "Login"
-        }
+  "login": {
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "apikey": "API Key",
+    "apikeyPlaceholder": "Enter your API Key (sk-octopus-...)",
+    "mode": {
+      "user": "Account",
+      "apikey": "API Key"
     },
-    "apiKeyDashboard": {
-        "error": "Failed to load data",
-        "logout": "Logout",
-        "requestStats": "Request Stats",
-        "totalStats": "Total Stats",
-        "inputStats": "Input Stats",
-        "outputStats": "Output Stats",
-        "requestCount": "Requests",
-        "timeConsumed": "Time Consumed",
-        "totalToken": "Tokens Used",
-        "totalCost": "Total Cost",
-        "inputTokens": "Input Tokens",
-        "inputCost": "Input Cost",
-        "outputTokens": "Output Tokens",
-        "outputCost": "Output Cost",
-        "successRequests": "Successful",
-        "failedRequests": "Failed",
-        "quota": "Remaining Quota",
+    "error": {
+      "generic": "Login failed, please check your credentials"
+    },
+    "button": {
+      "loading": "Logging in...",
+      "submit": "Login"
+    }
+  },
+  "apiKeyDashboard": {
+    "error": "Failed to load data",
+    "logout": "Logout",
+    "requestStats": "Request Stats",
+    "totalStats": "Total Stats",
+    "inputStats": "Input Stats",
+    "outputStats": "Output Stats",
+    "requestCount": "Requests",
+    "timeConsumed": "Time Consumed",
+    "totalToken": "Tokens Used",
+    "totalCost": "Total Cost",
+    "inputTokens": "Input Tokens",
+    "inputCost": "Input Cost",
+    "outputTokens": "Output Tokens",
+    "outputCost": "Output Cost",
+    "successRequests": "Successful",
+    "failedRequests": "Failed",
+    "quota": "Remaining Quota",
+    "unlimited": "Unlimited",
+    "expireAt": "Expires",
+    "neverExpire": "Never",
+    "daysLeft": "days left",
+    "expired": "Expired",
+    "supportedModels": "Supported Models"
+  },
+  "navbar": {
+    "home": "Home",
+    "channel": "Channel",
+    "group": "Group",
+    "key": "Key",
+    "model": "Price",
+    "log": "Log",
+    "setting": "Setting"
+  },
+  "common": {
+    "copy": {
+      "success": "Copied",
+      "failed": "Copy failed",
+      "noContent": "Nothing to copy"
+    }
+  },
+  "home": {
+    "activity": {
+      "requestCount": "Requests",
+      "waitTime": "Wait Time",
+      "totalToken": "Tokens Used",
+      "totalCost": "Total Cost",
+      "noData": "No Data"
+    },
+    "total": {
+      "requestStats": "Request Stats",
+      "totalStats": "Total Stats",
+      "inputStats": "Input Stats",
+      "outputStats": "Output Stats",
+      "requestCount": "Requests",
+      "timeConsumed": "Time Consumed",
+      "totalToken": "Tokens Used",
+      "totalCost": "Total Cost",
+      "inputTokens": "Input Tokens",
+      "inputCost": "Input Cost",
+      "outputTokens": "Output Tokens",
+      "outputCost": "Output Cost"
+    },
+    "chart": {
+      "totalRequests": "Total Requests",
+      "totalCost": "Total Cost",
+      "timePeriod": "Time Period",
+      "period": {
+        "today": "Today",
+        "last7Days": "7 Days",
+        "last30Days": "30 Days"
+      }
+    },
+    "rank": {
+      "title": "Ranking",
+      "sortByCost": "Cost",
+      "sortByCount": "Count",
+      "noData": "No ranking data",
+      "successRate": "Success Rate"
+    }
+  },
+  "setting": {
+    "appearance": "Appearance",
+    "system": "System",
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "label": "Language",
+      "zh_hans": "Chinese (Simplified)",
+      "zh_hant": "Chinese (Traditional)",
+      "en": "English"
+    },
+    "proxyUrl": {
+      "label": "Proxy URL",
+      "placeholder": "Enter proxy URL"
+    },
+    "statsSaveInterval": {
+      "label": "Stats Save Interval",
+      "placeholder": "Enter interval in minutes"
+    },
+    "corsAllowOrigins": {
+      "label": "CORS Allowed Origins",
+      "hint": "Empty = deny all, * = allow all",
+      "example": "Only allow specific domains: https://example.com,https://example2.com"
+    },
+    "circuitBreaker": {
+      "title": "Circuit Breaker",
+      "threshold": {
+        "label": "Failure Threshold (consecutive failures)",
+        "placeholder": "Enter threshold"
+      },
+      "cooldown": {
+        "label": "Base Cooldown (seconds)",
+        "placeholder": "Enter cooldown in seconds"
+      },
+      "maxCooldown": {
+        "label": "Max Cooldown (seconds)",
+        "placeholder": "Enter max cooldown in seconds"
+      },
+      "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
+    },
+    "saved": "Saved",
+    "backup": {
+      "title": "Backup / Restore",
+      "export": {
+        "title": "Export",
+        "includeLogs": "Include Logs",
+        "includeStats": "Include Stats",
+        "button": "Download JSON",
+        "exporting": "Exporting...",
+        "success": "Export started"
+      },
+      "import": {
+        "title": "Import (Incremental)",
+        "selected": "File selected",
+        "button": "Import JSON",
+        "importing": "Importing...",
+        "noFile": "Please select a JSON file first",
+        "success": "Import successful",
+        "failed": "Import failed",
+        "result": "Import result"
+      }
+    },
+    "apiKey": {
+      "title": "API Keys",
+      "empty": "No API keys",
+      "add": "Add Key",
+      "loadFailed": "Failed to load",
+      "form": {
+        "name": "Name",
+        "maxCost": "Max Cost",
+        "maxCostPlaceholder": "Enter amount",
         "unlimited": "Unlimited",
-        "expireAt": "Expires",
-        "neverExpire": "Never",
-        "daysLeft": "days left",
-        "expired": "Expired",
-        "supportedModels": "Supported Models"
+        "expireAt": "Expire Date",
+        "selectDate": "Select date",
+        "neverExpire": "Never Expire",
+        "supportedModels": "Supported Models",
+        "noModels": "No models available",
+        "modelsHint": "Leave empty for unlimited",
+        "enabled": "Enabled",
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "confirm": "Confirm"
+      },
+      "stats": {
+        "noData": "No statistics available",
+        "inputToken": "Input Token",
+        "outputToken": "Output Token",
+        "inputCost": "Input Cost",
+        "outputCost": "Output Cost",
+        "requestSuccess": "Request Success",
+        "requestFailed": "Request Failed"
+      },
+      "toast": {
+        "createSuccess": "API key created",
+        "createError": "Failed to create API key",
+        "updateSuccess": "API key updated",
+        "updateError": "Failed to update API key",
+        "deleteSuccess": "API key deleted",
+        "deleteError": "Failed to delete API key"
+      }
     },
-    "navbar": {
-        "home": "Home",
-        "channel": "Channel",
-        "group": "Group",
-        "key": "Key",
-        "model": "Price",
-        "log": "Log",
-        "setting": "Setting"
+    "llmPrice": {
+      "title": "Model Pricing",
+      "updateInterval": {
+        "label": "Auto Update Interval (hours)",
+        "placeholder": "Enter interval in hours"
+      },
+      "manualUpdate": {
+        "label": "Manual Price Update",
+        "button": "Update Now",
+        "updating": "Updating..."
+      },
+      "lastUpdate": "Last Update",
+      "neverUpdated": "Never updated",
+      "updateSuccess": "Price updated successfully",
+      "updateFailed": "Failed to update price"
     },
-    "common": {
-        "copy": {
-            "success": "Copied",
-            "failed": "Copy failed",
-            "noContent": "Nothing to copy"
-        }
+    "llmSync": {
+      "title": "Channel Sync",
+      "syncInterval": {
+        "label": "Auto Sync Interval (hours)",
+        "placeholder": "Enter interval in hours"
+      },
+      "manualSync": {
+        "label": "Manual Channel Sync",
+        "button": "Sync Now",
+        "syncing": "Syncing..."
+      },
+      "lastSync": "Last Sync",
+      "neverSynced": "Never synced",
+      "syncSuccess": "Channel synced successfully",
+      "syncFailed": "Failed to sync channel"
     },
-    "home": {
-        "activity": {
-            "requestCount": "Requests",
-            "waitTime": "Wait Time",
-            "totalToken": "Tokens Used",
-            "totalCost": "Total Cost",
-            "noData": "No Data"
-        },
-        "total": {
-            "requestStats": "Request Stats",
-            "totalStats": "Total Stats",
-            "inputStats": "Input Stats",
-            "outputStats": "Output Stats",
-            "requestCount": "Requests",
-            "timeConsumed": "Time Consumed",
-            "totalToken": "Tokens Used",
-            "totalCost": "Total Cost",
-            "inputTokens": "Input Tokens",
-            "inputCost": "Input Cost",
-            "outputTokens": "Output Tokens",
-            "outputCost": "Output Cost"
-        },
-        "chart": {
-            "totalRequests": "Total Requests",
-            "totalCost": "Total Cost",
-            "timePeriod": "Time Period",
-            "period": {
-                "today": "Today",
-                "last7Days": "7 Days",
-                "last30Days": "30 Days"
-            }
-        },
-        "rank": {
-            "title": "Ranking",
-            "sortByCost": "Cost",
-            "sortByCount": "Count",
-            "noData": "No ranking data",
-            "successRate": "Success Rate"
-        }
+    "account": {
+      "title": "Account Settings",
+      "save": "Save",
+      "saving": "Saving...",
+      "username": {
+        "label": "Change Username",
+        "placeholder": "Enter new username",
+        "empty": "Username cannot be empty",
+        "success": "Username changed successfully",
+        "failed": "Failed to change username"
+      },
+      "password": {
+        "label": "Change Password",
+        "oldPlaceholder": "Enter current password",
+        "newPlaceholder": "Enter new password",
+        "confirmPlaceholder": "Confirm new password",
+        "oldEmpty": "Please enter current password",
+        "newEmpty": "Please enter new password",
+        "mismatch": "Passwords do not match",
+        "tooShort": "Password must be at least 6 characters",
+        "change": "Change Password",
+        "success": "Password changed successfully",
+        "failed": "Failed to change password"
+      }
     },
-    "setting": {
-        "appearance": "Appearance",
-        "system": "System",
-        "theme": {
-            "label": "Theme",
-            "light": "Light",
-            "dark": "Dark",
-            "system": "System"
-        },
-        "language": {
-            "label": "Language",
-            "zh_hans": "Chinese (Simplified)",
-            "zh_hant": "Chinese (Traditional)",
-            "en": "English"
-        },
-        "proxyUrl": {
-            "label": "Proxy URL",
-            "placeholder": "Enter proxy URL"
-        },
-        "statsSaveInterval": {
-            "label": "Stats Save Interval",
-            "placeholder": "Enter interval in minutes"
-        },
-        "corsAllowOrigins": {
-            "label": "CORS Allowed Origins",
-            "hint": "Empty = deny all, * = allow all",
-            "example": "Only allow specific domains: https://example.com,https://example2.com"
-        },
-        "circuitBreaker": {
-            "title": "Circuit Breaker",
-            "threshold": {
-                "label": "Failure Threshold (consecutive failures)",
-                "placeholder": "Enter threshold"
-            },
-            "cooldown": {
-                "label": "Base Cooldown (seconds)",
-                "placeholder": "Enter cooldown in seconds"
-            },
-            "maxCooldown": {
-                "label": "Max Cooldown (seconds)",
-                "placeholder": "Enter max cooldown in seconds"
-            },
-            "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
-        },
-        "saved": "Saved",
-        "backup": {
-            "title": "Backup / Restore",
-            "export": {
-                "title": "Export",
-                "includeLogs": "Include Logs",
-                "includeStats": "Include Stats",
-                "button": "Download JSON",
-                "exporting": "Exporting...",
-                "success": "Export started"
-            },
-            "import": {
-                "title": "Import (Incremental)",
-                "selected": "File selected",
-                "button": "Import JSON",
-                "importing": "Importing...",
-                "noFile": "Please select a JSON file first",
-                "success": "Import successful",
-                "failed": "Import failed",
-                "result": "Import result"
-            }
-        },
-        "apiKey": {
-            "title": "API Keys",
-            "empty": "No API keys",
-            "add": "Add Key",
-            "loadFailed": "Failed to load",
-            "form": {
-                "name": "Name",
-                "maxCost": "Max Cost",
-                "maxCostPlaceholder": "Enter amount",
-                "unlimited": "Unlimited",
-                "expireAt": "Expire Date",
-                "selectDate": "Select date",
-                "neverExpire": "Never Expire",
-                "supportedModels": "Supported Models",
-                "noModels": "No models available",
-                "modelsHint": "Leave empty for unlimited",
-                "enabled": "Enabled",
-                "cancel": "Cancel",
-                "create": "Create",
-                "save": "Save",
-                "confirm": "Confirm"
-            },
-            "stats": {
-                "noData": "No statistics available",
-                "inputToken": "Input Token",
-                "outputToken": "Output Token",
-                "inputCost": "Input Cost",
-                "outputCost": "Output Cost",
-                "requestSuccess": "Request Success",
-                "requestFailed": "Request Failed"
-            },
-            "toast": {
-                "createSuccess": "API key created",
-                "createError": "Failed to create API key",
-                "updateSuccess": "API key updated",
-                "updateError": "Failed to update API key",
-                "deleteSuccess": "API key deleted",
-                "deleteError": "Failed to delete API key"
-            }
-        },
-        "llmPrice": {
-            "title": "Model Pricing",
-            "updateInterval": {
-                "label": "Auto Update Interval (hours)",
-                "placeholder": "Enter interval in hours"
-            },
-            "manualUpdate": {
-                "label": "Manual Price Update",
-                "button": "Update Now",
-                "updating": "Updating..."
-            },
-            "lastUpdate": "Last Update",
-            "neverUpdated": "Never updated",
-            "updateSuccess": "Price updated successfully",
-            "updateFailed": "Failed to update price"
-        },
-        "llmSync": {
-            "title": "Channel Sync",
-            "syncInterval": {
-                "label": "Auto Sync Interval (hours)",
-                "placeholder": "Enter interval in hours"
-            },
-            "manualSync": {
-                "label": "Manual Channel Sync",
-                "button": "Sync Now",
-                "syncing": "Syncing..."
-            },
-            "lastSync": "Last Sync",
-            "neverSynced": "Never synced",
-            "syncSuccess": "Channel synced successfully",
-            "syncFailed": "Failed to sync channel"
-        },
-        "account": {
-            "title": "Account Settings",
-            "save": "Save",
-            "saving": "Saving...",
-            "username": {
-                "label": "Change Username",
-                "placeholder": "Enter new username",
-                "empty": "Username cannot be empty",
-                "success": "Username changed successfully",
-                "failed": "Failed to change username"
-            },
-            "password": {
-                "label": "Change Password",
-                "oldPlaceholder": "Enter current password",
-                "newPlaceholder": "Enter new password",
-                "confirmPlaceholder": "Confirm new password",
-                "oldEmpty": "Please enter current password",
-                "newEmpty": "Please enter new password",
-                "mismatch": "Passwords do not match",
-                "tooShort": "Password must be at least 6 characters",
-                "change": "Change Password",
-                "success": "Password changed successfully",
-                "failed": "Failed to change password"
-            }
-        },
-        "info": {
-            "title": "Version Info",
-            "currentVersion": "Current Version",
-            "latestVersion": "Latest Version",
-            "buildTime": "Build Time",
-            "publishedAt": "Published At",
-            "github": "GitHub Repository",
-            "unknown": "Unknown",
-            "versionMismatch": "Version Mismatch",
-            "versionMismatchHint": "Frontend version ({frontend}) does not match backend version ({backend}). This may be a browser cache issue. Please force refresh the page.",
-            "forceRefresh": "Force Refresh",
-            "newVersionAvailable": "New version available",
-            "newVersionAvailableHint": "Please backup your data first, then update the system",
-            "updateNow": "Update Now",
-            "updating": "Updating...",
-            "updateSuccess": "Update successful, service will restart shortly",
-            "updateFailed": "Update failed"
-        },
-        "log": {
-            "title": "Log Settings",
-            "enabled": {
-                "label": "Enable History Logs"
-            },
-            "keepPeriod": {
-                "label": "Log Retention (days)",
-                "placeholder": "Enter days"
-            },
-            "clear": {
-                "label": "Clear History Logs",
-                "button": "Clear",
-                "clearing": "Clearing..."
-            },
-            "clearSuccess": "Logs cleared",
-            "clearFailed": "Failed to clear logs"
-        }
-    },
-    "group": {
-        "toast": {
-            "created": "Created successfully",
-            "createFailed": "Create failed",
-            "updated": "Updated successfully",
-            "updateFailed": "Update failed",
-            "deleted": "Deleted successfully",
-            "autoAddFailed": "Auto add failed"
-        },
-        "create": {
-            "title": "Create Group",
-            "submit": "Create",
-            "submitting": "Creating..."
-        },
-        "card": {
-            "empty": "No rules"
-        },
-        "detail": {
-            "actions": {
-                "edit": "Edit",
-                "cancel": "Cancel",
-                "save": "Save",
-                "copyName": "Copy Name",
-                "delete": "Delete",
-                "confirmDelete": "Confirm Delete"
-            }
-        },
-        "form": {
-            "name": "Group Name",
-            "matchRegex": "Match Regex",
-            "matchRegexPlaceholder": "Leave empty to use default fuzzy match by group name",
-            "matchRegexInvalid": "Invalid regex",
-            "firstTokenTimeOut": "First Token Timeout",
-            "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
-            "sessionKeepTime": "Session Keep Time",
-            "sessionKeepTimeHint": "Unit: seconds, keeps using the same channel within a session, 0 = disabled",
-            "items": "Selected Models",
-            "addItem": "Add Model",
-            "autoAdd": "Auto Add",
-            "clear": "Clear",
-            "selectChannel": "Channel",
-            "selectModel": "Model"
-        },
-        "mode": {
-            "roundRobin": "Round Robin",
-            "random": "Random",
-            "failover": "Failover",
-            "weighted": "Weighted"
-        },
-        "empty": "No groups yet, click the button above to create one"
-    },
-    "model": {
-        "create": {
-            "title": "Create Model",
-            "name": "Model Name",
-            "input": "Input Price",
-            "output": "Output Price",
-            "cacheRead": "Cache Read",
-            "cacheWrite": "Cache Write",
-            "submit": "Create",
-            "submitting": "Creating..."
-        },
-        "toast": {
-            "updated": "Model price updated",
-            "updateFailed": "Update failed",
-            "deleted": "Model deleted",
-            "deleteFailed": "Delete failed"
-        },
-        "card": {
-            "inputCache": "Input/Cache",
-            "outputCache": "Output/Cache",
-            "edit": "Edit",
-            "delete": "Delete"
-        },
-        "overlay": {
-            "cancel": "Cancel",
-            "deleting": "Deleting...",
-            "confirmDelete": "Confirm Delete",
-            "input": "Input",
-            "output": "Output",
-            "cacheRead": "Cache Read",
-            "cacheWrite": "Cache Write",
-            "save": "Save"
-        }
+    "info": {
+      "title": "Version Info",
+      "currentVersion": "Current Version",
+      "latestVersion": "Latest Version",
+      "buildTime": "Build Time",
+      "publishedAt": "Published At",
+      "github": "GitHub Repository",
+      "unknown": "Unknown",
+      "versionMismatch": "Version Mismatch",
+      "versionMismatchHint": "Frontend version ({frontend}) does not match backend version ({backend}). This may be a browser cache issue. Please force refresh the page.",
+      "forceRefresh": "Force Refresh",
+      "newVersionAvailable": "New version available",
+      "newVersionAvailableHint": "Please backup your data first, then update the system",
+      "updateNow": "Update Now",
+      "updating": "Updating...",
+      "updateSuccess": "Update successful, service will restart shortly",
+      "updateFailed": "Update failed"
     },
     "log": {
-        "list": {
-            "noMore": "No more logs"
-        },
-        "card": {
-            "error": "Error",
-            "errorInfo": "Error Info",
-            "firstToken": "TTFT",
-            "totalTime": "Total",
-            "input": "Input",
-            "output": "Output",
-            "cost": "Cost",
-            "requestContent": "Request Content",
-            "responseContent": "Response Content",
-            "noRequestContent": "(No request content)",
-            "noResponseContent": "(No response content)",
-            "firstTokenTime": "First Token Time",
-            "tokens": "tokens",
-            "retryDetails": "Retry Details",
-            "attempts": "attempts",
-            "success": "Success",
-            "failed": "Failed"
-        }
-    },
-    "channel": {
-        "card": {
-            "requestCount": "Requests",
-            "totalCost": "Total Cost",
-            "toast": {
-                "enabled": "Channel enabled",
-                "disabled": "Channel disabled"
-            }
-        },
-        "detail": {
-            "title": {
-                "edit": "Edit Channel",
-                "view": "Channel Details"
-            },
-            "sections": {
-                "requests": "Request Details",
-                "tokens": "Token Usage",
-                "costs": "Cost Details",
-                "baseUrls": "Base URLs",
-                "keys": "Keys"
-            },
-            "noBaseUrls": "No Base URLs",
-            "noKeys": "No Keys",
-            "metrics": {
-                "totalRequests": "Total Requests",
-                "totalToken": "Total Tokens",
-                "totalCost": "Total Cost",
-                "successRequests": "Successful Requests",
-                "failedRequests": "Failed Requests",
-                "inputToken": "Input Tokens",
-                "outputToken": "Output Tokens",
-                "inputCost": "Input Cost",
-                "outputCost": "Output Cost",
-                "avgWaitTime": "Wait Time"
-            },
-            "actions": {
-                "edit": "Edit",
-                "cancel": "Cancel",
-                "save": "Save",
-                "saving": "Saving...",
-                "delete": "Delete",
-                "confirmDelete": "Confirm Delete",
-                "deleting": "Deleting..."
-            }
-        },
-        "create": {
-            "dialogTitle": "Create New Channel",
-            "submit": "Create Channel",
-            "submitting": "Creating..."
-        },
-        "form": {
-            "add": "Add",
-            "name": "Channel Name",
-            "type": "Channel Type",
-            "baseUrls": "Base URLs",
-            "baseUrlUrl": "URL",
-            "baseUrlDelay": "Delay(ms)",
-            "advanced": "Advanced Settings",
-            "apiKey": "API Key",
-            "customHeader": "Custom Headers",
-            "customHeaderKey": "Header Key",
-            "customHeaderValue": "Header Value",
-            "customHeaderAdd": "Add Header",
-            "channelProxy": "Channel Proxy",
-            "channelProxyPlaceholder": "Optional: proxy for this channel (overrides global proxy)",
-            "paramOverride": "Param Override",
-            "paramOverridePlaceholder": "Optional: JSON string to override request params",
-            "model": "Model",
-            "enabled": "Enabled",
-            "proxy": "Use Proxy",
-            "modelCustomPlaceholder": "Custom model name",
-            "modelAdd": "Add",
-            "modelRefresh": "Refresh",
-            "modelRefreshSuccess": "Models fetched successfully",
-            "modelRefreshFailed": "Failed to fetch models",
-            "modelRefreshEmpty": "No models found",
-            "modelSelected": "Selected Models",
-            "modelNoSelected": "No models selected",
-            "modelClearAll": "Clear All",
-            "typeOpenAIChat": "OpenAI Chat",
-            "typeOpenAIResponse": "OpenAI Response",
-            "typeOpenAIEmbedding": "OpenAI Embedding",
-            "typeAnthropic": "Anthropic",
-            "typeGemini": "Gemini",
-            "typeVolcengine": "Volcengine",
-            "autoSync": "Auto Sync",
-            "autoGroup": "Auto Group",
-            "autoGroupNone": "None",
-            "autoGroupFuzzy": "Fuzzy",
-            "autoGroupExact": "Exact",
-            "autoGroupRegex": "Regex",
-            "matchRegex": "Match Regex",
-            "matchRegexPlaceholder": "Optional: regex pattern to match request model names",
-            "remark": "Remark"
-        }
+      "title": "Log Settings",
+      "enabled": {
+        "label": "Enable History Logs"
+      },
+      "keepPeriod": {
+        "label": "Log Retention (days)",
+        "placeholder": "Enter days"
+      },
+      "redundantFields": {
+        "label": "Record and expose log redundant fields (_octopus_*)"
+      },
+      "clear": {
+        "label": "Clear History Logs",
+        "button": "Clear",
+        "clearing": "Clearing..."
+      },
+      "clearSuccess": "Logs cleared",
+      "clearFailed": "Failed to clear logs"
     }
+  },
+  "group": {
+    "toast": {
+      "created": "Created successfully",
+      "createFailed": "Create failed",
+      "updated": "Updated successfully",
+      "updateFailed": "Update failed",
+      "deleted": "Deleted successfully",
+      "autoAddFailed": "Auto add failed"
+    },
+    "create": {
+      "title": "Create Group",
+      "submit": "Create",
+      "submitting": "Creating..."
+    },
+    "card": {
+      "empty": "No rules"
+    },
+    "detail": {
+      "actions": {
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "copyName": "Copy Name",
+        "delete": "Delete",
+        "confirmDelete": "Confirm Delete"
+      }
+    },
+    "form": {
+      "name": "Group Name",
+      "matchRegex": "Match Regex",
+      "matchRegexPlaceholder": "Leave empty to use default fuzzy match by group name",
+      "matchRegexInvalid": "Invalid regex",
+      "firstTokenTimeOut": "First Token Timeout",
+      "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
+      "sessionKeepTime": "Session Keep Time",
+      "sessionKeepTimeHint": "Unit: seconds, keeps using the same channel within a session, 0 = disabled",
+      "items": "Selected Models",
+      "addItem": "Add Model",
+      "autoAdd": "Auto Add",
+      "clear": "Clear",
+      "selectChannel": "Channel",
+      "selectModel": "Model"
+    },
+    "mode": {
+      "roundRobin": "Round Robin",
+      "random": "Random",
+      "failover": "Failover",
+      "weighted": "Weighted"
+    },
+    "empty": "No groups yet, click the button above to create one"
+  },
+  "model": {
+    "create": {
+      "title": "Create Model",
+      "name": "Model Name",
+      "input": "Input Price",
+      "output": "Output Price",
+      "cacheRead": "Cache Read",
+      "cacheWrite": "Cache Write",
+      "submit": "Create",
+      "submitting": "Creating..."
+    },
+    "toast": {
+      "updated": "Model price updated",
+      "updateFailed": "Update failed",
+      "deleted": "Model deleted",
+      "deleteFailed": "Delete failed"
+    },
+    "card": {
+      "inputCache": "Input/Cache",
+      "outputCache": "Output/Cache",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "overlay": {
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "confirmDelete": "Confirm Delete",
+      "input": "Input",
+      "output": "Output",
+      "cacheRead": "Cache Read",
+      "cacheWrite": "Cache Write",
+      "save": "Save"
+    }
+  },
+  "log": {
+    "list": {
+      "noMore": "No more logs"
+    },
+    "card": {
+      "error": "Error",
+      "errorInfo": "Error Info",
+      "firstToken": "TTFT",
+      "totalTime": "Total",
+      "input": "Input",
+      "output": "Output",
+      "cost": "Cost",
+      "requestContent": "Request Content",
+      "responseContent": "Response Content",
+      "noRequestContent": "(No request content)",
+      "noResponseContent": "(No response content)",
+      "firstTokenTime": "First Token Time",
+      "tokens": "tokens",
+      "retryDetails": "Retry Details",
+      "attempts": "attempts",
+      "success": "Success",
+      "failed": "Failed"
+    }
+  },
+  "channel": {
+    "card": {
+      "requestCount": "Requests",
+      "totalCost": "Total Cost",
+      "toast": {
+        "enabled": "Channel enabled",
+        "disabled": "Channel disabled"
+      }
+    },
+    "detail": {
+      "title": {
+        "edit": "Edit Channel",
+        "view": "Channel Details"
+      },
+      "sections": {
+        "requests": "Request Details",
+        "tokens": "Token Usage",
+        "costs": "Cost Details",
+        "baseUrls": "Base URLs",
+        "keys": "Keys"
+      },
+      "noBaseUrls": "No Base URLs",
+      "noKeys": "No Keys",
+      "metrics": {
+        "totalRequests": "Total Requests",
+        "totalToken": "Total Tokens",
+        "totalCost": "Total Cost",
+        "successRequests": "Successful Requests",
+        "failedRequests": "Failed Requests",
+        "inputToken": "Input Tokens",
+        "outputToken": "Output Tokens",
+        "inputCost": "Input Cost",
+        "outputCost": "Output Cost",
+        "avgWaitTime": "Wait Time"
+      },
+      "actions": {
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "confirmDelete": "Confirm Delete",
+        "deleting": "Deleting..."
+      }
+    },
+    "create": {
+      "dialogTitle": "Create New Channel",
+      "submit": "Create Channel",
+      "submitting": "Creating..."
+    },
+    "form": {
+      "add": "Add",
+      "name": "Channel Name",
+      "type": "Channel Type",
+      "baseUrls": "Base URLs",
+      "baseUrlUrl": "URL",
+      "baseUrlDelay": "Delay(ms)",
+      "advanced": "Advanced Settings",
+      "apiKey": "API Key",
+      "customHeader": "Custom Headers",
+      "customHeaderKey": "Header Key",
+      "customHeaderValue": "Header Value",
+      "customHeaderAdd": "Add Header",
+      "channelProxy": "Channel Proxy",
+      "channelProxyPlaceholder": "Optional: proxy for this channel (overrides global proxy)",
+      "paramOverride": "Param Override",
+      "paramOverridePlaceholder": "Optional: JSON string to override request params",
+      "model": "Model",
+      "enabled": "Enabled",
+      "enableCircuitBreaker": "Enable Circuit Breaker",
+      "proxy": "Use Proxy",
+      "modelCustomPlaceholder": "Custom model name",
+      "modelAdd": "Add",
+      "modelRefresh": "Refresh",
+      "modelRefreshSuccess": "Models fetched successfully",
+      "modelRefreshFailed": "Failed to fetch models",
+      "modelRefreshEmpty": "No models found",
+      "modelSelected": "Selected Models",
+      "modelNoSelected": "No models selected",
+      "modelClearAll": "Clear All",
+      "typeOpenAIChat": "OpenAI Chat",
+      "typeOpenAIResponse": "OpenAI Response",
+      "typeOpenAIEmbedding": "OpenAI Embedding",
+      "typeAnthropic": "Anthropic",
+      "typeGemini": "Gemini",
+      "typeVolcengine": "Volcengine",
+      "autoSync": "Auto Sync",
+      "autoGroup": "Auto Group",
+      "autoGroupNone": "None",
+      "autoGroupFuzzy": "Fuzzy",
+      "autoGroupExact": "Exact",
+      "autoGroupRegex": "Regex",
+      "matchRegex": "Match Regex",
+      "matchRegexPlaceholder": "Optional: regex pattern to match request model names",
+      "remark": "Remark",
+      "typeKimiCoding": "Kimi Coding"
+    }
+  }
 }

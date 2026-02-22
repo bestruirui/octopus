@@ -454,8 +454,8 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 	// Convert instructions from system messages
 	result.Instructions = convertInstructionsFromMessages(req.Messages)
 
-	// Convert input from messages
-	result.Input = convertInputFromMessages(req.Messages, req.TransformOptions)
+	// Convert input from messages (Chat -> Responses dedicated conversion-layer entry)
+	result.Input = convertChatMessagesToResponsesInput(req.Messages, req.TransformOptions)
 
 	// Convert tools
 	if len(req.Tools) > 0 {

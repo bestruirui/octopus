@@ -36,6 +36,7 @@ export interface ChannelFormData {
     model: string;
     custom_model: string;
     enabled: boolean;
+    enable_circuit_breaker: boolean;
     proxy: boolean;
     auto_sync: boolean;
     auto_group: AutoGroupType;
@@ -122,7 +123,7 @@ export function ChannelForm({
                     .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key.trim() })),
                 proxy: formData.proxy,
                 match_regex: formData.match_regex.trim() || null,
-                custom_header: formData.custom_header,
+                custom_header: formData.custom_header?.filter((h) => h.header_key.trim()) || [],
             },
             {
                 onSuccess: (data) => {
@@ -255,6 +256,7 @@ export function ChannelForm({
                             <SelectItem className='rounded-xl' value={String(ChannelType.Gemini)}>{t('typeGemini')}</SelectItem>
                             <SelectItem className='rounded-xl' value={String(ChannelType.Volcengine)}>{t('typeVolcengine')}</SelectItem>
                             <SelectItem className='rounded-xl' value={String(ChannelType.OpenAIEmbedding)}>{t('typeOpenAIEmbedding')}</SelectItem>
+                            <SelectItem className='rounded-xl' value={String(ChannelType.KimiCoding)}>{t('typeKimiCoding')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -586,6 +588,13 @@ export function ChannelForm({
                     <span className="text-sm font-medium text-card-foreground">{t('enabled')}</span>
                 </label>
                 <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                            checked={formData.enable_circuit_breaker}
+                            onCheckedChange={(checked) => onFormDataChange({ ...formData, enable_circuit_breaker: checked })}
+                        />
+                        <span className="text-sm text-card-foreground">{t('enableCircuitBreaker')}</span>
+                    </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                         <Switch
                             checked={formData.proxy}

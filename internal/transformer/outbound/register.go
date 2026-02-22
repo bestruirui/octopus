@@ -17,6 +17,7 @@ const (
 	OutboundTypeGemini
 	OutboundTypeVolcengine
 	OutboundTypeOpenAIEmbedding
+	OutboundTypeKimiCoding
 )
 
 // EmbeddingChannelTypes 定义支持 embedding 请求的 channel 类型集合
@@ -31,6 +32,7 @@ var ChatChannelTypes = map[OutboundType]bool{
 	OutboundTypeAnthropic:      true,
 	OutboundTypeGemini:         true,
 	OutboundTypeVolcengine:     true,
+	OutboundTypeKimiCoding:     true,
 }
 
 // IsEmbeddingChannelType 判断 channel 类型是否支持 embedding 请求
@@ -50,6 +52,7 @@ var outboundFactories = map[OutboundType]func() model.Outbound{
 	OutboundTypeAnthropic:       func() model.Outbound { return &authropic.MessageOutbound{} },
 	OutboundTypeGemini:          func() model.Outbound { return &gemini.MessagesOutbound{} },
 	OutboundTypeVolcengine:      func() model.Outbound { return &volcengine.ResponseOutbound{} },
+	OutboundTypeKimiCoding:      func() model.Outbound { return &openai.ChatOutbound{} },
 }
 
 func Get(outboundType OutboundType) model.Outbound {

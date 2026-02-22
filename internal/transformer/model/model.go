@@ -273,7 +273,265 @@ func (r *InternalLLMRequest) Validate() error {
 		return errors.New("messages are required")
 	}
 
+	if isChatRequest {
+		r.fillMissingToolCallIDsFromToolMessages()
+		r.fillMissingToolCallIDs()
+		r.sanitizeToolCallMessages()
+		r.ensureReasoningContentForToolCalls()
+	}
+
 	return nil
+}
+
+func (r *InternalLLMRequest) fillMissingToolCallIDs() {
+	usedIDs := make(map[string]struct{})
+	for _, msg := range r.Messages {
+		for _, tc := range msg.ToolCalls {
+			if tc.ID == "" {
+				continue
+			}
+			usedIDs[tc.ID] = struct{}{}
+		}
+	}
+
+	sequence := 0
+	for messageIndex := range r.Messages {
+		for toolCallIndex := range r.Messages[messageIndex].ToolCalls {
+			toolCall := &r.Messages[messageIndex].ToolCalls[toolCallIndex]
+			if toolCall.ID != "" {
+				continue
+			}
+
+			candidate := fmt.Sprintf("call_octopus_%d_%d", messageIndex, toolCallIndex)
+			if _, exists := usedIDs[candidate]; exists {
+				for {
+					candidate = fmt.Sprintf("call_octopus_%d", sequence)
+					sequence++
+					if _, conflict := usedIDs[candidate]; !conflict {
+						break
+					}
+				}
+			}
+
+			toolCall.ID = candidate
+			usedIDs[candidate] = struct{}{}
+		}
+	}
+}
+
+func (r *InternalLLMRequest) fillMissingToolCallIDsFromToolMessages() {
+	for msgIndex := 0; msgIndex < len(r.Messages); msgIndex++ {
+		msg := &r.Messages[msgIndex]
+		if msg.Role != "assistant" || len(msg.ToolCalls) == 0 {
+			continue
+		}
+
+		candidates := make([]string, 0, len(msg.ToolCalls))
+		for nextIndex := msgIndex + 1; nextIndex < len(r.Messages); nextIndex++ {
+			nextMsg := r.Messages[nextIndex]
+			if nextMsg.Role != "tool" {
+				break
+			}
+			if nextMsg.ToolCallID == nil || *nextMsg.ToolCallID == "" {
+				continue
+			}
+			candidates = append(candidates, *nextMsg.ToolCallID)
+		}
+
+		if len(candidates) == 0 {
+			continue
+		}
+
+		used := make(map[string]struct{})
+		for _, toolCall := range msg.ToolCalls {
+			if toolCall.ID == "" {
+				continue
+			}
+			used[toolCall.ID] = struct{}{}
+		}
+
+		candidateIndex := 0
+		for toolCallIndex := range msg.ToolCalls {
+			if msg.ToolCalls[toolCallIndex].ID != "" {
+				continue
+			}
+
+			for candidateIndex < len(candidates) {
+				candidate := candidates[candidateIndex]
+				candidateIndex++
+				if _, exists := used[candidate]; exists {
+					continue
+				}
+				msg.ToolCalls[toolCallIndex].ID = candidate
+				used[candidate] = struct{}{}
+				break
+			}
+		}
+	}
+}
+
+func (r *InternalLLMRequest) sanitizeToolCallMessages() {
+	sanitized := make([]Message, 0, len(r.Messages))
+	pendingIDs := make([]string, 0)
+	pendingSet := make(map[string]struct{})
+	usedPendingIDs := make(map[string]struct{})
+	lastRole := ""
+	lastAssistantHadToolCalls := false
+
+	resetPending := func() {
+		pendingIDs = pendingIDs[:0]
+		for k := range pendingSet {
+			delete(pendingSet, k)
+		}
+		for k := range usedPendingIDs {
+			delete(usedPendingIDs, k)
+		}
+	}
+
+	for _, original := range r.Messages {
+		msg := original
+
+		switch msg.Role {
+		case "assistant":
+			hasToolCalls := len(msg.ToolCalls) > 0
+			if !hasToolCalls {
+				resetPending()
+			} else {
+				// Keep pending IDs across consecutive assistant tool_call messages.
+				// Responses input may emit one assistant item per tool call.
+				if !(lastRole == "assistant" && lastAssistantHadToolCalls) {
+					resetPending()
+				}
+				filtered := make([]ToolCall, 0, len(msg.ToolCalls))
+				seenToolCallIDs := make(map[string]struct{}, len(msg.ToolCalls))
+
+				for _, tc := range msg.ToolCalls {
+					tc.ID = strings.TrimSpace(tc.ID)
+					tc.Function.Name = strings.TrimSpace(tc.Function.Name)
+					if tc.Function.Name == "" {
+						continue
+					}
+					if tc.ID != "" {
+						if _, exists := seenToolCallIDs[tc.ID]; exists {
+							continue
+						}
+						seenToolCallIDs[tc.ID] = struct{}{}
+					}
+					filtered = append(filtered, tc)
+				}
+
+				msg.ToolCalls = filtered
+				for _, tc := range msg.ToolCalls {
+					if tc.ID == "" {
+						continue
+					}
+					pendingIDs = append(pendingIDs, tc.ID)
+					pendingSet[tc.ID] = struct{}{}
+				}
+			}
+
+			sanitized = append(sanitized, msg)
+			lastRole = "assistant"
+			lastAssistantHadToolCalls = hasToolCalls
+		case "tool":
+			lastRole = "tool"
+			lastAssistantHadToolCalls = false
+
+			assignedID := ""
+			hasExplicitToolCallID := false
+
+			if msg.ToolCallID != nil {
+				trimmed := strings.TrimSpace(*msg.ToolCallID)
+				if trimmed != "" {
+					hasExplicitToolCallID = true
+					if _, exists := pendingSet[trimmed]; exists {
+						if _, used := usedPendingIDs[trimmed]; !used {
+							assignedID = trimmed
+						}
+					}
+				}
+			}
+
+			if assignedID == "" {
+				if hasExplicitToolCallID {
+					continue
+				}
+				for _, candidate := range pendingIDs {
+					if _, used := usedPendingIDs[candidate]; used {
+						continue
+					}
+					assignedID = candidate
+					break
+				}
+			}
+
+			if assignedID == "" {
+				continue
+			}
+
+			usedPendingIDs[assignedID] = struct{}{}
+			id := assignedID
+			msg.ToolCallID = &id
+			sanitized = append(sanitized, msg)
+		case "user":
+			// Keep pending tool-call IDs across interleaved user messages.
+			// Some upstream protocols can place user-side status/warning items
+			// before the corresponding function_call_output arrives.
+			sanitized = append(sanitized, msg)
+			lastRole = "user"
+			lastAssistantHadToolCalls = false
+		default:
+			resetPending()
+			sanitized = append(sanitized, msg)
+			lastRole = msg.Role
+			lastAssistantHadToolCalls = false
+		}
+	}
+
+	r.Messages = sanitized
+}
+
+func (r *InternalLLMRequest) ensureReasoningContentForToolCalls() {
+	if !r.isReasoningEnabled() {
+		return
+	}
+
+	for i := range r.Messages {
+		msg := &r.Messages[i]
+		if msg.Role != "assistant" || len(msg.ToolCalls) == 0 {
+			continue
+		}
+
+		if msg.ReasoningContent != nil {
+			continue
+		}
+
+		if msg.Reasoning != nil {
+			content := *msg.Reasoning
+			msg.ReasoningContent = &content
+			continue
+		}
+
+		empty := ""
+		msg.ReasoningContent = &empty
+	}
+}
+
+func (r *InternalLLMRequest) isReasoningEnabled() bool {
+	if r.EnableThinking != nil && *r.EnableThinking {
+		return true
+	}
+
+	effort := strings.ToLower(strings.TrimSpace(r.ReasoningEffort))
+	if effort != "" && effort != "false" && effort != "off" && effort != "none" && effort != "disabled" && effort != "0" && effort != "no" {
+		return true
+	}
+
+	if r.ReasoningBudget != nil {
+		return true
+	}
+
+	return false
 }
 
 // IsEmbeddingRequest returns true if this is an embedding request.
@@ -287,8 +545,13 @@ func (r *InternalLLMRequest) IsChatRequest() bool {
 }
 
 func (r *InternalLLMRequest) ClearHelpFields() {
+	reasoningEnabled := r.isReasoningEnabled()
+
 	for i, msg := range r.Messages {
 		msg.ClearHelpFields()
+		if !reasoningEnabled {
+			msg.ReasoningContent = nil
+		}
 		r.Messages[i] = msg
 	}
 
@@ -404,7 +667,6 @@ type Message struct {
 }
 
 func (m *Message) ClearHelpFields() {
-	m.ReasoningContent = nil
 	m.Reasoning = nil
 	m.ReasoningSignature = nil
 }

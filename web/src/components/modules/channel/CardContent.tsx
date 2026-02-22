@@ -37,6 +37,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         name: channel.name,
         type: channel.type,
         enabled: channel.enabled,
+        enable_circuit_breaker: channel.enable_circuit_breaker,
         base_urls: channel.base_urls?.length ? channel.base_urls : [{ url: '', delay: 0 }],
         custom_header: channel.custom_header ?? [],
         channel_proxy: channel.channel_proxy ?? '',
@@ -76,6 +77,9 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         if (formData.name !== channel.name) req.name = formData.name;
         if (formData.type !== channel.type) req.type = formData.type;
         if (formData.enabled !== channel.enabled) req.enabled = formData.enabled;
+        if (formData.enable_circuit_breaker !== channel.enable_circuit_breaker) {
+            req.enable_circuit_breaker = formData.enable_circuit_breaker;
+        }
         if (!baseUrlsEqual(formData.base_urls, channel.base_urls)) {
             req.base_urls = (formData.base_urls ?? []).filter((u) => u.url.trim()).map((u) => ({
                 url: u.url.trim(),

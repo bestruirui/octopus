@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -26,6 +27,8 @@ type RelayMetrics struct {
 	// 请求和响应内容
 	InternalRequest  *transformerModel.InternalLLMRequest
 	InternalResponse *transformerModel.InternalLLMResponse
+	RawResponse      []byte
+	ClientResponse   []byte
 
 	// 统计指标
 	ActualModel string
@@ -74,6 +77,36 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
 	}
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
+}
+
+func (m *RelayMetrics) SetClientResponse(resp []byte) {
+	if len(resp) == 0 {
+		m.ClientResponse = nil
+		return
+	}
+	m.ClientResponse = append([]byte(nil), resp...)
+}
+
+func (m *RelayMetrics) SetRawResponse(resp []byte) {
+	if len(resp) == 0 {
+		m.RawResponse = nil
+		return
+	}
+	m.RawResponse = append([]byte(nil), resp...)
+}
+
+func (m *RelayMetrics) AppendRawResponse(chunk []byte) {
+	if len(chunk) == 0 {
+		return
+	}
+	m.RawResponse = append(m.RawResponse, chunk...)
+}
+
+func (m *RelayMetrics) AppendClientResponse(chunk []byte) {
+	if len(chunk) == 0 {
+		return
+	}
+	m.ClientResponse = append(m.ClientResponse, chunk...)
 }
 
 func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attempts []model.ChannelAttempt) {
@@ -125,6 +158,8 @@ func finalChannel(attempts []model.ChannelAttempt) (int, string) {
 }
 
 func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration, attempts []model.ChannelAttempt, channelID int, channelName string) {
+	includeRedundantFields := shouldRecordRelayLogRedundantFields()
+
 	actualModel := m.ActualModel
 	if actualModel == "" {
 		actualModel = m.RequestModel
@@ -156,22 +191,32 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	// 请求内容
 	if m.InternalRequest != nil {
 		if reqJSON, jsonErr := json.Marshal(m.InternalRequest); jsonErr == nil {
+			rawRequestValue := decodePayloadForLog(m.InternalRequest.RawRequest)
+			reqJSON = appendFieldForRelayLog(reqJSON, "_octopus_raw_request", rawRequestValue, includeRedundantFields)
 			relayLog.RequestContent = string(reqJSON)
 		}
 	}
 
 	// 响应内容
+	var respJSON []byte
 	if m.InternalResponse != nil {
 		respForLog := m.filterResponseForLog(m.InternalResponse)
-		if respJSON, jsonErr := json.Marshal(respForLog); jsonErr == nil {
+		if encoded, jsonErr := json.Marshal(respForLog); jsonErr == nil {
+			respJSON = encoded
 			if m.InternalResponse.Usage != nil && m.InternalResponse.Usage.AnthropicUsage {
 				respStr := string(respJSON)
 				old := `"usage":{`
 				insert := fmt.Sprintf(`"usage":{"cache_creation_input_tokens":%d,`, m.InternalResponse.Usage.CacheCreationInputTokens)
 				respJSON = []byte(strings.Replace(respStr, old, insert, 1))
 			}
-			relayLog.ResponseContent = string(respJSON)
 		}
+	}
+	rawResponseValue := decodePayloadForLog(m.RawResponse)
+	respJSON = appendFieldForRelayLog(respJSON, "_octopus_raw_response", rawResponseValue, includeRedundantFields)
+	clientResponseValue := decodePayloadForLog(m.ClientResponse)
+	respJSON = appendFieldForRelayLog(respJSON, "_octopus_client_response", clientResponseValue, includeRedundantFields)
+	if len(respJSON) > 0 {
+		relayLog.ResponseContent = string(respJSON)
 	}
 
 	// 错误信息
@@ -226,4 +271,58 @@ func (m *RelayMetrics) filterResponseForLog(resp *transformerModel.InternalLLMRe
 		filtered.Choices[i].Delta = filterMsg(choice.Delta)
 	}
 	return &filtered
+}
+
+func decodePayloadForLog(raw []byte) any {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 {
+		return nil
+	}
+
+	var decoded any
+	if err := json.Unmarshal(trimmed, &decoded); err == nil {
+		return decoded
+	}
+
+	return string(trimmed)
+}
+
+func appendFieldToJSONObject(payload []byte, field string, value any) []byte {
+	if value == nil {
+		return payload
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal(payload, &obj); err != nil {
+		return payload
+	}
+
+	if obj == nil {
+		return payload
+	}
+
+	obj[field] = value
+	updated, err := json.Marshal(obj)
+	if err != nil {
+		return payload
+	}
+	return updated
+}
+
+func appendFieldForRelayLog(payload []byte, field string, value any, enabled bool) []byte {
+	if !enabled || value == nil {
+		return payload
+	}
+	if len(payload) == 0 {
+		payload = []byte("{}")
+	}
+	return appendFieldToJSONObject(payload, field, value)
+}
+
+func shouldRecordRelayLogRedundantFields() bool {
+	enabled, err := op.SettingGetBool(model.SettingKeyRelayLogRedundantFieldsEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
 }
