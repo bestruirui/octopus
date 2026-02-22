@@ -35,6 +35,7 @@ func convertResponsesInputToChatMessages(input *ResponsesInput) ([]model.Message
 func convertResponsesItemsToChatMessages(items []ResponsesItem) ([]model.Message, error) {
 	messages := make([]model.Message, 0, len(items))
 	pendingToolCalls := make([]model.ToolCall, 0)
+	delayedInterleavedMessages := make([]model.Message, 0)
 
 	flushPendingToolCalls := func() {
 		if len(pendingToolCalls) == 0 {
@@ -50,6 +51,14 @@ func convertResponsesItemsToChatMessages(items []ResponsesItem) ([]model.Message
 		pendingToolCalls = pendingToolCalls[:0]
 	}
 
+	flushDelayedInterleavedMessages := func() {
+		if len(delayedInterleavedMessages) == 0 {
+			return
+		}
+		messages = append(messages, delayedInterleavedMessages...)
+		delayedInterleavedMessages = delayedInterleavedMessages[:0]
+	}
+
 	for _, item := range items {
 		switch item.Type {
 		case "function_call":
@@ -61,18 +70,25 @@ func convertResponsesItemsToChatMessages(items []ResponsesItem) ([]model.Message
 				messages = append(messages, *msg)
 			}
 		default:
-			flushPendingToolCalls()
 			msg, err := convertItemToMessage(&item)
 			if err != nil {
 				return nil, err
 			}
 			if msg != nil {
+				// OpenAI chat requires tool responses to directly follow assistant tool_calls.
+				// Keep interleaved messages, but postpone them until all pending tool outputs are emitted.
+				if len(pendingToolCalls) > 0 {
+					delayedInterleavedMessages = append(delayedInterleavedMessages, *msg)
+					continue
+				}
+				flushDelayedInterleavedMessages()
 				messages = append(messages, *msg)
 			}
 		}
 	}
 
 	flushPendingToolCalls()
+	flushDelayedInterleavedMessages()
 
 	return messages, nil
 }

@@ -27,6 +27,7 @@ type RelayMetrics struct {
 	// 请求和响应内容
 	InternalRequest  *transformerModel.InternalLLMRequest
 	InternalResponse *transformerModel.InternalLLMResponse
+	RawResponse      []byte
 	ClientResponse   []byte
 
 	// 统计指标
@@ -86,6 +87,21 @@ func (m *RelayMetrics) SetClientResponse(resp []byte) {
 	m.ClientResponse = append([]byte(nil), resp...)
 }
 
+func (m *RelayMetrics) SetRawResponse(resp []byte) {
+	if len(resp) == 0 {
+		m.RawResponse = nil
+		return
+	}
+	m.RawResponse = append([]byte(nil), resp...)
+}
+
+func (m *RelayMetrics) AppendRawResponse(chunk []byte) {
+	if len(chunk) == 0 {
+		return
+	}
+	m.RawResponse = append(m.RawResponse, chunk...)
+}
+
 func (m *RelayMetrics) AppendClientResponse(chunk []byte) {
 	if len(chunk) == 0 {
 		return
@@ -142,6 +158,8 @@ func finalChannel(attempts []model.ChannelAttempt) (int, string) {
 }
 
 func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration, attempts []model.ChannelAttempt, channelID int, channelName string) {
+	includeRedundantFields := shouldRecordRelayLogRedundantFields()
+
 	actualModel := m.ActualModel
 	if actualModel == "" {
 		actualModel = m.RequestModel
@@ -174,9 +192,7 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	if m.InternalRequest != nil {
 		if reqJSON, jsonErr := json.Marshal(m.InternalRequest); jsonErr == nil {
 			rawRequestValue := decodePayloadForLog(m.InternalRequest.RawRequest)
-			if rawRequestValue != nil {
-				reqJSON = appendFieldToJSONObject(reqJSON, "_octopus_raw_request", rawRequestValue)
-			}
+			reqJSON = appendFieldForRelayLog(reqJSON, "_octopus_raw_request", rawRequestValue, includeRedundantFields)
 			relayLog.RequestContent = string(reqJSON)
 		}
 	}
@@ -195,13 +211,10 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 			}
 		}
 	}
+	rawResponseValue := decodePayloadForLog(m.RawResponse)
+	respJSON = appendFieldForRelayLog(respJSON, "_octopus_raw_response", rawResponseValue, includeRedundantFields)
 	clientResponseValue := decodePayloadForLog(m.ClientResponse)
-	if clientResponseValue != nil {
-		if len(respJSON) == 0 {
-			respJSON = []byte("{}")
-		}
-		respJSON = appendFieldToJSONObject(respJSON, "_octopus_client_response", clientResponseValue)
-	}
+	respJSON = appendFieldForRelayLog(respJSON, "_octopus_client_response", clientResponseValue, includeRedundantFields)
 	if len(respJSON) > 0 {
 		relayLog.ResponseContent = string(respJSON)
 	}
@@ -294,4 +307,22 @@ func appendFieldToJSONObject(payload []byte, field string, value any) []byte {
 		return payload
 	}
 	return updated
+}
+
+func appendFieldForRelayLog(payload []byte, field string, value any, enabled bool) []byte {
+	if !enabled || value == nil {
+		return payload
+	}
+	if len(payload) == 0 {
+		payload = []byte("{}")
+	}
+	return appendFieldToJSONObject(payload, field, value)
+}
+
+func shouldRecordRelayLogRedundantFields() bool {
+	enabled, err := op.SettingGetBool(model.SettingKeyRelayLogRedundantFieldsEnabled)
+	if err != nil {
+		return true
+	}
+	return enabled
 }

@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -332,6 +333,7 @@ func (ra *relayAttempt) sendRequest(req *http.Request) (*http.Response, error) {
 func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http.Response) error {
 	if ct := response.Header.Get("Content-Type"); ct != "" && !strings.Contains(strings.ToLower(ct), "text/event-stream") {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 16*1024))
+		ra.metrics.SetRawResponse(body)
 		return fmt.Errorf("upstream returned non-SSE content-type %q for stream request: %s", ct, string(body))
 	}
 
@@ -390,6 +392,7 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 				log.Warnf("failed to read event: %v", r.err)
 				return fmt.Errorf("failed to read stream event: %w", r.err)
 			}
+			ra.metrics.AppendRawResponse([]byte("data: " + r.data + "\n\n"))
 
 			data, err := ra.transformStreamData(ctx, r.data)
 			if err != nil || len(data) == 0 {
@@ -441,6 +444,13 @@ func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([
 
 // handleResponse 处理非流式响应
 func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Response) error {
+	rawBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read upstream response body: %w", err)
+	}
+	ra.metrics.SetRawResponse(rawBody)
+	response.Body = io.NopCloser(bytes.NewReader(rawBody))
+
 	internalResponse, err := ra.outAdapter.TransformResponse(ctx, response)
 	if err != nil {
 		log.Warnf("failed to transform response: %v", err)
