@@ -339,7 +339,9 @@
             "autoAdd": "Auto Add",
             "clear": "Clear",
             "selectChannel": "Channel",
-            "selectModel": "Model"
+            "selectModel": "Model",
+            "moveToTop": "Move to Top",
+            "moveToBottom": "Move to Bottom"
         },
         "mode": {
             "roundRobin": "Round Robin",

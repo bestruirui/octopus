@@ -339,7 +339,9 @@
             "autoAdd": "自动添加",
             "clear": "清空",
             "selectChannel": "渠道",
-            "selectModel": "模型"
+            "selectModel": "模型",
+            "moveToTop": "置顶",
+            "moveToBottom": "置底"
         },
         "mode": {
             "roundRobin": "轮询",
