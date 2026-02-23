@@ -65,7 +65,7 @@ const PaginatedList = ({ items }: { items: string[] }) => {
             {items.length > 0 && (
                 <div className="flex items-center justify-between text-xs px-1">
                     <div className="text-muted-foreground">
-                        {t('totalKeys', { count: items.length })}
+                        {t('keyCount', { total: items.length })}
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
@@ -267,7 +267,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">
-                                {t('totalKeys', { count: parsedKeys.length })}
+                                {t('keyCount', { total: parsedKeys.length })}
                             </span>
                             <div>
                                 <input
