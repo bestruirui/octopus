@@ -459,6 +459,8 @@
         },
         "form": {
             "add": "Add",
+            "batchAdd": "Batch Add",
+            "batchImport": "Batch Import",
             "name": "Channel Name",
             "type": "Channel Type",
             "baseUrls": "Base URLs",
@@ -511,6 +513,31 @@
             "autoBanKeyFailures": "Auto Ban Threshold",
             "autoBanKeyFailuresDesc": "Auto disable key after consecutive failures (0 to disable)",
             "remark": "Remark"
+        },
+        "batchImport": {
+            "title": "Batch Import API Keys",
+            "description": "Please enter or paste multiple API keys, separated by commas or newlines. Virtual scrolling will be enabled if importing more than 100 items at once.",
+            "processingDescription": "Processing import task asynchronously in the background, please wait...",
+            "resultDescription": "Import task completed, please check the statistics report below.",
+            "totalKeys": "Identified {count} keys",
+            "uploadFile": "Upload File",
+            "placeholder": "sk-example1\nsk-example2, sk-example3...",
+            "preview": "Preview",
+            "progress": "Progress",
+            "processingStats": "Processed {processed} / {total}",
+            "initializing": "Initializing task...",
+            "success": "Success",
+            "failed": "Failed",
+            "total": "Total",
+            "downloadReport": "Download Failure Report",
+            "cancel": "Cancel",
+            "import": "Start Import",
+            "addToForm": "Add to Form",
+            "processing": "Processing...",
+            "close": "Close",
+            "startFailed": "Failed to start import task",
+            "retry": "Retry",
+            "cancelling": "Cancelling..."
         }
     }
 }
