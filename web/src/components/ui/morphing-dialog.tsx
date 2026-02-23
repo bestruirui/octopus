@@ -245,6 +245,14 @@ function MorphingDialogContent({
       if (openDialogContent) {
         return true;
       }
+      // 检查 AlertDialog
+      if (target?.closest('[data-slot="alert-dialog-content"]')) {
+        return true;
+      }
+      const openAlertDialogContent = document.querySelector('[data-slot="alert-dialog-content"]');
+      if (openAlertDialogContent) {
+        return true;
+      }
       return false;
     }
   );

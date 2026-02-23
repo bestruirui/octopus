@@ -541,6 +541,31 @@
             "startFailed": "啟動匯入任務失敗",
             "retry": "重試",
             "cancelling": "正在取消..."
+        },
+        "modelSelector": {
+            "search": "搜尋模型",
+            "refresh": "獲取模型",
+            "refreshing": "獲取中...",
+            "clearAll": "清除全部",
+            "selectedCount": "已選: {selected} / 總計: {total}",
+            "inputPlaceholder": "手動添加模型名稱",
+            "add": "添加",
+            "noModels": "暫無模型，請點擊\"獲取模型\"按鈕",
+            "noModelsFound": "未找到匹配 \"{query}\" 的模型",
+            "modelAdded": "已添加模型: {model}",
+            "modelExists": "模型 {model} 已存在",
+            "modelsFetched": "已獲取 {count} 個模型",
+            "allModelsCleared": "已清除所有選擇",
+            "clearAllConfirmTitle": "確認清除",
+            "clearAllConfirmDescription": "確定要取消選擇所有 {count} 個模型嗎？",
+            "confirm": "確認",
+            "cancel": "取消",
+            "copied": "已複製: {model}",
+            "apiModel": "API",
+            "customModel": "自定義",
+            "modelRefreshSuccess": "模型重新整理成功",
+            "modelRefreshEmpty": "未獲取到模型",
+            "modelRefreshFailed": "模型重新整理失敗"
         }
     }
 }

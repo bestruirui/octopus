@@ -541,6 +541,30 @@
             "startFailed": "Failed to start import task",
             "retry": "Retry",
             "cancelling": "Cancelling..."
+        },
+        "modelSelector": {
+            "clickToCopy": "Click to copy model name",
+            "copySuccess": "Copied {model}",
+            "copyFailed": "Failed to copy",
+            "removeModel": "Remove model {model}",
+            "addModel": "Add model",
+            "inputPlaceholder": "Enter model name",
+            "searchPlaceholder": "Search models...",
+            "refreshModels": "Refresh models",
+            "clearAll": "Clear all",
+            "modelCount": "{count} models",
+            "modelCountSingular": "{count} model",
+            "autoModels": "Auto-fetched models",
+            "customModels": "Manually added models",
+            "modelExists": "Model {model} already exists",
+            "modelAdded": "Added model {model}",
+            "allModelsCleared": "All models cleared",
+            "noModelsFound": "No models matching \"{query}\" found",
+            "noModels": "No models yet, please refresh or add manually",
+            "clearAllConfirmTitle": "Clear all models?",
+            "clearAllConfirmDescription": "This will delete all {count} models. This action cannot be undone.",
+            "cancel": "Cancel",
+            "confirm": "Confirm"
         }
     }
 }

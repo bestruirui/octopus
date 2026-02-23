@@ -25,14 +25,17 @@ interface BatchImportModalProps {
     onKeysImported?: (keys: string[]) => void;
 }
 
-// Pagination list helper for preview
+/**
+ * PaginatedList 组件 - 分页列表辅助组件
+ * 用于预览导入的密钥列表
+ */
 const PaginatedList = ({ items }: { items: string[] }) => {
     const t = useTranslations('channel.batchImport');
     const [page, setPage] = useState(1);
     const pageSize = 10;
     const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
     
-    // Reset page if items change
+    // 当项目变化时重置页码
     useEffect(() => {
         setPage(1);
     }, [items]);
@@ -51,11 +54,11 @@ const PaginatedList = ({ items }: { items: string[] }) => {
                 ) : (
                     <div className="space-y-1">
                         {currentItems.map((k, i) => (
-                            <div key={start + i} className="flex items-center text-sm font-mono border-b last:border-0 py-1.5 px-2 hover:bg-muted/50 transition-colors">
+                            <div key={start + i} className="flex items-center text-sm font-mono border-b last:border-0 py-1.5 px-2 hover:bg-muted/50 transition-colors min-w-0">
                                 <span className="w-8 text-xs text-muted-foreground select-none shrink-0 text-right mr-3">
                                     {start + i + 1}.
                                 </span>
-                                <span className="truncate flex-1 text-foreground/90" title={k}>{k}</span>
+                                <span className="truncate flex-1 text-foreground/90 min-w-0" title={k}>{k}</span>
                             </div>
                         ))}
                     </div>
@@ -96,6 +99,16 @@ const PaginatedList = ({ items }: { items: string[] }) => {
     );
 };
 
+/**
+ * BatchImportModal 组件 - 批量导入密钥对话框
+ * 
+ * 功能特性：
+ * - 支持文本输入和文件上传
+ * - 实时预览解析的密钥
+ * - 显示导入进度
+ * - 显示导入结果统计
+ * - 支持下载导入报告
+ */
 export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onKeysImported }: BatchImportModalProps) {
     const t = useTranslations('channel.batchImport');
     const [input, setInput] = useState('');
@@ -109,7 +122,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
     const statusMutation = useGetBatchImportStatus();
     const cancelMutation = useCancelBatchImport();
 
-    // Reset state when opening
+    // 打开时重置状态
     useEffect(() => {
         if (open) {
             setInput('');
@@ -120,18 +133,17 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
         }
     }, [open]);
 
-    // Parse input on change
+    // 输入变化时解析密钥
     useEffect(() => {
         const keys = input
             .split(/[\n,]+/)
             .map(k => k.trim())
             .filter(k => k.length > 0);
-        // Deduplicate locally for preview if needed, but backend handles it too.
-        // Let's keep all for now or unique them? 
-        // User might want to see count.
+        // 去重以便预览
         setParsedKeys(Array.from(new Set(keys)));
     }, [input]);
 
+    // 处理文件上传
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -144,15 +156,16 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
             }
         };
         reader.readAsText(file);
-        // Reset value so same file can be selected again
+        // 重置值以便可以再次选择相同文件
         e.target.value = '';
     };
 
+    // 处理导入
     const handleImport = () => {
         if (parsedKeys.length === 0) return;
         
         if (!channelId) {
-            // Local mode: just pass keys back
+            // 本地模式：直接将密钥传回
             if (onKeysImported) {
                 onKeysImported(parsedKeys);
                 onOpenChange(false);
@@ -174,7 +187,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
         );
     };
 
-    // Polling status
+    // 轮询状态
     useEffect(() => {
         if (step !== 'processing' || !jobId) return;
 
@@ -253,7 +266,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
             }
             onOpenChange(val);
         }}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-w-[95vw] overflow-hidden">
                 <DialogHeader>
                     <DialogTitle>{t('title')}</DialogTitle>
                     <DialogDescription>
@@ -264,7 +277,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
                 </DialogHeader>
 
                 {step === 'input' && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 min-w-0 overflow-hidden">
                         <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">
                                 {t('keyCount', { total: parsedKeys.length })}
@@ -292,7 +305,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder={t('placeholder')}
-                            className="h-[150px] font-mono text-xs"
+                            className="h-[150px] font-mono text-xs resize-none overflow-auto break-all [field-sizing:initial] w-full"
                         />
 
                         {parsedKeys.length > 0 && (
@@ -351,7 +364,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
                                     <div className="mb-4">
                                         <div className="font-semibold text-yellow-600 dark:text-yellow-400 mb-1">Duplicates ({progress.duplicates.length}):</div>
                                         {progress.duplicates.map((k, i) => (
-                                            <div key={i} className="text-muted-foreground truncate">{k}</div>
+                                            <div key={i} className="text-muted-foreground truncate break-all" title={k}>{k}</div>
                                         ))}
                                     </div>
                                 )}
@@ -359,7 +372,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
                                     <div>
                                         <div className="font-semibold text-red-600 dark:text-red-400 mb-1">Errors ({progress.errors.length}):</div>
                                         {progress.errors.map((e, i) => (
-                                            <div key={i} className="text-red-500 truncate">{e}</div>
+                                            <div key={i} className="text-red-500 truncate break-all" title={e}>{e}</div>
                                         ))}
                                     </div>
                                 )}
