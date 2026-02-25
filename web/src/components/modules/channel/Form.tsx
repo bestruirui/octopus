@@ -183,8 +183,9 @@ export function ChannelForm({
                     .filter((k) => k.channel_key.trim())
                     .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key.trim() })),
                 proxy: formData.proxy,
+                channel_proxy: formData.channel_proxy?.trim() || null,
                 match_regex: formData.match_regex.trim() || null,
-                custom_header: formData.custom_header,
+                custom_header: formData.custom_header?.filter((h) => h.header_key.trim()) || [],
             },
             {
                 onSuccess: (data) => {
