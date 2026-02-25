@@ -65,6 +65,8 @@ export interface ModelSelectorHeaderProps {
   onRefresh: () => void;
   /** Callback to clear all selections | 清除所有选择的回调函数 */
   onClearAll: () => void;
+  /** Callback to select all models | 全选所有模型的回调函数 */
+  onSelectAll: () => void;
   /** Whether refresh is in progress | 是否正在刷新 */
   isRefreshing: boolean;
   /** Whether refresh button is disabled | 刷新按钮是否禁用 */
@@ -73,6 +75,10 @@ export interface ModelSelectorHeaderProps {
   selectedCount: number;
   /** Total number of models | 模型总数 */
   totalCount: number;
+  /** Number of selected models in filtered list | 过滤列表中已选择的模型数量 */
+  filteredSelectedCount: number;
+  /** Total number of models in filtered list | 过滤列表中的模型总数 */
+  filteredTotalCount: number;
   /** Translation function | 翻译函数 */
   t: (key: string, params?: any) => string;
 }

@@ -451,3 +451,8 @@ func channelRefreshCacheByID(id int, ctx context.Context) error {
 	}
 	return nil
 }
+
+// ChannelRefreshCacheByID 刷新指定渠道的缓存（导出函数供其他包使用）
+func ChannelRefreshCacheByID(id int, ctx context.Context) error {
+	return channelRefreshCacheByID(id, ctx)
+}

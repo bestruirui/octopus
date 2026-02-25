@@ -8,6 +8,7 @@ import (
 
 	"github.com/bestruirui/octopus/internal/db"
 	"github.com/bestruirui/octopus/internal/model"
+	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/google/uuid"
 )
@@ -132,6 +133,10 @@ func processImportJob(job *ImportJob, keys []string) {
 		job.mu.Lock()
 		if job.Status == ImportStatusRunning {
 			job.Status = ImportStatusCompleted
+			// 导入完成后刷新渠道缓存
+			if err := op.ChannelRefreshCacheByID(job.ChannelID, ctx); err != nil {
+				log.Errorf("刷新渠道缓存失败: %v", err)
+			}
 		}
 		job.UpdatedAt = time.Now()
 		job.cancel = nil

@@ -32,17 +32,43 @@ interface BatchImportModalProps {
 const PaginatedList = ({ items }: { items: string[] }) => {
     const t = useTranslations('channel.batchImport');
     const [page, setPage] = useState(1);
+    const [inputPage, setInputPage] = useState('1');
     const pageSize = 10;
     const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
     
     // 当项目变化时重置页码
     useEffect(() => {
         setPage(1);
+        setInputPage('1');
     }, [items]);
 
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     const currentItems = items.slice(start, end);
+
+    const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputPage(e.target.value);
+    };
+
+    const handlePageInputBlur = () => {
+        const pageNum = parseInt(inputPage, 10);
+        if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+            setPage(pageNum);
+        } else {
+            setInputPage(page.toString());
+        }
+    };
+
+    const handlePageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handlePageInputBlur();
+        }
+    };
+
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+        setInputPage(newPage.toString());
+    };
 
     return (
         <div className="space-y-2">
@@ -75,19 +101,27 @@ const PaginatedList = ({ items }: { items: string[] }) => {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            onClick={() => handlePageChange(Math.max(1, page - 1))}
                             disabled={page === 1}
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <span className="min-w-[3rem] text-center font-medium">
-                            {page} / {totalPages}
-                        </span>
+                        <div className="flex items-center gap-1">
+                            <input
+                                type="text"
+                                value={inputPage}
+                                onChange={handlePageInputChange}
+                                onBlur={handlePageInputBlur}
+                                onKeyDown={handlePageInputKeyDown}
+                                className="w-10 h-7 text-center text-xs border rounded px-1 bg-background"
+                            />
+                            <span className="text-muted-foreground">/ {totalPages}</span>
+                        </div>
                         <Button
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                             disabled={page === totalPages}
                         >
                             <ChevronRight className="h-4 w-4" />
@@ -219,14 +253,17 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
         content += `Date: ${new Date().toLocaleString()}\n`;
         content += `Total: ${progress.total}, Success: ${progress.success_count}, Failed: ${progress.fail_count}\n\n`;
         
-        if (progress.duplicates && progress.duplicates.length > 0) {
-            content += `Duplicates (${progress.duplicates.length}):\n`;
-            content += progress.duplicates.join('\n') + '\n\n';
+        const duplicates = progress.duplicates || [];
+        const errors = progress.errors || [];
+        
+        if (duplicates.length > 0) {
+            content += `Duplicates (${duplicates.length}):\n`;
+            content += duplicates.join('\n') + '\n\n';
         }
 
-        if (progress.errors && progress.errors.length > 0) {
-            content += `Errors (${progress.errors.length}):\n`;
-            content += progress.errors.join('\n') + '\n\n';
+        if (errors.length > 0) {
+            content += `Errors (${errors.length}):\n`;
+            content += errors.join('\n') + '\n\n';
         }
 
         const blob = new Blob([content], { type: 'text/plain' });
@@ -305,7 +342,7 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder={t('placeholder')}
-                            className="h-[150px] font-mono text-xs resize-none overflow-auto break-all [field-sizing:initial] w-full"
+                            className="h-[150px] font-mono text-xs resize-none overflow-auto break-all [field-sizing:initial] w-full max-w-full"
                         />
 
                         {parsedKeys.length > 0 && (
@@ -358,28 +395,30 @@ export function BatchImportModal({ open, onOpenChange, channelId, onSuccess, onK
                             </div>
                         </div>
 
-                        {(progress.duplicates.length > 0 || progress.errors.length > 0) && (
-                            <ScrollArea className="h-[150px] w-full rounded-md border p-4 text-xs font-mono bg-muted/50">
-                                {progress.duplicates.length > 0 && (
-                                    <div className="mb-4">
-                                        <div className="font-semibold text-yellow-600 dark:text-yellow-400 mb-1">Duplicates ({progress.duplicates.length}):</div>
-                                        {progress.duplicates.map((k, i) => (
-                                            <div key={i} className="text-muted-foreground truncate break-all" title={k}>{k}</div>
-                                        ))}
-                                    </div>
-                                )}
-                                {progress.errors.length > 0 && (
-                                    <div>
-                                        <div className="font-semibold text-red-600 dark:text-red-400 mb-1">Errors ({progress.errors.length}):</div>
-                                        {progress.errors.map((e, i) => (
-                                            <div key={i} className="text-red-500 truncate break-all" title={e}>{e}</div>
-                                        ))}
-                                    </div>
-                                )}
+                        {((progress.duplicates?.length ?? 0) > 0 || (progress.errors?.length ?? 0) > 0) && (
+                            <ScrollArea className="h-[150px] w-full rounded-md border p-4 text-xs font-mono bg-muted/50 overflow-hidden">
+                                <div className="max-w-full overflow-hidden">
+                                    {(progress.duplicates?.length ?? 0) > 0 && (
+                                        <div className="mb-4 max-w-full overflow-hidden">
+                                            <div className="font-semibold text-yellow-600 dark:text-yellow-400 mb-1">Duplicates ({progress.duplicates!.length}):</div>
+                                            {progress.duplicates!.map((k, i) => (
+                                                <div key={i} className="text-muted-foreground break-all max-w-full overflow-wrap-anywhere" title={k}>{k}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {(progress.errors?.length ?? 0) > 0 && (
+                                        <div className="max-w-full overflow-hidden">
+                                            <div className="font-semibold text-red-600 dark:text-red-400 mb-1">Errors ({progress.errors!.length}):</div>
+                                            {progress.errors!.map((e, i) => (
+                                                <div key={i} className="text-red-500 break-all max-w-full overflow-wrap-anywhere" title={e}>{e}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </ScrollArea>
                         )}
 
-                        {(progress.fail_count > 0 || progress.duplicates.length > 0) && (
+                        {(progress.fail_count > 0 || (progress.duplicates?.length ?? 0) > 0) && (
                             <Button 
                                 variant="outline" 
                                 className="w-full"

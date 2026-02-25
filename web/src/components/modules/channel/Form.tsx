@@ -127,12 +127,39 @@ export function ChannelForm({
     
     // keys 分页
     const [keyPage, setKeyPage] = useState(1);
+    const [keyPageInput, setKeyPageInput] = useState('1');
     const keyPageSize = 10;
     const totalKeyPages = Math.ceil((formData.keys?.length || 0) / keyPageSize);
     const currentKeyPage = Math.min(Math.max(1, keyPage), Math.max(1, totalKeyPages));
     const paginatedKeys = (formData.keys ?? []).slice((currentKeyPage - 1) * keyPageSize, currentKeyPage * keyPageSize);
 
     const fetchModel = useFetchModel();
+
+    // 同步 keyPage 和 keyPageInput
+    useEffect(() => {
+        setKeyPageInput(currentKeyPage.toString());
+    }, [currentKeyPage]);
+
+    const handleKeyPageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setKeyPageInput(e.target.value);
+    };
+
+    const handleKeyPageInputBlur = () => {
+        const pageNum = parseInt(keyPageInput, 10);
+        if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalKeyPages) {
+            setKeyPage(pageNum);
+        } else {
+            setKeyPageInput(currentKeyPage.toString());
+        }
+    };
+
+    const handleKeyPageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            handleKeyPageInputBlur();
+        }
+    };
 
     const effectiveKey =
         formData.keys.find((k) => k.enabled && k.channel_key.trim())?.channel_key.trim() || '';
@@ -235,7 +262,7 @@ export function ChannelForm({
     };
 
     const handleBatchImportSuccess = () => {
-        queryClient.invalidateQueries({ queryKey: ['channel'] });
+        queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
         // Toast 可在 modal 中处理或无需单独设置，因为 modal 本身即能显示结果
     };
 
@@ -387,9 +414,17 @@ export function ChannelForm({
                                 >
                                     <ChevronLeft className="h-3 w-3" />
                                 </Button>
-                                <span className="text-xs text-muted-foreground min-w-[3rem] text-center select-none">
-                                    {currentKeyPage} / {totalKeyPages}
-                                </span>
+                                <div className="flex items-center gap-1">
+                                    <input
+                                        type="text"
+                                        value={keyPageInput}
+                                        onChange={handleKeyPageInputChange}
+                                        onBlur={handleKeyPageInputBlur}
+                                        onKeyDown={handleKeyPageInputKeyDown}
+                                        className="w-8 h-6 text-center text-xs border rounded px-1 bg-background"
+                                    />
+                                    <span className="text-xs text-muted-foreground">/ {totalKeyPages}</span>
+                                </div>
                                 <Button
                                     type="button"
                                     variant="ghost"

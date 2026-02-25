@@ -32,8 +32,30 @@ export function ModelCheckboxItem({
     }
   }, [model.name, t]);
 
+  // 处理点击模型名称 - 复制到剪贴板
+  const handleNameClick = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(model.name);
+      toast.success(t('copied', { model: model.name }));
+    } catch (error) {
+      toast.error('Failed to copy');
+    }
+  }, [model.name, t]);
+
+  // 处理双击 - 切换选中状态
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onToggle(model.name, model.source);
+  }, [model.name, model.source, onToggle]);
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 rounded-lg transition-colors">
+    <div 
+      className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 rounded-lg transition-colors"
+      onDoubleClick={handleDoubleClick}
+    >
       {/* 复选框 */}
       <Checkbox
         checked={model.isSelected}
@@ -41,13 +63,14 @@ export function ModelCheckboxItem({
         id={`model-${model.name}`}
       />
 
-      {/* 模型名称 */}
-      <label
-        htmlFor={`model-${model.name}`}
-        className="flex-1 cursor-pointer text-sm select-none"
+      {/* 模型名称 - 点击复制 */}
+      <div
+        onClick={handleNameClick}
+        className="flex-1 cursor-pointer text-sm select-none hover:text-primary transition-colors"
+        title={t('clickToCopy')}
       >
         {model.name}
-      </label>
+      </div>
 
       {/* 来源标签 */}
       <Badge

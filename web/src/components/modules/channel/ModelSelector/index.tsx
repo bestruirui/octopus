@@ -53,45 +53,43 @@ export function ModelSelector({
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [showClearDialog, setShowClearDialog] = useState(false);
+  // 保存所有曾经出现过的模型（包括取消选中的）
+  const [allKnownModels, setAllKnownModels] = useState<Set<string>>(new Set());
 
   // 当属性变化时更新可用模型列表
   useEffect(() => {
     setAvailableModels(availableModelsProp);
   }, [availableModelsProp]);
 
+  // 更新已知模型集合
+  useEffect(() => {
+    setAllKnownModels(prev => {
+      const updated = new Set(prev);
+      availableModels.forEach(m => updated.add(m));
+      selectedAutoModels.forEach(m => updated.add(m));
+      selectedCustomModels.forEach(m => updated.add(m));
+      return updated;
+    });
+  }, [availableModels, selectedAutoModels, selectedCustomModels]);
+
   /**
    * 构建显示模型列表
    * 将可用模型和已选择模型合并为单一列表
+   * 保留所有曾经出现过的模型，即使取消选中也不会消失
    */
   const displayModels = useMemo((): ModelItem[] => {
     const models = new Map<string, ModelItem>();
 
-    // 添加可用模型 (API fetched)
-    availableModels.forEach(name => {
+    // 添加所有已知的模型（包括曾经选中但现在取消的）
+    allKnownModels.forEach(name => {
+      // 判断是否为自定义模型
+      const isCustom = selectedCustomModels.includes(name);
+      const isAutoSelected = selectedAutoModels.includes(name);
+      
       models.set(name, {
         name,
-        source: 'api',
-        isSelected: selectedAutoModels.includes(name),
-      });
-    });
-
-    // 添加选择模型 (可能不在 availableModels 中)
-    selectedAutoModels.forEach(name => {
-      if (!models.has(name)) {
-        models.set(name, {
-          name,
-          source: 'api',
-          isSelected: true,
-        });
-      }
-    });
-
-    // 添加自定义模型
-    selectedCustomModels.forEach(name => {
-      models.set(name, {
-        name,
-        source: 'custom',
-        isSelected: true,
+        source: isCustom ? 'custom' : 'api',
+        isSelected: isAutoSelected || isCustom,
       });
     });
 
@@ -102,7 +100,7 @@ export function ModelSelector({
       }
       return a.name.localeCompare(b.name);
     });
-  }, [availableModels, selectedAutoModels, selectedCustomModels]);
+  }, [allKnownModels, selectedAutoModels, selectedCustomModels]);
 
   /**
    * 根据搜索查询过滤模型
@@ -121,6 +119,8 @@ export function ModelSelector({
    */
   const selectedCount = selectedAutoModels.length + selectedCustomModels.length;
   const totalCount = displayModels.length;
+  const filteredSelectedCount = filteredModels.filter(m => m.isSelected).length;
+  const filteredTotalCount = filteredModels.length;
 
   /**
    * 处理模型复选框切换
@@ -181,6 +181,38 @@ export function ModelSelector({
   }, []);
 
   /**
+   * 处理全选所有模型
+   * 只选择当前显示的模型（考虑搜索过滤）
+   */
+  const handleSelectAll = useCallback(() => {
+    // 只选择当前过滤后显示的模型
+    const apiModels: string[] = [];
+    const customModels: string[] = [];
+    
+    filteredModels.forEach(model => {
+      if (model.source === 'api') {
+        apiModels.push(model.name);
+      } else {
+        customModels.push(model.name);
+      }
+    });
+    
+    // 合并已有的选中项（不在当前过滤列表中的保持选中）
+    const existingApiModels = selectedAutoModels.filter(m => 
+      !filteredModels.some(fm => fm.name === m && fm.source === 'api')
+    );
+    const existingCustomModels = selectedCustomModels.filter(m => 
+      !filteredModels.some(fm => fm.name === m && fm.source === 'custom')
+    );
+    
+    const finalApiModels = [...new Set([...existingApiModels, ...apiModels])];
+    const finalCustomModels = [...new Set([...existingCustomModels, ...customModels])];
+    
+    onModelsChange(finalApiModels, finalCustomModels);
+    toast.success(t('allModelsSelected', { count: filteredModels.length }));
+  }, [filteredModels, selectedAutoModels, selectedCustomModels, onModelsChange, t]);
+
+  /**
    * 确认清空所有模型
    */
   const handleConfirmClearAll = useCallback(() => {
@@ -204,10 +236,13 @@ export function ModelSelector({
         onSearchChange={setSearchQuery}
         onRefresh={handleRefreshModels}
         onClearAll={handleClearAll}
+        onSelectAll={handleSelectAll}
         isRefreshing={isRefreshing}
         refreshDisabled={refreshDisabled}
         selectedCount={selectedCount}
         totalCount={totalCount}
+        filteredSelectedCount={filteredSelectedCount}
+        filteredTotalCount={filteredTotalCount}
         t={t}
       />
 

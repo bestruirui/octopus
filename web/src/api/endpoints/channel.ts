@@ -383,8 +383,8 @@ export type BatchImportStatusResponse = {
     processed: number;
     success_count: number;
     fail_count: number;
-    errors: string[];
-    duplicates: string[];
+    errors: string[] | null;
+    duplicates: string[] | null;
 };
 
 export type BatchImportRequest = {

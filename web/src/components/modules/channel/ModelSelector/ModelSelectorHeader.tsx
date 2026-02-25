@@ -2,23 +2,26 @@
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, RefreshCw, Trash2 } from 'lucide-react';
+import { Search, RefreshCw, Trash2, CheckSquare } from 'lucide-react';
 import type { ModelSelectorHeaderProps } from './types';
 
 /**
  * ModelSelectorHeader 组件 - 模型选择器头部
  * 
- * 包含搜索框、刷新按钮、清空按钮和计数显示
+ * 包含搜索框、刷新按钮、全选按钮、清空按钮和计数显示
  */
 export function ModelSelectorHeader({
   searchQuery,
   onSearchChange,
   onRefresh,
   onClearAll,
+  onSelectAll,
   isRefreshing,
   refreshDisabled,
   selectedCount,
   totalCount,
+  filteredSelectedCount,
+  filteredTotalCount,
   t,
 }: ModelSelectorHeaderProps) {
   return (
@@ -49,6 +52,18 @@ export function ModelSelectorHeader({
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? t('refreshing') : t('refresh')}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onSelectAll}
+            disabled={filteredTotalCount === 0 || filteredSelectedCount === filteredTotalCount}
+            className="rounded-xl"
+          >
+            <CheckSquare className="h-4 w-4 mr-2" />
+            {t('selectAll')}
           </Button>
 
           <Button
