@@ -88,22 +88,6 @@ type ChannelUpdateRequest struct {
 	KeysToDelete []int                     `json:"keys_to_delete,omitempty"`
 }
 
-type ChannelKeyBatchImportRequest struct {
-	ChannelID int      `json:"channel_id" binding:"required"`
-	Keys      []string `json:"keys" binding:"required"`
-}
-
-type BatchImportStatusResponse struct {
-	ID           string   `json:"id"`
-	Status       string   `json:"status"`
-	Total        int      `json:"total"`
-	Processed    int      `json:"processed"`
-	SuccessCount int      `json:"success_count"`
-	FailCount    int      `json:"fail_count"`
-	Errors       []string `json:"errors"`
-	Duplicates   []string `json:"duplicates"`
-}
-
 type ChannelKeyAddRequest struct {
 	Enabled    bool   `json:"enabled"`
 	ChannelKey string `json:"channel_key" binding:"required"`

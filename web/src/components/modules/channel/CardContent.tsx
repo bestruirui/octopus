@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
     Trash2,
     CheckCircle2,
@@ -78,54 +78,6 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
     const totalPages = Math.ceil((channel.keys?.length || 0) / pageSize);
 
     const currentView = isEditing ? 'editing' : 'viewing';
-
-    // 当 channel.keys 变化时（例如批量导入成功后），智能同步更新 formData
-    // 只在密钥数量变化或新增密钥时更新，避免覆盖用户的编辑
-    useEffect(() => {
-        // 只在编辑模式下才同步
-        if (!isEditing) return;
-        
-        const currentFormKeyIds = new Set(formData.keys.map(k => k.id).filter(id => id !== undefined));
-        const channelKeyIds = new Set(channel.keys.map(k => k.id));
-        
-        // 检查是否有新增的密钥（批量导入的情况）
-        const hasNewKeys = channel.keys.some(k => !currentFormKeyIds.has(k.id));
-        
-        // 只在有新增密钥时才更新
-        if (hasNewKeys) {
-            setFormData(prev => {
-                // 保留用户已修改的密钥
-                const existingKeysMap = new Map(
-                    prev.keys.filter(k => k.id !== undefined).map(k => [k.id, k])
-                );
-                
-                // 合并：保留已有的修改，添加新的密钥
-                const mergedKeys = channel.keys.map((k) => {
-                    const existing = existingKeysMap.get(k.id);
-                    if (existing) {
-                        // 保留用户的修改
-                        return existing;
-                    } else {
-                        // 新增的密钥
-                        return {
-                            id: k.id,
-                            enabled: k.enabled,
-                            channel_key: k.channel_key,
-                            status_code: k.status_code,
-                            last_use_time_stamp: k.last_use_time_stamp,
-                            total_cost: k.total_cost,
-                            remark: k.remark,
-                        };
-                    }
-                });
-                
-                return {
-                    ...prev,
-                    keys: mergedKeys.length > 0 ? mergedKeys : [{ enabled: true, channel_key: '', remark: '' }],
-                };
-            });
-        }
-    }, [channel.keys, isEditing]); // 移除 formData.keys 依赖，避免循环触发
 
     const baseUrlsEqual = (a: Channel['base_urls'] | undefined, b: Channel['base_urls'] | undefined) =>
         JSON.stringify(a ?? []) === JSON.stringify(b ?? []);

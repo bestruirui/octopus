@@ -76,7 +76,6 @@ import {
 } from "@/components/ui/accordion";
 import { BatchImportModal } from './BatchImportModal';
 import { Upload } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 
 export function ChannelForm({
     formData,
@@ -91,7 +90,6 @@ export function ChannelForm({
     channelId,
 }: ChannelFormProps) {
     const t = useTranslations('channel.form');
-    const queryClient = useQueryClient();
     
     // 从 API 获取的可用模型列表状态
     const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -262,11 +260,6 @@ export function ChannelForm({
         onFormDataChange({ ...formData, custom_header: curr.filter((_, i) => i !== idx) });
     };
 
-    const handleBatchImportSuccess = () => {
-        queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
-        // Toast 可在 modal 中处理或无需单独设置，因为 modal 本身即能显示结果
-    };
-
     // 处理导入的密钥
     const handleKeysImported = (newKeys: string[]) => {
         const keysToAdd = newKeys.map(k => ({
@@ -392,8 +385,6 @@ export function ChannelForm({
             <BatchImportModal 
                 open={batchImportOpen} 
                 onOpenChange={setBatchImportOpen}
-                channelId={channelId}
-                onSuccess={handleBatchImportSuccess}
                 onKeysImported={handleKeysImported}
             />
 

@@ -54,18 +54,6 @@ func init() {
 		AddRoute(
 			router.NewRoute("/last-sync-time", http.MethodGet).
 				Handle(getLastSyncTime),
-		).
-		AddRoute(
-			router.NewRoute("/batch_import", http.MethodPost).
-				Handle(batchImportKeys),
-		).
-		AddRoute(
-			router.NewRoute("/batch_import/:job_id", http.MethodGet).
-				Handle(getBatchImportStatus),
-		).
-		AddRoute(
-			router.NewRoute("/batch_import/cancel", http.MethodPost).
-				Handle(cancelBatchImport),
 		)
 }
 
@@ -182,47 +170,4 @@ func syncChannel(c *gin.Context) {
 func getLastSyncTime(c *gin.Context) {
 	time := task.GetLastSyncModelsTime()
 	resp.Success(c, time)
-}
-
-func batchImportKeys(c *gin.Context) {
-	var req model.ChannelKeyBatchImportRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
-		return
-	}
-
-	// 检查渠道是否存在
-	_, err := op.ChannelGet(req.ChannelID, c.Request.Context())
-	if err != nil {
-		resp.Error(c, http.StatusNotFound, "channel not found")
-		return
-	}
-
-	jobID := task.CreateImportJob(req.ChannelID, req.Keys)
-	resp.Success(c, gin.H{"job_id": jobID})
-}
-
-func getBatchImportStatus(c *gin.Context) {
-	jobID := c.Param("job_id")
-	status, exists := task.GetImportJob(jobID)
-	if !exists {
-		resp.Error(c, http.StatusNotFound, "job not found")
-		return
-	}
-	resp.Success(c, status)
-}
-
-func cancelBatchImport(c *gin.Context) {
-	var req struct {
-		JobID string `json:"job_id"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
-		return
-	}
-	if success := task.CancelImportJob(req.JobID); !success {
-		resp.Error(c, http.StatusNotFound, "job not found or cannot be cancelled")
-		return
-	}
-	resp.Success(c, nil)
 }
