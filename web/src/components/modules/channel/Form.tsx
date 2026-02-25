@@ -12,8 +12,25 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { Plus, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, X, MoreVertical, Download } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export const DEFAULT_BASE_URLS: Partial<Record<ChannelType, string>> = {
     [ChannelType.OpenAIChat]: 'https://api.openai.com/v1',
@@ -130,6 +147,19 @@ export function ChannelForm({
     const totalKeyPages = Math.ceil((formData.keys?.length || 0) / keyPageSize);
     const currentKeyPage = Math.min(Math.max(1, keyPage), Math.max(1, totalKeyPages));
     const paginatedKeys = (formData.keys ?? []).slice((currentKeyPage - 1) * keyPageSize, currentKeyPage * keyPageSize);
+
+    // 确认对话框状态
+    const [confirmDialog, setConfirmDialog] = useState<{
+        open: boolean;
+        title: string;
+        description: string;
+        onConfirm: () => void;
+    }>({
+        open: false,
+        title: '',
+        description: '',
+        onConfirm: () => {},
+    });
 
     const fetchModel = useFetchModel();
 
@@ -281,6 +311,103 @@ export function ChannelForm({
         setKeyPage(Math.ceil(nextKeys.length / keyPageSize));
     };
 
+    // 批量操作：启用所有key
+    const handleEnableAllKeys = (e: Event) => {
+        const nextKeys = formData.keys.map(k => ({ ...k, enabled: true }));
+        onFormDataChange({ ...formData, keys: nextKeys });
+        toast.success(t('keyBulkEnableSuccess'));
+    };
+
+    // 批量操作：禁用所有key
+    const handleDisableAllKeys = (e: Event) => {
+        const nextKeys = formData.keys.map(k => ({ ...k, enabled: false }));
+        onFormDataChange({ ...formData, keys: nextKeys });
+        toast.success(t('keyBulkDisableSuccess'));
+    };
+
+    // 批量操作：移除所有key
+    const handleRemoveAllKeys = (e: Event) => {
+        setConfirmDialog({
+            open: true,
+            title: t('keyBulkRemoveConfirmTitle'),
+            description: t('keyBulkRemoveConfirmDesc'),
+            onConfirm: () => {
+                onFormDataChange({ ...formData, keys: [{ enabled: true, channel_key: '' }] });
+                setKeyPage(1);
+                toast.success(t('keyBulkRemoveSuccess'));
+                setConfirmDialog(prev => ({ ...prev, open: false }));
+            },
+        });
+    };
+
+    // 批量操作：移除已禁用的key
+    const handleRemoveDisabledKeys = (e: Event) => {
+        const disabledCount = formData.keys.filter(k => !k.enabled).length;
+        if (disabledCount === 0) {
+            toast.info(t('keyBulkRemoveDisabledNone'));
+            return;
+        }
+        
+        setConfirmDialog({
+            open: true,
+            title: t('keyBulkRemoveDisabledConfirmTitle'),
+            description: t('keyBulkRemoveDisabledConfirmDesc', { count: disabledCount }),
+            onConfirm: () => {
+                const nextKeys = formData.keys.filter(k => k.enabled);
+                if (nextKeys.length === 0) {
+                    onFormDataChange({ ...formData, keys: [{ enabled: true, channel_key: '' }] });
+                } else {
+                    onFormDataChange({ ...formData, keys: nextKeys });
+                }
+                setKeyPage(1);
+                toast.success(t('keyBulkRemoveDisabledSuccess'));
+                setConfirmDialog(prev => ({ ...prev, open: false }));
+            },
+        });
+    };
+
+    // 导出密钥功能
+    const exportKeys = (keys: ChannelKeyFormItem[], filename: string) => {
+        const keysText = keys
+            .map(k => k.channel_key.trim())
+            .filter(Boolean)
+            .join('\n');
+        
+        if (!keysText) {
+            toast.warning(t('keyExportEmpty'));
+            return;
+        }
+
+        const blob = new Blob([keysText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success(t('keyExportSuccess'));
+    };
+
+    // 导出所有密钥
+    const handleExportAllKeys = (e: Event) => {
+        exportKeys(formData.keys, `keys-all-${Date.now()}.txt`);
+    };
+
+    // 导出已启用的密钥
+    const handleExportEnabledKeys = (e: Event) => {
+        const enabledKeys = formData.keys.filter(k => k.enabled);
+        exportKeys(enabledKeys, `keys-enabled-${Date.now()}.txt`);
+    };
+
+    // 导出已禁用的密钥
+    const handleExportDisabledKeys = (e: Event) => {
+        const disabledKeys = formData.keys.filter(k => !k.enabled);
+        exportKeys(disabledKeys, `keys-disabled-${Date.now()}.txt`);
+    };
+
     return (
         <form onSubmit={onSubmit} className="space-y-4 px-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -429,6 +556,72 @@ export function ChannelForm({
                                 </Button>
                             </div>
                         )}
+                        <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                                >
+                                    <MoreVertical className="h-3 w-3" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent 
+                                align="end" 
+                                className="rounded-xl" 
+                                onCloseAutoFocus={(e) => e.preventDefault()}
+                                onInteractOutside={(e) => e.stopPropagation()}
+                            >
+                                <DropdownMenuItem 
+                                    onSelect={handleEnableAllKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    {t('keyBulkEnable')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleDisableAllKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    {t('keyBulkDisable')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                    onSelect={handleExportAllKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    <Download className="h-3 w-3 mr-2" />
+                                    {t('keyExportAll')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleExportEnabledKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    <Download className="h-3 w-3 mr-2" />
+                                    {t('keyExportEnabled')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleExportDisabledKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    <Download className="h-3 w-3 mr-2" />
+                                    {t('keyExportDisabled')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                    onSelect={handleRemoveAllKeys}
+                                    className="rounded-lg cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                    {t('keyBulkRemove')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleRemoveDisabledKeys}
+                                    className="rounded-lg cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                    {t('keyBulkRemoveDisabled')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button
                             type="button"
                             variant="ghost"
@@ -750,6 +943,24 @@ export function ChannelForm({
                     {isPending ? pendingText : submitText}
                 </Button>
             </div>
+
+            <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+                <AlertDialogContent className="rounded-xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction 
+                            className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={confirmDialog.onConfirm}
+                        >
+                            {t('confirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </form>
     );
 }

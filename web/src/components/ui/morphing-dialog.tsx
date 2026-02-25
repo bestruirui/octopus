@@ -224,6 +224,20 @@ function MorphingDialogContent({
     },
     (event) => {
       const target = event.target as HTMLElement | null;
+       // 检查 DropdownMenu - Radix UI 使用这些属性
+      if (target?.closest('[data-radix-dropdown-menu-content]')) {
+        return true;
+      }
+      if (target?.closest('[data-radix-popper-content-wrapper]')) {
+        return true;
+      }
+      if (target?.closest('[role="menu"]')) {
+        return true;
+      }
+      const openDropdownMenu = document.querySelector('[data-radix-dropdown-menu-content]');
+      if (openDropdownMenu) {
+        return true;
+      }
       if (target?.closest('[data-slot="select-content"]')) {
         return true;
       }
