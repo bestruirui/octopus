@@ -461,7 +461,6 @@
         },
         "form": {
             "add": "Add",
-            "batchAdd": "Batch Add",
             "batchImport": "Batch Import",
             "name": "Channel Name",
             "type": "Channel Type",

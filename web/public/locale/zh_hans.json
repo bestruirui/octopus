@@ -461,7 +461,6 @@
         },
         "form": {
             "add": "添加",
-            "batchAdd": "批量添加",
             "batchImport": "批量导入",
             "name": "渠道名称",
             "type": "渠道类型",
@@ -511,10 +510,10 @@
             "keyLoadBalanceMode": "Key负载方式",
             "keyLoadBalanceModeDesc": "选择Key的负载均衡策略",
             "loadBalanceRoundRobin": "轮询 (Round Robin)",
-        "loadBalanceRandom": "随机 (Random)",
-        "autoBanKeyFailures": "自动禁用阈值",
-        "autoBanKeyFailuresDesc": "连续失败超过该次数后自动禁用Key (0表示不禁用)",
-        "remark": "备注"
+            "loadBalanceRandom": "随机 (Random)",
+            "autoBanKeyFailures": "自动禁用阈值",
+            "autoBanKeyFailuresDesc": "连续失败超过该次数后自动禁用Key (0表示不禁用)",
+            "remark": "备注"
         },
         "batchImport": {
             "title": "批量导入 API 密钥",

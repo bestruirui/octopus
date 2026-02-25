@@ -461,7 +461,6 @@
         },
         "form": {
             "add": "新增",
-            "batchAdd": "批次新增",
             "batchImport": "批次匯入",
             "name": "供應源名稱",
             "type": "供應源類型",
