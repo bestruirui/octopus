@@ -545,34 +545,6 @@
             "preview": "Preview",
             "cancel": "Cancel",
             "addToForm": "Add to Form"
-        },
-        "modelSelector": {
-            "search": "Search models",
-            "refresh": "Fetch models",
-            "refreshing": "Fetching...",
-            "selectAll": "Select All",
-            "clearAll": "Clear all",
-            "selectedCount": "Selected: {selected} / Total: {total}",
-            "inputPlaceholder": "Enter model name",
-            "add": "Add",
-            "noModels": "No models yet, click \"Fetch models\" button",
-            "noModelsFound": "No models matching \"{query}\" found",
-            "modelAdded": "Added model: {model}",
-            "modelExists": "Model {model} already exists",
-            "modelsFetched": "Fetched {count} models",
-            "allModelsCleared": "All selections cleared",
-            "allModelsSelected": "Selected all {count} models",
-            "clearAllConfirmTitle": "Confirm Clear",
-            "clearAllConfirmDescription": "Are you sure you want to deselect all {count} models?",
-            "confirm": "Confirm",
-            "cancel": "Cancel",
-            "copied": "Copied: {model}",
-            "clickToCopy": "Click to copy model name, double-click to toggle selection",
-            "apiModel": "API",
-            "customModel": "Custom",
-            "modelRefreshSuccess": "Models refreshed successfully",
-            "modelRefreshEmpty": "No models fetched",
-            "modelRefreshFailed": "Failed to refresh models"
         }
     }
 }

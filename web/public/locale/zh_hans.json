@@ -545,34 +545,6 @@
             "preview": "预览",
             "cancel": "取消",
             "addToForm": "添加到表单"
-        },
-        "modelSelector": {
-            "search": "搜索模型",
-            "refresh": "获取模型",
-            "refreshing": "获取中...",
-            "selectAll": "全选",
-            "clearAll": "清除全部",
-            "selectedCount": "已选: {selected} / 总计: {total}",
-            "inputPlaceholder": "手动添加模型名称",
-            "add": "添加",
-            "noModels": "暂无模型，请点击\"获取模型\"按钮",
-            "noModelsFound": "未找到匹配 \"{query}\" 的模型",
-            "modelAdded": "已添加模型: {model}",
-            "modelExists": "模型 {model} 已存在",
-            "modelsFetched": "已获取 {count} 个模型",
-            "allModelsCleared": "已清除所有选择",
-            "allModelsSelected": "已全选 {count} 个模型",
-            "clearAllConfirmTitle": "确认清除",
-            "clearAllConfirmDescription": "确定要取消选择所有 {count} 个模型吗？",
-            "confirm": "确认",
-            "cancel": "取消",
-            "copied": "已复制: {model}",
-            "clickToCopy": "点击复制模型名称，双击切换选中状态",
-            "apiModel": "API",
-            "customModel": "自定义",
-            "modelRefreshSuccess": "模型刷新成功",
-            "modelRefreshEmpty": "未获取到模型",
-            "modelRefreshFailed": "模型刷新失败"
         }
     }
 }
