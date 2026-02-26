@@ -18,33 +18,50 @@ func ChannelHttpClient(channel *model.Channel) (*http.Client, error) {
 	if channel == nil {
 		return nil, errors.New("channel is nil")
 	}
+	var (
+		httpClient *http.Client
+		err        error
+	)
 	if !channel.Proxy {
-		return client.GetHTTPClientSystemProxy(false)
+		httpClient, err = client.GetHTTPClientSystemProxy(false)
 	} else if channel.ChannelProxy == nil || strings.TrimSpace(*channel.ChannelProxy) == "" {
-		return client.GetHTTPClientSystemProxy(true)
+		httpClient, err = client.GetHTTPClientSystemProxy(true)
 	} else {
-		return client.GetHTTPClientCustomProxy(strings.TrimSpace(*channel.ChannelProxy))
+		httpClient, err = client.GetHTTPClientCustomProxy(strings.TrimSpace(*channel.ChannelProxy))
 	}
+	if err != nil {
+		return nil, err
+	}
+	if httpClient == nil {
+		return nil, errors.New("http client is nil")
+	}
+	return httpClient, nil
 }
 
 func ChannelBaseUrlDelayUpdate(channel *model.Channel, ctx context.Context) {
 	if channel == nil {
 		return
 	}
+	httpClient, err := ChannelHttpClient(channel)
+	if err != nil {
+		log.Warnf("failed to get http client (channel=%d): %v", channel.ID, err)
+		return
+	}
+
 	newBaseUrls := make([]model.BaseUrl, 0, len(channel.BaseUrls))
 	for _, baseUrl := range channel.BaseUrls {
-		httpClient, err := ChannelHttpClient(channel)
-		if err != nil {
-			log.Warnf("failed to get http client (channel=%d): %v", channel.ID, err)
+		url := strings.TrimSpace(baseUrl.URL)
+		if url == "" {
+			log.Warnf("skip empty base url (channel=%d)", channel.ID)
 			continue
 		}
-		delay, err := GetUrlDelay(httpClient, baseUrl.URL, ctx)
+		delay, err := GetUrlDelay(httpClient, url, ctx)
 		if err != nil {
-			log.Warnf("failed to get url delay (channel=%d): %v", channel.ID, err)
+			log.Warnf("failed to get url delay (channel=%d, url=%s): %v", channel.ID, url, err)
 			continue
 		}
 		newBaseUrls = append(newBaseUrls, model.BaseUrl{
-			URL:   baseUrl.URL,
+			URL:   url,
 			Delay: delay,
 		})
 	}
