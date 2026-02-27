@@ -287,9 +287,21 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 	}
 
 	// Convert thinking configuration to reasoning effort and preserve budget
-	if anthropicReq.Thinking != nil && anthropicReq.Thinking.Type == "enabled" {
-		chatReq.ReasoningEffort = thinkingBudgetToReasoningEffort(anthropicReq.Thinking.BudgetTokens)
-		chatReq.ReasoningBudget = lo.ToPtr(anthropicReq.Thinking.BudgetTokens)
+	if anthropicReq.Thinking != nil {
+		switch anthropicReq.Thinking.Type {
+		case "enabled":
+			if anthropicReq.Thinking.BudgetTokens != nil {
+				chatReq.ReasoningEffort = thinkingBudgetToReasoningEffort(*anthropicReq.Thinking.BudgetTokens)
+				chatReq.ReasoningBudget = anthropicReq.Thinking.BudgetTokens
+			}
+		case "adaptive":
+			effort := "high"
+			if anthropicReq.OutputConfig != nil && anthropicReq.OutputConfig.Effort != "" {
+				effort = anthropicReq.OutputConfig.Effort
+			}
+			chatReq.ReasoningEffort = effort
+			chatReq.AdaptiveThinking = true
+		}
 	}
 	return chatReq, nil
 }

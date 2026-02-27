@@ -312,9 +312,18 @@ func convertToAnthropicRequest(req *model.InternalLLMRequest) *anthropicModel.Me
 
 	// Convert thinking/reasoning
 	if req.ReasoningEffort != "" {
-		result.Thinking = &anthropicModel.Thinking{
-			Type:         "enabled",
-			BudgetTokens: getThinkingBudget(req.ReasoningEffort, req.ReasoningBudget),
+		if req.AdaptiveThinking {
+			result.Thinking = &anthropicModel.Thinking{
+				Type: "adaptive",
+			}
+			result.OutputConfig = &anthropicModel.OutputConfig{
+				Effort: req.ReasoningEffort,
+			}
+		} else {
+			result.Thinking = &anthropicModel.Thinking{
+				Type:         "enabled",
+				BudgetTokens: lo.ToPtr(getThinkingBudget(req.ReasoningEffort, req.ReasoningBudget)),
+			}
 		}
 	}
 
