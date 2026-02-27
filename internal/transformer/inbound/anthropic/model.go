@@ -136,6 +136,21 @@ type SystemPromptPart struct {
 	CacheControl *CacheControl `json:"cache_control,omitempty"`
 }
 
+// Thinking type constants
+const (
+	ThinkingTypeEnabled  = "enabled"
+	ThinkingTypeDisabled = "disabled"
+	ThinkingTypeAdaptive = "adaptive"
+)
+
+// Effort level constants for OutputConfig
+const (
+	EffortMax    = "max"
+	EffortHigh   = "high"
+	EffortMedium = "medium"
+	EffortLow    = "low"
+)
+
 type Thinking struct {
 	Type         string `json:"type"                    validate:"required,oneof=enabled disabled adaptive"`
 	BudgetTokens *int64 `json:"budget_tokens,omitempty" validate:"required_if=Type enabled"`
