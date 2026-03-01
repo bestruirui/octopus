@@ -405,6 +405,20 @@
             "attempts": "attempts",
             "success": "Success",
             "failed": "Failed"
+        },
+        "filter": {
+            "group": "Group",
+            "model": "Model",
+            "retried": "Retried",
+            "channel": "Channel",
+            "allGroups": "All Groups",
+            "allModels": "All Models",
+            "allRetries": "All Retry States",
+            "retriedYes": "Retried",
+            "retriedNo": "Not Retried",
+            "allChannels": "All Channels",
+            "searchPlaceholder": "Type to filter",
+            "noResult": "No matches"
         }
     },
     "channel": {

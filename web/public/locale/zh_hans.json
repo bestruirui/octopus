@@ -405,6 +405,20 @@
             "attempts": "次尝试",
             "success": "成功",
             "failed": "失败"
+        },
+        "filter": {
+            "group": "分组",
+            "model": "模型",
+            "retried": "重试",
+            "channel": "渠道",
+            "allGroups": "全部分组",
+            "allModels": "全部模型",
+            "allRetries": "全部重试状态",
+            "retriedYes": "重试过",
+            "retriedNo": "未重试",
+            "allChannels": "全部渠道",
+            "searchPlaceholder": "输入关键字筛选",
+            "noResult": "无匹配项"
         }
     },
     "channel": {

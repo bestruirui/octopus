@@ -17,9 +17,9 @@ export interface ChannelAttempt {
     channel_key_id?: number;
     channel_name: string;
     model_name: string;
-    attempt_num: number;    // 第几次尝试
+    attempt_num: number;
     status: AttemptStatus;
-    duration: number;       // 耗时(毫秒)
+    duration: number;
     sticky?: boolean;
     msg?: string;
 }
@@ -46,6 +46,13 @@ export interface RelayLog {
     total_attempts?: number;     // 总尝试次数
 }
 
+export interface LogFilters {
+    group?: string;
+    model?: string;
+    retried?: 'all' | 'yes' | 'no';
+    channel?: string;
+}
+
 /**
  * 日志列表查询参数
  */
@@ -54,6 +61,10 @@ export interface LogListParams {
     page_size?: number;
     start_time?: number;
     end_time?: number;
+    group?: string;
+    model?: string;
+    retried?: boolean;
+    channel?: string;
 }
 
 /**
@@ -81,7 +92,44 @@ export function useClearLogs() {
     });
 }
 
-const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize] as const;
+function hasActiveFilter(filters: { group: string; model: string; retried: 'all' | 'yes' | 'no'; channel: string }): boolean {
+    return Boolean(filters.group || filters.model || filters.channel || filters.retried !== 'all');
+}
+
+function matchLogFilter(log: RelayLog, filters: { group: string; model: string; retried: 'all' | 'yes' | 'no'; channel: string }): boolean {
+    if (filters.group && log.request_model_name !== filters.group) {
+        return false;
+    }
+    if (filters.model && log.actual_model_name !== filters.model) {
+        return false;
+    }
+
+    if (filters.retried !== 'all') {
+        const retried = (log.total_attempts ?? log.attempts?.length ?? 0) > 1;
+        if (filters.retried === 'yes' && !retried) {
+            return false;
+        }
+        if (filters.retried === 'no' && retried) {
+            return false;
+        }
+    }
+
+    if (filters.channel) {
+        const channelMatched =
+            log.channel_name === filters.channel ||
+            !!log.attempts?.some((attempt) => attempt.channel_name === filters.channel);
+        if (!channelMatched) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+const logsInfiniteQueryKey = (
+    pageSize: number,
+    filters: { group: string; model: string; retried: 'all' | 'yes' | 'no'; channel: string }
+) => ['logs', 'infinite', pageSize, filters.group, filters.model, filters.retried, filters.channel] as const;
 
 /**
  * 日志管理 Hook
@@ -96,8 +144,23 @@ const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize
  * // 滚动到底部时加载更多
  * if (hasMore && !isLoadingMore) loadMore();
  */
-export function useLogs(options: { pageSize?: number } = {}) {
-    const { pageSize = 20 } = options;
+export function useLogs(options: { pageSize?: number; filters?: LogFilters } = {}) {
+    const { pageSize = 20, filters } = options;
+
+    const groupFilter = (filters?.group ?? '').trim();
+    const modelFilter = (filters?.model ?? '').trim();
+    const retriedFilter = filters?.retried ?? 'all';
+    const channelFilter = (filters?.channel ?? '').trim();
+
+    const currentFilters = useMemo(() => ({
+        group: groupFilter,
+        model: modelFilter,
+        retried: retriedFilter,
+        channel: channelFilter,
+    }), [groupFilter, modelFilter, retriedFilter, channelFilter]);
+
+    const queryKey = useMemo(() => logsInfiniteQueryKey(pageSize, currentFilters), [pageSize, currentFilters]);
+    const filterActive = hasActiveFilter(currentFilters);
 
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -106,12 +169,24 @@ export function useLogs(options: { pageSize?: number } = {}) {
     const queryClient = useQueryClient();
 
     const logsQuery = useInfiniteQuery({
-        queryKey: logsInfiniteQueryKey(pageSize),
+        queryKey,
         initialPageParam: 1,
         queryFn: async ({ pageParam }) => {
             const params = new URLSearchParams();
             params.set('page', String(pageParam));
             params.set('page_size', String(pageSize));
+            if (currentFilters.group) {
+                params.set('group', currentFilters.group);
+            }
+            if (currentFilters.model) {
+                params.set('model', currentFilters.model);
+            }
+            if (currentFilters.channel) {
+                params.set('channel', currentFilters.channel);
+            }
+            if (currentFilters.retried !== 'all') {
+                params.set('retried', currentFilters.retried === 'yes' ? 'true' : 'false');
+            }
             const result = await apiClient.get<RelayLog[] | null>(`/api/v1/log/list?${params.toString()}`);
             return result ?? [];
         },
@@ -170,8 +245,11 @@ export function useLogs(options: { pageSize?: number } = {}) {
                 eventSource.onmessage = (event) => {
                     try {
                         const log: RelayLog = JSON.parse(event.data);
+                        if (filterActive && !matchLogFilter(log, currentFilters)) {
+                            return;
+                        }
                         queryClient.setQueryData(
-                            logsInfiniteQueryKey(pageSize),
+                            queryKey,
                             (old: InfiniteData<RelayLog[], number> | undefined) => {
                                 if (!old) {
                                     return { pages: [[log]], pageParams: [1] };
@@ -210,11 +288,11 @@ export function useLogs(options: { pageSize?: number } = {}) {
             eventSourceRef.current = null;
             setIsConnected(false);
         };
-    }, [pageSize, queryClient]);
+    }, [currentFilters, filterActive, queryClient, queryKey]);
 
     const clear = useCallback(() => {
-        queryClient.removeQueries({ queryKey: logsInfiniteQueryKey(pageSize) });
-    }, [pageSize, queryClient]);
+        queryClient.removeQueries({ queryKey });
+    }, [queryClient, queryKey]);
 
     return {
         logs,

@@ -41,3 +41,10 @@ type RelayLog struct {
 	Attempts         []ChannelAttempt `json:"attempts" gorm:"serializer:json"`          // 所有尝试记录
 	TotalAttempts    int              `json:"total_attempts"`                           // 总尝试次数
 }
+
+type RelayLogListFilter struct {
+	Group   *string `json:"group,omitempty"`
+	Model   *string `json:"model,omitempty"`
+	Retried *bool   `json:"retried,omitempty"`
+	Channel *string `json:"channel,omitempty"`
+}
