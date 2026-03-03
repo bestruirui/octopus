@@ -59,6 +59,12 @@
             "noContent": "Nothing to copy"
         }
     },
+    "toolbar": {
+        "sort": {
+            "id": "ID",
+            "name": "Name"
+        }
+    },
     "home": {
         "activity": {
             "requestCount": "Requests",
@@ -449,7 +455,8 @@
                 "saving": "Saving...",
                 "delete": "Delete",
                 "confirmDelete": "Confirm Delete",
-                "deleting": "Deleting..."
+                "deleting": "Deleting...",
+                "copy": "Copy"
             }
         },
         "create": {

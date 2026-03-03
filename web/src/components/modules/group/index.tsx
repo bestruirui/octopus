@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { GroupCard } from './Card';
 import { useGroupList } from '@/api/endpoints/group';
 import { usePaginationStore, useSearchStore } from '@/components/modules/toolbar';
+import { useSortStore } from '@/components/modules/toolbar/sort-store';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { useGridPageSize } from '@/hooks/use-grid-page-size';
 
@@ -25,14 +26,26 @@ export function Group() {
     const setTotalItems = usePaginationStore((s) => s.setTotalItems);
     const setPageSize = usePaginationStore((s) => s.setPageSize);
     const direction = usePaginationStore((s) => s.getDirection(pageKey));
+    const sortField = useSortStore((s) => s.getSortField(pageKey));
+    const sortOrder = useSortStore((s) => s.getSortOrder(pageKey));
 
     const filteredGroups = useMemo(() => {
         if (!groups) return [];
-        const sorted = [...groups].sort((a, b) => a.id! - b.id!);
-        if (!searchTerm.trim()) return sorted;
-        const term = searchTerm.toLowerCase();
-        return sorted.filter((g) => g.name.toLowerCase().includes(term));
-    }, [groups, searchTerm]);
+        const filtered = searchTerm.trim()
+            ? groups.filter((g) => g.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            : [...groups];
+
+        // Sort by field and order
+        return filtered.sort((a, b) => {
+            let cmp = 0;
+            if (sortField === 'name') {
+                cmp = a.name.localeCompare(b.name);
+            } else {
+                cmp = a.id! - b.id!;
+            }
+            return sortOrder === 'desc' ? -cmp : cmp;
+        });
+    }, [groups, searchTerm, sortField, sortOrder]);
 
     // Sync to store for Toolbar to display pagination info
     useEffect(() => {

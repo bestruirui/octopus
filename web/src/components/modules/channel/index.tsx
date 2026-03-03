@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useChannelList } from '@/api/endpoints/channel';
 import { Card } from './Card';
 import { usePaginationStore, useSearchStore } from '@/components/modules/toolbar';
+import { useSortStore } from '@/components/modules/toolbar/sort-store';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { useGridPageSize } from '@/hooks/use-grid-page-size';
 
@@ -25,14 +26,26 @@ export function Channel() {
     const setTotalItems = usePaginationStore((s) => s.setTotalItems);
     const setPageSize = usePaginationStore((s) => s.setPageSize);
     const direction = usePaginationStore((s) => s.getDirection(pageKey));
+    const sortField = useSortStore((s) => s.getSortField(pageKey));
+    const sortOrder = useSortStore((s) => s.getSortOrder(pageKey));
 
     const filteredChannels = useMemo(() => {
         if (!channelsData) return [];
-        const sorted = [...channelsData].sort((a, b) => a.raw.id - b.raw.id);
-        if (!searchTerm.trim()) return sorted;
-        const term = searchTerm.toLowerCase();
-        return sorted.filter((c) => c.raw.name.toLowerCase().includes(term));
-    }, [channelsData, searchTerm]);
+        const filtered = searchTerm.trim()
+            ? channelsData.filter((c) => c.raw.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            : [...channelsData];
+
+        // Sort by field and order
+        return filtered.sort((a, b) => {
+            let cmp = 0;
+            if (sortField === 'name') {
+                cmp = a.raw.name.localeCompare(b.raw.name);
+            } else {
+                cmp = a.raw.id - b.raw.id;
+            }
+            return sortOrder === 'desc' ? -cmp : cmp;
+        });
+    }, [channelsData, searchTerm, sortField, sortOrder]);
 
     // Sync to store for Toolbar to display pagination info
     useEffect(() => {
