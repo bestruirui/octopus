@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/bestruirui/octopus/internal/utils/tokenizer"
 	"github.com/bestruirui/octopus/internal/utils/xurl"
 	"github.com/samber/lo"
@@ -287,9 +288,27 @@ func (i *MessagesInbound) TransformRequest(ctx context.Context, body []byte) (*m
 	}
 
 	// Convert thinking configuration to reasoning effort and preserve budget
-	if anthropicReq.Thinking != nil && anthropicReq.Thinking.Type == "enabled" {
-		chatReq.ReasoningEffort = thinkingBudgetToReasoningEffort(anthropicReq.Thinking.BudgetTokens)
-		chatReq.ReasoningBudget = lo.ToPtr(anthropicReq.Thinking.BudgetTokens)
+	if anthropicReq.Thinking != nil {
+		switch anthropicReq.Thinking.Type {
+		case ThinkingTypeEnabled:
+			if anthropicReq.Thinking.BudgetTokens != nil {
+				chatReq.ReasoningEffort = thinkingBudgetToReasoningEffort(*anthropicReq.Thinking.BudgetTokens)
+				chatReq.ReasoningBudget = anthropicReq.Thinking.BudgetTokens
+			} else {
+				log.Warnf("thinking type is 'enabled' but budget_tokens is nil, thinking will be ignored")
+			}
+		case ThinkingTypeAdaptive:
+			effort := EffortHigh
+			if anthropicReq.OutputConfig != nil && anthropicReq.OutputConfig.Effort != "" {
+				effort = anthropicReq.OutputConfig.Effort
+			}
+			chatReq.ReasoningEffort = effort
+			chatReq.AdaptiveThinking = true
+		case ThinkingTypeDisabled:
+			// Explicitly disabled, nothing to do
+		default:
+			log.Warnf("unknown thinking type: %s", anthropicReq.Thinking.Type)
+		}
 	}
 	return chatReq, nil
 }

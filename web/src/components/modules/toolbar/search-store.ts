@@ -1,10 +1,10 @@
 import { create } from 'zustand';
-import type { NavItem } from '@/components/modules/navbar';
+import type { ToolbarPage } from './view-options-store';
 
 interface SearchState {
-    searchTerms: Partial<Record<NavItem, string>>;
-    getSearchTerm: (page: NavItem) => string;
-    setSearchTerm: (page: NavItem, term: string) => void;
+    searchTerms: Partial<Record<ToolbarPage, string>>;
+    getSearchTerm: (page: ToolbarPage) => string;
+    setSearchTerm: (page: ToolbarPage, term: string) => void;
 }
 
 export const useSearchStore = create<SearchState>((set, get) => ({

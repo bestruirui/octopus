@@ -184,6 +184,10 @@ type InternalLLMRequest struct {
 	// Help fields， will not be sent to the llm service.
 	ReasoningBudget *int64 `json:"-"`
 
+	// AdaptiveThinking indicates the client requested adaptive thinking mode.
+	// Help field, will not be sent to the llm service.
+	AdaptiveThinking bool `json:"-"`
+
 	// EnableThinking is used by Alibaba Qwen models to enable thinking/reasoning output.
 	EnableThinking *bool `json:"enable_thinking,omitempty"`
 

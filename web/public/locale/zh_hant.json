@@ -52,6 +52,35 @@
         "log": "日誌",
         "setting": "設定"
     },
+    "toolbar": {
+        "popover": {
+            "ariaLabel": "檢視選項",
+            "layout": "佈局",
+            "sort": "排序",
+            "grid": "網格",
+            "list": "清單",
+            "asc": "升序",
+            "desc": "降序",
+            "filter": {
+                "title": "篩選",
+                "channel": {
+                    "all": "全部供應源",
+                    "enabled": "僅啟用",
+                    "disabled": "僅停用"
+                },
+                "group": {
+                    "all": "全部分組",
+                    "withMembers": "有成員",
+                    "empty": "空分組"
+                },
+                "model": {
+                    "all": "全部模型",
+                    "priced": "僅收費",
+                    "free": "僅免費"
+                }
+            }
+        }
+    },
     "common": {
         "copy": {
             "success": "複製成功",

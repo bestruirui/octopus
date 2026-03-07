@@ -312,9 +312,18 @@ func convertToAnthropicRequest(req *model.InternalLLMRequest) *anthropicModel.Me
 
 	// Convert thinking/reasoning
 	if req.ReasoningEffort != "" {
-		result.Thinking = &anthropicModel.Thinking{
-			Type:         "enabled",
-			BudgetTokens: getThinkingBudget(req.ReasoningEffort, req.ReasoningBudget),
+		if req.AdaptiveThinking {
+			result.Thinking = &anthropicModel.Thinking{
+				Type: anthropicModel.ThinkingTypeAdaptive,
+			}
+			result.OutputConfig = &anthropicModel.OutputConfig{
+				Effort: req.ReasoningEffort,
+			}
+		} else {
+			result.Thinking = &anthropicModel.Thinking{
+				Type:         anthropicModel.ThinkingTypeEnabled,
+				BudgetTokens: getThinkingBudget(req.ReasoningEffort, req.ReasoningBudget),
+			}
 		}
 	}
 
@@ -725,21 +734,23 @@ func convertCacheControl(cc *model.CacheControl) *anthropicModel.CacheControl {
 	}
 }
 
-func getThinkingBudget(effort string, budget *int64) int64 {
+func getThinkingBudget(effort string, budget *int64) *int64 {
 	if budget != nil {
-		return *budget
+		return budget
 	}
 
+	var result int64
 	switch effort {
-	case "low":
-		return 1024
-	case "medium":
-		return 8192
-	case "high":
-		return 32768
+	case anthropicModel.EffortLow:
+		result = 1024
+	case anthropicModel.EffortMedium:
+		result = 8192
+	case anthropicModel.EffortHigh:
+		result = 32768
 	default:
-		return 8192
+		result = 8192
 	}
+	return &result
 }
 
 // Response conversion functions

@@ -119,7 +119,7 @@ export function Total() {
             {cards.map((card, index) => (
                 <motion.section
                     key={index}
-                    className="rounded-3xl bg-card border-card-border border p-5 text-card-foreground custom-shadow flex flex-row items-center gap-4"
+                    className="rounded-3xl bg-card border-card-border border p-5 text-card-foreground flex flex-row items-center gap-4"
                     initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
                     animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                     transition={{

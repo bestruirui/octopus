@@ -107,7 +107,7 @@ export function Rank() {
     };
 
     return (
-        <div className="rounded-3xl bg-card text-card-foreground border-card-border border custom-shadow p-4">
+        <div className="rounded-3xl bg-card text-card-foreground border-card-border border p-4">
             <Tabs defaultValue="cost">
                 <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-base">{t('title')}</h3>

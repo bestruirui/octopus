@@ -52,6 +52,35 @@
         "log": "Log",
         "setting": "Setting"
     },
+    "toolbar": {
+        "popover": {
+            "ariaLabel": "View options",
+            "layout": "Layout",
+            "sort": "Sort",
+            "grid": "Grid",
+            "list": "List",
+            "asc": "Asc",
+            "desc": "Desc",
+            "filter": {
+                "title": "Filter",
+                "channel": {
+                    "all": "All channels",
+                    "enabled": "Enabled only",
+                    "disabled": "Disabled only"
+                },
+                "group": {
+                    "all": "All groups",
+                    "withMembers": "With members",
+                    "empty": "Empty groups"
+                },
+                "model": {
+                    "all": "All models",
+                    "priced": "Priced only",
+                    "free": "Free only"
+                }
+            }
+        }
+    },
     "common": {
         "copy": {
             "success": "Copied",

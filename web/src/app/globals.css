@@ -192,8 +192,4 @@ html.dark,
     bottom: 10%;
     left: 5%;
   }
-
-  .custom-shadow {
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
-  }
 }

@@ -148,7 +148,7 @@ export function Activity() {
 
                     return (
                         <div
-                            className={`fixed z-50 w-fit min-w-max text-sm bg-background text-foreground border rounded-3xl custom-shadow p-3 transition-opacity duration-500 pointer-events-none ${tooltip.visible ? 'opacity-100' : 'opacity-0'}`}
+                            className={`fixed z-50 w-fit min-w-max text-sm bg-background text-foreground border rounded-3xl p-3 transition-opacity duration-500 pointer-events-none ${tooltip.visible ? 'opacity-100' : 'opacity-0'}`}
                             style={{
                                 left: tooltip.x,
                                 top: tooltip.y,

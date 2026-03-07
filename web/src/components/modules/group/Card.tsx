@@ -264,7 +264,7 @@ export function GroupCard({ group }: { group: Group }) {
                         </MorphingDialogTrigger>
 
                         <MorphingDialogContainer>
-                            <MorphingDialogContent className="relative w-screen max-w-full md:max-w-4xl bg-card text-card-foreground px-6 py-4 rounded-3xl custom-shadow h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+                            <MorphingDialogContent className="relative w-screen max-w-full md:max-w-4xl bg-card text-card-foreground px-6 py-4 rounded-3xl h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
                                 <EditDialogContent
                                     group={group}
                                     displayMembers={displayMembers}

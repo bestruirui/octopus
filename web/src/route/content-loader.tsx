@@ -13,7 +13,5 @@ export function ContentLoader({ activeRoute }: { activeRoute: string }) {
         );
     }
 
-    return (
-        <Component />
-    );
+    return <Component />;
 }

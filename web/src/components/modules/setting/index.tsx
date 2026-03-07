@@ -14,37 +14,19 @@ import { SettingCircuitBreaker } from './CircuitBreaker';
 
 export function Setting() {
     return (
-        <PageWrapper className="columns-1 md:columns-2 gap-4 [&>div]:mb-4 [&>div]:break-inside-avoid">
-            <div>
+        <div className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-3xl">
+            <PageWrapper className="columns-1 gap-4 pb-24 md:columns-2 md:pb-4 *:mb-4 *:break-inside-avoid">
                 <SettingInfo key="setting-info" />
-            </div>
-            <div>
                 <SettingAppearance key="setting-appearance" />
-            </div>
-            <div>
                 <SettingAccount key="setting-account" />
-            </div>
-            <div>
                 <SettingSystem key="setting-system" />
-            </div>
-            <div>
                 <SettingLog key="setting-log" />
-            </div>
-            <div>
                 <SettingAPIKey key="setting-apikey" />
-            </div>
-            <div>
                 <SettingLLMPrice key="setting-llmprice" />
-            </div>
-            <div>
                 <SettingLLMSync key="setting-llmsync" />
-            </div>
-            <div>
                 <SettingCircuitBreaker key="setting-circuit-breaker" />
-            </div>
-            <div>
                 <SettingBackup key="setting-backup" />
-            </div>
-        </PageWrapper>
+            </PageWrapper>
+        </div>
     );
 }

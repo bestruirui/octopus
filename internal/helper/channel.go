@@ -33,6 +33,9 @@ func ChannelBaseUrlDelayUpdate(channel *model.Channel, ctx context.Context) {
 	}
 	newBaseUrls := make([]model.BaseUrl, 0, len(channel.BaseUrls))
 	for _, baseUrl := range channel.BaseUrls {
+		if baseUrl.URL == "" {
+			continue
+		}
 		httpClient, err := ChannelHttpClient(channel)
 		if err != nil {
 			log.Warnf("failed to get http client (channel=%d): %v", channel.ID, err)

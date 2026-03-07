@@ -75,6 +75,9 @@ type MessageRequest struct {
 	// Thinking is an optional thinking configuration.
 	Thinking *Thinking `json:"thinking,omitempty"`
 
+	// OutputConfig is an optional output configuration for adaptive thinking.
+	OutputConfig *OutputConfig `json:"output_config,omitempty"`
+
 	// Tools is an optional array of tools.
 	Tools []Tool `json:"tools,omitempty"`
 	// ToolChoice is an optional tool choice configuration.
@@ -133,9 +136,28 @@ type SystemPromptPart struct {
 	CacheControl *CacheControl `json:"cache_control,omitempty"`
 }
 
+// Thinking type constants
+const (
+	ThinkingTypeEnabled  = "enabled"
+	ThinkingTypeDisabled = "disabled"
+	ThinkingTypeAdaptive = "adaptive"
+)
+
+// Effort level constants for OutputConfig
+const (
+	EffortMax    = "max"
+	EffortHigh   = "high"
+	EffortMedium = "medium"
+	EffortLow    = "low"
+)
+
 type Thinking struct {
-	Type         string `json:"type"          validate:"required,oneof=enabled disabled"`
-	BudgetTokens int64  `json:"budget_tokens" validate:"required_if=Type enabled"`
+	Type         string `json:"type"                    validate:"required,oneof=enabled disabled adaptive"`
+	BudgetTokens *int64 `json:"budget_tokens,omitempty" validate:"required_if=Type enabled"`
+}
+
+type OutputConfig struct {
+	Effort string `json:"effort,omitempty" validate:"omitempty,oneof=max high medium low"`
 }
 
 type ToolChoice struct {

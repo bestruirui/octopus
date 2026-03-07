@@ -4,17 +4,17 @@ package anthropic
 func thinkingBudgetToReasoningEffort(budgetTokens int64) string {
 	// Map budget tokens to reasoning effort based on the same logic used in outbound
 	if budgetTokens <= 5000 {
-		return "low"
+		return EffortLow
 	} else if budgetTokens <= 15000 {
-		return "medium"
+		return EffortMedium
 	} else {
-		return "high"
+		return EffortHigh
 	}
 }
 
 // getDefaultReasoningEffortMapping returns the default mapping from ReasoningEffort to thinking budget tokens.
 var defaultReasoningEffortMapping = map[string]int64{
-	"low":    5000,
-	"medium": 15000,
-	"high":   30000,
+	EffortLow:    5000,
+	EffortMedium: 15000,
+	EffortHigh:   30000,
 }
