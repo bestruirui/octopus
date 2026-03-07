@@ -177,6 +177,10 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		selectFields = append(selectFields, "match_regex")
 		updates.MatchRegex = req.MatchRegex
 	}
+	if req.Tags != nil {
+		selectFields = append(selectFields, "tags")
+		updates.Tags = *req.Tags
+	}
 
 	// 只有当有字段需要更新时才执行 UPDATE
 	if len(selectFields) > 0 {
@@ -345,6 +349,7 @@ func ChannelLLMList(ctx context.Context) ([]model.LLMChannel, error) {
 				Enabled:     channel.Enabled,
 				ChannelID:   channel.ID,
 				ChannelName: channel.Name,
+				Tags:        channel.Tags,
 			})
 		}
 	}

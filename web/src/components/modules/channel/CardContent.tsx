@@ -58,6 +58,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         auto_sync: channel.auto_sync,
         auto_group: channel.auto_group,
         match_regex: channel.match_regex ?? '',
+        tags: channel.tags ?? [],
     });
     const t = useTranslations('channel.detail');
 
@@ -113,6 +114,10 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         if (nextMatchRegex !== curMatchRegex) {
             // Empty string means "clear" for patch semantics; backend maps it to NULL.
             req.match_regex = nextMatchRegex;
+        }
+
+        if (JSON.stringify(formData.tags ?? []) !== JSON.stringify(channel.tags ?? [])) {
+            req.tags = formData.tags ?? [];
         }
 
         const originalKeys = channel.keys;
