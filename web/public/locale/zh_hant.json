@@ -128,6 +128,7 @@
             "title": "排行榜",
             "sortByCost": "金額",
             "sortByCount": "次數",
+            "sortByTokens": "Token",
             "noData": "暫無排行數據",
             "successRate": "成功率"
         }

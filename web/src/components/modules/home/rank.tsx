@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/components/animate-ui/components/animate/tabs';
 
-type SortMode = 'cost' | 'count';
+type SortMode = 'cost' | 'count' | 'tokens';
 type ChannelData = NonNullable<ReturnType<typeof useChannelList>['data']>[number];
 
 export function Rank() {
@@ -21,6 +21,11 @@ export function Rank() {
     const rankedByCount = useMemo<ChannelData[]>(() => {
         if (!channelData) return [];
         return [...channelData].sort((a, b) => b.formatted.request_count.raw - a.formatted.request_count.raw);
+    }, [channelData]);
+
+    const rankedByTokens = useMemo<ChannelData[]>(() => {
+        if (!channelData) return [];
+        return [...channelData].sort((a, b) => b.formatted.total_token.raw - a.formatted.total_token.raw);
     }, [channelData]);
 
     const getMedalEmoji = (rank: number): string => {
@@ -90,6 +95,13 @@ export function Rank() {
                                             </span>
                                         </span>
                                     </div>
+                                ) : mode === 'tokens' ? (
+                                    <span className="font-semibold text-base">
+                                        {channel.formatted.total_token.formatted.value}
+                                        <span className="text-xs text-muted-foreground">
+                                            {channel.formatted.total_token.formatted.unit}
+                                        </span>
+                                    </span>
                                 ) : (
                                     <span className="font-semibold text-base">
                                         {channel.formatted.total_cost.formatted.value}
@@ -114,6 +126,7 @@ export function Rank() {
                     <TabsList>
                         <TabsTrigger value="cost">{t('sortByCost')}</TabsTrigger>
                         <TabsTrigger value="count">{t('sortByCount')}</TabsTrigger>
+                        <TabsTrigger value="tokens">{t('sortByTokens')}</TabsTrigger>
                     </TabsList>
                 </div>
                 <TabsContents>
@@ -122,6 +135,9 @@ export function Rank() {
                     </TabsContent>
                     <TabsContent value="count">
                         {renderList(rankedByCount, 'count')}
+                    </TabsContent>
+                    <TabsContent value="tokens">
+                        {renderList(rankedByTokens, 'tokens')}
                     </TabsContent>
                 </TabsContents>
             </Tabs>
