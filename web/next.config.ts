@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
-const nextConfig: NextConfig = {
+const createNextConfig = (phase: string): NextConfig => ({
   reactCompiler: true,
-  output: 'export',
-  assetPrefix: './',
-};
+  output: "export",
+  ...(phase === PHASE_DEVELOPMENT_SERVER ? {} : { assetPrefix: "./" }),
+});
 
-export default nextConfig;
-
+export default createNextConfig;
 
