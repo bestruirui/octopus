@@ -115,9 +115,16 @@
             "outputCost": "輸出費用"
         },
         "chart": {
+            "title": "趨勢",
             "totalRequests": "請求次數",
             "totalCost": "消費金額",
-            "timePeriod": "時間範圍",
+            "totalTokens": "Tokens 消耗",
+            "timePeriod": "時間週期",
+            "metricType": {
+                "cost": "金額",
+                "count": "次數",
+                "tokens": "Tokens"
+            },
             "period": {
                 "today": "今天",
                 "last7Days": "7天",
@@ -128,7 +135,7 @@
             "title": "排行榜",
             "sortByCost": "金額",
             "sortByCount": "次數",
-            "sortByTokens": "Token",
+            "sortByTokens": "Tokens",
             "noData": "暫無排行數據",
             "successRate": "成功率"
         }

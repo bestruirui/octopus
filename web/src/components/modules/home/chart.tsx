@@ -2,65 +2,103 @@
 
 import { useStatsDaily, useStatsHourly } from '@/api/endpoints/stats';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useTranslations } from 'next-intl';
 import { formatCount, formatMoney } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { AnimatedNumber } from '@/components/common/AnimatedNumber';
+import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/components/animate-ui/components/animate/tabs';
+import { useToolbarViewOptionsStore, type ChartMetricType } from '@/components/modules/toolbar/view-options-store';
+
 const PERIODS = ['1', '7', '30'] as const;
+const METRIC_TYPES: ChartMetricType[] = ['cost', 'count', 'tokens'];
 
 export function StatsChart() {
     const { data: statsDaily } = useStatsDaily();
     const { data: statsHourly } = useStatsHourly();
-    const [period, setPeriod] = useState<typeof PERIODS[number]>('1');
     const t = useTranslations('home.chart');
+    
+    const chartMetricType = useToolbarViewOptionsStore((state) => state.chartMetricType);
+    const setChartMetricType = useToolbarViewOptionsStore((state) => state.setChartMetricType);
+    const period = useToolbarViewOptionsStore((state) => {
+        if (!state.chartPeriod) return '1';
+        return state.chartPeriod;
+    });
+    const setChartPeriod = useToolbarViewOptionsStore((state) => state.setChartPeriod);
 
     const sortedDaily = useMemo(() => {
         if (!statsDaily) return [];
         return [...statsDaily].sort((a, b) => a.date.localeCompare(b.date));
     }, [statsDaily]);
 
+    const getChartDataKey = (type: ChartMetricType) => {
+        return type === 'cost' ? 'total_cost' : type === 'count' ? 'request_count' : 'total_token';
+    };
+
     const chartData = useMemo(() => {
+        const dataKey = getChartDataKey(chartMetricType);
         if (period === '1') {
             if (!statsHourly) return [];
-            return statsHourly.map((stat) => {
-                return {
-                    date: `${stat.hour}:00`,
-                    total_cost: stat.total_cost.raw,
-                };
-            });
+            return statsHourly.map((stat) => ({
+                date: `${stat.hour}:00`,
+                [dataKey]: chartMetricType === 'cost' 
+                    ? stat.total_cost.raw 
+                    : chartMetricType === 'count'
+                    ? stat.request_count.raw
+                    : (stat.input_token.raw + stat.output_token.raw),
+            }));
         } else {
             const days = parseInt(period);
-            return sortedDaily.slice(-days).map((stat) => {
-                return {
-                    date: dayjs(stat.date).format('MM/DD'),
-                    total_cost: stat.total_cost.raw,
-                };
-            });
+            return sortedDaily.slice(-days).map((stat) => ({
+                date: dayjs(stat.date).format('MM/DD'),
+                [dataKey]: chartMetricType === 'cost'
+                    ? stat.total_cost.raw
+                    : chartMetricType === 'count'
+                    ? (stat.request_success.raw + stat.request_failed.raw)
+                    : (stat.input_token.raw + stat.output_token.raw),
+            }));
         }
-    }, [sortedDaily, statsHourly, period]);
+    }, [sortedDaily, statsHourly, period, chartMetricType]);
 
     const totals = useMemo(() => {
         if (period === '1') {
-            if (!statsHourly) return { requests: 0, cost: 0 };
+            if (!statsHourly) return { primary: 0, requests: 0, cost: 0, tokens: 0 };
+            const requests = statsHourly.reduce((acc, stat) => acc + stat.request_count.raw, 0);
+            const cost = statsHourly.reduce((acc, stat) => acc + stat.total_cost.raw, 0);
+            const tokens = statsHourly.reduce((acc, stat) => acc + stat.input_token.raw + stat.output_token.raw, 0);
             return {
-                requests: statsHourly.reduce((acc, stat) => acc + stat.request_count.raw, 0),
-                cost: statsHourly.reduce((acc, stat) => acc + stat.total_cost.raw, 0),
+                primary: chartMetricType === 'cost' ? cost : chartMetricType === 'count' ? requests : tokens,
+                requests,
+                cost,
+                tokens,
             };
         } else {
             const days = parseInt(period);
             const recentStats = sortedDaily.slice(-days);
+            const requests = recentStats.reduce((acc, stat) => acc + stat.request_success.raw + stat.request_failed.raw, 0);
+            const cost = recentStats.reduce((acc, stat) => acc + stat.total_cost.raw, 0);
+            const tokens = recentStats.reduce((acc, stat) => acc + stat.input_token.raw + stat.output_token.raw, 0);
             return {
-                requests: recentStats.reduce((acc, stat) => acc + stat.request_success.raw + stat.request_failed.raw, 0),
-                cost: recentStats.reduce((acc, stat) => acc + stat.total_cost.raw, 0),
+                primary: chartMetricType === 'cost' ? cost : chartMetricType === 'count' ? requests : tokens,
+                requests,
+                cost,
+                tokens,
             };
         }
-    }, [sortedDaily, statsHourly, period]);
+    }, [sortedDaily, statsHourly, period, chartMetricType]);
 
-    const chartConfig = {
-        total_cost: { label: t('totalCost') },
-    };
+    const chartConfig = useMemo(() => {
+        const dataKey = getChartDataKey(chartMetricType);
+        const labels = {
+            'total_cost': t('totalCost'),
+            'request_count': t('totalRequests'),
+            'total_token': t('totalTokens'),
+        };
+        return {
+            [dataKey]: { label: labels[dataKey] },
+        };
+    }, [chartMetricType, t]);
 
     const getPeriodLabel = (p: typeof period) => {
         const labels = {
@@ -71,48 +109,106 @@ export function StatsChart() {
         return labels[p];
     };
 
+    const getMetricLabel = (type: ChartMetricType) => {
+        const labels = {
+            'cost': t('metricType.cost'),
+            'count': t('metricType.count'),
+            'tokens': t('metricType.tokens'),
+        };
+        return labels[type];
+    };
+
     const handlePeriodClick = () => {
-        const currentIndex = PERIODS.indexOf(period);
+        const currentIndex = PERIODS.indexOf(period as typeof PERIODS[number]);
         const nextIndex = (currentIndex + 1) % PERIODS.length;
-        setPeriod(PERIODS[nextIndex]);
+        setChartPeriod(PERIODS[nextIndex]);
+    };
+
+    const getMetricValue = (type: ChartMetricType) => {
+        if (type === 'cost') return formatMoney(totals.cost);
+        if (type === 'count') return formatCount(totals.requests);
+        return formatCount(totals.tokens);
+    };
+
+    const getChartStroke = (type: ChartMetricType) => {
+        if (type === 'cost') return 'var(--chart-1)';
+        if (type === 'count') return 'var(--chart-2)';
+        return 'var(--chart-3)';
+    };
+
+    const getChartFill = (type: ChartMetricType) => {
+        if (type === 'cost') return 'url(#fillMetric1)';
+        if (type === 'count') return 'url(#fillMetric2)';
+        return 'url(#fillMetric3)';
     };
 
     return (
-        <div className="rounded-3xl bg-card border-card-border border pt-2 pb-0 text-card-foreground custom-shadow">
-            <div className="flex justify-between items-start px-4 pb-2">
-                <div className="flex gap-2 text-sm">
-                    <div>
-                        <div className="text-xs text-muted-foreground">{t('totalRequests')}</div>
-                        <div className="text-xl font-semibold">
-                            <AnimatedNumber value={formatCount(totals.requests).formatted.value} />
-                            <span className="ml-0.5 text-sm text-muted-foreground">{formatCount(totals.requests).formatted.unit}</span>
-                        </div>
-                    </div>
-                    <div className="w-px bg-border self-stretch"></div>
-                    <div>
-                        <div className="text-xs text-muted-foreground">{t('totalCost')}</div>
-                        <div className="text-xl font-semibold">
-                            <AnimatedNumber value={formatMoney(totals.cost).formatted.value} />
-                            <span className="ml-0.5 text-sm text-muted-foreground">{formatMoney(totals.cost).formatted.unit}</span>
-                        </div>
-                    </div>
+        <div className="rounded-3xl bg-card border-card-border border pt-4 pb-0 text-card-foreground custom-shadow">
+            <div className="px-4 pb-2 space-y-4">
+                {/* 第一行：标题 + 类型选择 */}
+                <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-base">{t('title')}</h3>
+                    <Tabs value={chartMetricType} onValueChange={(value) => setChartMetricType(value as ChartMetricType)}>
+                        <TabsList>
+                            <TabsTrigger value="cost">{t('metricType.cost')}</TabsTrigger>
+                            <TabsTrigger value="count">{t('metricType.count')}</TabsTrigger>
+                            <TabsTrigger value="tokens">{t('metricType.tokens')}</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                 </div>
-                <div
-                    className="flex gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={handlePeriodClick}
-                >
-                    <div>
-                        <div className="text-xs text-muted-foreground">{t('timePeriod')}</div>
-                        <div className="text-xl font-semibold">{getPeriodLabel(period)}</div>
+                
+                {/* 第二行：汇总统计 + 周期选择 */}
+                <div className="flex justify-between items-start">
+                    <div className="flex gap-2 text-sm">
+                        <div>
+                            <div className="text-xs text-muted-foreground">{t('totalRequests')}</div>
+                            <div className="text-xl font-semibold">
+                                <AnimatedNumber value={formatCount(totals.requests).formatted.value} />
+                                <span className="ml-0.5 text-sm text-muted-foreground">{formatCount(totals.requests).formatted.unit}</span>
+                            </div>
+                        </div>
+                        <div className="w-px bg-border self-stretch"></div>
+                        <div>
+                            <div className="text-xs text-muted-foreground">{t('totalCost')}</div>
+                            <div className="text-xl font-semibold">
+                                <AnimatedNumber value={formatMoney(totals.cost).formatted.value} />
+                                <span className="ml-0.5 text-sm text-muted-foreground">{formatMoney(totals.cost).formatted.unit}</span>
+                            </div>
+                        </div>
+                        <div className="w-px bg-border self-stretch"></div>
+                        <div>
+                            <div className="text-xs text-muted-foreground">{t('totalTokens')}</div>
+                            <div className="text-xl font-semibold">
+                                <AnimatedNumber value={formatCount(totals.tokens).formatted.value} />
+                                <span className="ml-0.5 text-sm text-muted-foreground">{formatCount(totals.tokens).formatted.unit}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        className="flex gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={handlePeriodClick}
+                    >
+                        <div>
+                            <div className="text-xs text-muted-foreground">{t('timePeriod')}</div>
+                            <div className="text-base font-semibold">{getPeriodLabel(period as typeof PERIODS[number])}</div>
+                        </div>
                     </div>
                 </div>
             </div>
             <ChartContainer config={chartConfig} className="h-40 w-full" >
                 <AreaChart accessibilityLayer data={chartData}>
                     <defs>
-                        <linearGradient id="fillTotalCost" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="fillMetric1" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={1.0} />
                             <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.1} />
+                        </linearGradient>
+                        <linearGradient id="fillMetric2" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={1.0} />
+                            <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.1} />
+                        </linearGradient>
+                        <linearGradient id="fillMetric3" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={1.0} />
+                            <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0.1} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -121,12 +217,23 @@ export function StatsChart() {
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(value) => {
-                            const formatted = formatMoney(value);
-                            return `${formatted.formatted.value}${formatted.formatted.unit}`;
+                            if (chartMetricType === 'cost') {
+                                const formatted = formatMoney(value);
+                                return `${formatted.formatted.value}${formatted.formatted.unit}`;
+                            } else if (chartMetricType === 'count' || chartMetricType === 'tokens') {
+                                const formatted = formatCount(value);
+                                return `${formatted.formatted.value}${formatted.formatted.unit}`;
+                            }
+                            return value.toString();
                         }}
                     />
                     <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
-                    <Area type="monotone" dataKey="total_cost" stroke="var(--chart-1)" fill="url(#fillTotalCost)" />
+                    <Area 
+                        type="monotone" 
+                        dataKey={getChartDataKey(chartMetricType)} 
+                        stroke={getChartStroke(chartMetricType)} 
+                        fill={getChartFill(chartMetricType)} 
+                    />
                 </AreaChart>
             </ChartContainer>
         </div>

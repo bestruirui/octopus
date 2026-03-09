@@ -115,9 +115,16 @@
             "outputCost": "Output Cost"
         },
         "chart": {
+            "title": "Trend",
             "totalRequests": "Total Requests",
             "totalCost": "Total Cost",
+            "totalTokens": "Total Tokens",
             "timePeriod": "Time Period",
+            "metricType": {
+                "cost": "Cost",
+                "count": "Count",
+                "tokens": "Tokens"
+            },
             "period": {
                 "today": "Today",
                 "last7Days": "7 Days",
