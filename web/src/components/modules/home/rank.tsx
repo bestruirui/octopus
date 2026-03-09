@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/components/animate-ui/components/animate/tabs';
+import { useToolbarViewOptionsStore } from '@/components/modules/toolbar/view-options-store';
 
 type SortMode = 'cost' | 'count' | 'tokens';
 type ChannelData = NonNullable<ReturnType<typeof useChannelList>['data']>[number];
@@ -12,6 +13,8 @@ type ChannelData = NonNullable<ReturnType<typeof useChannelList>['data']>[number
 export function Rank() {
     const { data: channelData } = useChannelList();
     const t = useTranslations('home.rank');
+    const rankSortMode = useToolbarViewOptionsStore((state) => state.rankSortMode);
+    const setRankSortMode = useToolbarViewOptionsStore((state) => state.setRankSortMode);
 
     const rankedByCost = useMemo<ChannelData[]>(() => {
         if (!channelData) return [];
@@ -120,7 +123,7 @@ export function Rank() {
 
     return (
         <div className="rounded-3xl bg-card text-card-foreground border-card-border border p-4">
-            <Tabs defaultValue="cost">
+            <Tabs value={rankSortMode} onValueChange={(value) => setRankSortMode(value as SortMode)}>
                 <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-base">{t('title')}</h3>
                     <TabsList>

@@ -10,6 +10,7 @@ export type ToolbarPage = (typeof TOOLBAR_PAGES)[number];
 export type ChannelFilter = 'all' | 'enabled' | 'disabled';
 export type GroupFilter = 'all' | 'with-members' | 'empty';
 export type ModelFilter = 'all' | 'priced' | 'free';
+export type RankSortMode = 'cost' | 'count' | 'tokens';
 
 interface ToolbarViewOptionsState {
     layouts: Partial<Record<ToolbarPage, ToolbarLayout>>;
@@ -18,6 +19,7 @@ interface ToolbarViewOptionsState {
     channelFilter: ChannelFilter;
     groupFilter: GroupFilter;
     modelFilter: ModelFilter;
+    rankSortMode: RankSortMode;
 
     getLayout: (item: ToolbarPage) => ToolbarLayout;
     setLayout: (item: ToolbarPage, value: ToolbarLayout) => void;
@@ -35,6 +37,7 @@ interface ToolbarViewOptionsState {
     setChannelFilter: (value: ChannelFilter) => void;
     setGroupFilter: (value: GroupFilter) => void;
     setModelFilter: (value: ModelFilter) => void;
+    setRankSortMode: (value: RankSortMode) => void;
 }
 
 export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
@@ -46,6 +49,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             channelFilter: 'all',
             groupFilter: 'all',
             modelFilter: 'all',
+            rankSortMode: 'cost',
 
             getLayout: (item) => get().layouts[item] || 'grid',
             setLayout: (item, value) => {
@@ -68,6 +72,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             setChannelFilter: (value) => set({ channelFilter: value }),
             setGroupFilter: (value) => set({ groupFilter: value }),
             setModelFilter: (value) => set({ modelFilter: value }),
+            setRankSortMode: (value) => set({ rankSortMode: value }),
         }),
         {
             name: 'toolbar-view-options-storage',
@@ -78,6 +83,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
                 channelFilter: state.channelFilter,
                 groupFilter: state.groupFilter,
                 modelFilter: state.modelFilter,
+                rankSortMode: state.rankSortMode,
             }),
         }
     )
