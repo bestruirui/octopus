@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
-import { Check, ChevronDownIcon, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Check, ChevronDownIcon, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { useModelChannelList, type LLMChannel } from '@/api/endpoints/model';
@@ -43,8 +43,10 @@ function ModelPickerSection({
     autoAddDisabled: boolean;
 }) {
     const t = useTranslations('group');
+    const [searchKeyword, setSearchKeyword] = useState('');
 
     const selectedKeys = useMemo(() => new Set(selectedMembers.map(memberKey)), [selectedMembers]);
+    const normalizedSearch = searchKeyword.trim().toLowerCase();
 
     const channels = useMemo(() => {
         const byId = new Map<number, { id: number; name: string; models: LLMChannel[] }>();
@@ -59,21 +61,42 @@ function ModelPickerSection({
             .sort((a, b) => a.id - b.id);
     }, [modelChannels]);
 
+    const filteredChannels = useMemo(() => {
+        if (!normalizedSearch) return channels;
+        return channels.reduce<typeof channels>((acc, channel) => {
+            if (channel.name.toLowerCase().includes(normalizedSearch)) {
+                acc.push(channel);
+                return acc;
+            }
+
+            const models = channel.models.filter((model) => model.name.toLowerCase().includes(normalizedSearch));
+            if (models.length > 0) acc.push({ ...channel, models });
+            return acc;
+        }, []);
+    }, [channels, normalizedSearch]);
+
     return (
         <div className="rounded-xl border border-border/50 bg-muted/30 flex flex-col min-h-0">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-muted/50">
-                <span className="text-sm font-medium text-foreground">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-2 border-b border-border/30 bg-muted/50">
+                <span className="min-w-0 justify-self-start text-sm font-medium text-foreground">
                     {t('form.addItem')}
-                    <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-                        ({selectedMembers.length})
-                    </span>
                 </span>
+
+                <div className="relative justify-self-center w-30">
+                    <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        value={searchKeyword}
+                        onChange={(event) => setSearchKeyword(event.target.value)}
+                        className="h-6 rounded-lg border-border/60 bg-background/70 pl-7 pr-2 text-xs shadow-none focus-visible:border-border/60 focus-visible:ring-0"
+                        aria-label="search"
+                    />
+                </div>
 
                 <button
                     type="button"
                     onClick={onAutoAdd}
                     className={cn(
-                        'flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
+                        'justify-self-end shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
                         autoAddDisabled
                             ? 'text-muted-foreground/50 cursor-not-allowed'
                             : 'hover:bg-muted text-muted-foreground hover:text-foreground'
@@ -88,7 +111,7 @@ function ModelPickerSection({
 
             <div className="flex-1 min-h-0 overflow-y-auto p-2">
                 <Accordion type="multiple" className="w-full space-y-2">
-                    {channels.map((channel) => {
+                    {filteredChannels.map((channel) => {
                         const total = channel.models.length;
                         const selectedCount = channel.models.reduce(
                             (acc, m) => acc + (selectedKeys.has(memberKey(m)) ? 1 : 0),
@@ -480,5 +503,3 @@ export function GroupEditor({
         </form>
     );
 }
-
-

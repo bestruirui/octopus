@@ -14,10 +14,12 @@ import { createPortal } from 'react-dom';
 
 interface ModelItemProps {
     model: LLMInfo;
+    layout?: 'grid' | 'list';
 }
 
-export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
+export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: ModelItemProps) {
     const t = useTranslations('model');
+    const isListLayout = layout === 'list';
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [overlayRect, setOverlayRect] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -143,7 +145,7 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
         <article
             ref={cardRef}
             className={cn(
-                'group relative h-28 rounded-3xl border border-border bg-card transition-all duration-300 flex items-center gap-3 p-4',
+                'group relative rounded-3xl border border-border bg-card transition-all duration-300 flex items-center gap-3 p-4',
                 (isEditOpen || confirmDelete) && 'z-50'
             )}
         >
@@ -159,22 +161,42 @@ export const ModelItem = memo(function ModelItem({ model }: ModelItemProps) {
                     </TooltipContent>
                 </Tooltip>
 
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
-                    {t('card.inputCache')}
-                    <span className="tabular-nums">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
-                </p>
+                {isListLayout ? (
+                    <p className="flex items-center gap-2 overflow-hidden text-sm text-muted-foreground whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                            <ArrowDownToLine className="size-3.5 shrink-0" style={{ color: brandColor }} />
+                            {t('card.inputCache')}
+                            <span className="tabular-nums">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
+                        </span>
+                        <span className="text-muted-foreground/60">|</span>
+                        <span className="inline-flex items-center gap-1 overflow-hidden">
+                            <ArrowUpFromLine className="size-3.5 shrink-0" style={{ color: brandColor }} />
+                            {t('card.outputCache')}
+                            <span className="tabular-nums truncate">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
+                        </span>
+                    </p>
+                ) : (
+                    <>
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
+                            {t('card.inputCache')}
+                            <span className="tabular-nums">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
+                        </p>
 
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <ArrowUpFromLine className="size-3.5" style={{ color: brandColor }} />
-                    {t('card.outputCache')}
-                    <span className="tabular-nums">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
-                </p>
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <ArrowUpFromLine className="size-3.5" style={{ color: brandColor }} />
+                            {t('card.outputCache')}
+                            <span className="tabular-nums">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
+                        </p>
+                    </>
+                )}
             </div>
 
             <div
                 className={cn(
-                    'shrink-0 flex flex-col justify-between self-stretch',
+                    isListLayout
+                        ? 'shrink-0 flex items-center gap-2 self-center'
+                        : 'shrink-0 flex flex-col justify-between self-stretch',
                     (isEditOpen || confirmDelete) && 'invisible pointer-events-none'
                 )}
             >

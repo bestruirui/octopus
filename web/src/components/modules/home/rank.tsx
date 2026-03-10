@@ -5,13 +5,15 @@ import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/components/animate-ui/components/animate/tabs';
+import { useHomeViewStore, type RankSortMode } from '@/components/modules/home/store';
 
-type SortMode = 'cost' | 'count';
 type ChannelData = NonNullable<ReturnType<typeof useChannelList>['data']>[number];
 
 export function Rank() {
     const { data: channelData } = useChannelList();
     const t = useTranslations('home.rank');
+    const rankSortMode = useHomeViewStore((state) => state.rankSortMode);
+    const setRankSortMode = useHomeViewStore((state) => state.setRankSortMode);
 
     const rankedByCost = useMemo<ChannelData[]>(() => {
         if (!channelData) return [];
@@ -23,6 +25,11 @@ export function Rank() {
         return [...channelData].sort((a, b) => b.formatted.request_count.raw - a.formatted.request_count.raw);
     }, [channelData]);
 
+    const rankedByTokens = useMemo<ChannelData[]>(() => {
+        if (!channelData) return [];
+        return [...channelData].sort((a, b) => b.formatted.total_token.raw - a.formatted.total_token.raw);
+    }, [channelData]);
+
     const getMedalEmoji = (rank: number): string => {
         switch (rank) {
             case 1: return '🥇';
@@ -32,7 +39,7 @@ export function Rank() {
         }
     };
 
-    const renderList = (channels: ChannelData[], mode: SortMode) => {
+    const renderList = (channels: ChannelData[], mode: RankSortMode) => {
         if (channels.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
@@ -90,6 +97,13 @@ export function Rank() {
                                             </span>
                                         </span>
                                     </div>
+                                ) : mode === 'tokens' ? (
+                                    <span className="font-semibold text-base">
+                                        {channel.formatted.total_token.formatted.value}
+                                        <span className="text-xs text-muted-foreground">
+                                            {channel.formatted.total_token.formatted.unit}
+                                        </span>
+                                    </span>
                                 ) : (
                                     <span className="font-semibold text-base">
                                         {channel.formatted.total_cost.formatted.value}
@@ -108,12 +122,13 @@ export function Rank() {
 
     return (
         <div className="rounded-3xl bg-card text-card-foreground border-card-border border p-4">
-            <Tabs defaultValue="cost">
+            <Tabs value={rankSortMode} onValueChange={(value) => setRankSortMode(value as RankSortMode)}>
                 <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-base">{t('title')}</h3>
                     <TabsList>
                         <TabsTrigger value="cost">{t('sortByCost')}</TabsTrigger>
                         <TabsTrigger value="count">{t('sortByCount')}</TabsTrigger>
+                        <TabsTrigger value="tokens">{t('sortByTokens')}</TabsTrigger>
                     </TabsList>
                 </div>
                 <TabsContents>
@@ -122,6 +137,9 @@ export function Rank() {
                     </TabsContent>
                     <TabsContent value="count">
                         {renderList(rankedByCount, 'count')}
+                    </TabsContent>
+                    <TabsContent value="tokens">
+                        {renderList(rankedByTokens, 'tokens')}
                     </TabsContent>
                 </TabsContents>
             </Tabs>

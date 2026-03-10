@@ -44,7 +44,7 @@ export function Model() {
             columns={{ default: 1, md: 2, lg: 3 }}
             estimateItemHeight={112}
             getItemKey={(model) => `model-${model.name}`}
-            renderItem={(model) => <ModelItem model={model} />}
+            renderItem={(model) => <ModelItem model={model} layout={layout} />}
         />
     );
 }

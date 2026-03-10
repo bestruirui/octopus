@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowDownUp, LayoutGrid, List, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowUpAZ, Clock3, LayoutGrid, List, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
     MorphingDialog,
@@ -25,11 +25,25 @@ import {
     type ChannelFilter,
     type GroupFilter,
     type ModelFilter,
+    type ToolbarSortField,
+    type ToolbarSortOrder,
 } from './view-options-store';
 
 const CHANNEL_FILTER_OPTIONS: ChannelFilter[] = ['all', 'enabled', 'disabled'];
 const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty'];
 const MODEL_FILTER_OPTIONS: ModelFilter[] = ['all', 'priced', 'free'];
+type CombinedSortOption = {
+    value: `${ToolbarSortField}-${ToolbarSortOrder}`;
+    field: ToolbarSortField;
+    order: ToolbarSortOrder;
+    labelKey: string;
+};
+const COMBINED_SORT_OPTIONS: readonly CombinedSortOption[] = [
+    { value: 'name-asc', field: 'name', order: 'asc', labelKey: 'popover.nameAsc' },
+    { value: 'name-desc', field: 'name', order: 'desc', labelKey: 'popover.nameDesc' },
+    { value: 'created-asc', field: 'created', order: 'asc', labelKey: 'popover.createdAsc' },
+    { value: 'created-desc', field: 'created', order: 'desc', labelKey: 'popover.createdDesc' },
+] as const;
 
 function isToolbarPage(item: NavItem): item is ToolbarPage {
     return (TOOLBAR_PAGES as readonly NavItem[]).includes(item);
@@ -53,8 +67,12 @@ export function Toolbar() {
     const searchTerm = useSearchStore((s) => (toolbarItem ? s.searchTerms[toolbarItem] || '' : ''));
     const setSearchTerm = useSearchStore((s) => s.setSearchTerm);
     const layout = useToolbarViewOptionsStore((s) => (toolbarItem ? s.getLayout(toolbarItem) : 'grid'));
+    const sortField = useToolbarViewOptionsStore((s) =>
+        toolbarItem === 'channel' || toolbarItem === 'group' ? s.getSortField(toolbarItem) : 'name'
+    );
     const sortOrder = useToolbarViewOptionsStore((s) => (toolbarItem ? s.getSortOrder(toolbarItem) : 'asc'));
     const setLayout = useToolbarViewOptionsStore((s) => s.setLayout);
+    const setSortConfig = useToolbarViewOptionsStore((s) => s.setSortConfig);
     const setSortOrder = useToolbarViewOptionsStore((s) => s.setSortOrder);
     const channelFilter = useToolbarViewOptionsStore((s) => s.channelFilter);
     const groupFilter = useToolbarViewOptionsStore((s) => s.groupFilter);
@@ -66,6 +84,8 @@ export function Toolbar() {
     const searchExpanded = expandedSearchItem === toolbarItem;
 
     if (!toolbarItem) return null;
+    const showLayoutOptions = toolbarItem !== 'group';
+    const showCombinedSortOptions = toolbarItem === 'channel' || toolbarItem === 'group';
 
     const channelFilterLabelKeys: Record<ChannelFilter, string> = {
         all: 'popover.filter.channel.all',
@@ -186,68 +206,95 @@ export function Toolbar() {
                         className="w-64 rounded-2xl border border-border/60 bg-card p-3 shadow-xl"
                     >
                         <div className="grid gap-3">
-                            <div className="grid gap-2">
-                                <p className="text-xs font-medium text-muted-foreground">{t('popover.layout')}</p>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setLayout(toolbarItem, 'grid')}
-                                        className={cn(
-                                            'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                            layout === 'grid'
-                                                ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                        )}
-                                    >
-                                        <LayoutGrid className="size-3.5" />
-                                        {t('popover.grid')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setLayout(toolbarItem, 'list')}
-                                        className={cn(
-                                            'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                            layout === 'list'
-                                                ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                        )}
-                                    >
-                                        <List className="size-3.5" />
-                                        {t('popover.list')}
-                                    </button>
+                            {showLayoutOptions && (
+                                <div className="grid gap-2">
+                                    <p className="text-xs font-medium text-muted-foreground">{t('popover.layout')}</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setLayout(toolbarItem, 'grid')}
+                                            className={cn(
+                                                'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
+                                                layout === 'grid'
+                                                    ? 'border-primary/30 bg-primary text-primary-foreground'
+                                                    : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
+                                            )}
+                                        >
+                                            <LayoutGrid className="size-3.5" />
+                                            {t('popover.grid')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setLayout(toolbarItem, 'list')}
+                                            className={cn(
+                                                'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
+                                                layout === 'list'
+                                                    ? 'border-primary/30 bg-primary text-primary-foreground'
+                                                    : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
+                                            )}
+                                        >
+                                            <List className="size-3.5" />
+                                            {t('popover.list')}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="grid gap-2">
                                 <p className="text-xs font-medium text-muted-foreground">{t('popover.sort')}</p>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setSortOrder(toolbarItem, 'asc')}
-                                        className={cn(
-                                            'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                            sortOrder === 'asc'
-                                                ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                        )}
-                                    >
-                                        <ArrowDownUp className="size-3.5" />
-                                        {t('popover.asc')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSortOrder(toolbarItem, 'desc')}
-                                        className={cn(
-                                            'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                            sortOrder === 'desc'
-                                                ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                        )}
-                                    >
-                                        <ArrowDownUp className="size-3.5 rotate-180" />
-                                        {t('popover.desc')}
-                                    </button>
-                                </div>
+                                {showCombinedSortOptions ? (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {COMBINED_SORT_OPTIONS.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (toolbarItem === 'channel' || toolbarItem === 'group') {
+                                                        setSortConfig(toolbarItem, option.field, option.order);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
+                                                    sortField === option.field && sortOrder === option.order
+                                                        ? 'border-primary/30 bg-primary text-primary-foreground'
+                                                        : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
+                                                )}
+                                            >
+                                                {option.field === 'name' ? <ArrowUpAZ className="size-3.5" /> : <Clock3 className="size-3.5" />}
+                                                {t(option.labelKey)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSortOrder(toolbarItem, 'asc')}
+                                            className={cn(
+                                                'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
+                                                sortOrder === 'asc'
+                                                    ? 'border-primary/30 bg-primary text-primary-foreground'
+                                                    : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
+                                            )}
+                                        >
+                                            <ArrowUpAZ className="size-3.5" />
+                                            {t('popover.nameAsc')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSortOrder(toolbarItem, 'desc')}
+                                            className={cn(
+                                                'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
+                                                sortOrder === 'desc'
+                                                    ? 'border-primary/30 bg-primary text-primary-foreground'
+                                                    : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
+                                            )}
+                                        >
+                                            <ArrowUpAZ className="size-3.5" />
+                                            {t('popover.nameDesc')}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid gap-2">

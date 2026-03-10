@@ -10,18 +10,19 @@ export function Group() {
     const { data: groups } = useGroupList();
     const pageKey = 'group' as const;
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
-    const layout = useToolbarViewOptionsStore((s) => s.getLayout(pageKey));
+    const sortField = useToolbarViewOptionsStore((s) => s.getSortField(pageKey));
     const sortOrder = useToolbarViewOptionsStore((s) => s.getSortOrder(pageKey));
     const filter = useToolbarViewOptionsStore((s) => s.groupFilter);
 
     const sortedGroups = useMemo(() => {
         if (!groups) return [];
         return [...groups].sort((a, b) => {
-            const aId = a.id || 0;
-            const bId = b.id || 0;
-            return sortOrder === 'asc' ? aId - bId : bId - aId;
+            const diff = sortField === 'name'
+                ? a.name.localeCompare(b.name)
+                : (a.id || 0) - (b.id || 0);
+            return sortOrder === 'asc' ? diff : -diff;
         });
-    }, [groups, sortOrder]);
+    }, [groups, sortField, sortOrder]);
 
     const visibleGroups = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
@@ -36,7 +37,6 @@ export function Group() {
     return (
         <VirtualizedGrid
             items={visibleGroups}
-            layout={layout}
             columns={{ default: 1, md: 2, lg: 3 }}
             estimateItemHeight={520}
             getItemKey={(group, index) => group.id ?? `group-${index}`}
