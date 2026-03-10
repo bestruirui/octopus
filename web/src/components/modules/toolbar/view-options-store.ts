@@ -11,6 +11,8 @@ export type ChannelFilter = 'all' | 'enabled' | 'disabled';
 export type GroupFilter = 'all' | 'with-members' | 'empty';
 export type ModelFilter = 'all' | 'priced' | 'free';
 export type RankSortMode = 'cost' | 'count' | 'tokens';
+export type ChartMetricType = 'cost' | 'count' | 'tokens';
+export type ChartPeriod = '1' | '7' | '30';
 
 interface ToolbarViewOptionsState {
     layouts: Partial<Record<ToolbarPage, ToolbarLayout>>;
@@ -20,6 +22,8 @@ interface ToolbarViewOptionsState {
     groupFilter: GroupFilter;
     modelFilter: ModelFilter;
     rankSortMode: RankSortMode;
+    chartMetricType: ChartMetricType;
+    chartPeriod: ChartPeriod;
 
     getLayout: (item: ToolbarPage) => ToolbarLayout;
     setLayout: (item: ToolbarPage, value: ToolbarLayout) => void;
@@ -38,6 +42,8 @@ interface ToolbarViewOptionsState {
     setGroupFilter: (value: GroupFilter) => void;
     setModelFilter: (value: ModelFilter) => void;
     setRankSortMode: (value: RankSortMode) => void;
+    setChartMetricType: (value: ChartMetricType) => void;
+    setChartPeriod: (value: ChartPeriod) => void;
 }
 
 export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
@@ -50,6 +56,8 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             groupFilter: 'all',
             modelFilter: 'all',
             rankSortMode: 'cost',
+            chartMetricType: 'cost',
+            chartPeriod: '1',
 
             getLayout: (item) => get().layouts[item] || 'grid',
             setLayout: (item, value) => {
@@ -73,6 +81,8 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             setGroupFilter: (value) => set({ groupFilter: value }),
             setModelFilter: (value) => set({ modelFilter: value }),
             setRankSortMode: (value) => set({ rankSortMode: value }),
+            setChartMetricType: (value) => set({ chartMetricType: value }),
+            setChartPeriod: (value) => set({ chartPeriod: value }),
         }),
         {
             name: 'toolbar-view-options-storage',
@@ -84,6 +94,8 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
                 groupFilter: state.groupFilter,
                 modelFilter: state.modelFilter,
                 rankSortMode: state.rankSortMode,
+                chartMetricType: state.chartMetricType,
+                chartPeriod: state.chartPeriod,
             }),
         }
     )

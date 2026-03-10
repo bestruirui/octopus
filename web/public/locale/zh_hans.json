@@ -115,9 +115,16 @@
             "outputCost": "输出费用"
         },
         "chart": {
+            "title": "趋势",
             "totalRequests": "请求次数",
             "totalCost": "消费金额",
-            "timePeriod": "时间范围",
+            "totalTokens": "Tokens 消耗",
+            "timePeriod": "时间周期",
+            "metricType": {
+                "cost": "金额",
+                "count": "次数",
+                "tokens": "Tokens"
+            },
             "period": {
                 "today": "今天",
                 "last7Days": "7天",
@@ -128,7 +135,7 @@
             "title": "排行榜",
             "sortByCost": "金额",
             "sortByCount": "次数",
-            "sortByTokens": "Token",
+            "sortByTokens": "Tokens",
             "noData": "暂无排行数据",
             "successRate": "成功率"
         }
