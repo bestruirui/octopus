@@ -71,6 +71,11 @@ func (o *ChatOutbound) TransformResponse(ctx context.Context, response *http.Res
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
+
+	if resp.IsEmpty() {
+		return nil, fmt.Errorf("response content is empty")
+	}
+
 	return &resp, nil
 }
 

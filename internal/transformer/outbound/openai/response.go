@@ -92,7 +92,13 @@ func (o *ResponseOutbound) TransformResponse(ctx context.Context, response *http
 	}
 
 	// Convert to internal response
-	return convertToLLMResponseFromResponses(&resp), nil
+	internalResp := convertToLLMResponseFromResponses(&resp)
+
+	if internalResp.IsEmpty() {
+		return nil, fmt.Errorf("response content is empty")
+	}
+
+	return internalResp, nil
 }
 
 func (o *ResponseOutbound) TransformStream(ctx context.Context, eventData []byte) (*model.InternalLLMResponse, error) {
