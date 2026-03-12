@@ -69,7 +69,7 @@ const MODEL_ICON_PATTERNS: ModelIconConfig[] = [
     // Alibaba - Qwen series
     { prefixes: ['qwen', 'qwq', 'alibaba'], Avatar: Qwen.Avatar, color: '#6B4EFF' },
     // Zhipu - GLM series
-    { prefixes: ['glm', 'chatglm', 'zhipu'], Avatar: Zhipu.Avatar, color: '#3C5BFC' },
+    { prefixes: ['glm', 'chatglm', 'zhipu', 'z-ai'], Avatar: Zhipu.Avatar, color: '#3C5BFC' },
     // MiniMax series
     { prefixes: ['minimax', 'abab'], Avatar: Minimax.Avatar, color: '#1A1A2E' },
     // Moonshot/Kimi series
