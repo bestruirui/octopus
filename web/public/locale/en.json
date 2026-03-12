@@ -380,7 +380,9 @@
             "autoAdd": "Auto Add",
             "clear": "Clear",
             "selectChannel": "Channel",
-            "selectModel": "Model"
+            "selectModel": "Model",
+            "moveToTop": "Move to Top",
+            "moveToBottom": "Move to Bottom"
         },
         "mode": {
             "roundRobin": "Round Robin",
@@ -500,6 +502,7 @@
         },
         "form": {
             "add": "Add",
+            "batchImport": "Batch Import",
             "name": "Channel Name",
             "type": "Channel Type",
             "baseUrls": "Base URLs",
@@ -541,7 +544,48 @@
             "autoGroupRegex": "Regex",
             "matchRegex": "Match Regex",
             "matchRegexPlaceholder": "Optional: regex pattern to match request model names",
-            "remark": "Remark"
+            "enableMultiKeyRetry": "Multi-Key Retry",
+            "enableMultiKeyRetryDesc": "Automatically retry with other keys when request fails",
+            "retryCount": "Retry Count",
+            "retryCountDesc": "Max retry attempts",
+            "keyLoadBalanceMode": "Key Load Balance",
+            "keyLoadBalanceModeDesc": "Strategy for selecting keys",
+            "loadBalanceRoundRobin": "Round Robin",
+            "loadBalanceRandom": "Random",
+            "autoBanKeyFailures": "Auto Ban Threshold",
+            "autoBanKeyFailuresDesc": "Auto disable key after consecutive failures (0 to disable)",
+            "remark": "Remark",
+            "keyBulkEnable": "Enable All Keys",
+            "keyBulkDisable": "Disable All Keys",
+            "keyBulkRemove": "Remove All Keys",
+            "keyBulkRemoveDisabled": "Remove Disabled Keys",
+            "keyBulkEnableSuccess": "All keys enabled",
+            "keyBulkDisableSuccess": "All keys disabled",
+            "keyBulkRemoveSuccess": "All keys removed",
+            "keyBulkRemoveDisabledSuccess": "All disabled keys removed",
+            "keyBulkRemoveConfirmTitle": "Confirm Remove All Keys",
+            "keyBulkRemoveConfirmDesc": "This will remove all keys. Are you sure you want to continue?",
+            "keyBulkRemoveDisabledConfirmTitle": "Confirm Remove Disabled Keys",
+            "keyBulkRemoveDisabledConfirmDesc": "This will remove {count} disabled keys. Are you sure you want to continue?",
+            "keyBulkRemoveDisabledNone": "No disabled keys to remove",
+            "keyExportAll": "Export All Keys",
+            "keyExportEnabled": "Export Enabled Keys",
+            "keyExportDisabled": "Export Disabled Keys",
+            "keyExportSuccess": "Keys exported successfully",
+            "keyExportEmpty": "No keys to export",
+            "cancel": "Cancel",
+            "confirm": "Confirm"
+        },
+        "batchImport": {
+            "title": "Batch Import API Keys",
+            "description": "Please enter or paste multiple API keys, separated by commas or newlines.",
+            "noKeys": "No keys detected",
+            "keyCount": "Identified {total} keys",
+            "uploadFile": "Upload File",
+            "placeholder": "sk-example1\nsk-example2, sk-example3...",
+            "preview": "Preview",
+            "cancel": "Cancel",
+            "addToForm": "Add to Form"
         }
     }
 }

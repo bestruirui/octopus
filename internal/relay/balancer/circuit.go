@@ -141,8 +141,8 @@ func RecordSuccess(channelID, keyID int, modelName string) {
 	entry.TripCount = 0
 }
 
-// RecordFailure 记录失败，可能触发熔断
-func RecordFailure(channelID, keyID int, modelName string) {
+// RecordFailure 记录失败，可能触发熔断，并返回当前的连续失败次数
+func RecordFailure(channelID, keyID int, modelName string) int64 {
 	key := circuitKey(channelID, keyID, modelName)
 	entry := getOrCreateEntry(key)
 
@@ -174,4 +174,6 @@ func RecordFailure(channelID, keyID int, modelName string) {
 		// 理论上不应该在 Open 状态下接收到失败记录（请求应被拒绝），
 		// 但为安全起见仍更新失败时间
 	}
+
+	return entry.ConsecutiveFailures
 }

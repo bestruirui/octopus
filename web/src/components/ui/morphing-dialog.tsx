@@ -169,6 +169,9 @@ function MorphingDialogContent({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (document.querySelector('[data-slot="dialog-content"]')) {
+          return;
+        }
         setIsOpen(false);
       }
       if (event.key === 'Tab') {
@@ -221,6 +224,20 @@ function MorphingDialogContent({
     },
     (event) => {
       const target = event.target as HTMLElement | null;
+       // 检查 DropdownMenu - Radix UI 使用这些属性
+      if (target?.closest('[data-radix-dropdown-menu-content]')) {
+        return true;
+      }
+      if (target?.closest('[data-radix-popper-content-wrapper]')) {
+        return true;
+      }
+      if (target?.closest('[role="menu"]')) {
+        return true;
+      }
+      const openDropdownMenu = document.querySelector('[data-radix-dropdown-menu-content]');
+      if (openDropdownMenu) {
+        return true;
+      }
       if (target?.closest('[data-slot="select-content"]')) {
         return true;
       }
@@ -233,6 +250,13 @@ function MorphingDialogContent({
       }
       const openPopoverContent = document.querySelector('[data-slot="popover-content"]');
       if (openPopoverContent) {
+        return true;
+      }
+      if (target?.closest('[data-slot="dialog-content"]')) {
+        return true;
+      }
+      const openDialogContent = document.querySelector('[data-slot="dialog-content"]');
+      if (openDialogContent) {
         return true;
       }
       return false;

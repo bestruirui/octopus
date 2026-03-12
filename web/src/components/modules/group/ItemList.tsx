@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { Layers, GripVertical, X, Trash2 } from 'lucide-react';
+import { Layers, GripVertical, X, Trash2, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
 import {
     DragDropContext,
     Draggable,
@@ -46,6 +46,8 @@ function MemberItem({
     showConfirmDelete = true,
     layoutScope,
     dnd,
+    onMoveToTop,
+    onMoveToBottom,
 }: {
     member: SelectedMember;
     onRemove: (id: string) => void;
@@ -56,7 +58,10 @@ function MemberItem({
     showConfirmDelete?: boolean;
     layoutScope?: string;
     dnd: MemberItemDnd;
+    onMoveToTop?: (index: number) => void;
+    onMoveToBottom?: (index: number) => void;
 }) {
+    const t = useTranslations('group');
     const { Avatar: ModelAvatar } = getModelIcon(member.name);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const isDisabled = member.enabled === false;
@@ -131,6 +136,27 @@ function MemberItem({
                             isDisabled && 'text-muted-foreground'
                         )}
                     />
+                )}
+
+                {onMoveToTop && (
+                    <button
+                        type="button"
+                        onClick={() => onMoveToTop(index)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title={t('form.moveToTop')}
+                    >
+                        <ArrowUpToLine className="size-3" />
+                    </button>
+                )}
+                {onMoveToBottom && (
+                    <button
+                        type="button"
+                        onClick={() => onMoveToBottom(index)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title={t('form.moveToBottom')}
+                    >
+                        <ArrowDownToLine className="size-3" />
+                    </button>
                 )}
 
                 {(!showConfirmDelete || !confirmDelete) && (
@@ -277,6 +303,20 @@ export function MemberList({
         }
     };
 
+    const handleMoveToTop = (index: number) => {
+        if (index === 0) return;
+        const next = reorderList(members, index, 0);
+        onReorder(next);
+        onDrop?.(next);
+    };
+
+    const handleMoveToBottom = (index: number) => {
+        if (index === members.length - 1) return;
+        const next = reorderList(members, index, members.length - 1);
+        onReorder(next);
+        onDrop?.(next);
+    };
+
     return (
         <div className="relative h-full min-h-0">
             <div
@@ -331,6 +371,8 @@ export function MemberList({
                                                     dragHandleProps: draggableProvided.dragHandleProps,
                                                     isDragging: snapshot.isDragging,
                                                 }}
+                                                onMoveToTop={handleMoveToTop}
+                                                onMoveToBottom={handleMoveToBottom}
                                             />
                                         )}
                                     </Draggable>

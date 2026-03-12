@@ -380,7 +380,9 @@
             "autoAdd": "自動新增",
             "clear": "清空",
             "selectChannel": "供應源",
-            "selectModel": "模型"
+            "selectModel": "模型",
+            "moveToTop": "置頂",
+            "moveToBottom": "置底"
         },
         "mode": {
             "roundRobin": "輪詢",
@@ -500,6 +502,7 @@
         },
         "form": {
             "add": "新增",
+            "batchImport": "批次匯入",
             "name": "供應源名稱",
             "type": "供應源類型",
             "baseUrls": "Base URLs",
@@ -541,7 +544,48 @@
             "autoGroupRegex": "正規比對",
             "matchRegex": "匹配正規",
             "matchRegexPlaceholder": "可選：用於匹配請求模型名稱的正規表示式",
-            "remark": "備註"
+            "enableMultiKeyRetry": "啟用多 Key 重試",
+            "enableMultiKeyRetryDesc": "開啟後，當請求失敗時自動切換其他 Key 重試",
+            "retryCount": "重試次數",
+            "retryCountDesc": "請求失敗時的最大重試次數",
+            "keyLoadBalanceMode": "Key 負載方式",
+            "keyLoadBalanceModeDesc": "選擇 Key 的負載平衡策略",
+            "loadBalanceRoundRobin": "輪詢 (Round Robin)",
+            "loadBalanceRandom": "隨機 (Random)",
+            "autoBanKeyFailures": "自動禁用閾值",
+            "autoBanKeyFailuresDesc": "連續失敗超過該次數後自動禁用 Key (0 表示不禁用)",
+            "remark": "備註",
+            "keyBulkEnable": "啟用所有密鑰",
+            "keyBulkDisable": "禁用所有密鑰",
+            "keyBulkRemove": "移除所有密鑰",
+            "keyBulkRemoveDisabled": "移除已禁用的密鑰",
+            "keyBulkEnableSuccess": "已啟用所有密鑰",
+            "keyBulkDisableSuccess": "已禁用所有密鑰",
+            "keyBulkRemoveSuccess": "已移除所有密鑰",
+            "keyBulkRemoveDisabledSuccess": "已移除所有已禁用的密鑰",
+            "keyBulkRemoveConfirmTitle": "確認移除所有密鑰",
+            "keyBulkRemoveConfirmDesc": "此操作將移除所有密鑰，確定要繼續嗎？",
+            "keyBulkRemoveDisabledConfirmTitle": "確認移除已禁用的密鑰",
+            "keyBulkRemoveDisabledConfirmDesc": "此操作將移除 {count} 個已禁用的密鑰，確定要繼續嗎？",
+            "keyBulkRemoveDisabledNone": "沒有已禁用的密鑰",
+            "keyExportAll": "導出所有密鑰",
+            "keyExportEnabled": "導出已啟用的密鑰",
+            "keyExportDisabled": "導出已禁用的密鑰",
+            "keyExportSuccess": "密鑰導出成功",
+            "keyExportEmpty": "沒有可導出的密鑰",
+            "cancel": "取消",
+            "confirm": "確認"
+        },
+        "batchImport": {
+            "title": "批次匯入 API 金鑰",
+            "description": "請輸入或貼上多個 API 金鑰，支援逗號、換行符分隔。",
+            "noKeys": "未檢測到金鑰",
+            "keyCount": "共識別到 {total} 個金鑰",
+            "uploadFile": "上傳檔案",
+            "placeholder": "sk-example1\nsk-example2, sk-example3...",
+            "preview": "預覽",
+            "cancel": "取消",
+            "addToForm": "新增到表單"
         }
     }
 }

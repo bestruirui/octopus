@@ -13,7 +13,33 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, X, Plus } from 'lucide-react';
+import { RefreshCw, X, Plus, ChevronLeft, ChevronRight, MoreVertical, Download } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+export const DEFAULT_BASE_URLS: Partial<Record<ChannelType, string>> = {
+    [ChannelType.OpenAIChat]: 'https://api.openai.com/v1',
+    [ChannelType.OpenAIResponse]: 'https://api.openai.com/v1',
+    [ChannelType.Anthropic]: 'https://api.anthropic.com/v1',
+    [ChannelType.Gemini]: 'https://generativelanguage.googleapis.com/v1beta',
+    [ChannelType.Volcengine]: 'https://ark.cn-beijing.volces.com/api/v3',
+    [ChannelType.OpenAIEmbedding]: 'https://api.openai.com/v1',
+};
 
 export interface ChannelKeyFormItem {
     id?: number;
@@ -40,6 +66,10 @@ export interface ChannelFormData {
     auto_sync: boolean;
     auto_group: AutoGroupType;
     match_regex: string;
+    enable_multi_key_retry: boolean;
+    retry_count: number;
+    key_load_balance_mode: string;
+    auto_ban_key_failures: number;
 }
 
 export interface ChannelFormProps {
@@ -52,6 +82,7 @@ export interface ChannelFormProps {
     onCancel?: () => void;
     cancelText?: string;
     idPrefix?: string;
+    channelId?: number;
 }
 
 import {
@@ -60,6 +91,8 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
+import { BatchImportModal } from './BatchImportModal';
+import { Upload } from 'lucide-react';
 
 export function ChannelForm({
     formData,
@@ -71,9 +104,10 @@ export function ChannelForm({
     onCancel,
     cancelText,
     idPrefix = 'channel',
+    channelId,
 }: ChannelFormProps) {
     const t = useTranslations('channel.form');
-
+    
     // Ensure the form always shows at least 1 row for base_urls / keys / custom_header.
     // This avoids "empty list" UI and also keeps URL + APIKEY layout consistent.
     useEffect(() => {
@@ -98,12 +132,61 @@ export function ChannelForm({
         : [];
     const [inputValue, setInputValue] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
+    const [batchImportOpen, setBatchImportOpen] = useState(false);
+    
+    // keys分页
+    const [keyPage, setKeyPage] = useState(1);
+    const [keyPageInput, setKeyPageInput] = useState('1');
+    const keyPageSize = 10;
+    const totalKeyPages = Math.ceil((formData.keys?.length || 0) / keyPageSize);
+    const currentKeyPage = Math.min(Math.max(1, keyPage), Math.max(1, totalKeyPages));
+    const paginatedKeys = (formData.keys ?? []).slice((currentKeyPage - 1) * keyPageSize, currentKeyPage * keyPageSize);
+
+    // 确认对话框状态
+    const [confirmDialog, setConfirmDialog] = useState<{
+        open: boolean;
+        title: string;
+        description: string;
+        onConfirm: () => void;
+    }>({
+        open: false,
+        title: '',
+        description: '',
+        onConfirm: () => {},
+    });
 
     const fetchModel = useFetchModel();
+
+    // 同步 keyPage 和 keyPageInput
+    useEffect(() => {
+        setKeyPageInput(currentKeyPage.toString());
+    }, [currentKeyPage]);
+
+    const handleKeyPageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setKeyPageInput(e.target.value);
+    };
+
+    const handleKeyPageInputBlur = () => {
+        const pageNum = parseInt(keyPageInput, 10);
+        if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalKeyPages) {
+            setKeyPage(pageNum);
+        } else {
+            setKeyPageInput(currentKeyPage.toString());
+        }
+    };
+
+    const handleKeyPageInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            handleKeyPageInputBlur();
+        }
+    };
 
     const effectiveKey =
         formData.keys.find((k) => k.enabled && k.channel_key.trim())?.channel_key.trim() || '';
 
+    // 更新模型列表的辅助函数
     const updateModels = (nextAuto: string[], nextCustom: string[]) => {
         const model = nextAuto.join(',');
         const custom_model = nextCustom.join(',');
@@ -111,6 +194,7 @@ export function ChannelForm({
         onFormDataChange({ ...formData, model, custom_model });
     };
 
+    // 处理刷新模型列表
     const handleRefreshModels = async () => {
         if (!formData.base_urls?.[0]?.url || !effectiveKey) return;
         fetchModel.mutate(
@@ -167,10 +251,12 @@ export function ChannelForm({
     };
 
     const handleAddKey = () => {
+        const nextKeys = [...formData.keys, { enabled: true, channel_key: '' }];
         onFormDataChange({
             ...formData,
-            keys: [...formData.keys, { enabled: true, channel_key: '' }],
+            keys: nextKeys,
         });
+        setKeyPage(Math.ceil(nextKeys.length / keyPageSize));
     };
 
     const handleUpdateKey = (idx: number, patch: Partial<ChannelKeyFormItem>) => {
@@ -221,6 +307,124 @@ export function ChannelForm({
         onFormDataChange({ ...formData, custom_header: curr.filter((_, i) => i !== idx) });
     };
 
+    // 处理导入的密钥
+    const handleKeysImported = (newKeys: string[]) => {
+        const keysToAdd = newKeys.map(k => ({
+            enabled: true,
+            channel_key: k,
+            remark: ''
+        }));
+        // 若列表中仅有一个空key，则将其过滤掉
+        let currentKeys = formData.keys;
+        if (currentKeys.length === 1 && !currentKeys[0].channel_key.trim()) {
+            currentKeys = [];
+        }
+        
+        const nextKeys = [...currentKeys, ...keysToAdd];
+        onFormDataChange({
+            ...formData,
+            keys: nextKeys,
+        });
+        setKeyPage(Math.ceil(nextKeys.length / keyPageSize));
+    };
+
+    // 批量操作：启用所有key
+    const handleEnableAllKeys = (e: Event) => {
+        const nextKeys = formData.keys.map(k => ({ ...k, enabled: true }));
+        onFormDataChange({ ...formData, keys: nextKeys });
+        toast.success(t('keyBulkEnableSuccess'));
+    };
+
+    // 批量操作：禁用所有key
+    const handleDisableAllKeys = (e: Event) => {
+        const nextKeys = formData.keys.map(k => ({ ...k, enabled: false }));
+        onFormDataChange({ ...formData, keys: nextKeys });
+        toast.success(t('keyBulkDisableSuccess'));
+    };
+
+    // 批量操作：移除所有key
+    const handleRemoveAllKeys = (e: Event) => {
+        setConfirmDialog({
+            open: true,
+            title: t('keyBulkRemoveConfirmTitle'),
+            description: t('keyBulkRemoveConfirmDesc'),
+            onConfirm: () => {
+                onFormDataChange({ ...formData, keys: [{ enabled: true, channel_key: '' }] });
+                setKeyPage(1);
+                toast.success(t('keyBulkRemoveSuccess'));
+                setConfirmDialog(prev => ({ ...prev, open: false }));
+            },
+        });
+    };
+
+    // 批量操作：移除已禁用的key
+    const handleRemoveDisabledKeys = (e: Event) => {
+        const disabledCount = formData.keys.filter(k => !k.enabled).length;
+        if (disabledCount === 0) {
+            toast.info(t('keyBulkRemoveDisabledNone'));
+            return;
+        }
+        
+        setConfirmDialog({
+            open: true,
+            title: t('keyBulkRemoveDisabledConfirmTitle'),
+            description: t('keyBulkRemoveDisabledConfirmDesc', { count: disabledCount }),
+            onConfirm: () => {
+                const nextKeys = formData.keys.filter(k => k.enabled);
+                if (nextKeys.length === 0) {
+                    onFormDataChange({ ...formData, keys: [{ enabled: true, channel_key: '' }] });
+                } else {
+                    onFormDataChange({ ...formData, keys: nextKeys });
+                }
+                setKeyPage(1);
+                toast.success(t('keyBulkRemoveDisabledSuccess'));
+                setConfirmDialog(prev => ({ ...prev, open: false }));
+            },
+        });
+    };
+
+    // 导出密钥功能
+    const exportKeys = (keys: ChannelKeyFormItem[], filename: string) => {
+        const keysText = keys
+            .map(k => k.channel_key.trim())
+            .filter(Boolean)
+            .join('\n');
+        
+        if (!keysText) {
+            toast.warning(t('keyExportEmpty'));
+            return;
+        }
+
+        const blob = new Blob([keysText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success(t('keyExportSuccess'));
+    };
+
+    // 导出所有密钥
+    const handleExportAllKeys = (e: Event) => {
+        exportKeys(formData.keys, `keys-all-${Date.now()}.txt`);
+    };
+
+    // 导出已启用的密钥
+    const handleExportEnabledKeys = (e: Event) => {
+        const enabledKeys = formData.keys.filter(k => k.enabled);
+        exportKeys(enabledKeys, `keys-enabled-${Date.now()}.txt`);
+    };
+
+    // 导出已禁用的密钥
+    const handleExportDisabledKeys = (e: Event) => {
+        const disabledKeys = formData.keys.filter(k => !k.enabled);
+        exportKeys(disabledKeys, `keys-disabled-${Date.now()}.txt`);
+    };
+
     return (
         <form onSubmit={onSubmit} className="space-y-4 px-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,7 +448,24 @@ export function ChannelForm({
                     </label>
                     <Select
                         value={String(formData.type)}
-                        onValueChange={(value) => onFormDataChange({ ...formData, type: Number(value) as ChannelType })}
+                        onValueChange={(value) => {
+                            const newType = Number(value) as ChannelType;
+                            const currentBaseUrl = formData.base_urls?.[0]?.url;
+                            const oldDefault = DEFAULT_BASE_URLS[formData.type];
+
+                            // Only auto-fill if the user hasn't customized the URL (empty or matches previous default)
+                            let nextBaseUrls = formData.base_urls;
+                            if (!currentBaseUrl || currentBaseUrl === oldDefault) {
+                                const newDefault = DEFAULT_BASE_URLS[newType] || '';
+                                if (nextBaseUrls && nextBaseUrls.length > 0) {
+                                    nextBaseUrls = [{ ...nextBaseUrls[0], url: newDefault }, ...nextBaseUrls.slice(1)];
+                                } else {
+                                    nextBaseUrls = [{ url: newDefault, delay: 0 }];
+                                }
+                            }
+
+                            onFormDataChange({ ...formData, type: newType, base_urls: nextBaseUrls });
+                        }}
                     >
                         <SelectTrigger id={`${idPrefix}-type`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <SelectValue />
@@ -305,49 +526,170 @@ export function ChannelForm({
                 </div>
             </div>
 
+            <BatchImportModal 
+                open={batchImportOpen} 
+                onOpenChange={setBatchImportOpen}
+                onKeysImported={handleKeysImported}
+            />
+
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-card-foreground">
                         {t('apiKey')} {formData.keys.length > 0 ? `(${formData.keys.length})` : ''}
                     </label>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleAddKey}
-                        className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
-                    >
-                        <Plus className="h-3 w-3 mr-1" />
-                        {t('add')}
-                    </Button>
+                    <div className="flex gap-2">
+                        {totalKeyPages > 1 && (
+                            <div className="flex items-center gap-1 mr-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => setKeyPage(p => Math.max(1, p - 1))}
+                                    disabled={currentKeyPage === 1}
+                                >
+                                    <ChevronLeft className="h-3 w-3" />
+                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <input
+                                        type="text"
+                                        value={keyPageInput}
+                                        onChange={handleKeyPageInputChange}
+                                        onBlur={handleKeyPageInputBlur}
+                                        onKeyDown={handleKeyPageInputKeyDown}
+                                        className="w-8 h-6 text-center text-xs border rounded px-1 bg-background"
+                                    />
+                                    <span className="text-xs text-muted-foreground">/ {totalKeyPages}</span>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => setKeyPage(p => Math.min(totalKeyPages, p + 1))}
+                                    disabled={currentKeyPage === totalKeyPages}
+                                >
+                                    <ChevronRight className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        )}
+                        <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                                >
+                                    <MoreVertical className="h-3 w-3" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent 
+                                align="end" 
+                                className="rounded-xl" 
+                                onCloseAutoFocus={(e) => e.preventDefault()}
+                                onInteractOutside={(e) => e.stopPropagation()}
+                            >
+                                <DropdownMenuItem 
+                                    onSelect={handleEnableAllKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    {t('keyBulkEnable')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleDisableAllKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    {t('keyBulkDisable')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                    onSelect={handleExportAllKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    <Download className="h-3 w-3 mr-2" />
+                                    {t('keyExportAll')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleExportEnabledKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    <Download className="h-3 w-3 mr-2" />
+                                    {t('keyExportEnabled')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleExportDisabledKeys}
+                                    className="rounded-lg cursor-pointer"
+                                >
+                                    <Download className="h-3 w-3 mr-2" />
+                                    {t('keyExportDisabled')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                    onSelect={handleRemoveAllKeys}
+                                    className="rounded-lg cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                    {t('keyBulkRemove')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    onSelect={handleRemoveDisabledKeys}
+                                    className="rounded-lg cursor-pointer text-destructive focus:text-destructive"
+                                >
+                                    {t('keyBulkRemoveDisabled')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setBatchImportOpen(true)}
+                            className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                        >
+                            <Upload className="h-3 w-3 mr-1" />
+                            {t('batchImport')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleAddKey}
+                            className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                        >
+                            <Plus className="h-3 w-3 mr-1" />
+                            {t('add')}
+                        </Button>
+                    </div>
                 </div>
                 <div className="space-y-2">
-                    {(formData.keys ?? []).map((k, idx) => (
-                        <div key={k.id ?? `new-${idx}`} className="flex items-center gap-2">
+                    {paginatedKeys.map((k, idx) => {
+                        const globalIdx = (currentKeyPage - 1) * keyPageSize + idx;
+                        return (
+                        <div key={k.id ?? `new-${globalIdx}`} className="flex items-center gap-2">
                             <Input
                                 type="text"
                                 value={k.channel_key}
-                                onChange={(e) => handleUpdateKey(idx, { channel_key: e.target.value })}
+                                onChange={(e) => handleUpdateKey(globalIdx, { channel_key: e.target.value })}
                                 placeholder={t('apiKey')}
-                                required={idx === 0}
+                                required={globalIdx === 0}
                                 className="rounded-xl flex-1"
                             />
                             <Input
                                 type="text"
                                 value={k.remark ?? ''}
-                                onChange={(e) => handleUpdateKey(idx, { remark: e.target.value })}
+                                onChange={(e) => handleUpdateKey(globalIdx, { remark: e.target.value })}
                                 placeholder={t('remark')}
                                 className="rounded-xl w-32"
                             />
                             <Switch
                                 checked={k.enabled}
-                                onCheckedChange={(checked) => handleUpdateKey(idx, { enabled: checked })}
+                                onCheckedChange={(checked) => handleUpdateKey(globalIdx, { enabled: checked })}
                             />
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveKey(idx)}
+                                onClick={() => handleRemoveKey(globalIdx)}
                                 disabled={(formData.keys ?? []).length <= 1}
                                 className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-destructive hover:bg-transparent disabled:opacity-40"
                                 title="Remove"
@@ -355,7 +697,7 @@ export function ChannelForm({
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
-                    ))}
+                    )})}
                 </div>
             </div>
 
@@ -482,6 +824,82 @@ export function ChannelForm({
                                         <SelectItem className='rounded-xl' value={String(AutoGroupType.Regex)}>{t('autoGroupRegex')}</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+
+                            <div className="space-y-2 col-span-1 md:col-span-2 border rounded-xl p-4 bg-muted/20">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <label className="text-sm font-medium text-card-foreground">
+                                            {t('enableMultiKeyRetry')}
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">
+                                            {t('enableMultiKeyRetryDesc')}
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.enable_multi_key_retry}
+                                        onCheckedChange={(checked) => onFormDataChange({ ...formData, enable_multi_key_retry: checked })}
+                                    />
+                                </div>
+
+                                {formData.enable_multi_key_retry && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-card-foreground">
+                                                {t('retryCount')}
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                value={formData.retry_count}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    if (!isNaN(val)) {
+                                                        onFormDataChange({ ...formData, retry_count: val });
+                                                    }
+                                                }}
+                                                className="rounded-xl"
+                                            />
+                                            <p className="text-xs text-muted-foreground">{t('retryCountDesc')}</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-card-foreground">
+                                                {t('keyLoadBalanceMode')}
+                                            </label>
+                                            <Select
+                                                value={formData.key_load_balance_mode}
+                                                onValueChange={(value) => onFormDataChange({ ...formData, key_load_balance_mode: value })}
+                                            >
+                                                <SelectTrigger className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    <SelectItem className='rounded-xl' value="round_robin">{t('loadBalanceRoundRobin')}</SelectItem>
+                                                    <SelectItem className='rounded-xl' value="random">{t('loadBalanceRandom')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">{t('keyLoadBalanceModeDesc')}</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-card-foreground">
+                                                {t('autoBanKeyFailures')}
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                value={formData.auto_ban_key_failures}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    if (!isNaN(val)) {
+                                                        onFormDataChange({ ...formData, auto_ban_key_failures: val });
+                                                    }
+                                                }}
+                                                className="rounded-xl"
+                                            />
+                                            <p className="text-xs text-muted-foreground">{t('autoBanKeyFailuresDesc')}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -623,6 +1041,24 @@ export function ChannelForm({
                     {isPending ? pendingText : submitText}
                 </Button>
             </div>
+
+            <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+                <AlertDialogContent className="rounded-xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction 
+                            className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={confirmDialog.onConfirm}
+                        >
+                            {t('confirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </form>
     );
 }
