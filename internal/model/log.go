@@ -25,7 +25,7 @@ type ChannelAttempt struct {
 
 type RelayLog struct {
 	ID               int64            `json:"id" gorm:"primaryKey;autoIncrement:false"` // Snowflake ID
-	Time             int64            `json:"time"`                                     // 时间戳（秒）
+	Time             int64            `json:"time" gorm:"index"`                        // 时间戳（秒）
 	RequestModelName string           `json:"request_model_name"`                       // 请求模型名称
 	ChannelId        int              `json:"channel"`                                  // 实际使用的渠道ID
 	ChannelName      string           `json:"channel_name"`                             // 渠道名称

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../client';
 import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 
@@ -180,5 +180,18 @@ export function useStatsAPIKey() {
         })),
         refetchInterval: 30000,
         refetchOnMount: 'always',
+    });
+}
+
+export function useClearStats() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async () => {
+            return apiClient.delete<null>('/api/v1/stats/clear');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stats'] });
+            queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
+        },
     });
 }

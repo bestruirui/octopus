@@ -396,6 +396,52 @@ func StatsGetDaily(ctx context.Context) ([]model.StatsDaily, error) {
 	return statsDaily, nil
 }
 
+func StatsClear(ctx context.Context) error {
+	today := time.Now().Format("20060102")
+
+	// 清除 Total/Daily/Hourly 缓存
+	statsTotalCacheLock.Lock()
+	statsTotalCache = model.StatsTotal{ID: 1}
+	statsTotalCacheLock.Unlock()
+
+	statsDailyCacheLock.Lock()
+	statsDailyCache = model.StatsDaily{Date: today}
+	statsDailyCacheLock.Unlock()
+
+	statsHourlyCacheLock.Lock()
+	statsHourlyCache = [24]model.StatsHourly{}
+	statsHourlyCacheLock.Unlock()
+
+	// 清除 Channel/Model/APIKey 分片缓存 + dirty 标记
+	statsChannelCache.Clear()
+	statsChannelCacheNeedUpdateLock.Lock()
+	statsChannelCacheNeedUpdate = make(map[int]struct{})
+	statsChannelCacheNeedUpdateLock.Unlock()
+
+	statsModelCache.Clear()
+	statsModelCacheNeedUpdateLock.Lock()
+	statsModelCacheNeedUpdate = make(map[int]struct{})
+	statsModelCacheNeedUpdateLock.Unlock()
+
+	statsAPIKeyCache.Clear()
+	statsAPIKeyCacheNeedUpdateLock.Lock()
+	statsAPIKeyCacheNeedUpdate = make(map[int]struct{})
+	statsAPIKeyCacheNeedUpdateLock.Unlock()
+
+	// 删除所有 6 张 DB 表的数据
+	dbConn := db.GetDB().WithContext(ctx)
+	tables := []interface{}{
+		&model.StatsTotal{}, &model.StatsDaily{}, &model.StatsHourly{},
+		&model.StatsChannel{}, &model.StatsModel{}, &model.StatsAPIKey{},
+	}
+	for _, t := range tables {
+		if err := dbConn.Where("1 = 1").Delete(t).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func statsRefreshCache(ctx context.Context) error {
 	dbConn := db.GetDB().WithContext(ctx)
 	today := time.Now().Format("20060102")
