@@ -691,6 +691,53 @@ func (r *InternalLLMResponse) IsChatResponse() bool {
 	return len(r.Choices) > 0
 }
 
+func (r *InternalLLMResponse) IsEmpty() bool {
+	if r == nil {
+		return true
+	}
+
+	if len(r.EmbeddingData) > 0 {
+		return false
+	}
+
+	if len(r.Choices) == 0 {
+		return true
+	}
+
+	for _, choice := range r.Choices {
+		msg := choice.Message
+		if choice.Delta != nil {
+			msg = choice.Delta
+		}
+
+		if msg == nil {
+			continue
+		}
+
+		if len(msg.ToolCalls) > 0 {
+			return false
+		}
+
+		if msg.Content.Content != nil && *msg.Content.Content != "" {
+			return false
+		}
+
+		if len(msg.Content.MultipleContent) > 0 {
+			return false
+		}
+
+		if msg.ReasoningContent != nil && *msg.ReasoningContent != "" {
+			return false
+		}
+
+		if msg.Reasoning != nil && *msg.Reasoning != "" {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Choice represents a choice in the response.
 // Choice represents a choice in the response.
 type Choice struct {
