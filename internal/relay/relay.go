@@ -243,6 +243,10 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 func (ra *relayAttempt) forward() (int, error) {
 	ctx := ra.c.Request.Context()
 
+	if ra.channel != nil && ra.channel.Type != outbound.OutboundTypeAnthropic {
+		ra.internalRequest.Metadata = nil
+	}
+
 	// 构建出站请求
 	outboundRequest, err := ra.outAdapter.TransformRequest(
 		ctx,
