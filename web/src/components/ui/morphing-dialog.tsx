@@ -169,7 +169,7 @@ function MorphingDialogContent({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (document.querySelector('[data-slot="dialog-content"]')) {
+        if (document.querySelector('[data-slot="dialog-content"]') || document.querySelector('[data-slot="alert-dialog-content"]')) {
           return;
         }
         setIsOpen(false);
@@ -257,6 +257,14 @@ function MorphingDialogContent({
       }
       const openDialogContent = document.querySelector('[data-slot="dialog-content"]');
       if (openDialogContent) {
+        return true;
+      }
+      // 检查 AlertDialog
+      if (target?.closest('[data-slot="alert-dialog-content"]')) {
+        return true;
+      }
+      const openAlertDialogContent = document.querySelector('[data-slot="alert-dialog-content"]');
+      if (openAlertDialogContent) {
         return true;
       }
       return false;
