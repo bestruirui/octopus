@@ -38,12 +38,26 @@ func GroupGet(id int, ctx context.Context) (*model.Group, error) {
 	return &group, nil
 }
 
-func GroupGetMap(name string, ctx context.Context) (model.Group, error) {
-	items, ok := groupMap.Get(name)
+func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
+	group, ok := groupMap.Get(name)
 	if !ok {
 		return model.Group{}, fmt.Errorf("group not found")
 	}
-	return items, nil
+	if len(group.Items) == 0 {
+		group.Items = nil
+		return group, nil
+	}
+
+	enabledItems := make([]model.GroupItem, 0, len(group.Items))
+	for _, item := range group.Items {
+		channel, ok := channelCache.Get(item.ChannelID)
+		if !ok || !channel.Enabled {
+			continue
+		}
+		enabledItems = append(enabledItems, item)
+	}
+	group.Items = enabledItems
+	return group, nil
 }
 
 func GroupCreate(group *model.Group, ctx context.Context) error {

@@ -141,6 +141,10 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 		TotalAttempts:    len(attempts),
 	}
 
+	if apiKey, getErr := op.APIKeyGet(m.APIKeyID, ctx); getErr == nil {
+		relayLog.RequestAPIKeyName = apiKey.Name
+	}
+
 	// 首字时间
 	if !m.FirstTokenTime.IsZero() {
 		relayLog.Ftut = int(m.FirstTokenTime.Sub(m.StartTime).Milliseconds())

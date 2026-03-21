@@ -69,7 +69,7 @@ const MODEL_ICON_PATTERNS: ModelIconConfig[] = [
     // Alibaba - Qwen series
     { prefixes: ['qwen', 'qwq', 'alibaba'], Avatar: Qwen.Avatar, color: '#6B4EFF' },
     // Zhipu - GLM series
-    { prefixes: ['glm', 'chatglm', 'zhipu'], Avatar: Zhipu.Avatar, color: '#3C5BFC' },
+    { prefixes: ['glm', 'chatglm', 'zhipu', 'z-ai'], Avatar: Zhipu.Avatar, color: '#3C5BFC' },
     // MiniMax series
     { prefixes: ['minimax', 'abab'], Avatar: Minimax.Avatar, color: '#1A1A2E' },
     // Moonshot/Kimi series
@@ -126,7 +126,10 @@ const DEFAULT_CONFIG = { Avatar: OpenAI.Avatar, color: '#10A37F' };
  * @returns Object containing Avatar component and brand color
  */
 export function getModelIcon(modelName: string): { Avatar: AvatarComponent; color: string } {
-    const lowerName = modelName.toLowerCase();
+    // Extract the part after the first '/' if it exists
+    // e.g., "qwen/gpt-5.2" -> "gpt-5.2"
+    const nameToMatch = modelName.includes('/') ? modelName.split('/')[1] : modelName;
+    const lowerName = nameToMatch.toLowerCase();
     for (const { prefixes, Avatar, color } of MODEL_ICON_PATTERNS) {
         if (prefixes.some(prefix => lowerName.startsWith(prefix))) {
             return { Avatar, color };

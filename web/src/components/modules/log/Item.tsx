@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin } from 'lucide-react';
+import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin, KeyRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
@@ -190,6 +190,7 @@ export function LogCard({ log }: { log: RelayLog }) {
         () => getModelIcon(log.actual_model_name),
         [log.actual_model_name]
     );
+    const requestAPIKeyName = useMemo(() => log.request_api_key_name?.trim() ?? '', [log.request_api_key_name]);
 
     const hasError = !!log.error;
     const hasMultipleAttempts = log.attempts && log.attempts.length > 1;
@@ -234,11 +235,19 @@ export function LogCard({ log }: { log: RelayLog }) {
                                     <Pin className="size-3.5 shrink-0 text-amber-500" />
                                 )}
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
+                            <div className="grid grid-cols-2 md:grid-cols-7 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
                                 <div className="flex items-center gap-1.5">
                                     <Clock className="size-3.5 shrink-0" style={{ color: brandColor }} />
                                     <span>{formatTime(log.time)}</span>
                                 </div>
+                                {requestAPIKeyName && (
+                                    <div className="flex items-center gap-1.5">
+                                        <KeyRound className="size-3.5 shrink-0 text-orange-500" />
+                                        <span className="truncate" title={requestAPIKeyName}>
+                                            {requestAPIKeyName}
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-1.5">
                                     <Zap className="size-3.5 shrink-0 text-amber-500" />
                                     <span>{t('firstToken')} {formatDuration(log.ftut)}</span>
@@ -448,6 +457,14 @@ export function LogCard({ log }: { log: RelayLog }) {
                                 <Clock className="size-3.5" style={{ color: brandColor }} />
                                 <span className="tabular-nums">{formatTime(log.time)}</span>
                             </div>
+                            {requestAPIKeyName && (
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                    <KeyRound className="size-3.5 shrink-0 text-orange-500" />
+                                    <span className="truncate" title={requestAPIKeyName}>
+                                        {requestAPIKeyName}
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex items-center gap-1.5">
                                 <Zap className="size-3.5 text-amber-500" />
                                 <span>{t('firstTokenTime')}: {formatDuration(log.ftut)}</span>

@@ -42,7 +42,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	apiKeyID := c.GetInt("api_key_id")
 
 	// 获取通道分组
-	group, err := op.GroupGetMap(requestModel, c.Request.Context())
+	group, err := op.GroupGetEnabledMap(requestModel, c.Request.Context())
 	if err != nil {
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
