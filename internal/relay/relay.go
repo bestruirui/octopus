@@ -95,60 +95,75 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			continue
 		}
 
-		usedKey := channel.GetChannelKey()
-		if usedKey.ChannelKey == "" {
-			iter.Skip(channel.ID, 0, channel.Name, "no available key")
-			continue
-		}
-
-		// 熔断检查
-		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
-			continue
-		}
-
 		// 出站适配器
 		outAdapter := outbound.Get(channel.Type)
 		if outAdapter == nil {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
+			iter.Skip(channel.ID, 0, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
 			continue
 		}
 
 		// 类型兼容性检查
 		if internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with embedding request")
+			iter.Skip(channel.ID, 0, channel.Name, "channel type not compatible with embedding request")
 			continue
 		}
 		if internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with chat request")
+			iter.Skip(channel.ID, 0, channel.Name, "channel type not compatible with chat request")
 			continue
 		}
 
-		// 设置实际模型
-		internalRequest.Model = item.ModelName
-
-		log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
-			requestModel, group.Mode, channel.Name, item.ModelName,
-			iter.Index()+1, iter.Len(), iter.IsSticky())
-
-		// 构造尝试级上下文 -- 只写变化的 4 个字段
-		ra := &relayAttempt{
-			relayRequest:         req,
-			outAdapter:           outAdapter,
-			channel:              channel,
-			usedKey:              usedKey,
-			firstTokenTimeOutSec: group.FirstTokenTimeOut,
+		candidateKeys := channel.GetCandidateKeys()
+		if len(candidateKeys) == 0 {
+			iter.Skip(channel.ID, 0, channel.Name, "no available key")
+			continue
 		}
 
-		result := ra.attempt()
-		if result.Success {
-			metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
-			return
+		maxAttempts := 1
+		if channel.EnableMultiKeyRetry {
+			maxAttempts = channel.RetryCount
+			if maxAttempts < 1 {
+				maxAttempts = 1
+			}
+			if maxAttempts > len(candidateKeys) {
+				maxAttempts = len(candidateKeys)
+			}
 		}
-		if result.Written {
-			metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
-			return
+
+		for i := 0; i < maxAttempts; i++ {
+			usedKey := candidateKeys[i]
+
+			// 熔断检查
+			if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+				continue
+			}
+
+			// 设置实际模型
+			internalRequest.Model = item.ModelName
+
+			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s key_id: %d (attempt %d/%d, key attempt %d/%d, sticky=%t)",
+				requestModel, group.Mode, channel.Name, item.ModelName, usedKey.ID,
+				iter.Index()+1, iter.Len(), i+1, maxAttempts, iter.IsSticky())
+
+			// 构造尝试级上下文 -- 只写变化的 4 个字段
+			ra := &relayAttempt{
+				relayRequest:         req,
+				outAdapter:           outAdapter,
+				channel:              channel,
+				usedKey:              usedKey,
+				firstTokenTimeOutSec: group.FirstTokenTimeOut,
+			}
+
+			result := ra.attempt()
+			if result.Success {
+				metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
+				return
+			}
+			if result.Written {
+				metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
+				return
+			}
+			lastErr = result.Err
 		}
-		lastErr = result.Err
 	}
 
 	// 所有通道都失败
@@ -200,7 +215,16 @@ func (ra *relayAttempt) attempt() attemptResult {
 	})
 
 	// 熔断器：记录失败
-	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	failures := balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+
+	// 自动禁用 Key 检查
+	if ra.channel.AutoBanKeyFailures > 0 && failures >= int64(ra.channel.AutoBanKeyFailures) {
+		ra.usedKey.Enabled = false
+		ra.usedKey.Remark += fmt.Sprintf(" [Auto banned: %d failures]", failures)
+		op.ChannelKeyUpdate(ra.usedKey)
+		log.Warnf("channel key %d disabled due to excessive failures (%d >= %d)",
+			ra.usedKey.ID, failures, ra.channel.AutoBanKeyFailures)
+	}
 
 	written := ra.c.Writer.Written()
 	if written {

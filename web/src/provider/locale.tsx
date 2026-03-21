@@ -13,6 +13,11 @@ const messages: Record<Locale, typeof zh_hansMessages> = {
     zh_hant: zh_hantMessages,
     en: enMessages,
 };
+const localeTags: Record<Locale, string> = {
+    zh_hans: 'zh-Hans',
+    zh_hant: 'zh-Hant',
+    en: 'en',
+};
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
     const { locale } = useSettingStore();
@@ -24,7 +29,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
     return (
         <NextIntlClientProvider
-            locale={currentLocale}
+            locale={localeTags[currentLocale]}
             messages={messages[currentLocale]}
             timeZone="Asia/Shanghai"
         >
