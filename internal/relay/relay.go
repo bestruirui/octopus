@@ -114,7 +114,8 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		// 出站适配器
 		outAdapter := outbound.Get(channel.Type)
 		if endpoint, ok := c.Get(ResponsesEndpointContextKey); ok && endpoint == ResponsesEndpointCompact {
-			if inboundType == inbound.InboundTypeOpenAIResponse && channel.Type == outbound.OutboundTypeOpenAIResponse {
+			isOpenAIResponsesFlow := inboundType == inbound.InboundTypeOpenAIResponse && channel.Type == outbound.OutboundTypeOpenAIResponse
+			if isOpenAIResponsesFlow {
 				outAdapter = outbound.NewOpenAICompactResponse()
 			}
 		}

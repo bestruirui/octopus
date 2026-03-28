@@ -95,7 +95,7 @@ func (o *ResponseOutbound) TransformResponse(ctx context.Context, response *http
 
 	if o.isPassthrough {
 		return &model.InternalLLMResponse{
-			Object:      "chat.completion",
+			Object:      "response.compaction",
 			RawResponse: body,
 		}, nil
 	}
