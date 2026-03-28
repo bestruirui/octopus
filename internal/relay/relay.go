@@ -211,6 +211,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 		// 熔断器：记录成功
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		balancer.RecordSmartOutcome(ra.channel.ID, ra.internalRequest.Model, true)
 		// 会话保持：更新粘性记录
 		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
 		if ra.isCompact {
@@ -232,6 +233,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 	// 熔断器：记录失败
 	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	balancer.RecordSmartOutcome(ra.channel.ID, ra.internalRequest.Model, false)
 	if ra.isCompact && shouldMarkCompactUnsupported(fwdErr) {
 		balancer.MarkCompactUnsupported(ra.channel.ID, ra.internalRequest.Model)
 	}
