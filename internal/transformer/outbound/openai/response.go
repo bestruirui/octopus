@@ -94,6 +94,16 @@ func (o *ResponseOutbound) TransformResponse(ctx context.Context, response *http
 	}
 
 	if o.isPassthrough {
+		var compactResp struct {
+			Object string `json:"object"`
+		}
+		if err := json.Unmarshal(body, &compactResp); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal compact response: %w", err)
+		}
+		if compactResp.Object != "response.compaction" {
+			return nil, fmt.Errorf("upstream compact unsupported: unexpected object %q", compactResp.Object)
+		}
+
 		return &model.InternalLLMResponse{
 			Object:      "response.compaction",
 			RawResponse: body,
