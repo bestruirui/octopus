@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          ref: master
+          ref: dev
 
       - name: Setup Go
         uses: actions/setup-go@v6
