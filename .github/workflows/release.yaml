@@ -45,8 +45,11 @@ jobs:
 
       - name: Build
         run: |
+          bash scripts/build.sh build linux x86_64
           bash scripts/build.sh build linux arm64
+          mkdir -p build/docker/linux/amd64
           mkdir -p build/docker/linux/arm64
+          cp build/bin/octopus-linux-x86_64 build/docker/linux/amd64/octopus
           cp build/bin/octopus-linux-arm64 build/docker/linux/arm64/octopus
 
       - name: Get latest tag
@@ -67,15 +70,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push (Alpine ARM64)
+      - name: Build and push (Alpine)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./scripts/dockerfiles/Dockerfile.alpine
           push: true
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:${{ steps.tag.outputs.TAG_NAME }}
           build-args: |
-            TARGETPLATFORM=linux/arm64
+            TARGETPLATFORM
