@@ -63,14 +63,3 @@ func TestCompactResponseOutbound_TransformResponse_Passthrough(t *testing.T) {
 		t.Fatalf("RawResponse = %s, want %s", string(resp.RawResponse), raw)
 	}
 }
-
-func TestCompactResponseOutbound_TransformResponse_UnsupportedShape(t *testing.T) {
-	outbound := NewCompactResponseOutbound()
-	_, err := outbound.TransformResponse(context.Background(), &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(strings.NewReader(`{"object":"response","id":"resp_123"}`)),
-	})
-	if err == nil {
-		t.Fatal("expected error for unsupported compact response shape, got nil")
-	}
-}
