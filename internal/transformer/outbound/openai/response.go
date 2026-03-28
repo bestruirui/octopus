@@ -516,6 +516,8 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 	return result
 }
 
+// NewCompactResponseOutbound creates a responses outbound adapter configured
+// for /responses/compact and compact-schema passthrough validation.
 func NewCompactResponseOutbound() *ResponseOutbound {
 	return &ResponseOutbound{
 		endpointPath:  "/responses/compact",

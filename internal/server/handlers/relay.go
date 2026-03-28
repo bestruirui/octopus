@@ -47,6 +47,9 @@ func chat(c *gin.Context) {
 func response(c *gin.Context) {
 	relay.Handler(inbound.InboundTypeOpenAIResponse, c)
 }
+
+// responseCompact handles /v1/responses/compact by marking compact endpoint
+// context before delegating to the shared relay pipeline.
 func responseCompact(c *gin.Context) {
 	c.Set(responsesEndpointContextKey, responsesEndpointCompact)
 	relay.Handler(inbound.InboundTypeOpenAIResponse, c)
