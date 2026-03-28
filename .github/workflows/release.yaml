@@ -1,67 +1,84 @@
-name: docker-image
+name: release
 
 on:
   push:
-    tags:
-      - v*
+    branches:
+      - dev
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (e.g. v1.0.0), defaults to branch name if empty'
-        required: false
-        default: ''
 
-env:
-  APP_NAME: CLIProxyAPI
-  DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_USERNAME }}/cli-proxy-api
-
+permissions:
+  contents: read
+  packages: write
+  
 jobs:
-  docker:
+  release:
+    name: release
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          ref: main
+          fetch-depth: 0
+          ref: dev
 
-      - name: Refresh models catalog
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+    
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 'latest'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          cache: 'pnpm'
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Build
         run: |
-          git fetch --depth 1 https://github.com/router-for-me/models.git main
-          git show FETCH_HEAD:models.json > internal/registry/models/models.json
+          bash scripts/build.sh build linux x86_64
+          bash scripts/build.sh build linux arm64
+          mkdir -p build/docker/linux/amd64
+          mkdir -p build/docker/linux/arm64
+          cp build/bin/octopus-linux-x86_64 build/docker/linux/amd64/octopus
+          cp build/bin/octopus-linux-arm64 build/docker/linux/arm64/octopus
 
-      - name: Set up QEMU (for cross-platform emulation)
+      - name: Get latest tag
+        id: tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+          echo "TAG_NAME=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to DockerHub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Generate Build Metadata
-        run: |
-          INPUT_VERSION="${{ github.event.inputs.version }}"
-          VERSION="${INPUT_VERSION:-${GITHUB_REF_NAME}}"
-          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
-          echo "COMMIT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
-          echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
-
-      - name: Build and push multi-arch image (amd64 + arm64)
-        uses: docker/build-push-action@v6
+      - name: Build and push (Alpine)
+        uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          file: ./scripts/dockerfiles/Dockerfile.alpine
           push: true
-          provenance: false
-          build-args: |
-            VERSION=${{ env.VERSION }}
-            COMMIT=${{ env.COMMIT }}
-            BUILD_DATE=${{ env.BUILD_DATE }}
+          platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.DOCKERHUB_REPO }}:latest
-            ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:${{ steps.tag.outputs.TAG_NAME }}
+          build-args: |
+            TARGETPLATFORM
