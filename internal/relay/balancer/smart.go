@@ -10,12 +10,13 @@ const (
 	smartStatsBuckets = 24 * 60
 
 	smartWeightManual = 0.30
-	smartWeight1h     = 0.40
-	smartWeight24h    = 0.30
+	smartWeight1h     = 0.50
+	smartWeight24h    = 0.20
 	smart1hMinSamples = 20
 
 	smartRatePriorSuccess = 1.0
 	smartRatePriorFailure = 1.0
+	smartOneHourPenaltyDivisor = 3.0
 )
 
 type smartMinuteBucket struct {
@@ -61,12 +62,12 @@ func RecordSmartOutcome(channelID int, modelName string, success bool) {
 	recordSmartOutcome(channelID, modelName, success)
 }
 
-func getSmartSuccessRates(channelID int, modelName string) (float64, int64, float64) {
+func getSmartSuccessRates(channelID int, modelName string) (float64, int64, int64, float64) {
 	stats := getOrCreateSmartStats(channelID, modelName)
 	now := smartNowFunc()
-	rate1h, total1h := stats.successRate(now, 60)
-	rate24h, _ := stats.successRate(now, 24*60)
-	return rate1h, total1h, rate24h
+	rate1h, total1h, fail1h := stats.successRate(now, 60)
+	rate24h, _, _ := stats.successRate(now, 24*60)
+	return rate1h, total1h, fail1h, rate24h
 }
 
 func smartDynamicWeights(total1h int64) (float64, float64) {
@@ -99,9 +100,10 @@ func (s *smartRollingStats) add(now time.Time, success bool) {
 	b.failure++
 }
 
-func (s *smartRollingStats) successRate(now time.Time, windowMinutes int) (float64, int64) {
+func (s *smartRollingStats) successRate(now time.Time, windowMinutes int) (float64, int64, int64) {
 	currentMinute := now.Unix() / 60
 	var successCount int64
+	var failureCount int64
 	var totalCount int64
 
 	s.mu.Lock()
@@ -115,11 +117,12 @@ func (s *smartRollingStats) successRate(now time.Time, windowMinutes int) (float
 			continue
 		}
 		successCount += int64(b.success)
+		failureCount += int64(b.failure)
 		totalCount += int64(b.success + b.failure)
 	}
 
 	rate := (float64(successCount) + smartRatePriorSuccess) / (float64(totalCount) + smartRatePriorSuccess + smartRatePriorFailure)
-	return rate, totalCount
+	return rate, totalCount, failureCount
 }
 
 func smartBucketIndex(minute int64) int {

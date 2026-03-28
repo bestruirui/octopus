@@ -96,13 +96,39 @@ func TestWeightedCandidates_Reduces1hImpactWhenSamplesLow(t *testing.T) {
 	}
 }
 
-func TestWeightedCandidates_DiversifiesTopStableCandidates(t *testing.T) {
+func TestWeightedCandidates_PenalizesOneHourComponentWhenRecentFailuresExist(t *testing.T) {
+	t.Cleanup(resetSmartStatsForTest)
+	base := time.Unix(240*60, 0).UTC()
+	smartNowFunc = func() time.Time { return base }
+	t.Cleanup(func() { smartNowFunc = time.Now })
+
+	// Same manual weight and nearly same 24h health.
+	// Channel 1 has one recent 1h failure, so its 1h component should be divided by 3.
+	for i := 0; i < 30; i++ {
+		recordSmartOutcome(1, "m", true)
+	}
+	recordSmartOutcome(1, "m", false)
+
+	for i := 0; i < 30; i++ {
+		recordSmartOutcome(2, "m", true)
+	}
+
+	items := []model.GroupItem{
+		{ChannelID: 1, ModelName: "m", Weight: 50, Priority: 10},
+		{ChannelID: 2, ModelName: "m", Weight: 50, Priority: 10},
+	}
+
+	got := (&Weighted{}).Candidates(items)
+	if got[0].ChannelID != 2 {
+		t.Fatalf("expected channel 2 first because channel 1 has 1h failure penalty, got %d", got[0].ChannelID)
+	}
+}
+
+func TestWeightedCandidates_StableTopOrderWithoutDiversifyRotation(t *testing.T) {
 	t.Cleanup(resetSmartStatsForTest)
 	base := time.Unix(120*60, 0).UTC()
 	smartNowFunc = func() time.Time { return base }
 	t.Cleanup(func() { smartNowFunc = time.Now })
-
-	weightedDiversifyCounter = 0
 
 	for _, ch := range []int{1, 2, 3} {
 		for i := 0; i < 50; i++ {
@@ -116,13 +142,11 @@ func TestWeightedCandidates_DiversifiesTopStableCandidates(t *testing.T) {
 		{ChannelID: 3, ModelName: "m", Weight: 100, Priority: 10},
 	}
 
-	firstSeen := map[int]bool{}
 	w := &Weighted{}
 	for i := 0; i < 3; i++ {
 		got := w.Candidates(items)
-		firstSeen[got[0].ChannelID] = true
-	}
-	if len(firstSeen) < 2 {
-		t.Fatalf("expected diversified first candidate across stable top set, got %v", firstSeen)
+		if got[0].ChannelID != 1 {
+			t.Fatalf("expected stable deterministic top candidate channel 1, got %d", got[0].ChannelID)
+		}
 	}
 }
