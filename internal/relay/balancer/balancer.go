@@ -9,6 +9,14 @@ import (
 )
 
 var roundRobinCounter uint64
+var weightedDiversifyCounter uint64
+
+const (
+	// smartDiversifyMaxCandidates 限制接近最优分数的轮转范围，避免扩大到长尾候选。
+	smartDiversifyMaxCandidates = 3
+	// smartDiversifyScoreThreshold 定义“接近最优”的分数差阈值。
+	smartDiversifyScoreThreshold = 0.05
+)
 
 // Balancer 根据负载均衡模式选择通道
 type Balancer interface {
@@ -75,7 +83,7 @@ func (b *Failover) Candidates(items []model.GroupItem) []model.GroupItem {
 	return sortByPriority(items)
 }
 
-// Weighted 加权分配：按权重概率排序
+// Weighted 加权分配：按综合评分择优
 type Weighted struct{}
 
 func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
@@ -84,7 +92,7 @@ func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
 		return nil
 	}
 
-	// 构建智能优选排序：
+	// 构建智能择优排序：
 	// score = 手动权重(30%) + 近1h成功率(40%) + 近24h成功率(30%)
 	// 同分时按权重、优先级稳定排序，避免抖动。
 	type scoredItem struct {
@@ -108,8 +116,9 @@ func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
 			w = 1
 		}
 		manualWeight := float64(w) / totalWeight
-		success1h, success24h := getSmartSuccessRates(item.ChannelID, item.ModelName)
-		score := smartWeightManual*manualWeight + smartWeight1h*success1h + smartWeight24h*success24h
+		success1h, total1h, success24h := getSmartSuccessRates(item.ChannelID, item.ModelName)
+		effective1hWeight, effective24hWeight := smartDynamicWeights(total1h)
+		score := smartWeightManual*manualWeight + effective1hWeight*success1h + effective24hWeight*success24h
 		scored[i] = scoredItem{item: item, score: score}
 	}
 
@@ -129,6 +138,27 @@ func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
 		}
 		return scored[i].item.ModelName < scored[j].item.ModelName
 	})
+
+	// 轻量多站点分流：在“接近最优分数”的头部候选中做轮转，避免单点过热。
+	if n > 1 {
+		limit := 1
+		topScore := scored[0].score
+		for limit < n && limit < smartDiversifyMaxCandidates {
+			if topScore-scored[limit].score > smartDiversifyScoreThreshold {
+				break
+			}
+			limit++
+		}
+		if limit > 1 {
+			offset := int(atomic.AddUint64(&weightedDiversifyCounter, 1) % uint64(limit))
+			if offset > 0 {
+				head := append([]scoredItem(nil), scored[:limit]...)
+				for i := 0; i < limit; i++ {
+					scored[i] = head[(i+offset)%limit]
+				}
+			}
+		}
+	}
 
 	result := make([]model.GroupItem, n)
 	for i := range scored {

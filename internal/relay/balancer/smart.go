@@ -12,6 +12,7 @@ const (
 	smartWeightManual = 0.30
 	smartWeight1h     = 0.40
 	smartWeight24h    = 0.30
+	smart1hMinSamples = 20
 
 	smartRatePriorSuccess = 1.0
 	smartRatePriorFailure = 1.0
@@ -60,18 +61,27 @@ func RecordSmartOutcome(channelID int, modelName string, success bool) {
 	recordSmartOutcome(channelID, modelName, success)
 }
 
-func getSmartSuccessRates(channelID int, modelName string) (float64, float64) {
+func getSmartSuccessRates(channelID int, modelName string) (float64, int64, float64) {
 	stats := getOrCreateSmartStats(channelID, modelName)
 	now := smartNowFunc()
-	return stats.successRate(now, 60), stats.successRate(now, 24*60)
+	rate1h, total1h := stats.successRate(now, 60)
+	rate24h, _ := stats.successRate(now, 24*60)
+	return rate1h, total1h, rate24h
+}
+
+func smartDynamicWeights(total1h int64) (float64, float64) {
+	if total1h >= smart1hMinSamples {
+		return smartWeight1h, smartWeight24h
+	}
+	scale := float64(total1h) / float64(smart1hMinSamples)
+	effective1h := smartWeight1h * scale
+	effective24h := smartWeight24h + (smartWeight1h - effective1h)
+	return effective1h, effective24h
 }
 
 func (s *smartRollingStats) add(now time.Time, success bool) {
 	minute := now.Unix() / 60
-	idx := int(minute % smartStatsBuckets)
-	if idx < 0 {
-		idx += smartStatsBuckets
-	}
+	idx := smartBucketIndex(minute)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -89,7 +99,7 @@ func (s *smartRollingStats) add(now time.Time, success bool) {
 	b.failure++
 }
 
-func (s *smartRollingStats) successRate(now time.Time, windowMinutes int) float64 {
+func (s *smartRollingStats) successRate(now time.Time, windowMinutes int) (float64, int64) {
 	currentMinute := now.Unix() / 60
 	var successCount int64
 	var totalCount int64
@@ -99,10 +109,7 @@ func (s *smartRollingStats) successRate(now time.Time, windowMinutes int) float6
 
 	for i := 0; i < windowMinutes; i++ {
 		minute := currentMinute - int64(i)
-		idx := int(minute % smartStatsBuckets)
-		if idx < 0 {
-			idx += smartStatsBuckets
-		}
+		idx := smartBucketIndex(minute)
 		b := s.buckets[idx]
 		if b.minute != minute {
 			continue
@@ -111,7 +118,16 @@ func (s *smartRollingStats) successRate(now time.Time, windowMinutes int) float6
 		totalCount += int64(b.success + b.failure)
 	}
 
-	return (float64(successCount) + smartRatePriorSuccess) / (float64(totalCount) + smartRatePriorSuccess + smartRatePriorFailure)
+	rate := (float64(successCount) + smartRatePriorSuccess) / (float64(totalCount) + smartRatePriorSuccess + smartRatePriorFailure)
+	return rate, totalCount
+}
+
+func smartBucketIndex(minute int64) int {
+	idx := int(minute % smartStatsBuckets)
+	if idx < 0 {
+		idx += smartStatsBuckets
+	}
+	return idx
 }
 
 func resetSmartStatsForTest() {
