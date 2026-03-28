@@ -9,7 +9,6 @@ import (
 )
 
 var roundRobinCounter uint64
-
 // Balancer 根据负载均衡模式选择通道
 type Balancer interface {
 	// Candidates 返回按策略排序的候选列表
@@ -75,7 +74,7 @@ func (b *Failover) Candidates(items []model.GroupItem) []model.GroupItem {
 	return sortByPriority(items)
 }
 
-// Weighted 加权分配：按权重概率排序
+// Weighted 加权分配：按综合评分择优
 type Weighted struct{}
 
 func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
@@ -84,37 +83,57 @@ func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
 		return nil
 	}
 
-	// 构建加权随机排序
-	type weightedItem struct {
+	// 构建智能择优排序：
+	// score = 手动权重(30%) + 近1h成功率(50%) + 近24h成功率(20%)
+	// 若近1h有失败记录，则对1h分量按 smartOneHourPenaltyDivisor（当前为 3.0）做除法惩罚，
+	// 以快速压低短时不稳定通道。
+	// 同分时按权重、优先级稳定排序，避免抖动。
+	type scoredItem struct {
 		item   model.GroupItem
 		score  float64
 	}
 
-	totalWeight := 0
+	totalWeight := 0.0
 	for _, item := range items {
 		w := item.Weight
 		if w <= 0 {
 			w = 1
 		}
-		totalWeight += w
+		totalWeight += float64(w)
 	}
 
-	scored := make([]weightedItem, n)
+	scored := make([]scoredItem, n)
 	for i, item := range items {
 		w := item.Weight
 		if w <= 0 {
 			w = 1
 		}
-		// 给每个 item 一个加权随机分数：weight/totalWeight 作为概率基础，加上随机扰动
-		scored[i] = weightedItem{
-			item:  item,
-			score: rand.Float64() * float64(w) / float64(totalWeight),
+		manualWeight := float64(w) / totalWeight
+		success1h, total1h, fail1h, success24h := getSmartSuccessRates(item.ChannelID, item.ModelName)
+		effective1hWeight, effective24hWeight := smartDynamicWeights(total1h)
+		oneHourComponent := effective1hWeight * success1h
+		if fail1h > 0 {
+			oneHourComponent /= smartOneHourPenaltyDivisor
 		}
+		score := smartWeightManual*manualWeight + oneHourComponent + effective24hWeight*success24h
+		scored[i] = scoredItem{item: item, score: score}
 	}
 
 	// 按分数降序排列（分数越高优先级越高）
 	sort.Slice(scored, func(i, j int) bool {
-		return scored[i].score > scored[j].score
+		if scored[i].score != scored[j].score {
+			return scored[i].score > scored[j].score
+		}
+		if scored[i].item.Weight != scored[j].item.Weight {
+			return scored[i].item.Weight > scored[j].item.Weight
+		}
+		if scored[i].item.Priority != scored[j].item.Priority {
+			return scored[i].item.Priority < scored[j].item.Priority
+		}
+		if scored[i].item.ChannelID != scored[j].item.ChannelID {
+			return scored[i].item.ChannelID < scored[j].item.ChannelID
+		}
+		return scored[i].item.ModelName < scored[j].item.ModelName
 	})
 
 	result := make([]model.GroupItem, n)
