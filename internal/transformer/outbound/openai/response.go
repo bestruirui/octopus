@@ -22,7 +22,8 @@ type ResponseOutbound struct {
 	streamModel string
 	initialized bool
 
-	endpointPath string
+	endpointPath  string
+	isPassthrough bool
 }
 
 func (o *ResponseOutbound) TransformRequest(ctx context.Context, request *model.InternalLLMRequest, baseUrl, key string) (*http.Request, error) {
@@ -92,7 +93,7 @@ func (o *ResponseOutbound) TransformResponse(ctx context.Context, response *http
 		return nil, fmt.Errorf("HTTP error %d: %s", response.StatusCode, string(body))
 	}
 
-	if o.endpointPath == "/responses/compact" {
+	if o.isPassthrough {
 		return &model.InternalLLMResponse{
 			Object:      "chat.completion",
 			RawResponse: body,
@@ -507,7 +508,8 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 
 func NewCompactResponseOutbound() *ResponseOutbound {
 	return &ResponseOutbound{
-		endpointPath: "/responses/compact",
+		endpointPath:  "/responses/compact",
+		isPassthrough: true,
 	}
 }
 
