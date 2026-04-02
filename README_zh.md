@@ -42,6 +42,78 @@ wget https://raw.githubusercontent.com/bestruirui/octopus/refs/heads/dev/docker-
 docker compose up -d
 ```
 
+#### 使用你自己的 Fork 镜像
+
+如果你 fork 了本仓库，并希望其他人直接使用你维护的镜像，推荐使用 GitHub Container Registry：
+
+- Debian 镜像：`ghcr.io/<你的 GitHub 用户名>/octopus:latest`
+- Alpine 镜像：`ghcr.io/<你的 GitHub 用户名>/octopus:latest-alpine`
+
+例如，你的 fork 是 `zbsdsb/octopus`，则镜像地址会是：
+
+```bash
+docker run -d \
+  --name octopus \
+  -v /path/to/data:/app/data \
+  -p 8080:8080 \
+  ghcr.io/zbsdsb/octopus:latest
+```
+
+对应的 `docker-compose.yml` 可以写成：
+
+```yaml
+services:
+  octopus:
+    image: ghcr.io/<你的 GitHub 用户名>/octopus:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/path/to/data:/app/data"
+    container_name: octopus
+    restart: unless-stopped
+```
+
+如果镜像仓库是私有的，拉取前先登录：
+
+```bash
+docker login ghcr.io -u <你的 GitHub 用户名>
+```
+
+如果你想让 fork 自动发布 GHCR 镜像，需要注意当前仓库的发布工作流是：
+
+- 触发文件：`.github/workflows/release.yaml`
+- 触发条件：`push` 到 `master`
+- 镜像地址：`ghcr.io/${github.repository}`
+
+也就是说，在你的 fork 中，只有代码进入 `master` 后，工作流才会自动发布：
+
+- `ghcr.io/<你的 GitHub 用户名>/octopus:latest`
+- `ghcr.io/<你的 GitHub 用户名>/octopus:latest-alpine`
+
+如果你当前还没有把功能分支合并到 `master`，有两种方式可选：
+
+1. 合并到 `master`，等待 GitHub Actions 自动构建并推送镜像。
+2. 在本地或服务器手动构建镜像，再推送到你的镜像仓库。
+
+手动构建的大致流程如下：
+
+```bash
+# 1. 构建发布产物（会生成 build/docker/.../octopus）
+bash scripts/build.sh release
+
+# 2. 构建 Debian 镜像
+docker build \
+  -f scripts/dockerfiles/Dockerfile.debian \
+  --build-arg TARGETPLATFORM=linux/amd64 \
+  -t ghcr.io/<你的 GitHub 用户名>/octopus:latest .
+
+# 3. 登录并推送
+docker login ghcr.io -u <你的 GitHub 用户名>
+docker push ghcr.io/<你的 GitHub 用户名>/octopus:latest
+```
+
+部署时无需额外修改 `data/config.json` 来适配本次功能更新。只要容器启动的是新版本程序，并且继续挂载原来的 `/app/data`，程序会自动补齐新增的设置项；已有数据也会保留。
+
 
 ### 📦 从 Release 下载
 

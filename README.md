@@ -42,6 +42,78 @@ wget https://raw.githubusercontent.com/bestruirui/octopus/refs/heads/dev/docker-
 docker compose up -d
 ```
 
+#### Use Your Own Fork Image
+
+If you fork this repository and want other users to deploy your maintained image directly, GitHub Container Registry is the simplest option:
+
+- Debian image: `ghcr.io/<your-github-user>/octopus:latest`
+- Alpine image: `ghcr.io/<your-github-user>/octopus:latest-alpine`
+
+For example, if your fork is `zbsdsb/octopus`, the image becomes:
+
+```bash
+docker run -d \
+  --name octopus \
+  -v /path/to/data:/app/data \
+  -p 8080:8080 \
+  ghcr.io/zbsdsb/octopus:latest
+```
+
+The matching `docker-compose.yml` can look like this:
+
+```yaml
+services:
+  octopus:
+    image: ghcr.io/<your-github-user>/octopus:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/path/to/data:/app/data"
+    container_name: octopus
+    restart: unless-stopped
+```
+
+If the package is private, log in before pulling:
+
+```bash
+docker login ghcr.io -u <your-github-user>
+```
+
+If you want your fork to publish GHCR images automatically, note the current release workflow:
+
+- Workflow file: `.github/workflows/release.yaml`
+- Trigger: `push` to `master`
+- Image name: `ghcr.io/${github.repository}`
+
+That means your fork will only auto-publish after code lands on `master`, producing:
+
+- `ghcr.io/<your-github-user>/octopus:latest`
+- `ghcr.io/<your-github-user>/octopus:latest-alpine`
+
+If your changes are still on a feature branch, you have two options:
+
+1. Merge the branch into `master` and let GitHub Actions build and publish the image.
+2. Build and push the image manually from your local machine or deployment server.
+
+A manual build flow looks like this:
+
+```bash
+# 1. Build release artifacts (generates build/docker/.../octopus)
+bash scripts/build.sh release
+
+# 2. Build the Debian image
+docker build \
+  -f scripts/dockerfiles/Dockerfile.debian \
+  --build-arg TARGETPLATFORM=linux/amd64 \
+  -t ghcr.io/<your-github-user>/octopus:latest .
+
+# 3. Log in and push
+docker login ghcr.io -u <your-github-user>
+docker push ghcr.io/<your-github-user>/octopus:latest
+```
+
+You do not need to manually extend `data/config.json` for the feature updates in this branch. As long as the container runs the new image and keeps the existing `/app/data` mount, the application will populate the new setting rows automatically while preserving existing data.
+
 
 ### 📦 Download from Release
 
@@ -372,4 +444,3 @@ Edit `~/.codex/auth.json`
 
 - 🙏 [looplj/axonhub](https://github.com/looplj/axonhub) - The LLM API adaptation module in this project is directly derived from this repository
 - 📊 [sst/models.dev](https://github.com/sst/models.dev) - AI model database providing model pricing data
-
