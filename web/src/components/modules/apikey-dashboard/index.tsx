@@ -23,7 +23,6 @@ import {
     LogOut,
     Calendar,
     Wallet,
-    Copy,
     Sun,
     Moon,
     Languages,
