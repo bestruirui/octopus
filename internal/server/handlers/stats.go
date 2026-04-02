@@ -32,6 +32,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/apikey", http.MethodGet).
 				Handle(getStatsAPIKey),
+		).
+		AddRoute(
+			router.NewRoute("/health", http.MethodGet).
+				Handle(getStatsHealth),
 		)
 }
 
@@ -58,4 +62,14 @@ func getStatsTotal(c *gin.Context) {
 
 func getStatsAPIKey(c *gin.Context) {
 	resp.Success(c, op.StatsAPIKeyList())
+}
+
+func getStatsHealth(c *gin.Context) {
+	includeModels := c.Query("include_models") == "true"
+	data, err := op.StatsChannelHealthList(includeModels, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp.Success(c, data)
 }

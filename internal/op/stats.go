@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"sort"
 	"sync"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/utils/cache"
 	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/bestruirui/octopus/internal/utils/xstrings"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -266,7 +269,15 @@ func StatsModelUpdate(stats model.StatsModel) error {
 	if !ok {
 		modelCache = model.StatsModel{
 			ID: stats.ID,
+			Name: stats.Name,
+			ChannelID: stats.ChannelID,
 		}
+	}
+	if stats.Name != "" {
+		modelCache.Name = stats.Name
+	}
+	if stats.ChannelID != 0 {
+		modelCache.ChannelID = stats.ChannelID
 	}
 	modelCache.StatsMetrics.Add(stats.StatsMetrics)
 	statsModelCache.Set(stats.ID, modelCache)
@@ -274,6 +285,208 @@ func StatsModelUpdate(stats model.StatsModel) error {
 	statsModelCacheNeedUpdate[stats.ID] = struct{}{}
 	statsModelCacheNeedUpdateLock.Unlock()
 	return nil
+}
+
+func StatsModelGet(id int) model.StatsModel {
+	stats, ok := statsModelCache.Get(id)
+	if !ok {
+		return model.StatsModel{ID: id}
+	}
+	return stats
+}
+
+func StatsModelList() []model.StatsModel {
+	models := make([]model.StatsModel, 0, statsModelCache.Len())
+	for _, v := range statsModelCache.GetAll() {
+		models = append(models, v)
+	}
+	sort.Slice(models, func(i, j int) bool {
+		if models[i].ChannelID == models[j].ChannelID {
+			return models[i].Name < models[j].Name
+		}
+		return models[i].ChannelID < models[j].ChannelID
+	})
+	return models
+}
+
+func StatsModelKey(channelID int, modelName string) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(fmt.Sprintf("%d:%s", channelID, modelName)))
+	return int(h.Sum32())
+}
+
+func ComputeHealthScore(metrics model.StatsMetrics, baseDelay int, enabledKeys, totalKeys int) float64 {
+	totalRequests := metrics.RequestSuccess + metrics.RequestFailed
+	if totalRequests == 0 {
+		score := 70.0
+		if baseDelay > 0 {
+			score -= clamp(float64(baseDelay)/40.0, 0, 15)
+		}
+		if totalKeys > 0 {
+			score += clamp(float64(enabledKeys)/float64(totalKeys)*10.0, 0, 10)
+		}
+		return clamp(score, 0, 100)
+	}
+
+	successRate := float64(metrics.RequestSuccess) / float64(totalRequests)
+	avgWait := 0.0
+	if totalRequests > 0 {
+		avgWait = float64(metrics.WaitTime) / float64(totalRequests)
+	}
+
+	score := successRate * 70.0
+	score += clamp(20.0-avgWait/150.0, 0, 20)
+	if totalKeys > 0 {
+		score += clamp(float64(enabledKeys)/float64(totalKeys)*10.0, 0, 10)
+	}
+	if baseDelay > 0 {
+		score -= clamp(float64(baseDelay)/50.0, 0, 10)
+	}
+
+	return clamp(score, 0, 100)
+}
+
+func HealthGradeByScore(score float64) model.HealthGrade {
+	switch {
+	case score >= 90:
+		return model.HealthGradeExcellent
+	case score >= 75:
+		return model.HealthGradeGood
+	case score >= 55:
+		return model.HealthGradeWarning
+	default:
+		return model.HealthGradeCritical
+	}
+}
+
+func IsHealthyScore(score float64) bool {
+	return score >= 75
+}
+
+func StatsChannelHealthList(includeModels bool, ctx context.Context) ([]model.StatsChannelHealth, error) {
+	channels, err := ChannelList(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	modelStats := StatsModelList()
+	modelsByChannel := make(map[int][]model.StatsModel)
+	for _, item := range modelStats {
+		if item.ChannelID == 0 || item.Name == "" {
+			continue
+		}
+		modelsByChannel[item.ChannelID] = append(modelsByChannel[item.ChannelID], item)
+	}
+
+	result := make([]model.StatsChannelHealth, 0, len(channels))
+	for _, ch := range channels {
+		stats := StatsChannelGet(ch.ID)
+		enabledKeys := 0
+		for _, key := range ch.Keys {
+			if key.Enabled && key.ChannelKey != "" {
+				enabledKeys++
+			}
+		}
+
+		modelNames := xstrings.SplitTrimCompact(",", ch.Model, ch.CustomModel)
+		modelSet := make(map[string]struct{}, len(modelNames))
+		for _, name := range modelNames {
+			modelSet[name] = struct{}{}
+		}
+		for _, item := range modelsByChannel[ch.ID] {
+			modelSet[item.Name] = struct{}{}
+		}
+
+		baseDelay := 0
+		if url := ch.GetBaseUrl(); url != "" {
+			for _, bu := range ch.BaseUrls {
+				if bu.URL == url {
+					baseDelay = bu.Delay
+					break
+				}
+			}
+		}
+
+		channelHealth := model.StatsChannelHealth{
+			ChannelID:      ch.ID,
+			ChannelName:    ch.Name,
+			Enabled:        ch.Enabled,
+			Type:           int(ch.Type),
+			RequestSuccess: stats.RequestSuccess,
+			RequestFailed:  stats.RequestFailed,
+			RequestCount:   stats.RequestSuccess + stats.RequestFailed,
+			AvgWaitTime:    avgWaitTime(stats.StatsMetrics),
+			BaseURLDelay:   baseDelay,
+			EnabledKeys:    enabledKeys,
+			TotalKeys:      len(ch.Keys),
+			TotalModels:    len(modelSet),
+		}
+		if channelHealth.RequestCount > 0 {
+			channelHealth.SuccessRate = float64(channelHealth.RequestSuccess) / float64(channelHealth.RequestCount)
+		}
+		channelHealth.Score = ComputeHealthScore(stats.StatsMetrics, baseDelay, enabledKeys, len(ch.Keys))
+		channelHealth.Grade = HealthGradeByScore(channelHealth.Score)
+
+		if includeModels {
+			channelHealth.Models = make([]model.StatsModelHealth, 0, len(modelSet))
+			for modelName := range modelSet {
+				item := StatsModelGet(StatsModelKey(ch.ID, modelName))
+				requestCount := item.RequestSuccess + item.RequestFailed
+				mh := model.StatsModelHealth{
+					ChannelID:      ch.ID,
+					ModelName:      modelName,
+					RequestSuccess: item.RequestSuccess,
+					RequestFailed:  item.RequestFailed,
+					RequestCount:   requestCount,
+					AvgWaitTime:    avgWaitTime(item.StatsMetrics),
+				}
+				if requestCount > 0 {
+					mh.SuccessRate = float64(item.RequestSuccess) / float64(requestCount)
+				}
+				mh.Score = ComputeHealthScore(item.StatsMetrics, baseDelay, enabledKeys, len(ch.Keys))
+				mh.Grade = HealthGradeByScore(mh.Score)
+				mh.Healthy = IsHealthyScore(mh.Score)
+				if mh.Healthy {
+					channelHealth.HealthyModels++
+				}
+				channelHealth.Models = append(channelHealth.Models, mh)
+			}
+			sort.Slice(channelHealth.Models, func(i, j int) bool {
+				if channelHealth.Models[i].Score == channelHealth.Models[j].Score {
+					return channelHealth.Models[i].ModelName < channelHealth.Models[j].ModelName
+				}
+				return channelHealth.Models[i].Score > channelHealth.Models[j].Score
+			})
+		}
+
+		result = append(result, channelHealth)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Score == result[j].Score {
+			return result[i].ChannelID < result[j].ChannelID
+		}
+		return result[i].Score > result[j].Score
+	})
+	return result, nil
+}
+
+func avgWaitTime(metrics model.StatsMetrics) int64 {
+	totalRequests := metrics.RequestSuccess + metrics.RequestFailed
+	if totalRequests == 0 {
+		return 0
+	}
+	return metrics.WaitTime / totalRequests
+}
+
+func clamp(value, minValue, maxValue float64) float64 {
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
 }
 
 func StatsAPIKeyUpdate(apiKeyID int, metrics model.StatsMetrics) error {
@@ -426,6 +639,12 @@ func statsRefreshCache(ctx context.Context) error {
 		return fmt.Errorf("failed to get channels: %v", result.Error)
 	}
 
+	var loadedModels []model.StatsModel
+	result = dbConn.Find(&loadedModels)
+	if result.Error != nil {
+		return fmt.Errorf("failed to get model stats: %v", result.Error)
+	}
+
 	var loadedHourly []model.StatsHourly
 	result = dbConn.Find(&loadedHourly)
 	if result.Error != nil {
@@ -446,6 +665,14 @@ func statsRefreshCache(ctx context.Context) error {
 	statsChannelCacheNeedUpdateLock.Unlock()
 	for _, v := range loadedChannels {
 		statsChannelCache.Set(v.ChannelID, v)
+	}
+
+	statsModelCache.Clear()
+	statsModelCacheNeedUpdateLock.Lock()
+	statsModelCacheNeedUpdate = make(map[int]struct{})
+	statsModelCacheNeedUpdateLock.Unlock()
+	for _, v := range loadedModels {
+		statsModelCache.Set(v.ID, v)
 	}
 
 	var loadedAPIKeys []model.StatsAPIKey

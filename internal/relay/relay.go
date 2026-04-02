@@ -95,7 +95,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			continue
 		}
 
-		usedKey := channel.GetChannelKey()
+		usedKey := op.ChannelSelectKey(channel, group.Mode, item.ModelName)
 		if usedKey.ChannelKey == "" {
 			iter.Skip(channel.ID, 0, channel.Name, "no available key")
 			continue
@@ -180,6 +180,15 @@ func (ra *relayAttempt) attempt() attemptResult {
 			WaitTime:       span.Duration().Milliseconds(),
 			RequestSuccess: 1,
 		})
+		op.StatsModelUpdate(dbmodel.StatsModel{
+			ID:        op.StatsModelKey(ra.channel.ID, ra.internalRequest.Model),
+			Name:      ra.internalRequest.Model,
+			ChannelID: ra.channel.ID,
+			StatsMetrics: dbmodel.StatsMetrics{
+				WaitTime:       span.Duration().Milliseconds(),
+				RequestSuccess: 1,
+			},
+		})
 
 		// 熔断器：记录成功
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
@@ -197,6 +206,15 @@ func (ra *relayAttempt) attempt() attemptResult {
 	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
 		WaitTime:      span.Duration().Milliseconds(),
 		RequestFailed: 1,
+	})
+	op.StatsModelUpdate(dbmodel.StatsModel{
+		ID:        op.StatsModelKey(ra.channel.ID, ra.internalRequest.Model),
+		Name:      ra.internalRequest.Model,
+		ChannelID: ra.channel.ID,
+		StatsMetrics: dbmodel.StatsMetrics{
+			WaitTime:      span.Duration().Milliseconds(),
+			RequestFailed: 1,
+		},
 	})
 
 	// 熔断器：记录失败

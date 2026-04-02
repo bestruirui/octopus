@@ -130,6 +130,15 @@ export function AppContainer() {
                             );
                             break;
                         }
+                        case 'health': {
+                            prefetches.push(
+                                queryClient.prefetchQuery({
+                                    queryKey: ['stats', 'health', true],
+                                    queryFn: async () => apiClient.get('/api/v1/stats/health', { include_models: true }),
+                                })
+                            );
+                            break;
+                        }
                         case 'model': {
                             prefetches.push(
                                 queryClient.prefetchQuery({

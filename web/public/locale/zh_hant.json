@@ -47,6 +47,7 @@
         "home": "主頁",
         "channel": "供應源",
         "group": "分組",
+        "health": "健康度",
         "key": "金鑰",
         "model": "價格",
         "log": "日誌",
@@ -386,9 +387,48 @@
             "roundRobin": "輪詢",
             "random": "隨機",
             "failover": "故障轉移",
-            "weighted": "加權分配"
+            "weighted": "加權分配",
+            "scored": "評分優先"
         },
         "empty": "暫無分組，點擊左上角按鈕建立"
+    },
+    "health": {
+        "title": "渠道健康度",
+        "description": "按請求成功率、平均耗時、基礎延遲與可用 Key 數量綜合評估每個渠道與模型的健康度。",
+        "detailTitle": "渠道詳情",
+        "loading": "健康度資料載入中...",
+        "empty": "暫無健康度資料",
+        "disabled": "已停用",
+        "summary": {
+            "channels": "渠道總數",
+            "models": "模型總數",
+            "avgScore": "平均評分",
+            "healthy": "健康",
+            "scoreHint": "100 分制綜合健康分"
+        },
+        "grade": {
+            "excellent": "優秀",
+            "good": "良好",
+            "warning": "預警",
+            "critical": "風險"
+        },
+        "columns": {
+            "successRate": "成功率",
+            "avgWait": "平均耗時",
+            "keys": "可用 Key",
+            "requests": "請求量",
+            "baseDelay": "基礎延遲",
+            "models": "健康模型",
+            "success": "成功請求",
+            "failed": "失敗請求"
+        },
+        "modelColumns": {
+            "name": "模型",
+            "score": "評分",
+            "successRate": "成功率",
+            "requests": "請求數",
+            "avgWait": "平均耗時"
+        }
     },
     "model": {
         "create": {

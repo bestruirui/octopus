@@ -47,6 +47,7 @@
         "home": "Home",
         "channel": "Channel",
         "group": "Group",
+        "health": "Health",
         "key": "Key",
         "model": "Price",
         "log": "Log",
@@ -386,9 +387,48 @@
             "roundRobin": "Round Robin",
             "random": "Random",
             "failover": "Failover",
-            "weighted": "Weighted"
+            "weighted": "Weighted",
+            "scored": "Scored"
         },
         "empty": "No groups yet, click the button above to create one"
+    },
+    "health": {
+        "title": "Channel Health",
+        "description": "Evaluate channel and model health with success rate, average wait time, base delay, and available keys.",
+        "detailTitle": "Channel Detail",
+        "loading": "Loading health data...",
+        "empty": "No health data",
+        "disabled": "Disabled",
+        "summary": {
+            "channels": "Channels",
+            "models": "Models",
+            "avgScore": "Average Score",
+            "healthy": "healthy",
+            "scoreHint": "Composite health score out of 100"
+        },
+        "grade": {
+            "excellent": "Excellent",
+            "good": "Good",
+            "warning": "Warning",
+            "critical": "Critical"
+        },
+        "columns": {
+            "successRate": "Success Rate",
+            "avgWait": "Avg Wait",
+            "keys": "Available Keys",
+            "requests": "Requests",
+            "baseDelay": "Base Delay",
+            "models": "Healthy Models",
+            "success": "Successful",
+            "failed": "Failed"
+        },
+        "modelColumns": {
+            "name": "Model",
+            "score": "Score",
+            "successRate": "Success Rate",
+            "requests": "Requests",
+            "avgWait": "Avg Wait"
+        }
     },
     "model": {
         "create": {
