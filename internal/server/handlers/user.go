@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
@@ -13,12 +16,15 @@ import (
 )
 
 func init() {
-	router.NewGroupRouter("/api/v1/user").
-		Use(middleware.RequireJSON()).
-		AddRoute(
-			router.NewRoute("/login", http.MethodPost).
-				Handle(login),
-		)
+	publicUserRoutes := router.NewGroupRouter("/api/v1/user").
+		Use(middleware.RequireJSON())
+
+	publicUserRoutes.AddRoute(
+		router.NewRoute("/login", http.MethodPost).
+			Use(middleware.LoginRateLimit()).
+			Handle(login),
+	)
+
 	router.NewGroupRouter("/api/v1/user").
 		Use(middleware.Auth()).
 		Use(middleware.RequireJSON()).
@@ -42,10 +48,17 @@ func login(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
+	loginKey := c.GetString("login_rate_limit_key")
 	if err := op.UserVerify(user.Username, user.Password); err != nil {
+		if errors.Is(err, op.ErrUserNotInitialized) {
+			resp.Error(c, http.StatusConflict, err.Error())
+			return
+		}
+		middleware.RecordLoginFailure(loginKey, time.Now())
 		resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 		return
 	}
+	middleware.ClearLoginFailures(loginKey)
 	token, expire, err := auth.GenerateJWTToken(user.Expire)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
@@ -61,6 +74,10 @@ func changePassword(c *gin.Context) {
 		return
 	}
 	if err := op.UserChangePassword(user.OldPassword, user.NewPassword); err != nil {
+		if strings.Contains(err.Error(), "incorrect old password") {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			return
+		}
 		resp.Error(c, http.StatusInternalServerError, resp.ErrDatabase)
 		return
 	}
@@ -74,6 +91,10 @@ func changeUsername(c *gin.Context) {
 		return
 	}
 	if err := op.UserChangeUsername(user.NewUsername); err != nil {
+		if strings.Contains(err.Error(), "same as the old username") {
+			resp.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}

@@ -1,4 +1,5 @@
-import { AutoGroupType, ChannelType, type Channel, useFetchModel } from '@/api/endpoints/channel';
+import { AutoGroupType, ChannelType, type Channel, useFetchModel, useTestChannel, type TestChannelSummary } from '@/api/endpoints/channel';
+import { channelTemplates } from './templates';
 import {
     Select,
     SelectContent,
@@ -12,8 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, X, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { RefreshCw, X, Plus, FlaskConical, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export interface ChannelKeyFormItem {
     id?: number;
@@ -100,6 +101,8 @@ export function ChannelForm({
     const inputRef = useRef<HTMLInputElement>(null);
 
     const fetchModel = useFetchModel();
+    const testChannel = useTestChannel();
+    const [testSummary, setTestSummary] = useState<TestChannelSummary | null>(null);
 
     const effectiveKey =
         formData.keys.find((k) => k.enabled && k.channel_key.trim())?.channel_key.trim() || '';
@@ -109,6 +112,49 @@ export function ChannelForm({
         const custom_model = nextCustom.join(',');
         if (formData.model === model && formData.custom_model === custom_model) return;
         onFormDataChange({ ...formData, model, custom_model });
+    };
+
+    const normalizedHeaders = useMemo(() =>
+        (formData.custom_header ?? [])
+            .map((h) => ({ header_key: h.header_key.trim(), header_value: h.header_value }))
+            .filter((h) => h.header_key && h.header_value !== ''),
+        [formData.custom_header]
+    );
+
+    const buildTestPayload = () => ({
+        type: formData.type,
+        base_urls: (formData.base_urls ?? []).filter((u) => u.url.trim()).map((u) => ({
+            url: u.url.trim(),
+            delay: Number(u.delay || 0),
+        })),
+        keys: formData.keys
+            .filter((k) => k.channel_key.trim())
+            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key.trim(), remark: k.remark ?? '' })),
+        proxy: formData.proxy,
+        channel_proxy: formData.channel_proxy?.trim() || null,
+        match_regex: formData.match_regex.trim() || null,
+        custom_header: normalizedHeaders,
+        model: formData.model,
+        custom_model: formData.custom_model,
+        name: formData.name,
+        enabled: formData.enabled,
+        auto_sync: formData.auto_sync,
+        auto_group: formData.auto_group,
+        param_override: formData.param_override.trim() || null,
+    });
+
+    const handleTestChannel = () => {
+        setTestSummary(null);
+        testChannel.mutate(buildTestPayload(), {
+            onSuccess: (data) => {
+                setTestSummary(data);
+                toast.success(data.passed ? t('test.success') : t('test.partialSuccess'));
+            },
+            onError: (error) => {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                toast.error(t('test.failed'), { description: errorMessage });
+            },
+        });
     };
 
     const handleRefreshModels = async () => {
@@ -123,7 +169,7 @@ export function ChannelForm({
                 proxy: formData.proxy,
                 channel_proxy: formData.channel_proxy?.trim() || null,
                 match_regex: formData.match_regex.trim() || null,
-                custom_header: formData.custom_header?.filter((h) => h.header_key.trim()) || [],
+                custom_header: normalizedHeaders,
             },
             {
                 onSuccess: (data) => {
@@ -221,8 +267,36 @@ export function ChannelForm({
         onFormDataChange({ ...formData, custom_header: curr.filter((_, i) => i !== idx) });
     };
 
+    const handleApplyTemplate = (templateKey: string) => {
+        const template = channelTemplates.find((item) => item.key === templateKey);
+        if (!template) return;
+        onFormDataChange(template.apply(formData));
+        setTestSummary(null);
+    };
+
     return (
         <form onSubmit={onSubmit} className="space-y-4 px-1">
+            <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                    <label className="text-sm font-medium text-card-foreground">{t('template.label')}</label>
+                    <span className="text-xs text-muted-foreground">{t('template.hint')}</span>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    {channelTemplates.map((template) => (
+                        <Button
+                            key={template.key}
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleApplyTemplate(template.key)}
+                            className="h-auto min-h-20 flex-col items-start gap-1 rounded-2xl px-4 py-3 text-left whitespace-normal"
+                        >
+                            <span className="text-sm font-semibold">{template.name}</span>
+                            <span className="text-xs text-muted-foreground">{template.description}</span>
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label htmlFor={`${idPrefix}-name`} className="text-sm font-medium text-card-foreground">
@@ -360,21 +434,73 @@ export function ChannelForm({
             </div>
 
             <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                     <label className="text-sm font-medium text-card-foreground">{t('model')}</label>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRefreshModels}
-                        disabled={!formData.base_urls?.[0]?.url || !effectiveKey || fetchModel.isPending}
-                        className="h-6 px-2 text-xs text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
-                    >
-                        <RefreshCw className={`h-3 w-3 mr-1 ${fetchModel.isPending ? 'animate-spin' : ''}`} />
-                        {t('modelRefresh')}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleTestChannel}
+                            disabled={testChannel.isPending || !(formData.base_urls?.some((u) => u.url.trim()) && formData.keys?.some((k) => k.channel_key.trim()))}
+                            className="h-6 px-2 text-xs text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
+                        >
+                            {testChannel.isPending ? (
+                                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                                <FlaskConical className="h-3 w-3 mr-1" />
+                            )}
+                            {t('test.button')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRefreshModels}
+                            disabled={!formData.base_urls?.[0]?.url || !effectiveKey || fetchModel.isPending}
+                            className="h-6 px-2 text-xs text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
+                        >
+                            <RefreshCw className={`h-3 w-3 mr-1 ${fetchModel.isPending ? 'animate-spin' : ''}`} />
+                            {t('modelRefresh')}
+                        </Button>
+                    </div>
                 </div>
                 <input type="hidden" value={formData.model} required />
+
+                {testSummary && (
+                    <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                                {testSummary.passed ? (
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                ) : (
+                                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                )}
+                                <span>{testSummary.passed ? t('test.success') : t('test.partialSuccess')}</span>
+                            </div>
+                            <Badge variant="secondary">{testSummary.results.length} {t('test.results')}</Badge>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {testSummary.results.map((result, idx) => (
+                                <div key={`${result.base_url}-${result.key_masked}-${idx}`} className="rounded-lg border border-border/70 bg-background p-2.5 text-xs space-y-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-mono truncate">{result.base_url}</span>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <Badge variant="secondary">{result.key_masked || '-'}</Badge>
+                                            <Badge variant="secondary">{result.status_code}</Badge>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                                        <span>{result.key_remark || t('test.noRemark')}</span>
+                                        <span>{result.latency_ms}ms · {result.passed ? t('test.pass') : t('test.fail')}</span>
+                                    </div>
+                                    {result.message && <p className="break-all text-muted-foreground">{result.message}</p>}
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t('test.hint')}</p>
+                    </div>
+                )}
 
                 <div className="relative">
                     <Input

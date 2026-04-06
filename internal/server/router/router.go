@@ -8,6 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var supportedMethods = map[string]struct{}{
+	http.MethodGet:     {},
+	http.MethodPost:    {},
+	http.MethodPut:     {},
+	http.MethodDelete:  {},
+	http.MethodHead:    {},
+	http.MethodOptions: {},
+	http.MethodPatch:   {},
+}
+
 // GroupRouter represents a group of routes with shared path prefix and middlewares
 type GroupRouter struct {
 	Path        string
@@ -74,6 +84,9 @@ func (r *Route) Validate() error {
 	if len(r.Handlers) == 0 {
 		return fmt.Errorf("route must have at least one handler")
 	}
+	if _, ok := supportedMethods[r.Method]; !ok {
+		return fmt.Errorf("unsupported route method: %s", r.Method)
+	}
 	return nil
 }
 
@@ -139,7 +152,5 @@ func registerRoute(group *gin.RouterGroup, method string, path string, handlers 
 		group.OPTIONS(path, handlers...)
 	case http.MethodPatch:
 		group.PATCH(path, handlers...)
-	default:
-		group.GET(path, handlers...)
 	}
 }

@@ -18,6 +18,36 @@
             "submit": "Login"
         }
     },
+    "bootstrap": {
+        "title": "Complete initial setup",
+        "subtitle": "Octopus needs an initial admin account before anyone can sign in.",
+        "description": "Set the required environment variables and restart the service, then refresh this page.",
+        "checking": "Checking setup status...",
+        "initialized": "Initial setup is complete. You can sign in now.",
+        "notice": {
+            "title": "First start protection",
+            "description": "This instance will not create a default admin account automatically. Define your own secure credentials before the first startup."
+        },
+        "commands": {
+            "title": "Example setup commands"
+        },
+        "steps": {
+            "username": "Set OCTOPUS_INITIAL_ADMIN_USERNAME to your admin username.",
+            "password": "Set OCTOPUS_INITIAL_ADMIN_PASSWORD to a password with at least 12 characters.",
+            "secret": "Set OCTOPUS_AUTH_JWT_SECRET to a long random secret so sessions survive restarts.",
+            "restart": "Restart Octopus after saving the environment variables."
+        },
+        "actions": {
+            "refresh": "Refresh status",
+            "copy": "Copy commands",
+            "copied": "Copied",
+            "copyFailed": "Failed to copy commands"
+        },
+        "error": {
+            "generic": "Failed to load setup status",
+            "server": "Setup status is temporarily unavailable. Check the backend logs and try again."
+        }
+    },
     "apiKeyDashboard": {
         "error": "Failed to load data",
         "logout": "Logout",
@@ -159,6 +189,11 @@
             "label": "Proxy URL",
             "placeholder": "Enter proxy URL"
         },
+        "publicApiBaseUrl": {
+            "label": "Public API Base URL",
+            "placeholder": "Enter public API base URL",
+            "hint": "Used to generate curl examples and onboarding links. Leave empty to hide these helpers."
+        },
         "statsSaveInterval": {
             "label": "Stats Save Interval",
             "placeholder": "Enter interval in minutes"
@@ -183,6 +218,13 @@
                 "placeholder": "Enter max cooldown in seconds"
             },
             "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
+        },
+        "retry": {
+            "title": "Retry Settings",
+            "count": {
+                "label": "Max retries per channel",
+                "placeholder": "Enter retry count"
+            }
         },
         "saved": "Saved",
         "backup": {
@@ -467,10 +509,19 @@
                 "tokens": "Token Usage",
                 "costs": "Cost Details",
                 "baseUrls": "Base URLs",
-                "keys": "Keys"
+                "keys": "Keys",
+                "ccSwitch": "CC Switch"
             },
             "noBaseUrls": "No Base URLs",
             "noKeys": "No Keys",
+            "ccSwitch": {
+                "description": "Generate a CC Switch import deep link from the current channel configuration.",
+                "publicApiBase": "Public API Base",
+                "upstreamBase": "Upstream Base",
+                "apiKey": "API Key",
+                "missingPublicApiBaseUrl": "Please set Public API Base URL in system settings first.",
+                "missingKey": "Please configure at least one enabled API key for this channel."
+            },
             "metrics": {
                 "totalRequests": "Total Requests",
                 "totalToken": "Total Tokens",
@@ -527,6 +578,21 @@
             "modelSelected": "Selected Models",
             "modelNoSelected": "No models selected",
             "modelClearAll": "Clear All",
+            "template": {
+                "label": "Built-in Templates",
+                "hint": "One click to prefill common provider settings"
+            },
+            "test": {
+                "button": "Test",
+                "success": "Channel test passed",
+                "partialSuccess": "Channel test completed",
+                "failed": "Channel test failed",
+                "results": "results",
+                "pass": "Pass",
+                "fail": "Fail",
+                "noRemark": "No remark",
+                "hint": "Batch tests all entered endpoint and key combinations. HTTP 200 and 429 are treated as pass."
+            },
             "typeOpenAIChat": "OpenAI Chat",
             "typeOpenAIResponse": "OpenAI Response",
             "typeOpenAIEmbedding": "OpenAI Embedding",

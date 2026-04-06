@@ -10,4 +10,5 @@ const (
 	ErrInternalServer    = "An unexpected error occurred"
 	ErrDatabase          = "Database operation failed"
 	ErrUnauthorized      = "Authentication failed"
+	ErrTooManyRequests   = "Too many requests"
 )

@@ -1,6 +1,8 @@
 package conf
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -23,10 +25,15 @@ type Database struct {
 	Path string `mapstructure:"path"`
 }
 
+type Auth struct {
+	JWTSecret string `mapstructure:"jwt_secret"`
+}
+
 type Config struct {
 	Server   Server   `mapstructure:"server"`
 	Log      Log      `mapstructure:"log"`
 	Database Database `mapstructure:"database"`
+	Auth     Auth     `mapstructure:"auth"`
 }
 
 var AppConfig Config
@@ -65,6 +72,14 @@ func Load(path string) error {
 	if err := viper.Unmarshal(&AppConfig); err != nil {
 		return fmt.Errorf("unable to decode config into struct: %w", err)
 	}
+	if AppConfig.Auth.JWTSecret == "" {
+		secret, err := generateJWTSecret()
+		if err != nil {
+			return fmt.Errorf("failed to generate JWT secret: %w", err)
+		}
+		AppConfig.Auth.JWTSecret = secret
+		log.Warnf("auth.jwt_secret is empty, generated an ephemeral secret for this process; configure OCTOPUS_AUTH_JWT_SECRET or auth.jwt_secret to keep tokens valid across restarts")
+	}
 	return nil
 }
 
@@ -74,4 +89,13 @@ func setDefaults() {
 	viper.SetDefault("database.type", "sqlite")
 	viper.SetDefault("database.path", "data/data.db")
 	viper.SetDefault("log.level", "info")
+	viper.SetDefault("auth.jwt_secret", "")
+}
+
+func generateJWTSecret() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }

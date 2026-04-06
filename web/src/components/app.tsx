@@ -12,10 +12,12 @@ import { useTranslations } from 'next-intl'
 import Logo, { LOGO_DRAW_END_MS } from '@/components/modules/logo';
 import { Toolbar } from '@/components/modules/toolbar';
 import { ENTRANCE_VARIANTS } from '@/lib/animations/fluid-transitions';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { CONTENT_MAP } from '@/route';
 import { apiClient } from '@/api/client';
 import { logger } from '@/lib/logger';
+import { FirstRunSetup } from '@/components/modules/first-run-setup';
+import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
 
 function timeout(ms: number) {
     return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -26,6 +28,14 @@ export function AppContainer() {
     const { activeItem, direction } = useNavStore();
     const t = useTranslations('navbar');
     const queryClient = useQueryClient();
+
+    const { data: bootstrapStatus, isLoading: bootstrapStatusLoading } = useQuery({
+        queryKey: ['bootstrap', 'status'],
+        queryFn: async () => apiClient.get<BootstrapStatusResponse>('/api/v1/bootstrap/status', undefined, false),
+        retry: false,
+        staleTime: 0,
+        refetchOnWindowFocus: false,
+    });
 
     // Logo 动画完成状态
     const [logoAnimationComplete, setLogoAnimationComplete] = useState(false);
@@ -170,9 +180,12 @@ export function AppContainer() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authLoading, isAuthenticated]);
 
+    const shouldShowFirstRunSetup = !bootstrapStatusLoading && bootstrapStatus?.initialized === false && !isAuthenticated;
+
     // 加载状态
     const isLoading =
         authLoading ||
+        bootstrapStatusLoading ||
         !logoAnimationComplete ||
         (isAuthenticated && !bootstrapComplete);
 
@@ -182,6 +195,14 @@ export function AppContainer() {
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <Logo size={120} animate />
             </div>
+        );
+    }
+
+    if (shouldShowFirstRunSetup) {
+        return (
+            <AnimatePresence mode="wait">
+                <FirstRunSetup />
+            </AnimatePresence>
         );
     }
 

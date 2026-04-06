@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/op"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -24,9 +23,7 @@ func GenerateJWTToken(expiresMin int) (string, string, error) {
 	} else if expiresMin == -1 {
 		claims.ExpiresAt = jwt.NewNumericDate(now.Add(time.Duration(30) * 24 * time.Hour))
 	}
-	user := op.UserGet()
-	secret := user.Username + user.Password
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(conf.AppConfig.Auth.JWTSecret))
 	if err != nil {
 		return "", "", err
 	}
@@ -35,9 +32,7 @@ func GenerateJWTToken(expiresMin int) (string, string, error) {
 
 func VerifyJWTToken(token string) bool {
 	jwtToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		user := op.UserGet()
-		secret := user.Username + user.Password
-		return []byte(secret), nil
+		return []byte(conf.AppConfig.Auth.JWTSecret), nil
 	})
 	if err != nil || !jwtToken.Valid {
 		return false

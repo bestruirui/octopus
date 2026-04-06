@@ -9,9 +9,11 @@ import {
     Activity,
     TrendingUp,
     Globe,
-    Key
+    Key,
+    Link2
 } from 'lucide-react';
 import { useUpdateChannel, useDeleteChannel, type Channel, type UpdateChannelRequest } from '@/api/endpoints/channel';
+import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import {
     MorphingDialogTitle,
     MorphingDialogDescription,
@@ -26,11 +28,13 @@ import { ChannelForm, type ChannelFormData } from './Form';
 import { formatMoney } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { CopyIconButton } from '@/components/common/CopyButton';
 
 export function CardContent({ channel, stats }: { channel: Channel; stats: StatsMetricsFormatted }) {
     const { setIsOpen } = useMorphingDialog();
     const updateChannel = useUpdateChannel();
     const deleteChannel = useDeleteChannel();
+    const { data: settings } = useSettingList();
     const [isEditing, setIsEditing] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     const [formData, setFormData] = useState<ChannelFormData>({
@@ -60,6 +64,14 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         match_regex: channel.match_regex ?? '',
     });
     const t = useTranslations('channel.detail');
+
+    const publicApiBaseUrl = settings?.find((item) => item.key === SettingKey.PublicAPIBaseURL)?.value?.trim() ?? '';
+    const firstBaseUrl = channel.base_urls?.find((item) => item.url.trim())?.url?.trim() ?? '';
+    const firstEnabledKey = channel.keys?.find((item) => item.enabled && item.channel_key.trim())?.channel_key?.trim() ?? '';
+    const hasCcSwitchLink = Boolean(publicApiBaseUrl && firstEnabledKey);
+    const ccSwitchLink = hasCcSwitchLink
+        ? `ccswitch://import?name=${encodeURIComponent(channel.name)}&api_base=${encodeURIComponent(publicApiBaseUrl)}&api_key=${encodeURIComponent(firstEnabledKey)}${firstBaseUrl ? `&upstream=${encodeURIComponent(firstBaseUrl)}` : ''}`
+        : '';
 
     const currentView = isEditing ? 'editing' : 'viewing';
 
@@ -404,6 +416,52 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                         ))}
                                         {(!channel.keys || channel.keys.length === 0) && (
                                             <div className="p-4 text-sm text-muted-foreground text-center">{t('noKeys')}</div>
+                                        )}
+                                    </div>
+                                </section>
+
+                                {/* CC Switch Deep Link */}
+                                <section className="space-y-3">
+                                    <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                        <Link2 className="size-3.5" />
+                                        {t('sections.ccSwitch')}
+                                    </h4>
+                                    <div className="rounded-2xl border bg-card p-3 sm:p-4 space-y-3 transition-colors hover:bg-accent/5">
+                                        <p className="text-sm text-muted-foreground">{t('ccSwitch.description')}</p>
+                                        {hasCcSwitchLink ? (
+                                            <>
+                                                <div className="flex items-start gap-2 rounded-xl border bg-background/70 p-3">
+                                                    <code className="min-w-0 flex-1 break-all font-mono text-xs sm:text-sm">{ccSwitchLink}</code>
+                                                    <CopyIconButton
+                                                        text={ccSwitchLink}
+                                                        className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                                        copyIconClassName="size-4"
+                                                        checkIconClassName="size-4 text-emerald-500"
+                                                    />
+                                                </div>
+                                                <dl className="grid gap-3 sm:grid-cols-3">
+                                                    <div className="rounded-xl border bg-background/70 p-3">
+                                                        <dt className="mb-1 text-xs text-muted-foreground">{t('ccSwitch.publicApiBase')}</dt>
+                                                        <dd className="break-all font-mono text-xs sm:text-sm">{publicApiBaseUrl}</dd>
+                                                    </div>
+                                                    <div className="rounded-xl border bg-background/70 p-3">
+                                                        <dt className="mb-1 text-xs text-muted-foreground">{t('ccSwitch.upstreamBase')}</dt>
+                                                        <dd className="break-all font-mono text-xs sm:text-sm">{firstBaseUrl || '-'}</dd>
+                                                    </div>
+                                                    <div className="rounded-xl border bg-background/70 p-3">
+                                                        <dt className="mb-1 text-xs text-muted-foreground">{t('ccSwitch.apiKey')}</dt>
+                                                        <dd className="break-all font-mono text-xs sm:text-sm">
+                                                            {firstEnabledKey.length > 10
+                                                                ? `${firstEnabledKey.slice(0, 4)}...${firstEnabledKey.slice(-4)}`
+                                                                : firstEnabledKey}
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                            </>
+                                        ) : (
+                                            <div className="rounded-xl border border-dashed bg-background/60 p-3 text-sm text-muted-foreground">
+                                                {!publicApiBaseUrl ? t('ccSwitch.missingPublicApiBaseUrl') : t('ccSwitch.missingKey')}
+                                            </div>
                                         )}
                                     </div>
                                 </section>

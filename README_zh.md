@@ -66,8 +66,13 @@ cd octopus
 cd web && pnpm install && pnpm run build && cd ..
 # 移动前端产物到 static 目录
 mv web/out static/
+# 设置必需的初始管理员账户
+export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
+export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
+# 可选但强烈建议：设置持久化 JWT 密钥
+export OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret"
 # 启动后端服务
-go run main.go start 
+go run main.go start
 ```
 
 > 💡 **提示**：前端构建产物会被嵌入到 Go 二进制文件中，所以必须先构建前端再启动后端。
@@ -76,20 +81,27 @@ go run main.go start
 
 ```bash
 cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" pnpm run dev
-## 新建终端,启动后端服务
+## 新建终端,设置必需的初始管理员账户
+export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
+export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
+## 可选但强烈建议：设置持久化 JWT 密钥
+export OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret"
+## 启动后端服务
 go run main.go start
 ## 访问前端地址
 http://localhost:3000
 ```
 
-### 🔐 默认账户
+### 🔐 初始管理员设置
 
-首次启动后，访问 http://localhost:8080 使用以下默认账户登录管理面板：
+首次启动时，必须通过环境变量提供初始管理员账户：
 
-- **用户名**：`admin`
-- **密码**：`admin`
+- `OCTOPUS_INITIAL_ADMIN_USERNAME`
+- `OCTOPUS_INITIAL_ADMIN_PASSWORD`
 
-> ⚠️ **安全提示**：请在首次登录后立即修改默认密码。
+> ⚠️ **安全提示**：初始管理员密码长度必须至少为 12 个字符。
+>
+> ⚠️ **安全提示**：如果未配置 `OCTOPUS_AUTH_JWT_SECRET` 或 `auth.jwt_secret`，Octopus 会在启动时生成仅当前进程有效的 JWT 密钥。服务重启后，已有登录 token 会失效。
 
 ### 📝 配置文件
 
@@ -109,6 +121,9 @@ http://localhost:3000
   },
   "log": {
     "level": "info"
+  },
+  "auth": {
+    "jwt_secret": "replace-with-a-long-random-secret"
   }
 }
 ```
@@ -122,7 +137,7 @@ http://localhost:3000
 | `database.type` | 数据库类型 | `sqlite` |
 | `database.path` | 数据库连接地址 | `data/data.db` |
 | `log.level` | 日志级别 | `info` |
-
+| `auth.jwt_secret` | JWT 签名密钥 | 空（未设置时启动生成临时密钥） |
 **数据库配置：**
 
 支持三种数据库：

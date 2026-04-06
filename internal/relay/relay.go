@@ -22,6 +22,75 @@ import (
 	"github.com/tmaxmax/go-sse"
 )
 
+func resolveRequestedUpstreamModel(requestModel string) (string, bool) {
+	trimmed := strings.TrimSpace(requestModel)
+	if trimmed == "" {
+		return "", false
+	}
+	prefix, upstream, ok := strings.Cut(trimmed, "/")
+	if !ok {
+		return "", false
+	}
+	if !strings.EqualFold(strings.TrimSpace(prefix), "zen") {
+		return "", false
+	}
+	upstream = strings.TrimSpace(upstream)
+	if upstream == "" {
+		return "", false
+	}
+	return upstream, true
+}
+
+func detectZenPreferredChannelTypes(requestModel string, isEmbeddingRequest bool) map[outbound.OutboundType]struct{} {
+	upstreamModel, ok := resolveRequestedUpstreamModel(requestModel)
+	if !ok {
+		return nil
+	}
+	if isEmbeddingRequest {
+		return map[outbound.OutboundType]struct{}{
+			outbound.OutboundTypeOpenAIEmbedding: {},
+		}
+	}
+
+	lowerModel := strings.ToLower(strings.TrimSpace(upstreamModel))
+	switch {
+	case strings.HasPrefix(lowerModel, "claude"):
+		return map[outbound.OutboundType]struct{}{
+			outbound.OutboundTypeAnthropic: {},
+		}
+	case strings.HasPrefix(lowerModel, "gemini"), strings.HasPrefix(lowerModel, "models/gemini"), strings.HasPrefix(lowerModel, "gemma"):
+		return map[outbound.OutboundType]struct{}{
+			outbound.OutboundTypeGemini: {},
+		}
+	case strings.HasPrefix(lowerModel, "gpt-"), strings.HasPrefix(lowerModel, "o1"), strings.HasPrefix(lowerModel, "o3"), strings.HasPrefix(lowerModel, "o4"), strings.HasPrefix(lowerModel, "text-embedding"), strings.HasPrefix(lowerModel, "text-moderation"):
+		return map[outbound.OutboundType]struct{}{
+			outbound.OutboundTypeOpenAIChat:     {},
+			outbound.OutboundTypeOpenAIResponse: {},
+			outbound.OutboundTypeVolcengine:     {},
+		}
+	default:
+		return nil
+	}
+}
+
+func isZenCandidateChannelAllowed(requestModel string, channelType outbound.OutboundType, isEmbeddingRequest bool) bool {
+	preferred := detectZenPreferredChannelTypes(requestModel, isEmbeddingRequest)
+	if len(preferred) == 0 {
+		return true
+	}
+	_, ok := preferred[channelType]
+	return ok
+}
+
+func resolveCandidateModelName(requestModel string, item dbmodel.GroupItem) string {
+	if upstreamModel, ok := resolveRequestedUpstreamModel(requestModel); ok {
+		if strings.TrimSpace(item.ModelName) == "" || strings.EqualFold(strings.TrimSpace(item.ModelName), "zen") {
+			return upstreamModel
+		}
+	}
+	return item.ModelName
+}
+
 // Handler 处理入站请求并转发到上游服务
 func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	// 解析请求
@@ -70,6 +139,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	}
 
 	var lastErr error
+	retryCount := getMaxRetryPerCandidate()
 
 	for iter.Next() {
 		select {
@@ -122,33 +192,53 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with chat request")
 			continue
 		}
+		if !isZenCandidateChannelAllowed(requestModel, channel.Type, internalRequest.IsEmbeddingRequest()) {
+			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not preferred for zen model prefix")
+			continue
+		}
 
 		// 设置实际模型
-		internalRequest.Model = item.ModelName
-
-		log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
-			requestModel, group.Mode, channel.Name, item.ModelName,
-			iter.Index()+1, iter.Len(), iter.IsSticky())
-
-		// 构造尝试级上下文 -- 只写变化的 4 个字段
-		ra := &relayAttempt{
-			relayRequest:         req,
-			outAdapter:           outAdapter,
-			channel:              channel,
-			usedKey:              usedKey,
-			firstTokenTimeOutSec: group.FirstTokenTimeOut,
+		resolvedModelName := resolveCandidateModelName(requestModel, item)
+		if strings.TrimSpace(resolvedModelName) == "" {
+			iter.Skip(channel.ID, usedKey.ID, channel.Name, "resolved upstream model is empty")
+			continue
 		}
+		internalRequest.Model = resolvedModelName
 
-		result := ra.attempt()
-		if result.Success {
-			metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
-			return
+		for tryIndex := 1; tryIndex <= retryCount; tryIndex++ {
+			select {
+			case <-c.Request.Context().Done():
+				log.Infof("request context canceled, stopping retry")
+				metrics.Save(c.Request.Context(), false, context.Canceled, iter.Attempts())
+				return
+			default:
+			}
+
+			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (candidate %d/%d, retry %d/%d, sticky=%t)",
+				requestModel, group.Mode, channel.Name, item.ModelName,
+				iter.Index()+1, iter.Len(), tryIndex, retryCount, iter.IsSticky())
+
+			ra := &relayAttempt{
+				relayRequest:         req,
+				outAdapter:           outAdapter,
+				channel:              channel,
+				usedKey:              usedKey,
+				firstTokenTimeOutSec: group.FirstTokenTimeOut,
+				tryIndex:             tryIndex,
+				tryTotal:             retryCount,
+			}
+
+			result := ra.attempt()
+			if result.Success {
+				metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
+				return
+			}
+			if result.Written {
+				metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
+				return
+			}
+			lastErr = result.Err
 		}
-		if result.Written {
-			metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
-			return
-		}
-		lastErr = result.Err
 	}
 
 	// 所有通道都失败
@@ -191,7 +281,11 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 	// ====== 失败 ======
 	op.ChannelKeyUpdate(ra.usedKey)
-	span.End(dbmodel.AttemptFailed, statusCode, fwdErr.Error())
+	msg := fwdErr.Error()
+	if ra.tryTotal > 1 {
+		msg = fmt.Sprintf("retry %d/%d failed: %s", ra.tryIndex, ra.tryTotal, msg)
+	}
+	span.End(dbmodel.AttemptFailed, statusCode, msg)
 
 	// Channel 维度统计
 	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
@@ -209,7 +303,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 	return attemptResult{
 		Success: false,
 		Written: written,
-		Err:     fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr),
+		Err:     fmt.Errorf("channel %s failed on retry %d/%d: %v", ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr),
 	}
 }
 

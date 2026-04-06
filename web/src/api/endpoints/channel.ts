@@ -129,15 +129,31 @@ export type FetchModelRequest = {
     custom_header?: CustomHeader[];
 };
 
+export type TestChannelResult = {
+    base_url: string;
+    key_remark?: string;
+    key_masked?: string;
+    status_code: number;
+    passed: boolean;
+    latency_ms: number;
+    message?: string;
+    response_body?: string;
+};
+
+export type TestChannelSummary = {
+    passed: boolean;
+    results: TestChannelResult[];
+};
+
 /**
  * 获取渠道列表 Hook
- * 
+ *
  * @example
  * const { data: channels, isLoading, error } = useChannelList();
- * 
+ *
  * if (isLoading) return <Loading />;
  * if (error) return <Error message={error.message} />;
- * 
+ *
  * channels?.forEach(channel => console.log(channel.raw.name));
  */
 export function useChannelList() {
@@ -321,12 +337,26 @@ export function useFetchModel() {
     });
 }
 
+export function useTestChannel() {
+    return useMutation({
+        mutationFn: async (data: CreateChannelRequest | UpdateChannelRequest | FetchModelRequest) => {
+            return apiClient.post<TestChannelSummary>('/api/v1/channel/test', data);
+        },
+        onSuccess: (data) => {
+            logger.log('渠道测试成功:', data);
+        },
+        onError: (error) => {
+            logger.error('渠道测试失败:', error);
+        },
+    });
+}
+
 /**
  * 获取渠道最后同步时间 Hook
- * 
+ *
  * @example
  * const lastSyncTime = useLastSyncTime();
- * 
+ *
  * if (lastSyncTime) {
  *   console.log('最后同步时间:', new Date(lastSyncTime).toLocaleString());
  * }

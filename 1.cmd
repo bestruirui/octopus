@@ -1,0 +1,2 @@
+set OCTOPUS_DATABASE_PATH=%TEMP%\octopus-onboarding-test.db && set OCTOPUS_SERVER_HOST=127.0.0.1 && set OCTOPUS_SERVER_PORT=18080 && set OCTOPUS_ALLOW_UNINITIALIZED_STARTUP=true && set
+       OCTOPUS_INITIAL_ADMIN_USERNAME= && set OCTOPUS_INITIAL_ADMIN_PASSWORD= && F:\go\bin\go.exe run main.go start

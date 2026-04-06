@@ -68,7 +68,8 @@ async function request<T>(
     method: string,
     path: string,
     body?: BodyInit,
-    params?: Record<string, string | number | boolean>
+    params?: Record<string, string | number | boolean>,
+    includeAuth = true,
 ): Promise<T> {
     // 构建 URL
     const searchParams = params ? new URLSearchParams(
@@ -85,7 +86,7 @@ async function request<T>(
     }
 
     // 添加 Authorization - 从 zustand store 获取 token
-    if (typeof window !== 'undefined' && getAuthStore) {
+    if (includeAuth && typeof window !== 'undefined' && getAuthStore) {
         const store = getAuthStore();
         if (store.token) {
             headers.set('Authorization', `Bearer ${store.token}`);
@@ -109,31 +110,31 @@ export const apiClient = {
     /**
      * GET 请求
      */
-    get: <T>(path: string, params?: Record<string, string | number | boolean>): Promise<T> =>
-        request<T>('GET', path, undefined, params),
+    get: <T>(path: string, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('GET', path, undefined, params, includeAuth),
 
     /**
      * POST 请求
      */
-    post: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>): Promise<T> =>
-        request<T>('POST', path, data ? JSON.stringify(data) : undefined, params),
+    post: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('POST', path, data ? JSON.stringify(data) : undefined, params, includeAuth),
 
     /**
      * PUT 请求
      */
-    put: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>): Promise<T> =>
-        request<T>('PUT', path, data ? JSON.stringify(data) : undefined, params),
+    put: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('PUT', path, data ? JSON.stringify(data) : undefined, params, includeAuth),
 
     /**
      * DELETE 请求
      */
-    delete: <T>(path: string, params?: Record<string, string | number | boolean>): Promise<T> =>
-        request<T>('DELETE', path, undefined, params),
+    delete: <T>(path: string, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('DELETE', path, undefined, params, includeAuth),
 
     /**
      * PATCH 请求
      */
-    patch: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>): Promise<T> =>
-        request<T>('PATCH', path, data ? JSON.stringify(data) : undefined, params),
+    patch: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('PATCH', path, data ? JSON.stringify(data) : undefined, params, includeAuth),
 };
 

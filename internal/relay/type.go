@@ -7,6 +7,7 @@ import (
 
 	"github.com/bestruirui/octopus/internal/conf"
 	dbmodel "github.com/bestruirui/octopus/internal/model"
+	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/relay/balancer"
 	"github.com/bestruirui/octopus/internal/transformer/model"
 	"github.com/gin-gonic/gin"
@@ -18,12 +19,22 @@ import (
 // 默认 32MB，可通过环境变量 OCTOPUS_RELAY_MAX_SSE_EVENT_SIZE 覆盖。
 var maxSSEEventSize = 32 * 1024 * 1024
 
+const defaultMaxRetryPerCandidate = 3
+
 func init() {
 	if raw := strings.TrimSpace(os.Getenv(strings.ToUpper(conf.APP_NAME) + "_RELAY_MAX_SSE_EVENT_SIZE")); raw != "" {
 		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
 			maxSSEEventSize = v
 		}
 	}
+}
+
+func getMaxRetryPerCandidate() int {
+	v, err := op.SettingGetInt(dbmodel.SettingKeyRelayRetryCount)
+	if err != nil || v < 1 {
+		return defaultMaxRetryPerCandidate
+	}
+	return v
 }
 
 // hopByHopHeaders 定义不应转发的 HTTP 头
@@ -71,6 +82,8 @@ type relayAttempt struct {
 	channel              *dbmodel.Channel
 	usedKey              dbmodel.ChannelKey
 	firstTokenTimeOutSec int
+	tryIndex             int
+	tryTotal             int
 }
 
 // attemptResult 封装单次尝试的结果

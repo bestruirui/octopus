@@ -75,53 +75,14 @@ func (b *Failover) Candidates(items []model.GroupItem) []model.GroupItem {
 	return sortByPriority(items)
 }
 
-// Weighted 加权分配：按权重概率排序
+// Weighted 加权分配：按权重从高到低排序
 type Weighted struct{}
 
 func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
-	n := len(items)
-	if n == 0 {
+	if len(items) == 0 {
 		return nil
 	}
-
-	// 构建加权随机排序
-	type weightedItem struct {
-		item   model.GroupItem
-		score  float64
-	}
-
-	totalWeight := 0
-	for _, item := range items {
-		w := item.Weight
-		if w <= 0 {
-			w = 1
-		}
-		totalWeight += w
-	}
-
-	scored := make([]weightedItem, n)
-	for i, item := range items {
-		w := item.Weight
-		if w <= 0 {
-			w = 1
-		}
-		// 给每个 item 一个加权随机分数：weight/totalWeight 作为概率基础，加上随机扰动
-		scored[i] = weightedItem{
-			item:  item,
-			score: rand.Float64() * float64(w) / float64(totalWeight),
-		}
-	}
-
-	// 按分数降序排列（分数越高优先级越高）
-	sort.Slice(scored, func(i, j int) bool {
-		return scored[i].score > scored[j].score
-	})
-
-	result := make([]model.GroupItem, n)
-	for i := range scored {
-		result[i] = scored[i].item
-	}
-	return result
+	return sortByWeight(items)
 }
 
 func sortByPriority(items []model.GroupItem) []model.GroupItem {
@@ -129,6 +90,32 @@ func sortByPriority(items []model.GroupItem) []model.GroupItem {
 	copy(sorted, items)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Priority < sorted[j].Priority
+	})
+	return sorted
+}
+
+func sortByWeight(items []model.GroupItem) []model.GroupItem {
+	sorted := make([]model.GroupItem, len(items))
+	copy(sorted, items)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		leftWeight := sorted[i].Weight
+		if leftWeight <= 0 {
+			leftWeight = 1
+		}
+		rightWeight := sorted[j].Weight
+		if rightWeight <= 0 {
+			rightWeight = 1
+		}
+		if leftWeight != rightWeight {
+			return leftWeight > rightWeight
+		}
+		if sorted[i].Priority != sorted[j].Priority {
+			return sorted[i].Priority < sorted[j].Priority
+		}
+		if sorted[i].ChannelID != sorted[j].ChannelID {
+			return sorted[i].ChannelID < sorted[j].ChannelID
+		}
+		return sorted[i].ModelName < sorted[j].ModelName
 	})
 	return sorted
 }

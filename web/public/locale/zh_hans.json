@@ -18,6 +18,36 @@
             "submit": "登录"
         }
     },
+    "bootstrap": {
+        "title": "完成首次初始化",
+        "subtitle": "Octopus 需要先创建初始管理员账户，之后才能登录。",
+        "description": "请先设置必需的环境变量并重启服务，然后刷新当前页面。",
+        "checking": "正在检查初始化状态...",
+        "initialized": "首次初始化已完成，现在可以登录了。",
+        "notice": {
+            "title": "首次启动保护",
+            "description": "当前实例不会再自动创建默认管理员账号。请在第一次启动前显式设置安全凭据。"
+        },
+        "commands": {
+            "title": "示例初始化命令"
+        },
+        "steps": {
+            "username": "设置 OCTOPUS_INITIAL_ADMIN_USERNAME 作为管理员用户名。",
+            "password": "设置 OCTOPUS_INITIAL_ADMIN_PASSWORD，且长度至少为 12 个字符。",
+            "secret": "设置 OCTOPUS_AUTH_JWT_SECRET 为足够长的随机密钥，以便重启后会话仍然有效。",
+            "restart": "保存环境变量后，重启 Octopus 服务。"
+        },
+        "actions": {
+            "refresh": "刷新状态",
+            "copy": "复制命令",
+            "copied": "已复制",
+            "copyFailed": "复制命令失败"
+        },
+        "error": {
+            "generic": "加载初始化状态失败",
+            "server": "暂时无法获取初始化状态，请检查后端日志后重试。"
+        }
+    },
     "apiKeyDashboard": {
         "error": "加载数据失败",
         "logout": "退出",
@@ -159,6 +189,11 @@
             "label": "代理地址",
             "placeholder": "请输入代理地址"
         },
+        "publicApiBaseUrl": {
+            "label": "公开 API 基础地址",
+            "placeholder": "请输入公开 API 基础地址",
+            "hint": "用于生成 curl 示例和引导链接；留空则不展示这些辅助信息。"
+        },
         "statsSaveInterval": {
             "label": "统计保存周期（分钟）",
             "placeholder": "请输入周期（分钟）"
@@ -183,6 +218,13 @@
                 "placeholder": "请输入最大冷却时间"
             },
             "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间"
+        },
+        "retry": {
+            "title": "重试配置",
+            "count": {
+                "label": "单个渠道最大重试次数",
+                "placeholder": "请输入重试次数"
+            }
         },
         "saved": "已保存",
         "backup": {
@@ -467,10 +509,19 @@
                 "tokens": "Token 使用",
                 "costs": "成本详情",
                 "baseUrls": "Base URLs",
-                "keys": "密钥"
+                "keys": "密钥",
+                "ccSwitch": "CC Switch"
             },
             "noBaseUrls": "暂无 Base URL",
             "noKeys": "暂无密钥",
+            "ccSwitch": {
+                "description": "基于当前渠道配置生成可导入到 CC Switch 的深链接。",
+                "publicApiBase": "公开 API 地址",
+                "upstreamBase": "上游地址",
+                "apiKey": "API Key",
+                "missingPublicApiBaseUrl": "请先在系统设置中填写公开 API 基础地址。",
+                "missingKey": "请先为该渠道配置至少一个已启用的 API Key。"
+            },
             "metrics": {
                 "totalRequests": "总请求",
                 "totalToken": "总 Token",
@@ -527,6 +578,21 @@
             "modelSelected": "已选模型",
             "modelNoSelected": "暂未选择模型",
             "modelClearAll": "清除全部",
+            "template": {
+                "label": "内置供应商模板",
+                "hint": "一键预填常见供应商配置"
+            },
+            "test": {
+                "button": "测试",
+                "success": "渠道测试通过",
+                "partialSuccess": "渠道测试已完成",
+                "failed": "渠道测试失败",
+                "results": "条结果",
+                "pass": "通过",
+                "fail": "失败",
+                "noRemark": "无备注",
+                "hint": "会批量测试所有已填写的端点与 Key 组合，HTTP 200 和 429 都视为通过。"
+            },
             "typeOpenAIChat": "OpenAI Chat",
             "typeOpenAIResponse": "OpenAI Response",
             "typeOpenAIEmbedding": "OpenAI Embedding",

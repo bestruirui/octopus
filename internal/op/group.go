@@ -3,10 +3,12 @@ package op
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/bestruirui/octopus/internal/db"
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/utils/cache"
+	"github.com/dlclark/regexp2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -41,7 +43,28 @@ func GroupGet(id int, ctx context.Context) (*model.Group, error) {
 func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
 	group, ok := groupMap.Get(name)
 	if !ok {
-		return model.Group{}, fmt.Errorf("group not found")
+		var matched *model.Group
+		for _, candidate := range groupCache.GetAll() {
+			regex := strings.TrimSpace(candidate.MatchRegex)
+			if regex == "" {
+				continue
+			}
+			re, err := regexp2.Compile(regex, regexp2.ECMAScript)
+			if err != nil {
+				continue
+			}
+			isMatched, err := re.MatchString(name)
+			if err != nil || !isMatched {
+				continue
+			}
+			groupCopy := candidate
+			matched = &groupCopy
+			break
+		}
+		if matched == nil {
+			return model.Group{}, fmt.Errorf("group not found")
+		}
+		group = *matched
 	}
 	if len(group.Items) == 0 {
 		group.Items = nil

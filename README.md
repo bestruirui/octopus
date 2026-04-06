@@ -66,8 +66,13 @@ cd octopus
 cd web && pnpm install && pnpm run build && cd ..
 # Move frontend assets to static directory
 mv web/out static/
+# Set required initial admin credentials
+export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
+export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
+# Optional but recommended: set a persistent JWT secret
+export OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret"
 # Start the backend service
-go run main.go start 
+go run main.go start
 ```
 
 > 💡 **Tip**: The frontend build artifacts are embedded into the Go binary, so you must build the frontend before starting the backend.
@@ -76,20 +81,27 @@ go run main.go start
 
 ```bash
 cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" pnpm run dev
-## Open a new terminal, start the backend service
+## Open a new terminal, set required initial admin credentials
+export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
+export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
+## Optional but recommended: set a persistent JWT secret
+export OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret"
+## Start the backend service
 go run main.go start
 ## Access the frontend at
 http://localhost:3000
 ```
 
-### 🔐 Default Credentials
+### 🔐 Initial Admin Setup
 
-After first launch, visit http://localhost:8080 and log in to the management panel with:
+On first launch, you must provide the initial admin credentials through environment variables:
 
-- **Username**: `admin`
-- **Password**: `admin`
+- `OCTOPUS_INITIAL_ADMIN_USERNAME`
+- `OCTOPUS_INITIAL_ADMIN_PASSWORD`
 
-> ⚠️ **Security Notice**: Please change the default password immediately after first login.
+> ⚠️ **Security Notice**: The initial admin password must be at least 12 characters long.
+>
+> ⚠️ **Security Notice**: If `OCTOPUS_AUTH_JWT_SECRET` or `auth.jwt_secret` is not configured, Octopus will generate an in-memory JWT secret at startup. Existing login tokens will become invalid after a restart.
 
 ### 📝 Configuration File
 
@@ -109,6 +121,9 @@ The configuration file is located at `data/config.json` by default and is automa
   },
   "log": {
     "level": "info"
+  },
+  "auth": {
+    "jwt_secret": "replace-with-a-long-random-secret"
   }
 }
 ```
@@ -122,7 +137,7 @@ The configuration file is located at `data/config.json` by default and is automa
 | `database.type` | Database type | `sqlite` |
 | `database.path` | Database connection string | `data/data.db` |
 | `log.level` | Log level | `info` |
-
+| `auth.jwt_secret` | JWT signing secret | empty (ephemeral secret generated at startup if unset) |
 **Database Configuration:**
 
 Three database types are supported:

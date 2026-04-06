@@ -35,7 +35,9 @@ func Start() error {
 	r.Use(middleware.Cors())
 	r.Use(middleware.StaticEmbed("/", static.StaticFS))
 
-	router.RegisterAll(r)
+	if err := router.RegisterAll(r); err != nil {
+		return fmt.Errorf("register routes: %w", err)
+	}
 
 	httpSrv.Addr = fmt.Sprintf("%s:%d", conf.AppConfig.Server.Host, conf.AppConfig.Server.Port)
 	httpSrv.Handler = r

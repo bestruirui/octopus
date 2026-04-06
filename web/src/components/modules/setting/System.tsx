@@ -15,22 +15,29 @@ export function SettingSystem() {
     const setSetting = useSetSetting();
 
     const [proxyUrl, setProxyUrl] = useState('');
+    const [publicApiBaseUrl, setPublicApiBaseUrl] = useState('');
     const [statsSaveInterval, setStatsSaveInterval] = useState('');
     const [corsAllowOrigins, setCorsAllowOrigins] = useState('');
     const [corsInputValue, setCorsInputValue] = useState('');
 
     const initialProxyUrl = useRef('');
+    const initialPublicApiBaseUrl = useRef('');
     const initialStatsSaveInterval = useRef('');
     const initialCorsAllowOrigins = useRef('');
 
     useEffect(() => {
         if (settings) {
             const proxy = settings.find(s => s.key === SettingKey.ProxyURL);
+            const publicApi = settings.find(s => s.key === SettingKey.PublicAPIBaseURL);
             const interval = settings.find(s => s.key === SettingKey.StatsSaveInterval);
             const cors = settings.find(s => s.key === SettingKey.CORSAllowOrigins);
             if (proxy) {
                 queueMicrotask(() => setProxyUrl(proxy.value));
                 initialProxyUrl.current = proxy.value;
+            }
+            if (publicApi) {
+                queueMicrotask(() => setPublicApiBaseUrl(publicApi.value));
+                initialPublicApiBaseUrl.current = publicApi.value;
             }
             if (interval) {
                 queueMicrotask(() => setStatsSaveInterval(interval.value));
@@ -51,6 +58,8 @@ export function SettingSystem() {
                 toast.success(t('saved'));
                 if (key === SettingKey.ProxyURL) {
                     initialProxyUrl.current = value;
+                } else if (key === SettingKey.PublicAPIBaseURL) {
+                    initialPublicApiBaseUrl.current = value;
                 } else if (key === SettingKey.StatsSaveInterval) {
                     initialStatsSaveInterval.current = value;
                 } else if (key === SettingKey.CORSAllowOrigins) {
@@ -133,6 +142,31 @@ export function SettingSystem() {
                     onBlur={() => handleSave('proxy_url', proxyUrl, initialProxyUrl.current)}
                     placeholder={t('proxyUrl.placeholder')}
                     className="w-48 rounded-xl"
+                />
+            </div>
+
+            {/* 公开 API 基础地址 */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <Globe className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">{t('publicApiBaseUrl.label')}</span>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <HelpCircle className="size-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('publicApiBaseUrl.hint')}
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+                <Input
+                    value={publicApiBaseUrl}
+                    onChange={(e) => setPublicApiBaseUrl(e.target.value)}
+                    onBlur={() => handleSave(SettingKey.PublicAPIBaseURL, publicApiBaseUrl, initialPublicApiBaseUrl.current)}
+                    placeholder={t('publicApiBaseUrl.placeholder')}
+                    className="w-72 rounded-xl"
                 />
             </div>
 
