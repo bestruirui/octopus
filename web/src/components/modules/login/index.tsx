@@ -40,9 +40,9 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
     try {
       if (mode === 'user') {
         await loginMutation.mutateAsync({
-          username,
+          username: username.trim(),
           password,
-          expire: 86400,
+          expire: 1440,
         })
       } else {
         await apiKeyLoginMutation.mutateAsync(apiKey)
@@ -111,6 +111,10 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                     placeholder={t('usernamePlaceholder')}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     required={mode === 'user'}
                     disabled={isPending}
                   />
@@ -123,6 +127,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                     placeholder={t('passwordPlaceholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                     required={mode === 'user'}
                     disabled={isPending}
                   />
@@ -137,6 +142,10 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                     placeholder={t('apikeyPlaceholder')}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     required={mode === 'apikey'}
                     disabled={isPending}
                   />

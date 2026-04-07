@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 export interface UserLoginRequest {
     username: string;
     password: string;
-    expire: number; // token 过期时间（秒）
+    expire: number; // token 过期时间（分钟）
 }
 
 /**
@@ -160,7 +160,7 @@ export function useLogin() {
 
     return useMutation({
         mutationFn: async (data: UserLoginRequest) => {
-            return apiClient.post<UserLoginResponse>('/api/v1/user/login', data);
+            return apiClient.post<UserLoginResponse>('/api/v1/user/login', data, undefined, false);
         },
         onSuccess: (data) => {
             // 保存到 zustand store
