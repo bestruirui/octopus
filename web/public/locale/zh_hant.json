@@ -21,27 +21,25 @@
     "bootstrap": {
         "title": "完成首次初始化",
         "subtitle": "Octopus 需要先建立初始管理員帳戶，之後才能登入。",
-        "description": "請先設定必要的環境變數並重新啟動服務，然後刷新目前頁面。",
+        "description": "請在目前頁面設定管理員帳號與密碼，儲存後即可登入。",
         "checking": "正在檢查初始化狀態...",
         "initialized": "首次初始化已完成，現在可以登入了。",
         "notice": {
             "title": "首次啟動保護",
-            "description": "目前實例不會再自動建立預設管理員帳號。請在第一次啟動前明確設定安全憑證。"
+            "description": "目前實例不會自動建立預設管理員帳號。請在首次進入時手動設定安全憑證。"
         },
-        "commands": {
-            "title": "初始化命令範例"
-        },
-        "steps": {
-            "username": "設定 OCTOPUS_INITIAL_ADMIN_USERNAME 作為管理員帳號。",
-            "password": "設定 OCTOPUS_INITIAL_ADMIN_PASSWORD，且長度至少為 12 個字元。",
-            "secret": "將 OCTOPUS_AUTH_JWT_SECRET 設為足夠長的隨機密鑰，讓重新啟動後工作階段仍然有效。",
-            "restart": "儲存環境變數後，重新啟動 Octopus 服務。"
+        "form": {
+            "username": "管理員帳號",
+            "usernamePlaceholder": "請輸入管理員帳號",
+            "password": "管理員密碼",
+            "passwordPlaceholder": "請輸入管理員密碼",
+            "passwordHint": "密碼長度至少 12 個字元。"
         },
         "actions": {
             "refresh": "重新整理狀態",
-            "copy": "複製命令",
-            "copied": "已複製",
-            "copyFailed": "複製命令失敗"
+            "submit": "儲存管理員帳號",
+            "submitting": "儲存中...",
+            "submitSuccess": "管理員帳號已建立"
         },
         "error": {
             "generic": "載入初始化狀態失敗",

@@ -22,10 +22,10 @@ readonly GIT_VERSION="$(git describe --tags --abbrev=0 2>/dev/null || echo 'dev'
 readonly COMMIT_ID="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 
 # Build flags
-readonly LDFLAGS="-X 'github.com/bestruirui/octopus/internal/conf.Version=${GIT_VERSION}' \
-                  -X 'github.com/bestruirui/octopus/internal/conf.BuildTime=${BUILD_TIME}' \
-                  -X 'github.com/bestruirui/octopus/internal/conf.Author=${GIT_AUTHOR}' \
-                  -X 'github.com/bestruirui/octopus/internal/conf.Commit=${COMMIT_ID}' \
+readonly LDFLAGS="-X 'github.com/lingyuins/octopus/internal/conf.Version=${GIT_VERSION}' \
+                  -X 'github.com/lingyuins/octopus/internal/conf.BuildTime=${BUILD_TIME}' \
+                  -X 'github.com/lingyuins/octopus/internal/conf.Author=${GIT_AUTHOR}' \
+                  -X 'github.com/lingyuins/octopus/internal/conf.Commit=${COMMIT_ID}' \
                   -s -w"
 
 # =============================================================================

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	appmodel "github.com/bestruirui/octopus/internal/model"
+	appmodel "github.com/lingyuins/octopus/internal/model"
 )
 
 type ChannelTestResult struct {

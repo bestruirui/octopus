@@ -2,14 +2,12 @@ package op
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/lingyuins/octopus/internal/db"
+	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/utils/log"
 	"gorm.io/gorm"
 )
 
@@ -26,29 +24,42 @@ func UserInit() error {
 		return result.Error
 	}
 
-	if allowInitBypass() {
-		log.Warnf("initial admin credentials are not configured; allowing uninitialized startup because %s_ALLOW_UNINITIALIZED_STARTUP is enabled", strings.ToUpper(conf.APP_NAME))
-		userCache = model.User{}
-		return nil
-	}
+	log.Warnf("initial admin account is not set up yet; waiting for bootstrap from web UI")
+	userCache = model.User{}
+	return nil
+}
 
-	username := strings.TrimSpace(os.Getenv(strings.ToUpper(conf.APP_NAME) + "_INITIAL_ADMIN_USERNAME"))
-	password := os.Getenv(strings.ToUpper(conf.APP_NAME) + "_INITIAL_ADMIN_PASSWORD")
-	if username == "" || password == "" {
-		return fmt.Errorf("initial admin credentials are required; set %s_INITIAL_ADMIN_USERNAME and %s_INITIAL_ADMIN_PASSWORD", strings.ToUpper(conf.APP_NAME), strings.ToUpper(conf.APP_NAME))
+func UserBootstrapCreate(username, password string) error {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return fmt.Errorf("username is required")
+	}
+	if password == "" {
+		return fmt.Errorf("password is required")
 	}
 	if utf8.RuneCountInString(password) < minInitialAdminPasswordLength {
 		return fmt.Errorf("initial admin password must be at least %d characters long", minInitialAdminPasswordLength)
 	}
 
-	userCache.Username = username
-	userCache.Password = password
-	if err := userCache.HashPassword(); err != nil {
+	var count int64
+	if err := db.GetDB().Model(&model.User{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("failed to inspect user state: %w", err)
+	}
+	if count > 0 || UserReady() {
+		return fmt.Errorf("initial admin account is already set up")
+	}
+
+	user := model.User{
+		Username: username,
+		Password: password,
+	}
+	if err := user.HashPassword(); err != nil {
 		return err
 	}
-	if err := db.GetDB().Create(&userCache).Error; err != nil {
+	if err := db.GetDB().Create(&user).Error; err != nil {
 		return err
 	}
+	userCache = user
 	log.Infof("initial admin user created: %s", userCache.Username)
 	return nil
 }

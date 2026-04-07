@@ -3,23 +3,12 @@ package op
 import (
 	"errors"
 	"fmt"
-	"os"
-	"strings"
 
-	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/db"
+	"github.com/lingyuins/octopus/internal/db"
 	"gorm.io/gorm"
 )
 
 var ErrUserNotInitialized = errors.New("user not initialized")
-
-func allowInitBypass() bool {
-	value := strings.TrimSpace(os.Getenv(strings.ToUpper(conf.APP_NAME) + "_ALLOW_UNINITIALIZED_STARTUP"))
-	if value == "" {
-		return false
-	}
-	return strings.EqualFold(value, "1") || strings.EqualFold(value, "true") || strings.EqualFold(value, "yes")
-}
 
 func UserReady() bool {
 	return userCache.ID != 0

@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/lingyuins/octopus/internal/transformer/outbound"
 )
 
 type AutoGroupType int

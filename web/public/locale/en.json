@@ -21,27 +21,25 @@
     "bootstrap": {
         "title": "Complete initial setup",
         "subtitle": "Octopus needs an initial admin account before anyone can sign in.",
-        "description": "Set the required environment variables and restart the service, then refresh this page.",
+        "description": "Create the admin account on this page, then sign in immediately.",
         "checking": "Checking setup status...",
         "initialized": "Initial setup is complete. You can sign in now.",
         "notice": {
             "title": "First start protection",
-            "description": "This instance will not create a default admin account automatically. Define your own secure credentials before the first startup."
+            "description": "This instance will not create a default admin account automatically. Enter your own secure credentials during the first visit."
         },
-        "commands": {
-            "title": "Example setup commands"
-        },
-        "steps": {
-            "username": "Set OCTOPUS_INITIAL_ADMIN_USERNAME to your admin username.",
-            "password": "Set OCTOPUS_INITIAL_ADMIN_PASSWORD to a password with at least 12 characters.",
-            "secret": "Set OCTOPUS_AUTH_JWT_SECRET to a long random secret so sessions survive restarts.",
-            "restart": "Restart Octopus after saving the environment variables."
+        "form": {
+            "username": "Admin username",
+            "usernamePlaceholder": "Enter admin username",
+            "password": "Admin password",
+            "passwordPlaceholder": "Enter admin password",
+            "passwordHint": "Password must be at least 12 characters long."
         },
         "actions": {
             "refresh": "Refresh status",
-            "copy": "Copy commands",
-            "copied": "Copied",
-            "copyFailed": "Failed to copy commands"
+            "submit": "Save admin account",
+            "submitting": "Saving...",
+            "submitSuccess": "Admin account created"
         },
         "error": {
             "generic": "Failed to load setup status",

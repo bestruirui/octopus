@@ -27,6 +27,11 @@ type UserChangeUsername struct {
 	NewUsername string `json:"new_username"`
 }
 
+type UserBootstrapCreate struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type UserLoginResponse struct {
 	Token    string `json:"token"`
 	ExpireAt string `json:"expire_at"`

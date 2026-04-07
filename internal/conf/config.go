@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/lingyuins/octopus/internal/utils/log"
 	"github.com/spf13/viper"
 )
 

@@ -1,24 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ShieldAlert, TerminalSquare, Copy, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ShieldAlert, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { apiClient } from '@/api/client';
-import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
+import type { BootstrapCreateAdminRequest, BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
 import { HttpStatus, type ApiError } from '@/api/types';
 import { toast } from '@/components/common/Toast';
 import Logo from '@/components/modules/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-
-const setupCommands = [
-  'export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"',
-  'export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"',
-  'export OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret"',
-  'go run main.go start',
-];
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 
 function isApiError(error: unknown): error is ApiError {
   return typeof error === 'object' && error !== null && 'code' in error && 'message' in error;
@@ -26,7 +21,10 @@ function isApiError(error: unknown): error is ApiError {
 
 export function FirstRunSetup() {
   const t = useTranslations('bootstrap');
-  const [copied, setCopied] = useState(false);
+  const queryClient = useQueryClient();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorText, setErrorText] = useState<string | null>(null);
 
   const { data, isLoading, refetch, error } = useQuery({
     queryKey: ['bootstrap', 'status'],
@@ -36,11 +34,21 @@ export function FirstRunSetup() {
     refetchOnWindowFocus: false,
   });
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1500);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
+  const createAdminMutation = useMutation({
+    mutationFn: async (payload: BootstrapCreateAdminRequest) =>
+      apiClient.post<{ initialized: boolean }>('/api/v1/bootstrap/create-admin', payload, undefined, false),
+    onSuccess: async () => {
+      setErrorText(null);
+      toast.success(t('actions.submitSuccess'));
+      await queryClient.invalidateQueries({ queryKey: ['bootstrap', 'status'] });
+      await refetch();
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : t('error.generic');
+      setErrorText(message);
+      toast.error(message);
+    },
+  });
 
   const errorMessage = useMemo(() => {
     if (!error) return null;
@@ -56,15 +64,16 @@ export function FirstRunSetup() {
     return t('error.generic');
   }, [error, t]);
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(setupCommands.join('\n'));
-      setCopied(true);
-      toast.success(t('actions.copied'));
-    } catch {
-      toast.error(t('actions.copyFailed'));
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorText(null);
+    await createAdminMutation.mutateAsync({
+      username,
+      password,
+    });
   };
+
+  const isPending = createAdminMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-10 text-foreground">
@@ -100,28 +109,44 @@ export function FirstRunSetup() {
               {t('initialized')}
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="rounded-2xl border bg-muted/40 p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-                  <TerminalSquare className="size-4" />
-                  <span>{t('commands.title')}</span>
-                </div>
-                <pre className="overflow-x-auto rounded-xl bg-background p-4 text-xs leading-6 text-muted-foreground">
-                  <code>{setupCommands.join('\n')}</code>
-                </pre>
-              </div>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <Field>
+                <FieldLabel htmlFor="bootstrap-username">{t('form.username')}</FieldLabel>
+                <Input
+                  id="bootstrap-username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder={t('form.usernamePlaceholder')}
+                  disabled={isPending}
+                  required
+                />
+              </Field>
 
-              <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-                <li>{t('steps.username')}</li>
-                <li>{t('steps.password')}</li>
-                <li>{t('steps.secret')}</li>
-                <li>{t('steps.restart')}</li>
-              </ul>
+              <Field>
+                <FieldLabel htmlFor="bootstrap-password">{t('form.password')}</FieldLabel>
+                <Input
+                  id="bootstrap-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('form.passwordPlaceholder')}
+                  disabled={isPending}
+                  required
+                />
+                <FieldDescription>{t('form.passwordHint')}</FieldDescription>
+              </Field>
 
               <p className="text-sm text-muted-foreground">
                 {data?.message || t('description')}
               </p>
-            </div>
+
+              {errorText && <FieldDescription className="text-destructive">{errorText}</FieldDescription>}
+
+              <Button type="submit" className="w-full rounded-xl" disabled={isPending}>
+                {isPending ? t('actions.submitting') : t('actions.submit')}
+              </Button>
+            </form>
           )}
 
           {errorMessage && (
@@ -135,10 +160,6 @@ export function FirstRunSetup() {
           <Button onClick={() => void refetch()} variant="outline" className="rounded-xl">
             <RefreshCw className="mr-2 size-4" />
             {t('actions.refresh')}
-          </Button>
-          <Button onClick={() => void handleCopy()} className="rounded-xl" disabled={copied}>
-            <Copy className="mr-2 size-4" />
-            {copied ? t('actions.copied') : t('actions.copy')}
           </Button>
         </CardFooter>
       </Card>

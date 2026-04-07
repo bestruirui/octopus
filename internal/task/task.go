@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/lingyuins/octopus/internal/utils/log"
 )
 
 type taskEntry struct {

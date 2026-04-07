@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/bestruirui/octopus/internal/conf"
-	_ "github.com/bestruirui/octopus/internal/server/handlers"
-	"github.com/bestruirui/octopus/internal/server/middleware"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	"github.com/bestruirui/octopus/internal/server/router"
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/static"
+	"github.com/lingyuins/octopus/internal/conf"
+	_ "github.com/lingyuins/octopus/internal/server/handlers"
+	"github.com/lingyuins/octopus/internal/server/middleware"
+	"github.com/lingyuins/octopus/internal/server/resp"
+	"github.com/lingyuins/octopus/internal/server/router"
+	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/lingyuins/octopus/static"
 	"github.com/gin-gonic/gin"
 )
 

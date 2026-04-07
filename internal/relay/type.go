@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/conf"
-	dbmodel "github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/relay/balancer"
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/lingyuins/octopus/internal/conf"
+	dbmodel "github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/relay/balancer"
+	"github.com/lingyuins/octopus/internal/transformer/model"
 	"github.com/gin-gonic/gin"
 )
 

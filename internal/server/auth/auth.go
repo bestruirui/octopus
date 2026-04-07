@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/conf"
+	"github.com/lingyuins/octopus/internal/conf"
 	"github.com/golang-jwt/jwt/v5"
 )
 
