@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 type SettingKey string
@@ -19,6 +20,7 @@ const (
 	SettingKeyCircuitBreakerThreshold   SettingKey = "circuit_breaker_threshold"    // 熔断触发阈值（连续失败次数）
 	SettingKeyCircuitBreakerCooldown    SettingKey = "circuit_breaker_cooldown"     // 熔断基础冷却时间（秒）
 	SettingKeyCircuitBreakerMaxCooldown SettingKey = "circuit_breaker_max_cooldown" // 熔断最大冷却时间（秒），指数退避上限
+	SettingKeyStopCodes                 SettingKey = "stop_codes"                   // 停止码（逗号分隔，如 400,422），遇到停止码停止重试
 )
 
 type Setting struct {
@@ -38,6 +40,7 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyCircuitBreakerThreshold, Value: "5"},     // 默认连续失败5次触发熔断
 		{Key: SettingKeyCircuitBreakerCooldown, Value: "60"},     // 默认基础冷却60秒
 		{Key: SettingKeyCircuitBreakerMaxCooldown, Value: "600"}, // 默认最大冷却600秒（10分钟）
+		{Key: SettingKeyStopCodes, Value: "400,422"},             // 默认停止码
 	}
 }
 
@@ -48,6 +51,16 @@ func (s *Setting) Validate() error {
 		_, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("model info update interval must be an integer")
+		}
+		return nil
+	case SettingKeyStopCodes:
+		if s.Value == "" {
+			return nil
+		}
+		for _, part := range strings.Split(s.Value, ",") {
+			if _, err := strconv.Atoi(strings.TrimSpace(part)); err != nil {
+				return fmt.Errorf("stop codes must be comma-separated integers")
+			}
 		}
 		return nil
 	case SettingKeyRelayLogKeepEnabled:

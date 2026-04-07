@@ -2,6 +2,7 @@ package balancer
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bestruirui/octopus/internal/model"
@@ -80,22 +81,24 @@ func (it *Iterator) Index() int {
 }
 
 // Skip 记录当前通道被跳过（通道禁用、无Key、类型不兼容等）
-func (it *Iterator) Skip(channelID, channelKeyID int, channelName, msg string) {
+func (it *Iterator) Skip(channelID, channelKeyID int, channelKeyRemark, channelName, msg string, skipReason model.SkipReason) {
 	it.count++
 	it.attempts = append(it.attempts, model.ChannelAttempt{
-		ChannelID:    channelID,
-		ChannelKeyID: channelKeyID,
-		ChannelName:  channelName,
-		ModelName:    it.candidates[it.index].ModelName,
-		AttemptNum:   it.count,
-		Status:       model.AttemptSkipped,
-		Sticky:       it.IsSticky(),
-		Msg:          msg,
+		ChannelID:        channelID,
+		ChannelKeyID:     channelKeyID,
+		ChannelKeyRemark: channelKeyRemark,
+		ChannelName:      channelName,
+		ModelName:        it.candidates[it.index].ModelName,
+		AttemptNum:       it.count,
+		Status:           model.AttemptSkipped,
+		Sticky:           it.IsSticky(),
+		SkipReason:       skipReason,
+		Msg:              msg,
 	})
 }
 
 // SkipCircuitBreak 检查熔断状态，若已熔断自动记录（含剩余冷却时间）并返回 true
-func (it *Iterator) SkipCircuitBreak(channelID, channelKeyID int, channelName string) bool {
+func (it *Iterator) SkipCircuitBreak(channelID, channelKeyID int, channelKeyRemark, channelName string) bool {
 	modelName := it.candidates[it.index].ModelName
 	tripped, remaining := IsTripped(channelID, channelKeyID, modelName)
 	if !tripped {
@@ -107,29 +110,32 @@ func (it *Iterator) SkipCircuitBreak(channelID, channelKeyID int, channelName st
 	}
 	it.count++
 	it.attempts = append(it.attempts, model.ChannelAttempt{
-		ChannelID:    channelID,
-		ChannelKeyID: channelKeyID,
-		ChannelName:  channelName,
-		ModelName:    modelName,
-		AttemptNum:   it.count,
-		Status:       model.AttemptCircuitBreak,
-		Sticky:       it.IsSticky(),
-		Msg:          msg,
+		ChannelID:        channelID,
+		ChannelKeyID:     channelKeyID,
+		ChannelKeyRemark: channelKeyRemark,
+		ChannelName:      channelName,
+		ModelName:        modelName,
+		AttemptNum:       it.count,
+		Status:           model.AttemptCircuitBreak,
+		Sticky:           it.IsSticky(),
+		SkipReason:       model.SkipReasonCircuitOpen,
+		Msg:              msg,
 	})
 	return true
 }
 
 // StartAttempt 开始一次真实转发尝试，返回 Span 用于记录结果
-func (it *Iterator) StartAttempt(channelID, channelKeyID int, channelName string) *AttemptSpan {
+func (it *Iterator) StartAttempt(channelID, channelKeyID int, channelKeyRemark, channelName string) *AttemptSpan {
 	it.count++
 	return &AttemptSpan{
 		attempt: model.ChannelAttempt{
-			ChannelID:    channelID,
-			ChannelKeyID: channelKeyID,
-			ChannelName:  channelName,
-			ModelName:    it.candidates[it.index].ModelName,
-			AttemptNum:   it.count,
-			Sticky:       it.IsSticky(),
+			ChannelID:        channelID,
+			ChannelKeyID:     channelKeyID,
+			ChannelKeyRemark: channelKeyRemark,
+			ChannelName:      channelName,
+			ModelName:        it.candidates[it.index].ModelName,
+			AttemptNum:       it.count,
+			Sticky:           it.IsSticky(),
 		},
 		startTime: time.Now(),
 		iter:      it,
@@ -158,7 +164,26 @@ func (s *AttemptSpan) End(status model.AttemptStatus, statusCode int, msg string
 	s.attempt.Status = status
 	s.attempt.Duration = int(time.Since(s.startTime).Milliseconds())
 	s.attempt.Msg = msg
+	if status == model.AttemptFailed {
+		s.attempt.ErrorClass = classifyAttemptError(statusCode, msg)
+	}
 	s.iter.attempts = append(s.iter.attempts, s.attempt)
+}
+
+func classifyAttemptError(statusCode int, msg string) string {
+	lowerMsg := strings.ToLower(msg)
+	switch {
+	case statusCode == 400 || statusCode == 422:
+		return "stop_code"
+	case statusCode == 429:
+		return "upstream_429"
+	case strings.Contains(lowerMsg, "timeout") || strings.Contains(lowerMsg, "deadline exceeded"):
+		return "timeout"
+	case strings.Contains(lowerMsg, "connection") || strings.Contains(lowerMsg, "dial tcp") || strings.Contains(lowerMsg, "eof"):
+		return "network_error"
+	default:
+		return "upstream_error"
+	}
 }
 
 // Duration 返回从开始到现在的耗时

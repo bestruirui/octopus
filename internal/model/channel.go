@@ -53,6 +53,9 @@ type ChannelKey struct {
 	LastUseTimeStamp int64   `json:"last_use_time_stamp"`
 	TotalCost        float64 `json:"total_cost"`
 	Remark           string  `json:"remark"`
+	RpmLimit         int     `json:"rpm_limit" gorm:"column:rpm_limit;default:0"`
+	ConcurrencyLimit int     `json:"concurrency_limit" gorm:"column:concurrency_limit;default:0"`
+	CooldownOn429Sec int     `json:"cooldown_on_429_sec" gorm:"column:cooldown_on_429_sec;default:30"`
 }
 
 // ChannelUpdateRequest 渠道更新请求 - 仅包含变更的数据
@@ -78,16 +81,22 @@ type ChannelUpdateRequest struct {
 }
 
 type ChannelKeyAddRequest struct {
-	Enabled    bool   `json:"enabled"`
-	ChannelKey string `json:"channel_key" binding:"required"`
-	Remark     string `json:"remark"`
+	Enabled          bool   `json:"enabled"`
+	ChannelKey       string `json:"channel_key" binding:"required"`
+	Remark           string `json:"remark"`
+	RpmLimit         int    `json:"rpm_limit"`
+	ConcurrencyLimit int    `json:"concurrency_limit"`
+	CooldownOn429Sec int    `json:"cooldown_on_429_sec"`
 }
 
 type ChannelKeyUpdateRequest struct {
-	ID         int     `json:"id" binding:"required"`
-	Enabled    *bool   `json:"enabled,omitempty"`
-	ChannelKey *string `json:"channel_key,omitempty"`
-	Remark     *string `json:"remark,omitempty"`
+	ID               int     `json:"id" binding:"required"`
+	Enabled          *bool   `json:"enabled,omitempty"`
+	ChannelKey       *string `json:"channel_key,omitempty"`
+	Remark           *string `json:"remark,omitempty"`
+	RpmLimit         *int    `json:"rpm_limit,omitempty"`
+	ConcurrencyLimit *int    `json:"concurrency_limit,omitempty"`
+	CooldownOn429Sec *int    `json:"cooldown_on_429_sec,omitempty"`
 }
 
 // ChannelFetchModelRequest is used by /channel/fetch-model (not persisted).
@@ -137,8 +146,11 @@ func (c *Channel) GetChannelKey() ChannelKey {
 			continue
 		}
 		if k.StatusCode == 429 && k.LastUseTimeStamp > 0 {
-			if nowSec-k.LastUseTimeStamp < int64(5*time.Minute/time.Second) {
-				continue
+			cooldownSec := k.CooldownOn429Sec
+			if cooldownSec > 0 {
+				if nowSec-k.LastUseTimeStamp < int64(cooldownSec) {
+					continue
+				}
 			}
 		}
 		if !bestSet || k.TotalCost < bestCost {

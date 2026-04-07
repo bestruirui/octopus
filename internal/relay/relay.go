@@ -6,13 +6,16 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bestruirui/octopus/internal/helper"
 	dbmodel "github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/relay/balancer"
+	"github.com/bestruirui/octopus/internal/relay/limiter"
 	"github.com/bestruirui/octopus/internal/server/resp"
 	"github.com/bestruirui/octopus/internal/transformer/inbound"
 	"github.com/bestruirui/octopus/internal/transformer/model"
@@ -21,6 +24,128 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tmaxmax/go-sse"
 )
+
+// 全局 key 限流器
+var sharedKeyLimiter = limiter.New()
+
+var loggedStopCodes sync.Map
+
+// getStopCodes 获取停止码配置
+func getStopCodes() []int {
+	val, err := op.SettingGetString(dbmodel.SettingKeyStopCodes)
+	if err != nil || val == "" {
+		codes := []int{400, 422}
+		logConfiguredStopCodes(codes)
+		return codes
+	}
+	var codes []int
+	for _, s := range strings.Split(val, ",") {
+		s = strings.TrimSpace(s)
+		if code, err := strconv.Atoi(s); err == nil && code >= 100 && code <= 599 {
+			codes = append(codes, code)
+		}
+	}
+	if len(codes) == 0 {
+		codes = []int{400, 422}
+		logConfiguredStopCodes(codes)
+		return codes
+	}
+	logConfiguredStopCodes(codes)
+	return codes
+}
+
+func logConfiguredStopCodes(codes []int) {
+	key := fmt.Sprint(codes)
+	if _, loaded := loggedStopCodes.LoadOrStore(key, struct{}{}); loaded {
+		return
+	}
+	log.Infof("configured stop codes: %v", codes)
+	for _, code := range codes {
+		if code != 400 && code != 422 {
+			log.Warnf("non-typical stop code configured: %d; this will stop key failover without recording circuit failure", code)
+		}
+	}
+}
+
+// isStopCode 判断是否为停止码
+func isStopCode(statusCode int, stopCodes []int) bool {
+	return slices.Contains(stopCodes, statusCode)
+}
+
+// shouldRecordCircuitFailure 判断失败是否应计入熔断。
+// 停止码会终止当前渠道内 key 轮换，但不应污染熔断状态。
+func shouldRecordCircuitFailure(statusCode int, stopCodes []int) bool {
+	if statusCode <= 0 {
+		return true
+	}
+	return !isStopCode(statusCode, stopCodes)
+}
+
+type channelExhaustionSummary struct {
+	cooldown429Count int
+	circuitOpenCount int
+	rateLimitedCount int
+	concurrencyCount int
+	attemptFailed    bool
+}
+
+func countEnabledKeys(channel *dbmodel.Channel) int {
+	count := 0
+	for _, k := range channel.Keys {
+		if k.Enabled && k.ChannelKey != "" {
+			count++
+		}
+	}
+	return count
+}
+
+func summarizeChannelExhaustion(channel *dbmodel.Channel, summary channelExhaustionSummary) string {
+	enabledKeys := countEnabledKeys(channel)
+	if enabledKeys == 0 {
+		return "channel has no enabled key"
+	}
+	if summary.cooldown429Count == enabledKeys {
+		return "all channel keys are in local 429 cooldown"
+	}
+	if summary.circuitOpenCount == enabledKeys {
+		return "all channel keys are circuit-open"
+	}
+	if summary.rateLimitedCount+summary.concurrencyCount == enabledKeys {
+		switch {
+		case summary.rateLimitedCount > 0 && summary.concurrencyCount > 0:
+			return "all channel keys are blocked by rpm limit or concurrency"
+		case summary.rateLimitedCount > 0:
+			return "all channel keys are rate limited"
+		default:
+			return "all channel keys are blocked by concurrency"
+		}
+	}
+	if summary.attemptFailed {
+		return "all channel keys failed after attempts"
+	}
+	return "no available key"
+}
+
+// selectNextKey 选择下一个可用密钥（排除已尝试的）
+func selectNextKey(channel *dbmodel.Channel, excluded []int) (dbmodel.ChannelKey, bool) {
+	best := dbmodel.ChannelKey{}
+	bestSet := false
+	bestCost := 0.0
+	for _, k := range channel.Keys {
+		if !k.Enabled || k.ChannelKey == "" {
+			continue
+		}
+		if slices.Contains(excluded, k.ID) {
+			continue
+		}
+		if !bestSet || k.TotalCost < bestCost {
+			best = k
+			bestCost = k.TotalCost
+			bestSet = true
+		}
+	}
+	return best, bestSet
+}
 
 // Handler 处理入站请求并转发到上游服务
 func Handler(inboundType inbound.InboundType, c *gin.Context) {
@@ -58,6 +183,9 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	// 初始化 Metrics
 	metrics := NewRelayMetrics(apiKeyID, requestModel, internalRequest)
 
+	// 获取停止码配置
+	stopCodes := getStopCodes()
+
 	// 请求级上下文
 	req := &relayRequest{
 		c:               c,
@@ -67,6 +195,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		apiKeyID:        apiKeyID,
 		requestModel:    requestModel,
 		iter:            iter,
+		stopCodes:       stopCodes,
 	}
 
 	var lastErr error
@@ -86,40 +215,29 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
 		if err != nil {
 			log.Warnf("failed to get channel %d: %v", item.ChannelID, err)
-			iter.Skip(item.ChannelID, 0, fmt.Sprintf("channel_%d", item.ChannelID), fmt.Sprintf("channel not found: %v", err))
+			iter.Skip(item.ChannelID, 0, "", fmt.Sprintf("channel_%d", item.ChannelID), fmt.Sprintf("channel not found: %v", err), dbmodel.SkipReasonNoKey)
 			lastErr = err
 			continue
 		}
 		if !channel.Enabled {
-			iter.Skip(channel.ID, 0, channel.Name, "channel disabled")
-			continue
-		}
-
-		usedKey := channel.GetChannelKey()
-		if usedKey.ChannelKey == "" {
-			iter.Skip(channel.ID, 0, channel.Name, "no available key")
-			continue
-		}
-
-		// 熔断检查
-		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+			iter.Skip(channel.ID, 0, "", channel.Name, "channel disabled", dbmodel.SkipReasonDisabled)
 			continue
 		}
 
 		// 出站适配器
 		outAdapter := outbound.Get(channel.Type)
 		if outAdapter == nil {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
+			iter.Skip(channel.ID, 0, "", channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type), dbmodel.SkipReasonDisabled)
 			continue
 		}
 
 		// 类型兼容性检查
 		if internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with embedding request")
+			iter.Skip(channel.ID, 0, "", channel.Name, "channel type not compatible with embedding request", dbmodel.SkipReasonDisabled)
 			continue
 		}
 		if internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with chat request")
+			iter.Skip(channel.ID, 0, "", channel.Name, "channel type not compatible with chat request", dbmodel.SkipReasonDisabled)
 			continue
 		}
 
@@ -130,25 +248,92 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			requestModel, group.Mode, channel.Name, item.ModelName,
 			iter.Index()+1, iter.Len(), iter.IsSticky())
 
-		// 构造尝试级上下文 -- 只写变化的 4 个字段
-		ra := &relayAttempt{
-			relayRequest:         req,
-			outAdapter:           outAdapter,
-			channel:              channel,
-			usedKey:              usedKey,
-			firstTokenTimeOutSec: group.FirstTokenTimeOut,
-		}
+		// ====== Key 轮换循环 ======
+		// 同一渠道内尽量把仍可用的 key 试完，再切换到下一个渠道。
+		attemptedKeyIDs := make([]int, 0, len(channel.Keys))
+		keyFailoverDone := false
+		exhaustionSummary := channelExhaustionSummary{}
 
-		result := ra.attempt()
-		if result.Success {
-			metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
-			return
+		for !keyFailoverDone {
+			// 选 key（排除已尝试的 key）
+			usedKey, ok := selectNextKey(channel, attemptedKeyIDs)
+			if !ok {
+				msg := summarizeChannelExhaustion(channel, exhaustionSummary)
+				iter.Skip(channel.ID, 0, "", channel.Name, msg, dbmodel.SkipReasonNoKey)
+				lastErr = fmt.Errorf("channel %s %s", channel.Name, msg)
+				break
+			}
+
+			// 429 冷却检查
+			if usedKey.StatusCode == 429 && usedKey.LastUseTimeStamp > 0 && usedKey.CooldownOn429Sec > 0 {
+				if time.Now().Unix()-usedKey.LastUseTimeStamp < int64(usedKey.CooldownOn429Sec) {
+					exhaustionSummary.cooldown429Count++
+					iter.Skip(channel.ID, usedKey.ID, usedKey.Remark, channel.Name, "key in 429 cooldown", dbmodel.SkipReasonCooldown429)
+					attemptedKeyIDs = append(attemptedKeyIDs, usedKey.ID)
+					continue
+				}
+			}
+
+			// 熔断检查（key 维度）
+			if iter.SkipCircuitBreak(channel.ID, usedKey.ID, usedKey.Remark, channel.Name) {
+				exhaustionSummary.circuitOpenCount++
+				attemptedKeyIDs = append(attemptedKeyIDs, usedKey.ID)
+				continue
+			}
+
+			// 并发限制
+			if !sharedKeyLimiter.TryAcquireConcurrency(usedKey.ID, usedKey.ConcurrencyLimit) {
+				exhaustionSummary.concurrencyCount++
+				iter.Skip(channel.ID, usedKey.ID, usedKey.Remark, channel.Name, "key concurrency full", dbmodel.SkipReasonConcurrency)
+				attemptedKeyIDs = append(attemptedKeyIDs, usedKey.ID)
+				continue
+			}
+
+			// RPM 限制
+			if !sharedKeyLimiter.TryConsumeRPM(usedKey.ID, usedKey.RpmLimit, time.Now()) {
+				exhaustionSummary.rateLimitedCount++
+				sharedKeyLimiter.ReleaseConcurrency(usedKey.ID)
+				iter.Skip(channel.ID, usedKey.ID, usedKey.Remark, channel.Name, "key rpm limited", dbmodel.SkipReasonRateLimited)
+				attemptedKeyIDs = append(attemptedKeyIDs, usedKey.ID)
+				continue
+			}
+
+			// 执行请求
+			ra := &relayAttempt{
+				relayRequest:        req,
+				outAdapter:          outAdapter,
+				channel:             channel,
+				usedKey:             &usedKey,
+				firstTokenTimeOutSec: group.FirstTokenTimeOut,
+			}
+
+			result := ra.attempt()
+			sharedKeyLimiter.ReleaseConcurrency(usedKey.ID)
+
+			if result.Success {
+				metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
+				return
+			}
+			if result.Written {
+				metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
+				return
+			}
+
+			// 停止码检查。
+			// 命中 400/422 等停止码后，不再继续轮换当前渠道内的 key，
+			// 但仍允许外层逻辑继续尝试下一个渠道，以保持现有故障转移语义。
+			if result.StatusCode > 0 && isStopCode(result.StatusCode, stopCodes) {
+				log.Warnf("stop code %d matched for channel %s key %d; stopping key failover and skipping circuit failure record", result.StatusCode, channel.Name, usedKey.ID)
+				lastErr = result.Err
+				keyFailoverDone = true
+				break // 停止 key 轮换，进入下一个渠道
+			}
+
+			exhaustionSummary.attemptFailed = true
+			attemptedKeyIDs = append(attemptedKeyIDs, usedKey.ID)
+			lastErr = result.Err
+			// 继续尝试下一个 key
 		}
-		if result.Written {
-			metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
-			return
-		}
-		lastErr = result.Err
 	}
 
 	// 所有通道都失败
@@ -158,7 +343,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 
 // attempt 统一管理一次通道尝试的完整生命周期
 func (ra *relayAttempt) attempt() attemptResult {
-	span := ra.iter.StartAttempt(ra.channel.ID, ra.usedKey.ID, ra.channel.Name)
+	span := ra.iter.StartAttempt(ra.channel.ID, ra.usedKey.ID, ra.usedKey.Remark, ra.channel.Name)
 
 	// 转发请求
 	statusCode, fwdErr := ra.forward()
@@ -171,14 +356,14 @@ func (ra *relayAttempt) attempt() attemptResult {
 		// ====== 成功 ======
 		ra.collectResponse()
 		ra.usedKey.TotalCost += ra.metrics.Stats.InputCost + ra.metrics.Stats.OutputCost
-		op.ChannelKeyUpdate(ra.usedKey)
+		op.ChannelKeyUpdate(*ra.usedKey)
 
 		span.End(dbmodel.AttemptSuccess, statusCode, "")
 
 		// Channel 维度统计
 		op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
-			WaitTime:       span.Duration().Milliseconds(),
-			RequestSuccess: 1,
+			WaitTime:        span.Duration().Milliseconds(),
+			RequestSuccess:  1,
 		})
 
 		// 熔断器：记录成功
@@ -186,30 +371,33 @@ func (ra *relayAttempt) attempt() attemptResult {
 		// 会话保持：更新粘性记录
 		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
 
-		return attemptResult{Success: true}
+		return attemptResult{Success: true, StatusCode: statusCode}
 	}
 
 	// ====== 失败 ======
-	op.ChannelKeyUpdate(ra.usedKey)
+	op.ChannelKeyUpdate(*ra.usedKey)
 	span.End(dbmodel.AttemptFailed, statusCode, fwdErr.Error())
 
 	// Channel 维度统计
 	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
-		WaitTime:      span.Duration().Milliseconds(),
-		RequestFailed: 1,
+		WaitTime:        span.Duration().Milliseconds(),
+		RequestFailed:   1,
 	})
 
 	// 熔断器：记录失败
-	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	if shouldRecordCircuitFailure(statusCode, ra.stopCodes) {
+		balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	}
 
 	written := ra.c.Writer.Written()
 	if written {
 		ra.collectResponse()
 	}
 	return attemptResult{
-		Success: false,
-		Written: written,
-		Err:     fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr),
+		Success:    false,
+		Written:    written,
+		Err:        fmt.Errorf("channel %s key %d failed: %v", ra.channel.Name, ra.usedKey.ID, fwdErr),
+		StatusCode: statusCode,
 	}
 }
 
@@ -267,11 +455,11 @@ func (ra *relayAttempt) forward() (int, error) {
 
 	// 检查响应状态
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		body, err := io.ReadAll(response.Body)
+		body, err := io.ReadAll(io.LimitReader(response.Body, 16*1024))
 		if err != nil {
-			return 0, fmt.Errorf("failed to read response body: %w", err)
+			return response.StatusCode, &UpstreamHTTPError{StatusCode: response.StatusCode}
 		}
-		return 0, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
+		return response.StatusCode, &UpstreamHTTPError{StatusCode: response.StatusCode, BodySnippet: string(body)}
 	}
 
 	// 处理响应
@@ -373,7 +561,7 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 		case <-firstTokenC:
 			log.Warnf("first token timeout (%ds), switching channel", ra.firstTokenTimeOutSec)
 			_ = response.Body.Close()
-			return fmt.Errorf("first token timeout (%ds)", ra.firstTokenTimeOutSec)
+			return &FirstTokenTimeoutError{Seconds: ra.firstTokenTimeOutSec}
 		case r, ok := <-results:
 			if !ok {
 				log.Infof("stream end")

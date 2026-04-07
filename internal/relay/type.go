@@ -28,29 +28,29 @@ func init() {
 
 // hopByHopHeaders 定义不应转发的 HTTP 头
 var hopByHopHeaders = map[string]bool{
-	"authorization":       true,
-	"x-api-key":           true,
-	"connection":          true,
-	"keep-alive":          true,
-	"proxy-authenticate":  true,
-	"proxy-authorization": true,
-	"te":                  true,
-	"trailer":             true,
-	"transfer-encoding":   true,
-	"upgrade":             true,
-	"content-length":      true,
-	"host":                true,
-	"accept-encoding":     true,
-	"x-forwarded-for":     true,
-	"x-forwarded-host":    true,
-	"x-forwarded-proto":   true,
-	"x-forwarded-port":    true,
-	"x-real-ip":           true,
-	"forwarded":           true,
-	"cf-connecting-ip":    true,
-	"true-client-ip":      true,
-	"x-client-ip":         true,
-	"x-cluster-client-ip": true,
+	"authorization":        true,
+	"x-api-key":            true,
+	"connection":           true,
+	"keep-alive":           true,
+	"proxy-authenticate":   true,
+	"proxy-authorization":  true,
+	"te":                   true,
+	"trailer":              true,
+	"transfer-encoding":    true,
+	"upgrade":              true,
+	"content-length":       true,
+	"host":                 true,
+	"accept-encoding":      true,
+	"x-forwarded-for":      true,
+	"x-forwarded-host":     true,
+	"x-forwarded-proto":    true,
+	"x-forwarded-port":     true,
+	"x-real-ip":            true,
+	"forwarded":            true,
+	"cf-connecting-ip":     true,
+	"true-client-ip":       true,
+	"x-client-ip":          true,
+	"x-cluster-client-ip":  true,
 }
 
 type relayRequest struct {
@@ -61,21 +61,23 @@ type relayRequest struct {
 	apiKeyID        int
 	requestModel    string
 	iter            *balancer.Iterator
+	stopCodes       []int
 }
 
 // relayAttempt 尝试级上下文
 type relayAttempt struct {
 	*relayRequest // 嵌入请求级上下文
 
-	outAdapter           model.Outbound
-	channel              *dbmodel.Channel
-	usedKey              dbmodel.ChannelKey
-	firstTokenTimeOutSec int
+	outAdapter            model.Outbound
+	channel               *dbmodel.Channel
+	usedKey               *dbmodel.ChannelKey
+	firstTokenTimeOutSec  int
 }
 
 // attemptResult 封装单次尝试的结果
 type attemptResult struct {
-	Success bool  // 是否成功
-	Written bool  // 流式响应是否已开始写入（不可重试）
-	Err     error // 失败时的错误
+	Success    bool   // 是否成功
+	Written    bool   // 流式响应是否已开始写入（不可重试）
+	Err        error  // 失败时的错误
+	StatusCode int    // HTTP 状态码（用于停止码判断）
 }

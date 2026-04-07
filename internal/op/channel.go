@@ -207,6 +207,15 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 			if ku.Remark != nil {
 				updates["remark"] = *ku.Remark
 			}
+			if ku.RpmLimit != nil {
+				updates["rpm_limit"] = *ku.RpmLimit
+			}
+			if ku.ConcurrencyLimit != nil {
+				updates["concurrency_limit"] = *ku.ConcurrencyLimit
+			}
+			if ku.CooldownOn429Sec != nil {
+				updates["cooldown_on_429_sec"] = *ku.CooldownOn429Sec
+			}
 			if len(updates) == 0 {
 				continue
 			}
@@ -224,10 +233,13 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		newKeys := make([]model.ChannelKey, 0, len(req.KeysToAdd))
 		for _, ka := range req.KeysToAdd {
 			newKeys = append(newKeys, model.ChannelKey{
-				ChannelID:  req.ID,
-				Enabled:    ka.Enabled,
-				ChannelKey: ka.ChannelKey,
-				Remark:     ka.Remark,
+				ChannelID:        req.ID,
+				Enabled:          ka.Enabled,
+				ChannelKey:       ka.ChannelKey,
+				Remark:           ka.Remark,
+				RpmLimit:         ka.RpmLimit,
+				ConcurrencyLimit: ka.ConcurrencyLimit,
+				CooldownOn429Sec: ka.CooldownOn429Sec,
 			})
 		}
 		if err := tx.Create(&newKeys).Error; err != nil {
