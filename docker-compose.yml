@@ -1,0 +1,9 @@
+services:
+  octopus:
+    image: lingyuins/octopus:v1.0.1
+    container_name: octopus
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data

@@ -32,13 +32,13 @@
 直接运行
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 bestrui/octopus
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.0.1
 ```
 
 或者使用 docker compose 运行
 
 ```bash
-wget https://raw.githubusercontent.com/lingyuins/octopus/refs/heads/dev/docker-compose.yml
+wget https://raw.githubusercontent.com/lingyuins/octopus/refs/heads/master/docker-compose.yml
 docker compose up -d
 ```
 
