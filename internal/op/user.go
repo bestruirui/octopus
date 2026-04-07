@@ -2,6 +2,7 @@ package op
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"unicode/utf8"
 
@@ -16,6 +17,10 @@ var userCache model.User
 const minInitialAdminPasswordLength = 12
 
 func UserInit() error {
+	if err := userBootstrapFromEnv(); err != nil {
+		return err
+	}
+
 	result := db.GetDB().First(&userCache)
 	if result.Error == nil {
 		return nil
@@ -26,6 +31,54 @@ func UserInit() error {
 
 	log.Warnf("initial admin account is not set up yet; waiting for bootstrap from web UI")
 	userCache = model.User{}
+	return nil
+}
+
+func userBootstrapFromEnv() error {
+	username := strings.TrimSpace(os.Getenv("OCTOPUS_INITIAL_ADMIN_USERNAME"))
+	password := os.Getenv("OCTOPUS_INITIAL_ADMIN_PASSWORD")
+
+	if username == "" && password == "" {
+		return nil
+	}
+	if username == "" || password == "" {
+		return fmt.Errorf("both OCTOPUS_INITIAL_ADMIN_USERNAME and OCTOPUS_INITIAL_ADMIN_PASSWORD must be set together")
+	}
+
+	if err := deleteLegacyAdminUser(username); err != nil {
+		return err
+	}
+
+	if UserReady() && userCache.Username == username {
+		log.Infof("initial admin account already matches environment variable OCTOPUS_INITIAL_ADMIN_USERNAME=%s", username)
+		return nil
+	}
+
+	if err := UserBootstrapCreate(username, password); err != nil {
+		return fmt.Errorf("bootstrap admin from env: %w", err)
+	}
+	log.Infof("initial admin account created from environment variable OCTOPUS_INITIAL_ADMIN_USERNAME=%s", username)
+	return nil
+}
+
+func deleteLegacyAdminUser(targetUsername string) error {
+	if targetUsername == "admin" {
+		return nil
+	}
+
+	result := db.GetDB().Where("username = ?", "admin").Delete(&model.User{})
+	if result.Error != nil {
+		return fmt.Errorf("delete legacy admin user: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil
+	}
+
+	if userCache.Username == "admin" {
+		userCache = model.User{}
+	}
+
+	log.Warnf("deleted legacy admin user because OCTOPUS_INITIAL_ADMIN_USERNAME=%s is configured", targetUsername)
 	return nil
 }
 

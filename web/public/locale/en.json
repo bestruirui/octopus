@@ -11,7 +11,7 @@
             "apikey": "API Key"
         },
         "error": {
-            "generic": "Login failed, please check your credentials"
+            "generic": "Login failed, please check that the username and password are correct"
         },
         "button": {
             "loading": "Logging in...",
