@@ -74,12 +74,6 @@ export function GroupCard({ group }: { group: Group }) {
     const deleteGroup = useDeleteGroup();
     const { data: modelChannels = [] } = useModelChannelList();
 
-    const [confirmDelete, setConfirmDelete] = useState(false);
-    const [members, setMembers] = useState<SelectedMember[]>([]);
-    const isDragging = useRef(false);
-    const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const membersRef = useRef<SelectedMember[]>([]);
-
     const channelNameByKey = useMemo(() => buildChannelNameByModelKey(modelChannels), [modelChannels]);
     const enabledByKey = useMemo(() => {
         const map = new Map<string, boolean>();
@@ -104,9 +98,17 @@ export function GroupCard({ group }: { group: Group }) {
         [group.items, channelNameByKey, enabledByKey]
     );
 
-    useEffect(() => {
-        if (!isDragging.current) setMembers([...displayMembers]);
-    }, [displayMembers]);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [members, setMembers] = useState<SelectedMember[]>(displayMembers);
+    const [lastDisplayMembers, setLastDisplayMembers] = useState(displayMembers);
+    const [isDragging, setIsDragging] = useState(false);
+    const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const membersRef = useRef<SelectedMember[]>([]);
+
+    if (!isDragging && lastDisplayMembers !== displayMembers) {
+        setLastDisplayMembers(displayMembers);
+        setMembers(displayMembers);
+    }
 
     useEffect(() => {
         membersRef.current = members;
@@ -135,8 +137,8 @@ export function GroupCard({ group }: { group: Group }) {
         return map;
     }, [group.items]);
 
-    const handleDragStart = useCallback(() => { isDragging.current = true; }, []);
-    const handleDragFinish = useCallback(() => { isDragging.current = false; }, []);
+    const handleDragStart = useCallback(() => { setIsDragging(true); }, []);
+    const handleDragFinish = useCallback(() => { setIsDragging(false); }, []);
 
     const handleDropReorder = useCallback((nextMembers: SelectedMember[]) => {
         const itemsToUpdate = nextMembers
