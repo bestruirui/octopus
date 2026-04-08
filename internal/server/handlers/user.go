@@ -102,5 +102,9 @@ func changeUsername(c *gin.Context) {
 }
 
 func status(c *gin.Context) {
+	if !op.UserReady() {
+		resp.Error(c, http.StatusConflict, op.ErrUserNotInitialized.Error())
+		return
+	}
 	resp.Success(c, "ok")
 }
