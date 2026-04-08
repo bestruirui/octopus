@@ -71,82 +71,80 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+require_command() {
+    local cmd="$1"
+    local message="$2"
+    if ! command_exists "$cmd"; then
+        log_error "$message"
+        return 1
+    fi
+    return 0
+}
+
+try_python_cmd() {
+    local cmd="$1"
+    if eval "$cmd --version" >/dev/null 2>&1; then
+        echo "$cmd"
+        return 0
+    fi
+    return 1
+}
+
+get_python_cmd() {
+    if try_python_cmd "python3"; then
+        return 0
+    fi
+    if try_python_cmd "py -3"; then
+        return 0
+    fi
+    return 1
+}
+
 prepare_environment() {
+    local mode="${1:-build}"
+
     log_step "Preparing build environment"
 
     # Check and install required commands
     log_info "Checking required commands..."
 
     # Check Go
-    if ! command_exists go; then
-        log_error "Go is not installed. Please install Go from https://golang.org/dl/"
-        return 1
-    fi
-
+    require_command go "Go is not installed. Please install Go from https://golang.org/dl/" || return 1
     local go_version=$(go version 2>/dev/null | grep -o 'go[0-9]\+\.[0-9]\+' | head -1)
     log_success "Go version: $go_version"
 
     # Check Python
-    if ! command_exists python3; then
+    local python_cmd
+    if ! python_cmd="$(get_python_cmd)"; then
         log_error "Python is not installed. Please install Python from https://www.python.org/downloads/"
         return 1
     fi
-
-    local python_version=$(python3 --version 2>/dev/null)
+    local python_version
+    python_version=$(eval "$python_cmd --version" 2>/dev/null)
     log_success "Python version: $python_version"
 
     # Check Node.js
-    if ! command_exists node; then
-        log_error "Node.js is not installed. Please install Node.js from https://nodejs.org/"
-        return 1
-    fi
-
+    require_command node "Node.js is not installed. Please install Node.js from https://nodejs.org/" || return 1
     local node_version=$(node --version 2>/dev/null)
     log_success "Node.js version: $node_version"
 
     # Check pnpm
-    if ! command_exists pnpm; then
-        log_error "pnpm is not installed. Please install pnpm: npm install -g pnpm"
-        return 1
-    fi
-
+    require_command pnpm "pnpm is not installed. Please install pnpm: npm install -g pnpm" || return 1
     local pnpm_version=$(pnpm --version 2>/dev/null)
     log_success "pnpm version: $pnpm_version"
 
     # Check git
-    if ! command_exists git; then
-        log_error "git is not installed."
-        return 1
-    fi
+    require_command git "git is not installed." || return 1
 
-    # Check curl
-    if ! command_exists curl; then
-        log_error "curl is not installed."
-        return 1
-    fi
-
-    # Check unzip
-    if ! command_exists unzip; then
-        log_error "unzip is not installed."
-        return 1
-    fi
-
-    # Check tar
-    if ! command_exists tar; then
-        log_error "tar is not installed."
-        return 1
-    fi
-
-    # Check zip
-    if ! command_exists zip; then
-        log_error "zip is not installed."
-        return 1
-    fi
-
-    # Check md5sum (or md5 on macOS)
-    if ! command_exists md5sum && ! command_exists md5; then
-        log_error "md5sum or md5 is not installed."
-        return 1
+    if [ "$mode" = "release" ]; then
+        require_command curl "curl is not installed." || return 1
+        require_command unzip "unzip is not installed." || return 1
+        require_command tar "tar is not installed." || return 1
+        require_command zip "zip is not installed." || return 1
+        if ! command_exists md5sum && ! command_exists md5; then
+            log_error "md5sum or md5 is not installed."
+            return 1
+        fi
     fi
 
     log_success "All required commands installed"
@@ -235,13 +233,13 @@ build_frontend() {
 
     # Move out directory to static directory
     log_info "Moving frontend output to static directory..."
-    
+
     # Remove old static/out if exists
     if [ -d "static/out" ]; then
         rm -rf "static/out"
         log_info "Removed old static/out directory"
     fi
-    
+
     # Move web/out to static/out
     if [ -d "${web_dir}/out" ]; then
         mv "${web_dir}/out" "static/"
@@ -256,7 +254,14 @@ build_frontend() {
 
 update_price() {
     log_step "Updating price"
-    if ! python3 scripts/updatePrice.py; then
+
+    local python_cmd
+    if ! python_cmd="$(get_python_cmd)"; then
+        log_error "Python is not installed. Please install Python from https://www.python.org/downloads/"
+        return 1
+    fi
+
+    if ! eval "$python_cmd scripts/updatePrice.py"; then
         log_error "Failed to update price"
         return 1
     fi
@@ -525,7 +530,7 @@ main() {
         echo ""
 
         # Setup
-        if ! prepare_environment; then
+        if ! prepare_environment build; then
             log_error "Failed to prepare build environment"
             exit 1
         fi
@@ -559,7 +564,7 @@ main() {
         echo ""
 
         # Setup
-        if ! prepare_environment; then
+        if ! prepare_environment release; then
             log_error "Failed to prepare build environment"
             exit 1
         fi

@@ -127,37 +127,99 @@ func persistStatsSnapshots(
 		}
 	}
 
+	channelStats := make([]model.StatsChannel, 0, len(channelIDs))
 	for _, id := range channelIDs {
 		ch, ok := statsChannelCache.Get(id)
 		if !ok {
 			continue
 		}
-		if result := dbConn.Save(&ch); result.Error != nil {
-			return result.Error
-		}
+		channelStats = append(channelStats, ch)
+	}
+	if err := upsertStatsChannels(dbConn, channelStats); err != nil {
+		return err
 	}
 
+	modelStats := make([]model.StatsModel, 0, len(modelIDs))
 	for _, id := range modelIDs {
 		m, ok := statsModelCache.Get(id)
 		if !ok {
 			continue
 		}
-		if result := dbConn.Save(&m); result.Error != nil {
-			return result.Error
-		}
+		modelStats = append(modelStats, m)
+	}
+	if err := upsertStatsModels(dbConn, modelStats); err != nil {
+		return err
 	}
 
+	apiKeyStats := make([]model.StatsAPIKey, 0, len(apiKeyIDs))
 	for _, id := range apiKeyIDs {
 		ak, ok := statsAPIKeyCache.Get(id)
 		if !ok {
 			continue
 		}
-		if result := dbConn.Save(&ak); result.Error != nil {
-			return result.Error
-		}
+		apiKeyStats = append(apiKeyStats, ak)
+	}
+	if err := upsertStatsAPIKeys(dbConn, apiKeyStats); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+func upsertStatsChannels(dbConn *gorm.DB, stats []model.StatsChannel) error {
+	if len(stats) == 0 {
+		return nil
+	}
+	return dbConn.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "channel_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"input_token",
+			"output_token",
+			"input_cost",
+			"output_cost",
+			"wait_time",
+			"request_success",
+			"request_failed",
+		}),
+	}).Create(&stats).Error
+}
+
+func upsertStatsModels(dbConn *gorm.DB, stats []model.StatsModel) error {
+	if len(stats) == 0 {
+		return nil
+	}
+	return dbConn.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"name",
+			"channel_id",
+			"input_token",
+			"output_token",
+			"input_cost",
+			"output_cost",
+			"wait_time",
+			"request_success",
+			"request_failed",
+		}),
+	}).Create(&stats).Error
+}
+
+func upsertStatsAPIKeys(dbConn *gorm.DB, stats []model.StatsAPIKey) error {
+	if len(stats) == 0 {
+		return nil
+	}
+	return dbConn.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "api_key_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"input_token",
+			"output_token",
+			"input_cost",
+			"output_cost",
+			"wait_time",
+			"request_success",
+			"request_failed",
+		}),
+	}).Create(&stats).Error
 }
 
 func statsSaveDBWithDailyOverride(ctx context.Context, dailyOverride model.StatsDaily) error {

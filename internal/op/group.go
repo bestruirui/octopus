@@ -4,17 +4,49 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
+	"github.com/dlclark/regexp2"
 	"github.com/lingyuins/octopus/internal/db"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/utils/cache"
-	"github.com/dlclark/regexp2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 var groupCache = cache.New[int, model.Group](16)
 var groupMap = cache.New[string, model.Group](16)
+
+var groupRegexMatchers []compiledGroupMatcher
+var groupRegexMatchersLock sync.RWMutex
+
+type compiledGroupMatcher struct {
+	group model.Group
+	re    *regexp2.Regexp
+}
+
+func rebuildGroupIndexesFromCache() {
+	groups := groupCache.GetAll()
+	groupMap.Clear()
+
+	matchers := make([]compiledGroupMatcher, 0, len(groups))
+	for _, group := range groups {
+		groupMap.Set(group.Name, group)
+		regex := strings.TrimSpace(group.MatchRegex)
+		if regex == "" {
+			continue
+		}
+		re, err := regexp2.Compile(regex, regexp2.ECMAScript)
+		if err != nil {
+			continue
+		}
+		matchers = append(matchers, compiledGroupMatcher{group: group, re: re})
+	}
+
+	groupRegexMatchersLock.Lock()
+	groupRegexMatchers = matchers
+	groupRegexMatchersLock.Unlock()
+}
 
 func GroupList(ctx context.Context) ([]model.Group, error) {
 	groups := make([]model.Group, 0, groupCache.Len())
@@ -43,28 +75,20 @@ func GroupGet(id int, ctx context.Context) (*model.Group, error) {
 func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
 	group, ok := groupMap.Get(name)
 	if !ok {
-		var matched *model.Group
-		for _, candidate := range groupCache.GetAll() {
-			regex := strings.TrimSpace(candidate.MatchRegex)
-			if regex == "" {
-				continue
-			}
-			re, err := regexp2.Compile(regex, regexp2.ECMAScript)
-			if err != nil {
-				continue
-			}
-			isMatched, err := re.MatchString(name)
+		groupRegexMatchersLock.RLock()
+		for _, matcher := range groupRegexMatchers {
+			isMatched, err := matcher.re.MatchString(name)
 			if err != nil || !isMatched {
 				continue
 			}
-			groupCopy := candidate
-			matched = &groupCopy
+			group = matcher.group
+			ok = true
 			break
 		}
-		if matched == nil {
+		groupRegexMatchersLock.RUnlock()
+		if !ok {
 			return model.Group{}, fmt.Errorf("group not found")
 		}
-		group = *matched
 	}
 	if len(group.Items) == 0 {
 		group.Items = nil
@@ -88,16 +112,15 @@ func GroupCreate(group *model.Group, ctx context.Context) error {
 		return err
 	}
 	groupCache.Set(group.ID, *group)
-	groupMap.Set(group.Name, *group)
+	rebuildGroupIndexesFromCache()
 	return nil
 }
 
 func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Group, error) {
-	oldGroup, ok := groupCache.Get(req.ID)
+	_, ok := groupCache.Get(req.ID)
 	if !ok {
 		return nil, fmt.Errorf("group not found")
 	}
-	oldName := oldGroup.Name
 
 	tx := db.GetDB().WithContext(ctx).Begin()
 	defer func() {
@@ -197,14 +220,11 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	}
 
 	group, _ := groupCache.Get(req.ID)
-	if oldName != "" && oldName != group.Name {
-		groupMap.Del(oldName)
-	}
 	return &group, nil
 }
 
 func GroupDel(id int, ctx context.Context) error {
-	group, ok := groupCache.Get(id)
+	_, ok := groupCache.Get(id)
 	if !ok {
 		return fmt.Errorf("group not found")
 	}
@@ -231,7 +251,7 @@ func GroupDel(id int, ctx context.Context) error {
 	}
 
 	groupCache.Del(id)
-	groupMap.Del(group.Name)
+	rebuildGroupIndexesFromCache()
 	return nil
 }
 
@@ -383,10 +403,11 @@ func groupRefreshCache(ctx context.Context) error {
 		Find(&groups).Error; err != nil {
 		return err
 	}
+	groupCache.Clear()
 	for _, group := range groups {
 		groupCache.Set(group.ID, group)
-		groupMap.Set(group.Name, group)
 	}
+	rebuildGroupIndexesFromCache()
 	return nil
 }
 
@@ -398,7 +419,7 @@ func groupRefreshCacheByID(id int, ctx context.Context) error {
 		return err
 	}
 	groupCache.Set(group.ID, group)
-	groupMap.Set(group.Name, group)
+	rebuildGroupIndexesFromCache()
 	return nil
 }
 
@@ -415,7 +436,7 @@ func groupRefreshCacheByIDs(ids []int, ctx context.Context) error {
 	}
 	for _, group := range groups {
 		groupCache.Set(group.ID, group)
-		groupMap.Set(group.Name, group)
 	}
+	rebuildGroupIndexesFromCache()
 	return nil
 }

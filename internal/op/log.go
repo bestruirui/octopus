@@ -195,7 +195,7 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 	}
 	hasTimeFilter := startTime != nil && endTime != nil
 
-	// 获取缓存中符合条件的日志
+	// 获取缓存中符合条件的日志（保持原始顺序：旧 -> 新）
 	relayLogCacheLock.Lock()
 	var cachedLogs []model.RelayLog
 	for _, log := range relayLogCache {
@@ -209,23 +209,22 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 	}
 	relayLogCacheLock.Unlock()
 
-	// 反转缓存日志顺序（原本新的在末尾，反转后新的在前面，方便分页）
-	for i, j := 0, len(cachedLogs)-1; i < j; i, j = i+1, j-1 {
-		cachedLogs[i], cachedLogs[j] = cachedLogs[j], cachedLogs[i]
-	}
-
 	cacheCount := len(cachedLogs)
 	offset := (page - 1) * pageSize
 
 	var result []model.RelayLog
 
-	// 先从缓存中取（缓存是最新的日志）
+	// 先从缓存中按“新 -> 旧”顺序分页提取，不再整段 reverse。
 	if offset < cacheCount {
-		cacheEnd := offset + pageSize
-		if cacheEnd > cacheCount {
-			cacheEnd = cacheCount
+		cacheTake := min(pageSize, cacheCount-offset)
+		start := cacheCount - offset - 1
+		for i := 0; i < cacheTake; i++ {
+			idx := start - i
+			if idx < 0 {
+				break
+			}
+			result = append(result, cachedLogs[idx])
 		}
-		result = append(result, cachedLogs[offset:cacheEnd]...)
 	}
 
 	// 如果启用了日志保存，缓存不够时从数据库补充

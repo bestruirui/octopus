@@ -10,6 +10,7 @@ import (
 	"github.com/lingyuins/octopus/internal/utils/cache"
 	"github.com/lingyuins/octopus/internal/utils/log"
 	"github.com/lingyuins/octopus/internal/utils/xstrings"
+	"gorm.io/gorm/clause"
 )
 
 var channelCache = cache.New[int, model.Channel](16)
@@ -96,17 +97,30 @@ func ChannelKeySaveDB(ctx context.Context) error {
 		return nil
 	}
 
-	dbConn := db.GetDB().WithContext(ctx)
+	keys := make([]model.ChannelKey, 0, len(keyIDs))
 	for _, id := range keyIDs {
 		k, ok := channelKeyCache.Get(id)
 		if !ok {
 			continue
 		}
-		if err := dbConn.Save(&k).Error; err != nil {
-			return err
-		}
+		keys = append(keys, k)
 	}
-	return nil
+	if len(keys) == 0 {
+		return nil
+	}
+
+	return db.GetDB().WithContext(ctx).Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"channel_id",
+			"enabled",
+			"channel_key",
+			"status_code",
+			"last_use_time_stamp",
+			"total_cost",
+			"remark",
+		}),
+	}).Create(&keys).Error
 }
 
 func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channel, error) {
