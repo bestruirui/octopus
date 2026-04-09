@@ -47,6 +47,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
 	}
+	group.FirstTokenTimeOut, group.SessionKeepTime = op.ResolveGroupRuntimeOptions(group)
 
 	// 创建迭代器（策略排序 + 粘性优先）
 	iter := balancer.NewIterator(group, apiKeyID, requestModel)
@@ -57,6 +58,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 
 	// 初始化 Metrics
 	metrics := NewRelayMetrics(apiKeyID, requestModel, internalRequest)
+	metrics.InboundType = inboundTypeLabel(inboundType)
 
 	// 请求级上下文
 	req := &relayRequest{
@@ -95,7 +97,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			continue
 		}
 
-		usedKey := channel.GetChannelKey()
+		usedKey := op.ChannelSelectKey(channel, group.Mode, item.ModelName)
 		if usedKey.ChannelKey == "" {
 			iter.Skip(channel.ID, 0, channel.Name, "no available key")
 			continue
@@ -156,6 +158,40 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	resp.Error(c, http.StatusBadGateway, "all channels failed")
 }
 
+func inboundTypeLabel(inboundType inbound.InboundType) string {
+	switch inboundType {
+	case inbound.InboundTypeOpenAIChat:
+		return "OpenAI Chat"
+	case inbound.InboundTypeOpenAIResponse:
+		return "OpenAI Responses"
+	case inbound.InboundTypeAnthropic:
+		return "Anthropic Messages"
+	case inbound.InboundTypeOpenAIEmbedding:
+		return "OpenAI Embeddings"
+	default:
+		return "Unknown"
+	}
+}
+
+func outboundTypeLabel(outboundType outbound.OutboundType) string {
+	switch outboundType {
+	case outbound.OutboundTypeOpenAIChat:
+		return "OpenAI Chat"
+	case outbound.OutboundTypeOpenAIResponse:
+		return "OpenAI Responses"
+	case outbound.OutboundTypeAnthropic:
+		return "Anthropic Messages"
+	case outbound.OutboundTypeGemini:
+		return "Gemini Chat"
+	case outbound.OutboundTypeVolcengine:
+		return "Volcengine Responses"
+	case outbound.OutboundTypeOpenAIEmbedding:
+		return "OpenAI Embeddings"
+	default:
+		return "Unknown"
+	}
+}
+
 // attempt 统一管理一次通道尝试的完整生命周期
 func (ra *relayAttempt) attempt() attemptResult {
 	span := ra.iter.StartAttempt(ra.channel.ID, ra.usedKey.ID, ra.channel.Name)
@@ -180,6 +216,15 @@ func (ra *relayAttempt) attempt() attemptResult {
 			WaitTime:       span.Duration().Milliseconds(),
 			RequestSuccess: 1,
 		})
+		op.StatsModelUpdate(dbmodel.StatsModel{
+			ID:        op.StatsModelKey(ra.channel.ID, ra.internalRequest.Model),
+			Name:      ra.internalRequest.Model,
+			ChannelID: ra.channel.ID,
+			StatsMetrics: dbmodel.StatsMetrics{
+				WaitTime:       span.Duration().Milliseconds(),
+				RequestSuccess: 1,
+			},
+		})
 
 		// 熔断器：记录成功
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
@@ -197,6 +242,15 @@ func (ra *relayAttempt) attempt() attemptResult {
 	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
 		WaitTime:      span.Duration().Milliseconds(),
 		RequestFailed: 1,
+	})
+	op.StatsModelUpdate(dbmodel.StatsModel{
+		ID:        op.StatsModelKey(ra.channel.ID, ra.internalRequest.Model),
+		Name:      ra.internalRequest.Model,
+		ChannelID: ra.channel.ID,
+		StatsMetrics: dbmodel.StatsMetrics{
+			WaitTime:      span.Duration().Milliseconds(),
+			RequestFailed: 1,
+		},
 	})
 
 	// 熔断器：记录失败

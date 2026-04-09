@@ -18,6 +18,7 @@ import (
 type RelayMetrics struct {
 	APIKeyID     int
 	RequestModel string
+	InboundType  string
 	StartTime    time.Time
 
 	// 首 Token 时间
@@ -132,6 +133,7 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	relayLog := model.RelayLog{
 		Time:             m.StartTime.Unix(),
+		RequestAPIFormat: m.InboundType,
 		RequestModelName: m.RequestModel,
 		ChannelName:      channelName,
 		ChannelId:        channelID,
@@ -143,6 +145,12 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	if apiKey, getErr := op.APIKeyGet(m.APIKeyID, ctx); getErr == nil {
 		relayLog.RequestAPIKeyName = apiKey.Name
+	}
+	if len(attempts) > 0 {
+		last := attempts[len(attempts)-1]
+		if ch, getErr := op.ChannelGet(last.ChannelID, ctx); getErr == nil {
+			relayLog.ActualAPIFormat = outboundTypeLabel(ch.Type)
+		}
 	}
 
 	// 首字时间

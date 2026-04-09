@@ -30,6 +30,8 @@ export interface ChannelAttempt {
 export interface RelayLog {
     id: number;
     time: number;                // 时间戳
+    request_api_format: string;  // 请求 API 格式
+    actual_api_format: string;   // 实际 API 格式
     request_model_name: string;  // 请求模型名称
     request_api_key_name?: string; // 请求使用的 API Key 名称
     channel: number;             // 实际使用的渠道ID
@@ -97,8 +99,8 @@ const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize
  * // 滚动到底部时加载更多
  * if (hasMore && !isLoadingMore) loadMore();
  */
-export function useLogs(options: { pageSize?: number } = {}) {
-    const { pageSize = 20 } = options;
+export function useLogs(options: { pageSize?: number; realtimeEnabled?: boolean } = {}) {
+    const { pageSize = 20, realtimeEnabled = true } = options;
 
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -203,7 +205,9 @@ export function useLogs(options: { pageSize?: number } = {}) {
             }
         };
 
-        connect();
+        if (realtimeEnabled) {
+            connect();
+        }
 
         return () => {
             cancelled = true;
@@ -211,7 +215,7 @@ export function useLogs(options: { pageSize?: number } = {}) {
             eventSourceRef.current = null;
             setIsConnected(false);
         };
-    }, [pageSize, queryClient]);
+    }, [pageSize, queryClient, realtimeEnabled]);
 
     const clear = useCallback(() => {
         queryClient.removeQueries({ queryKey: logsInfiniteQueryKey(pageSize) });
@@ -219,7 +223,9 @@ export function useLogs(options: { pageSize?: number } = {}) {
 
     return {
         logs,
-        isConnected,
+        isConnected: realtimeEnabled ? isConnected : false,
+        realtimeEnabled,
+        isConnecting: realtimeEnabled && !isConnected && !error,
         error,
         hasMore: !!logsQuery.hasNextPage,
         isLoading: logsQuery.isLoading,

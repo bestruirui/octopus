@@ -15,6 +15,41 @@ interface StatsMetrics {
     request_failed: number;
 }
 
+export type HealthGrade = 'excellent' | 'good' | 'warning' | 'critical';
+
+export interface StatsModelHealth {
+    channel_id: number;
+    model_name: string;
+    score: number;
+    grade: HealthGrade;
+    request_success: number;
+    request_failed: number;
+    request_count: number;
+    success_rate: number;
+    avg_wait_time: number;
+    healthy: boolean;
+}
+
+export interface StatsChannelHealth {
+    channel_id: number;
+    channel_name: string;
+    enabled: boolean;
+    type: number;
+    score: number;
+    grade: HealthGrade;
+    request_success: number;
+    request_failed: number;
+    request_count: number;
+    success_rate: number;
+    avg_wait_time: number;
+    base_url_delay: number;
+    enabled_keys: number;
+    total_keys: number;
+    healthy_models: number;
+    total_models: number;
+    models?: StatsModelHealth[];
+}
+
 export interface StatsMetricsFormatted {
     input_token: ReturnType<typeof formatCount>;
     output_token: ReturnType<typeof formatCount>;
@@ -178,6 +213,19 @@ export function useStatsAPIKey() {
             request_failed: formatCount(item.request_failed),
             request_count: formatCount(item.request_success + item.request_failed),
         })),
+        refetchInterval: 30000,
+        refetchOnMount: 'always',
+    });
+}
+
+export function useStatsHealth(includeModels = false) {
+    return useQuery({
+        queryKey: ['stats', 'health', includeModels],
+        queryFn: async () => {
+            return apiClient.get<StatsChannelHealth[]>('/api/v1/stats/health', {
+                include_models: includeModels,
+            });
+        },
         refetchInterval: 30000,
         refetchOnMount: 'always',
     });

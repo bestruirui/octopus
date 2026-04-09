@@ -11,6 +11,8 @@ import { SettingLLMSync } from './LLMSync';
 import { SettingLog } from './Log';
 import { SettingBackup } from './Backup';
 import { SettingCircuitBreaker } from './CircuitBreaker';
+import { SettingHealthScore } from './HealthScore';
+import { SettingGroupDefaults } from './GroupDefaults';
 
 export function Setting() {
     return (
@@ -20,6 +22,8 @@ export function Setting() {
                 <SettingAppearance key="setting-appearance" />
                 <SettingAccount key="setting-account" />
                 <SettingSystem key="setting-system" />
+                <SettingGroupDefaults key="setting-group-defaults" />
+                <SettingHealthScore key="setting-health-score" />
                 <SettingLog key="setting-log" />
                 <SettingLLMPrice key="setting-llmprice" />
                 <SettingAPIKey key="setting-apikey" />

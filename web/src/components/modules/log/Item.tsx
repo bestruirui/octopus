@@ -240,6 +240,12 @@ export function LogCard({ log }: { log: RelayLog }) {
                                     <Clock className="size-3.5 shrink-0" style={{ color: brandColor }} />
                                     <span>{formatTime(log.time)}</span>
                                 </div>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <MessageSquare className="size-3.5 shrink-0 text-sky-500" />
+                                    <span className="truncate" title={`${log.request_api_format || 'Unknown'} -> ${log.actual_api_format || 'Unknown'}`}>
+                                        {`${log.request_api_format || 'Unknown'} -> ${log.actual_api_format || 'Unknown'}`}
+                                    </span>
+                                </div>
                                 {requestAPIKeyName && (
                                     <div className="flex items-center gap-1.5">
                                         <KeyRound className="size-3.5 shrink-0 text-orange-500" />

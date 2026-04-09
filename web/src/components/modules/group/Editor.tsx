@@ -1,13 +1,16 @@
 'use client';
 
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
-import { Check, ChevronDownIcon, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
+import { Check, ChevronDownIcon, HelpCircle, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { useModelChannelList, type LLMChannel } from '@/api/endpoints/model';
+import { SettingKey, useSettingList } from '@/api/endpoints/setting';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { getModelIcon } from '@/lib/model-icons';
@@ -16,9 +19,6 @@ import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
 import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS } from './utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
-import { HelpCircle } from 'lucide-react';
-
-
 
 export type GroupEditorValues = {
     name: string;
@@ -28,6 +28,9 @@ export type GroupEditorValues = {
     session_keep_time: number;
     members: SelectedMember[];
 };
+
+type SelectedMemberFilter = 'all' | 'duplicates';
+type SelectedMemberSort = 'manual' | 'model-asc' | 'channel-asc' | 'weight-desc';
 
 function ModelPickerSection({
     modelChannels,
@@ -190,44 +193,153 @@ function SortSection({
     onClear: () => void;
 }) {
     const t = useTranslations('group');
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [filter, setFilter] = useState<SelectedMemberFilter>('all');
+    const [sort, setSort] = useState<SelectedMemberSort>('manual');
+
+    const normalizedSearch = normalizeKey(searchKeyword);
+
+    const duplicateSignatures = useMemo(() => {
+        const counts = new Map<string, number>();
+        members.forEach((member) => {
+            const baseUrl = normalizeKey(member.base_url);
+            if (!baseUrl) return;
+            const signature = `${baseUrl}::${normalizeKey(member.name)}`;
+            counts.set(signature, (counts.get(signature) ?? 0) + 1);
+        });
+        return counts;
+    }, [members]);
+
+    const duplicateIds = useMemo(() => {
+        const ids = new Set<string>();
+        members.forEach((member) => {
+            const baseUrl = normalizeKey(member.base_url);
+            if (!baseUrl) return;
+            const signature = `${baseUrl}::${normalizeKey(member.name)}`;
+            if ((duplicateSignatures.get(signature) ?? 0) > 1) ids.add(member.id);
+        });
+        return ids;
+    }, [duplicateSignatures, members]);
+
+    const filteredMembers = useMemo(() => {
+        const next = members.filter((member) => {
+            const matchesSearch = !normalizedSearch || [
+                member.name,
+                member.channel_name,
+                member.base_url,
+            ].some((value) => normalizeKey(value).includes(normalizedSearch));
+
+            if (!matchesSearch) return false;
+            if (filter === 'duplicates') return duplicateIds.has(member.id);
+            return true;
+        });
+
+        if (sort === 'manual') return next;
+
+        return [...next].sort((left, right) => {
+            if (sort === 'model-asc') return left.name.localeCompare(right.name);
+            if (sort === 'channel-asc') {
+                const channelCompare = left.channel_name.localeCompare(right.channel_name);
+                if (channelCompare !== 0) return channelCompare;
+                return left.name.localeCompare(right.name);
+            }
+
+            const weightDiff = (right.weight ?? 1) - (left.weight ?? 1);
+            if (weightDiff !== 0) return weightDiff;
+            return left.name.localeCompare(right.name);
+        });
+    }, [duplicateIds, filter, members, normalizedSearch, sort]);
+
+    const dragDisabled = normalizedSearch.length > 0 || filter !== 'all' || sort !== 'manual';
 
     return (
         <div className="rounded-xl border border-border/50 bg-muted/30 flex flex-col min-h-0">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-muted/50">
-                <span className="text-sm font-medium text-foreground">
-                    {t('form.items')}
-                    {members.length > 0 && (
-                        <span className="ml-1.5 text-xs text-muted-foreground font-normal">
-                            ({members.length})
+            <div className="border-b border-border/30 bg-muted/50">
+                <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">
+                            {t('form.items')}
+                            {members.length > 0 && (
+                                <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                                    ({members.length})
+                                </span>
+                            )}
                         </span>
-                    )}
-                </span>
-                <button
-                    type="button"
-                    onClick={onClear}
-                    disabled={members.length === 0}
-                    className={cn(
-                        'flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
-                        members.length === 0
-                            ? 'text-muted-foreground/50 cursor-not-allowed'
-                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                    )}
-                    title={t('form.clear')}
-                >
-                    <Trash2 className="size-3.5" />
-                    <span>{t('form.clear')}</span>
-                </button>
+                        {duplicateIds.size > 0 ? (
+                            <Badge variant="secondary" className="rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300">
+                                {t('form.duplicateBadge', { count: duplicateIds.size })}
+                            </Badge>
+                        ) : null}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClear}
+                        disabled={members.length === 0}
+                        className={cn(
+                            'flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
+                            members.length === 0
+                                ? 'text-muted-foreground/50 cursor-not-allowed'
+                                : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                        )}
+                        title={t('form.clear')}
+                    >
+                        <Trash2 className="size-3.5" />
+                        <span>{t('form.clear')}</span>
+                    </button>
+                </div>
+
+                <div className="grid gap-2 px-3 pb-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={searchKeyword}
+                            onChange={(event) => setSearchKeyword(event.target.value)}
+                            placeholder={t('form.selectedSearchPlaceholder')}
+                            className="rounded-xl pl-9"
+                            aria-label={t('form.selectedSearchPlaceholder')}
+                        />
+                    </div>
+
+                    <Select value={filter} onValueChange={(value) => setFilter(value as SelectedMemberFilter)}>
+                        <SelectTrigger className="w-full rounded-xl">
+                            <SelectValue placeholder={t('form.selectedFilter')} />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="all">{t('form.filters.all')}</SelectItem>
+                            <SelectItem value="duplicates">{t('form.filters.duplicates')}</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={sort} onValueChange={(value) => setSort(value as SelectedMemberSort)}>
+                        <SelectTrigger className="w-full rounded-xl">
+                            <SelectValue placeholder={t('form.selectedSort')} />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="manual">{t('form.sorts.manual')}</SelectItem>
+                            <SelectItem value="model-asc">{t('form.sorts.modelAsc')}</SelectItem>
+                            <SelectItem value="channel-asc">{t('form.sorts.channelAsc')}</SelectItem>
+                            <SelectItem value="weight-desc">{t('form.sorts.weightDesc')}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="px-3 pb-3">
+                    <p className="text-[11px] text-muted-foreground">
+                        {dragDisabled ? t('form.reorderLockedHint') : t('form.duplicateHint')}
+                    </p>
+                </div>
             </div>
 
             <div className="flex-1 min-h-0">
                 <MemberList
-                    members={members}
+                    members={filteredMembers}
                     onReorder={onReorder}
                     onRemove={onRemove}
                     onWeightChange={onWeightChange}
                     removingIds={removingIds}
                     showWeight={showWeight}
                     showConfirmDelete={false}
+                    dragDisabled={dragDisabled}
                 />
             </div>
         </div>
@@ -251,6 +363,7 @@ export function GroupEditor({
 }) {
     const t = useTranslations('group');
     const { data: modelChannels = [] } = useModelChannelList();
+    const { data: settings = [] } = useSettingList();
 
     const [groupName, setGroupName] = useState(initial?.name ?? '');
     const [matchRegex, setMatchRegex] = useState(initial?.match_regex ?? '');
@@ -262,6 +375,45 @@ export function GroupEditor({
 
     const groupKey = normalizeKey(groupName);
     const regexKey = matchRegex.trim();
+    const modelChannelByKey = useMemo(() => {
+        const map = new Map<string, LLMChannel>();
+        modelChannels.forEach((channel) => {
+            map.set(memberKey(channel), channel);
+        });
+        return map;
+    }, [modelChannels]);
+    const hydratedSelectedMembers = useMemo(() => (
+        selectedMembers.map((member) => {
+            const latest = modelChannelByKey.get(member.id || memberKey(member));
+            if (!latest) {
+                return {
+                    ...member,
+                    base_url: member.base_url ?? '',
+                    key_count: member.key_count ?? 0,
+                };
+            }
+
+            return {
+                ...latest,
+                ...member,
+                id: member.id || memberKey(latest),
+                channel_name: member.channel_name || latest.channel_name,
+                base_url: member.base_url ?? latest.base_url ?? '',
+                key_count: member.key_count ?? latest.key_count ?? 0,
+                enabled: member.enabled ?? latest.enabled,
+            };
+        })
+    ), [modelChannelByKey, selectedMembers]);
+    const defaultFirstTokenTimeOut = useMemo(() => {
+        const value = settings.find((item) => item.key === SettingKey.GroupDefaultFirstTokenTimeOut)?.value;
+        const parsed = Number.parseInt(value ?? '0', 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    }, [settings]);
+    const defaultSessionKeepTime = useMemo(() => {
+        const value = settings.find((item) => item.key === SettingKey.GroupDefaultSessionKeepTime)?.value;
+        const parsed = Number.parseInt(value ?? '0', 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    }, [settings]);
 
     const { matchedModelChannels, regexError } = useMemo(() => {
         const parseRegex = (input: string): RegExp => {
@@ -395,7 +547,8 @@ export function GroupEditor({
                                 inputMode="numeric"
                                 min={0}
                                 step={1}
-                                value={String(firstTokenTimeOut)}
+                                value={firstTokenTimeOut > 0 ? String(firstTokenTimeOut) : ''}
+                                placeholder={defaultFirstTokenTimeOut > 0 ? String(defaultFirstTokenTimeOut) : '0'}
                                 onChange={(e) => {
                                     const raw = e.target.value;
                                     if (raw.trim() === '') {
@@ -407,6 +560,11 @@ export function GroupEditor({
                                 }}
                                 className="rounded-xl"
                             />
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {defaultFirstTokenTimeOut > 0
+                                    ? t('form.firstTokenTimeOutDefaultHint', { value: defaultFirstTokenTimeOut })
+                                    : t('form.firstTokenTimeOutDisabledHint')}
+                            </p>
                         </Field>
 
                         <Field>
@@ -429,7 +587,8 @@ export function GroupEditor({
                                 inputMode="numeric"
                                 min={0}
                                 step={1}
-                                value={String(sessionKeepTime)}
+                                value={sessionKeepTime > 0 ? String(sessionKeepTime) : ''}
+                                placeholder={defaultSessionKeepTime > 0 ? String(defaultSessionKeepTime) : '0'}
                                 onChange={(e) => {
                                     const raw = e.target.value;
                                     if (raw.trim() === '') {
@@ -441,12 +600,17 @@ export function GroupEditor({
                                 }}
                                 className="rounded-xl"
                             />
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {defaultSessionKeepTime > 0
+                                    ? t('form.sessionKeepTimeDefaultHint', { value: defaultSessionKeepTime })
+                                    : t('form.sessionKeepTimeDisabledHint')}
+                            </p>
                         </Field>
                     </div>
 
                     {/* Mode */}
                     <div className="flex gap-1">
-                        {([1, 2, 3, 4] as const).map((m) => (
+                        {([1, 2, 3, 4, 5] as const).map((m) => (
                             <button
                                 key={m}
                                 type="button"
@@ -465,18 +629,18 @@ export function GroupEditor({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-0">
                             <ModelPickerSection
                                 modelChannels={modelChannels}
-                                selectedMembers={selectedMembers}
+                                selectedMembers={hydratedSelectedMembers}
                                 onAdd={handleAddMember}
                                 onAutoAdd={handleAutoAdd}
                                 autoAddDisabled={autoAddDisabled}
                             />
                             <SortSection
-                                members={selectedMembers}
+                                members={hydratedSelectedMembers}
                                 onReorder={setSelectedMembers}
                                 onRemove={handleRemoveMember}
                                 onWeightChange={handleWeightChange}
                                 removingIds={removingIds}
-                                showWeight={mode === 4}
+                                showWeight={mode === 4 || mode === 5}
                                 onClear={handleClearMembers}
                             />
                         </div>

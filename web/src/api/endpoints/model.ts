@@ -27,6 +27,8 @@ export interface LLMChannel {
     enabled: boolean;
     channel_id: number;
     channel_name: string;
+    base_url: string;
+    key_count: number;
 }
 
 /**

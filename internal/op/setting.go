@@ -89,6 +89,42 @@ func SettingSetInt(key model.SettingKey, value int) error {
 	return nil
 }
 
+func GetGroupDefaultFirstTokenTimeOut() int {
+	value, err := SettingGetInt(model.SettingKeyGroupDefaultFirstTokenTimeOut)
+	if err != nil || value < 0 {
+		return 0
+	}
+	return value
+}
+
+func GetGroupDefaultSessionKeepTime() int {
+	value, err := SettingGetInt(model.SettingKeyGroupDefaultSessionKeepTime)
+	if err != nil || value < 0 {
+		return 0
+	}
+	return value
+}
+
+func ResolveGroupRuntimeOptions(group model.Group) (int, int) {
+	firstTokenTimeOut := group.FirstTokenTimeOut
+	sessionKeepTime := group.SessionKeepTime
+
+	if firstTokenTimeOut <= 0 {
+		firstTokenTimeOut = GetGroupDefaultFirstTokenTimeOut()
+	}
+	if sessionKeepTime <= 0 {
+		sessionKeepTime = GetGroupDefaultSessionKeepTime()
+	}
+	if firstTokenTimeOut < 0 {
+		firstTokenTimeOut = 0
+	}
+	if sessionKeepTime < 0 {
+		sessionKeepTime = 0
+	}
+
+	return firstTokenTimeOut, sessionKeepTime
+}
+
 func settingRefreshCache(ctx context.Context) error {
 	db := db.GetDB().WithContext(ctx)
 

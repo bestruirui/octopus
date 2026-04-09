@@ -75,7 +75,6 @@ export function GroupCard({ group }: { group: Group }) {
     const { data: modelChannels = [] } = useModelChannelList();
 
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const [members, setMembers] = useState<SelectedMember[]>([]);
     const isDragging = useRef(false);
     const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
     const membersRef = useRef<SelectedMember[]>([]);
@@ -88,23 +87,40 @@ export function GroupCard({ group }: { group: Group }) {
         });
         return map;
     }, [modelChannels]);
+    const modelChannelByKey = useMemo(() => {
+        const map = new Map<string, (typeof modelChannels)[number]>();
+        modelChannels.forEach((mc) => {
+            map.set(modelChannelKey(mc.channel_id, mc.name), mc);
+        });
+        return map;
+    }, [modelChannels]);
 
     const displayMembers = useMemo((): SelectedMember[] =>
         [...(group.items || [])]
             .sort((a, b) => a.priority - b.priority)
-            .map((item) => ({
-                id: modelChannelKey(item.channel_id, item.model_name),
-                name: item.model_name,
-                enabled: enabledByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? true,
-                channel_id: item.channel_id,
-                channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? `Channel ${item.channel_id}`,
-                item_id: item.id,
-                weight: item.weight,
-            })),
-        [group.items, channelNameByKey, enabledByKey]
+            .map((item) => {
+                const itemKey = modelChannelKey(item.channel_id, item.model_name);
+                const latest = modelChannelByKey.get(itemKey);
+                return {
+                    id: itemKey,
+                    name: item.model_name,
+                    enabled: enabledByKey.get(itemKey) ?? true,
+                    channel_id: item.channel_id,
+                    channel_name: channelNameByKey.get(itemKey) ?? `Channel ${item.channel_id}`,
+                    base_url: latest?.base_url ?? '',
+                    key_count: latest?.key_count ?? 0,
+                    item_id: item.id,
+                    weight: item.weight,
+                };
+            }),
+        [group.items, channelNameByKey, enabledByKey, modelChannelByKey]
     );
 
+    const [members, setMembers] = useState<SelectedMember[]>([]);
+
     useEffect(() => {
+        // Local editable order/weight state must be refreshed when backend data changes.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!isDragging.current) setMembers([...displayMembers]);
     }, [displayMembers]);
 
@@ -315,7 +331,7 @@ export function GroupCard({ group }: { group: Group }) {
 
             {/* Mode: quick switch (no need to enter Edit) */}
             <div className="flex gap-1 mb-3">
-                {([GroupMode.RoundRobin, GroupMode.Random, GroupMode.Failover, GroupMode.Weighted] as const).map((m) => (
+                {([GroupMode.RoundRobin, GroupMode.Random, GroupMode.Failover, GroupMode.Weighted, GroupMode.Scored] as const).map((m) => (
                     <button
                         key={m}
                         type="button"
@@ -347,7 +363,7 @@ export function GroupCard({ group }: { group: Group }) {
                     onDrop={handleDropReorder}
                     onDragFinish={handleDragFinish}
                     autoScrollOnAdd={false}
-                    showWeight={group.mode === GroupMode.Weighted}
+                    showWeight={group.mode === GroupMode.Weighted || group.mode === GroupMode.Scored}
                     layoutScope={`card-${group.id ?? 'unknown'}`}
                 />
             </section>

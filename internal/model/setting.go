@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -9,17 +10,53 @@ import (
 type SettingKey string
 
 const (
-	SettingKeyProxyURL                  SettingKey = "proxy_url"
-	SettingKeyStatsSaveInterval         SettingKey = "stats_save_interval"          // 将统计信息写入数据库的周期(分钟)
-	SettingKeyModelInfoUpdateInterval   SettingKey = "model_info_update_interval"   // 模型信息更新间隔(小时)
-	SettingKeySyncLLMInterval           SettingKey = "sync_llm_interval"            // LLM 同步间隔(小时)
-	SettingKeyRelayLogKeepPeriod        SettingKey = "relay_log_keep_period"        // 日志保存时间范围(天)
-	SettingKeyRelayLogKeepEnabled       SettingKey = "relay_log_keep_enabled"       // 是否保留历史日志
-	SettingKeyCORSAllowOrigins          SettingKey = "cors_allow_origins"           // 跨域白名单(逗号分隔, 如 "example.com,example2.com"). 为空不允许跨域, "*"允许所有
-	SettingKeyCircuitBreakerThreshold   SettingKey = "circuit_breaker_threshold"    // 熔断触发阈值（连续失败次数）
-	SettingKeyCircuitBreakerCooldown    SettingKey = "circuit_breaker_cooldown"     // 熔断基础冷却时间（秒）
-	SettingKeyCircuitBreakerMaxCooldown SettingKey = "circuit_breaker_max_cooldown" // 熔断最大冷却时间（秒），指数退避上限
+	SettingKeyProxyURL                      SettingKey = "proxy_url"
+	SettingKeyStatsSaveInterval             SettingKey = "stats_save_interval"                // 将统计信息写入数据库的周期(分钟)
+	SettingKeyModelInfoUpdateInterval       SettingKey = "model_info_update_interval"         // 模型信息更新间隔(小时)
+	SettingKeySyncLLMInterval               SettingKey = "sync_llm_interval"                  // LLM 同步间隔(小时)
+	SettingKeyRelayLogKeepPeriod            SettingKey = "relay_log_keep_period"              // 日志保存时间范围(天)
+	SettingKeyRelayLogKeepEnabled           SettingKey = "relay_log_keep_enabled"             // 是否保留历史日志
+	SettingKeyCORSAllowOrigins              SettingKey = "cors_allow_origins"                 // 跨域白名单(逗号分隔, 如 "example.com,example2.com"). 为空不允许跨域, "*"允许所有
+	SettingKeyCircuitBreakerThreshold       SettingKey = "circuit_breaker_threshold"          // 熔断触发阈值（连续失败次数）
+	SettingKeyCircuitBreakerCooldown        SettingKey = "circuit_breaker_cooldown"           // 熔断基础冷却时间（秒）
+	SettingKeyCircuitBreakerMaxCooldown     SettingKey = "circuit_breaker_max_cooldown"       // 熔断最大冷却时间（秒），指数退避上限
+	SettingKeyHealthScoreWeights            SettingKey = "health_score_weights"               // 健康评分权重(JSON)
+	SettingKeyGroupDefaultFirstTokenTimeOut SettingKey = "group_default_first_token_time_out" // 分组默认首字超时（秒）
+	SettingKeyGroupDefaultSessionKeepTime   SettingKey = "group_default_session_keep_time"    // 分组默认会话保持（秒）
 )
+
+type HealthScoreWeights struct {
+	SuccessRate      float64 `json:"success_rate"`
+	AvgWait          float64 `json:"avg_wait"`
+	KeyAvailability  float64 `json:"key_availability"`
+	BaseDelay        float64 `json:"base_delay"`
+	PriorityBoost    float64 `json:"priority_boost"`
+	WeightBoost      float64 `json:"weight_boost"`
+	RecentUseBonus   float64 `json:"recent_use_bonus"`
+	RateLimitPenalty float64 `json:"rate_limit_penalty"`
+	CostPenalty      float64 `json:"cost_penalty"`
+	ColdStartScore   float64 `json:"cold_start_score"`
+}
+
+func DefaultHealthScoreWeights() HealthScoreWeights {
+	return HealthScoreWeights{
+		SuccessRate:      70,
+		AvgWait:          20,
+		KeyAvailability:  10,
+		BaseDelay:        10,
+		PriorityBoost:    10,
+		WeightBoost:      0.5,
+		RecentUseBonus:   5,
+		RateLimitPenalty: 30,
+		CostPenalty:      2,
+		ColdStartScore:   70,
+	}
+}
+
+func DefaultHealthScoreWeightsJSON() string {
+	b, _ := json.Marshal(DefaultHealthScoreWeights())
+	return string(b)
+}
 
 type Setting struct {
 	Key   SettingKey `json:"key" gorm:"primaryKey"`
@@ -38,16 +75,23 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyCircuitBreakerThreshold, Value: "5"},     // 默认连续失败5次触发熔断
 		{Key: SettingKeyCircuitBreakerCooldown, Value: "60"},     // 默认基础冷却60秒
 		{Key: SettingKeyCircuitBreakerMaxCooldown, Value: "600"}, // 默认最大冷却600秒（10分钟）
+		{Key: SettingKeyHealthScoreWeights, Value: DefaultHealthScoreWeightsJSON()},
+		{Key: SettingKeyGroupDefaultFirstTokenTimeOut, Value: "0"},
+		{Key: SettingKeyGroupDefaultSessionKeepTime, Value: "0"},
 	}
 }
 
 func (s *Setting) Validate() error {
 	switch s.Key {
 	case SettingKeyModelInfoUpdateInterval, SettingKeySyncLLMInterval, SettingKeyRelayLogKeepPeriod,
-		SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown, SettingKeyCircuitBreakerMaxCooldown:
-		_, err := strconv.Atoi(s.Value)
+		SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown, SettingKeyCircuitBreakerMaxCooldown,
+		SettingKeyGroupDefaultFirstTokenTimeOut, SettingKeyGroupDefaultSessionKeepTime:
+		value, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("model info update interval must be an integer")
+		}
+		if value < 0 {
+			return fmt.Errorf("setting must be non-negative")
 		}
 		return nil
 	case SettingKeyRelayLogKeepEnabled:
@@ -73,6 +117,17 @@ func (s *Setting) Validate() error {
 		}
 		if parsedURL.Host == "" {
 			return fmt.Errorf("proxy URL must have a host")
+		}
+		return nil
+	case SettingKeyHealthScoreWeights:
+		var weights HealthScoreWeights
+		if err := json.Unmarshal([]byte(s.Value), &weights); err != nil {
+			return fmt.Errorf("health score weights must be valid JSON: %w", err)
+		}
+		if weights.SuccessRate < 0 || weights.AvgWait < 0 || weights.KeyAvailability < 0 || weights.BaseDelay < 0 ||
+			weights.PriorityBoost < 0 || weights.WeightBoost < 0 || weights.RecentUseBonus < 0 ||
+			weights.RateLimitPenalty < 0 || weights.CostPenalty < 0 || weights.ColdStartScore < 0 {
+			return fmt.Errorf("health score weights must be non-negative")
 		}
 		return nil
 	}

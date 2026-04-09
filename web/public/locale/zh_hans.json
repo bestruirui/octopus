@@ -47,6 +47,7 @@
         "home": "主页",
         "channel": "渠道",
         "group": "分组",
+        "health": "健康度",
         "key": "密钥",
         "model": "价格",
         "log": "日志",
@@ -183,6 +184,34 @@
                 "placeholder": "请输入最大冷却时间"
             },
             "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间"
+        },
+        "groupDefaults": {
+            "title": "分组默认值",
+            "hint": "用于分组的首字超时和会话保持默认值。分组内填写自定义值时，优先级高于这里的默认值；留空或 0 时继承这里的配置。",
+            "firstTokenTimeOut": {
+                "label": "默认首字超时（秒）",
+                "placeholder": "请输入默认超时"
+            },
+            "sessionKeepTime": {
+                "label": "默认会话保持（秒）",
+                "placeholder": "请输入默认会话保持"
+            }
+        },
+        "healthScore": {
+            "title": "评分权重",
+            "hint": "控制评分优先模式与健康度页面的打分口径。数值越大，代表该维度对总分影响越大。",
+            "fields": {
+                "success_rate": { "label": "成功率权重", "description": "真实请求成功率对总分的贡献上限" },
+                "avg_wait": { "label": "平均耗时权重", "description": "平均等待时间越短，越容易拿满这部分分值" },
+                "key_availability": { "label": "Key 可用性权重", "description": "可用 Key 越多，得分越高" },
+                "base_delay": { "label": "基础延迟扣分", "description": "Base URL 延迟越高，扣分上限越大" },
+                "priority_boost": { "label": "优先级加成", "description": "分组项 priority 带来的额外加分基数" },
+                "weight_boost": { "label": "权重加成", "description": "分组项 weight 每 1 点带来的额外加分" },
+                "recent_use_bonus": { "label": "最近使用加成", "description": "最近正常使用过的 Key 获得的额外加分" },
+                "rate_limit_penalty": { "label": "限流惩罚", "description": "Key 最近触发 429 时的扣分" },
+                "cost_penalty": { "label": "成本惩罚", "description": "Key 累计成本折算为扣分的系数" },
+                "cold_start_score": { "label": "冷启动基准分", "description": "暂无真实请求数据时的默认基础分" }
+            }
         },
         "saved": "已保存",
         "backup": {
@@ -373,12 +402,32 @@
             "matchRegexInvalid": "正则无效",
             "firstTokenTimeOut": "首字超时",
             "firstTokenTimeOutHint": "单位秒，仅流式响应起效，0 表示不限制",
+            "firstTokenTimeOutDefaultHint": "留空或 0 时继承设置中的默认值：{value} 秒",
+            "firstTokenTimeOutDisabledHint": "留空或 0 时表示禁用；可在设置里配置全局默认值",
             "sessionKeepTime": "会话保持",
             "sessionKeepTimeHint": "单位秒，会话期间保持使用同一渠道，0 表示禁用",
+            "sessionKeepTimeDefaultHint": "留空或 0 时继承设置中的默认值：{value} 秒",
+            "sessionKeepTimeDisabledHint": "留空或 0 时表示禁用；可在设置里配置全局默认值",
             "items": "已选模型",
             "addItem": "添加模型",
             "autoAdd": "自动添加",
             "clear": "清空",
+            "selectedSearchPlaceholder": "搜索模型、渠道或 Base URL",
+            "selectedFilter": "筛选条件",
+            "selectedSort": "排序方式",
+            "duplicateBadge": "{count} 个重复项",
+            "duplicateHint": "重复项按同一 Base URL 下的同名模型识别，便于快速调整多 Key 重复配置。",
+            "reorderLockedHint": "当前为筛选或排序视图，已关闭拖拽排序；切回默认视图后可手动调整顺序。",
+            "filters": {
+                "all": "全部模型",
+                "duplicates": "仅看同源重复模型"
+            },
+            "sorts": {
+                "manual": "按当前顺序",
+                "modelAsc": "按模型名",
+                "channelAsc": "按渠道名",
+                "weightDesc": "按权重从高到低"
+            },
             "selectChannel": "渠道",
             "selectModel": "模型"
         },
@@ -386,9 +435,72 @@
             "roundRobin": "轮询",
             "random": "随机",
             "failover": "故障转移",
-            "weighted": "加权分配"
+            "weighted": "加权分配",
+            "scored": "评分优先"
         },
         "empty": "暂无分组，点击左上角按钮创建"
+    },
+    "health": {
+        "title": "渠道健康度",
+        "description": "按请求成功率、平均耗时、基础延迟和可用 Key 数综合评估每个渠道与模型的健康度。",
+        "detailTitle": "渠道详情",
+        "modelCount": "模型数",
+        "expandModels": "展开模型",
+        "collapseModels": "收起模型",
+        "loading": "健康度数据加载中...",
+        "empty": "暂无健康度数据",
+        "disabled": "已禁用",
+        "summary": {
+            "channels": "渠道总数",
+            "models": "模型总数",
+            "avgScore": "平均评分",
+            "healthy": "健康",
+            "scoreHint": "100 分制综合健康分"
+        },
+        "grade": {
+            "excellent": "优秀",
+            "good": "良好",
+            "warning": "预警",
+            "critical": "风险"
+        },
+        "columns": {
+            "successRate": "成功率",
+            "avgWait": "平均耗时",
+            "keys": "可用 Key",
+            "requests": "请求量",
+            "baseDelay": "基础延迟",
+            "models": "健康模型",
+            "success": "成功请求",
+            "failed": "失败请求"
+        },
+        "modelColumns": {
+            "name": "模型",
+            "score": "评分",
+            "successRate": "成功率",
+            "requests": "请求数",
+            "avgWait": "平均耗时"
+        },
+        "toolbar": {
+            "searchPlaceholder": "搜索渠道或模型",
+            "filter": "筛选状态",
+            "sort": "排序方式",
+            "expandAll": "全部展开",
+            "collapseAll": "全部收起",
+            "resultCount": "结果数",
+            "filters": {
+                "all": "全部渠道",
+                "healthy": "仅健康",
+                "warning": "仅预警",
+                "critical": "仅风险"
+            },
+            "sorts": {
+                "scoreDesc": "评分从高到低",
+                "scoreAsc": "评分从低到高",
+                "successDesc": "成功率从高到低",
+                "waitAsc": "平均耗时从低到高",
+                "requestsDesc": "请求量从高到低"
+            }
+        }
     },
     "model": {
         "create": {
@@ -425,6 +537,35 @@
         }
     },
     "log": {
+        "toolbar": {
+            "title": "日志筛选",
+            "description": "按 API 格式、模型、渠道、状态快速筛选日志，并控制是否接收实时推送。",
+            "searchPlaceholder": "搜索模型、渠道、API Key 或错误信息",
+            "filter": "筛选状态",
+            "sort": "排序方式",
+            "realtime": "实时刷新",
+            "connected": "实时连接中",
+            "connecting": "实时连接中",
+            "disconnected": "实时已暂停",
+            "resultCount": "结果数",
+            "apiFormat": {
+                "label": "API格式",
+                "all": "全部格式",
+                "searchPlaceholder": "输入关键词搜索..."
+            },
+            "filters": {
+                "all": "全部日志",
+                "success": "仅成功",
+                "failed": "仅失败",
+                "retry": "仅重试"
+            },
+            "sorts": {
+                "timeDesc": "时间从新到旧",
+                "timeAsc": "时间从旧到新",
+                "durationDesc": "耗时从高到低",
+                "costDesc": "费用从高到低"
+            }
+        },
         "list": {
             "noMore": "没有更多日志了"
         },

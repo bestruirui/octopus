@@ -43,6 +43,48 @@ type StatsAPIKey struct {
 	StatsMetrics
 }
 
+type HealthGrade string
+
+const (
+	HealthGradeExcellent HealthGrade = "excellent"
+	HealthGradeGood      HealthGrade = "good"
+	HealthGradeWarning   HealthGrade = "warning"
+	HealthGradeCritical  HealthGrade = "critical"
+)
+
+type StatsModelHealth struct {
+	ChannelID      int         `json:"channel_id"`
+	ModelName      string      `json:"model_name"`
+	Score          float64     `json:"score"`
+	Grade          HealthGrade `json:"grade"`
+	RequestSuccess int64       `json:"request_success"`
+	RequestFailed  int64       `json:"request_failed"`
+	RequestCount   int64       `json:"request_count"`
+	SuccessRate    float64     `json:"success_rate"`
+	AvgWaitTime    int64       `json:"avg_wait_time"`
+	Healthy        bool        `json:"healthy"`
+}
+
+type StatsChannelHealth struct {
+	ChannelID      int                `json:"channel_id"`
+	ChannelName    string             `json:"channel_name"`
+	Enabled        bool               `json:"enabled"`
+	Type           int                `json:"type"`
+	Score          float64            `json:"score"`
+	Grade          HealthGrade        `json:"grade"`
+	RequestSuccess int64              `json:"request_success"`
+	RequestFailed  int64              `json:"request_failed"`
+	RequestCount   int64              `json:"request_count"`
+	SuccessRate    float64            `json:"success_rate"`
+	AvgWaitTime    int64              `json:"avg_wait_time"`
+	BaseURLDelay   int                `json:"base_url_delay"`
+	EnabledKeys    int                `json:"enabled_keys"`
+	TotalKeys      int                `json:"total_keys"`
+	HealthyModels  int                `json:"healthy_models"`
+	TotalModels    int                `json:"total_models"`
+	Models         []StatsModelHealth `json:"models,omitempty"`
+}
+
 // Add aggregates another StatsMetrics into the current one.
 func (s *StatsMetrics) Add(delta StatsMetrics) {
 	s.InputToken += delta.InputToken

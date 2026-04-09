@@ -1,0 +1,9 @@
+services:
+  octopus:
+    image: ${OCTOPUS_IMAGE:-ghcr.io/zbsdsb/octopus:dev}
+    ports:
+      - "${OCTOPUS_PORT:-8080}:8080"
+    volumes:
+      - "${OCTOPUS_DATA_DIR:-./data}:/app/data"
+    container_name: ${OCTOPUS_CONTAINER_NAME:-octopus}
+    restart: unless-stopped

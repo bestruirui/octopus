@@ -17,6 +17,8 @@ type LLMChannel struct {
 	Enabled     bool   `json:"enabled"`
 	ChannelID   int    `json:"channel_id"`
 	ChannelName string `json:"channel_name"`
+	BaseURL     string `json:"base_url"`
+	KeyCount    int    `json:"key_count"`
 }
 
 type GeminiModel struct {

@@ -20,6 +20,9 @@ type SlotProps<T extends HTMLElement = HTMLElement> = {
   children?: any;
 } & DOMMotionProps<T>;
 
+const motionComponentCache = new WeakMap<object, React.ElementType>();
+const motionTagCache = new Map<string, React.ElementType>();
+
 function mergeRefs<T>(
   ...refs: (React.Ref<T> | undefined)[]
 ): React.RefCallback<T> {
@@ -58,33 +61,50 @@ function mergeProps<T extends HTMLElement>(
   return merged;
 }
 
+function getMotionBase(type: React.ElementType): React.ElementType {
+  if (isMotionComponent(type)) return type;
+
+  if (typeof type === 'string') {
+    const cached = motionTagCache.get(type);
+    if (cached) return cached;
+
+    const created = motion.create(type);
+    motionTagCache.set(type, created);
+    return created;
+  }
+
+  const objectType = type as object;
+  const cached = motionComponentCache.get(objectType);
+  if (cached) return cached;
+
+  const created = motion.create(type);
+  motionComponentCache.set(objectType, created);
+  return created;
+}
+
 function Slot<T extends HTMLElement = HTMLElement>({
   children,
   ref,
   ...props
 }: SlotProps<T>) {
-  const isAlreadyMotion =
-    typeof children.type === 'object' &&
-    children.type !== null &&
-    isMotionComponent(children.type);
-
-  const Base = React.useMemo(
-    () =>
-      isAlreadyMotion
-        ? (children.type as React.ElementType)
-        : motion.create(children.type as React.ElementType),
-    [isAlreadyMotion, children.type],
-  );
-
   if (!React.isValidElement(children)) return null;
+
+  // Wrapped motion components are cached at module scope, so this lookup is stable
+  // even though the linter cannot infer that `getMotionBase` never recreates the
+  // same component during render.
+  /* eslint-disable react-hooks/static-components */
+  const Base = getMotionBase(children.type as React.ElementType);
 
   const { ref: childRef, ...childProps } = children.props as AnyProps;
 
   const mergedProps = mergeProps(childProps, props);
 
-  return (
+  const rendered = (
     <Base {...mergedProps} ref={mergeRefs(childRef as React.Ref<T>, ref)} />
   );
+  /* eslint-enable react-hooks/static-components */
+
+  return rendered;
 }
 
 export {

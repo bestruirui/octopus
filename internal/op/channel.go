@@ -3,7 +3,9 @@ package op
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
+	"time"
 
 	"github.com/bestruirui/octopus/internal/db"
 	"github.com/bestruirui/octopus/internal/model"
@@ -107,6 +109,89 @@ func ChannelKeySaveDB(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func ChannelSelectKey(channel *model.Channel, mode model.GroupMode, modelName string) model.ChannelKey {
+	if channel == nil {
+		return model.ChannelKey{}
+	}
+	if mode != model.GroupModeScored {
+		return channel.GetChannelKey()
+	}
+
+	nowSec := time.Now().Unix()
+	available := make([]model.ChannelKey, 0, len(channel.Keys))
+	for _, k := range channel.Keys {
+		if !k.Enabled || k.ChannelKey == "" {
+			continue
+		}
+		if k.StatusCode == 429 && k.LastUseTimeStamp > 0 {
+			if nowSec-k.LastUseTimeStamp < int64(5*time.Minute/time.Second) {
+				continue
+			}
+		}
+		available = append(available, k)
+	}
+	if len(available) == 0 {
+		return model.ChannelKey{}
+	}
+
+	sort.Slice(available, func(i, j int) bool {
+		left := scoreChannelKey(channel, available[i], modelName)
+		right := scoreChannelKey(channel, available[j], modelName)
+		if left == right {
+			if available[i].TotalCost == available[j].TotalCost {
+				return available[i].ID < available[j].ID
+			}
+			return available[i].TotalCost < available[j].TotalCost
+		}
+		return left > right
+	})
+	return available[0]
+}
+
+func scoreChannelKey(channel *model.Channel, key model.ChannelKey, modelName string) float64 {
+	if channel == nil {
+		return 0
+	}
+	weights := GetHealthScoreWeights()
+	totalKeys := len(channel.Keys)
+	enabledKeys := 0
+	for _, item := range channel.Keys {
+		if item.Enabled && item.ChannelKey != "" {
+			enabledKeys++
+		}
+	}
+	baseDelay := 0
+	if url := channel.GetBaseUrl(); url != "" {
+		for _, bu := range channel.BaseUrls {
+			if bu.URL == url {
+				baseDelay = bu.Delay
+				break
+			}
+		}
+	}
+
+	stats := StatsChannelGet(channel.ID).StatsMetrics
+	if modelName != "" {
+		modelStats := StatsModelGet(StatsModelKey(channel.ID, modelName))
+		if modelStats.Name != "" {
+			stats = modelStats.StatsMetrics
+		}
+	}
+
+	score := ComputeHealthScore(stats, baseDelay, enabledKeys, totalKeys)
+	if key.StatusCode == 429 {
+		score -= weights.RateLimitPenalty
+	}
+	if key.LastUseTimeStamp > 0 {
+		ageSeconds := time.Now().Unix() - key.LastUseTimeStamp
+		if ageSeconds < int64(10*time.Minute/time.Second) {
+			score += weights.RecentUseBonus
+		}
+	}
+	score -= key.TotalCost * weights.CostPenalty
+	return score
 }
 
 func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channel, error) {
@@ -336,6 +421,12 @@ func ChannelLLMList(ctx context.Context) ([]model.LLMChannel, error) {
 	models := []model.LLMChannel{}
 	for _, channel := range channelCache.GetAll() {
 		modelNames := xstrings.SplitTrimCompact(",", channel.Model, channel.CustomModel)
+		enabledKeyCount := 0
+		for _, key := range channel.Keys {
+			if key.Enabled && key.ChannelKey != "" {
+				enabledKeyCount++
+			}
+		}
 		for _, modelName := range modelNames {
 			if modelName == "" {
 				continue
@@ -345,6 +436,8 @@ func ChannelLLMList(ctx context.Context) ([]model.LLMChannel, error) {
 				Enabled:     channel.Enabled,
 				ChannelID:   channel.ID,
 				ChannelName: channel.Name,
+				BaseURL:     channel.GetBaseUrl(),
+				KeyCount:    enabledKeyCount,
 			})
 		}
 	}

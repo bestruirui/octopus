@@ -47,6 +47,7 @@
         "home": "Home",
         "channel": "Channel",
         "group": "Group",
+        "health": "Health",
         "key": "Key",
         "model": "Price",
         "log": "Log",
@@ -183,6 +184,34 @@
                 "placeholder": "Enter max cooldown in seconds"
             },
             "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
+        },
+        "groupDefaults": {
+            "title": "Group Defaults",
+            "hint": "Default values for group first-token timeout and session stickiness. Group-level custom values override these defaults; leaving a field empty or 0 inherits the setting here.",
+            "firstTokenTimeOut": {
+                "label": "Default First Token Timeout (s)",
+                "placeholder": "Enter default timeout"
+            },
+            "sessionKeepTime": {
+                "label": "Default Session Keep Time (s)",
+                "placeholder": "Enter default sticky time"
+            }
+        },
+        "healthScore": {
+            "title": "Score Weights",
+            "hint": "Tune how scored routing and the health page calculate scores. Larger values mean stronger influence on the final score.",
+            "fields": {
+                "success_rate": { "label": "Success Rate Weight", "description": "Maximum score contribution from real request success rate" },
+                "avg_wait": { "label": "Average Wait Weight", "description": "Lower average latency gets more of this score" },
+                "key_availability": { "label": "Key Availability Weight", "description": "More available keys produce a higher score" },
+                "base_delay": { "label": "Base Delay Penalty", "description": "Higher base URL delay increases the maximum deduction" },
+                "priority_boost": { "label": "Priority Boost", "description": "Base boost applied from group item priority" },
+                "weight_boost": { "label": "Weight Boost", "description": "Additional score granted per group item weight point" },
+                "recent_use_bonus": { "label": "Recent Use Bonus", "description": "Bonus added when a key was used successfully recently" },
+                "rate_limit_penalty": { "label": "Rate Limit Penalty", "description": "Penalty applied when a key recently hit 429" },
+                "cost_penalty": { "label": "Cost Penalty", "description": "Coefficient that turns accumulated key cost into score deduction" },
+                "cold_start_score": { "label": "Cold Start Base Score", "description": "Default baseline score when there is no traffic data yet" }
+            }
         },
         "saved": "Saved",
         "backup": {
@@ -373,12 +402,32 @@
             "matchRegexInvalid": "Invalid regex",
             "firstTokenTimeOut": "First Token Timeout",
             "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
+            "firstTokenTimeOutDefaultHint": "Leave empty or 0 to inherit the default from settings: {value}s",
+            "firstTokenTimeOutDisabledHint": "Leave empty or 0 to disable it, or configure a global default in settings",
             "sessionKeepTime": "Session Keep Time",
             "sessionKeepTimeHint": "Unit: seconds, keeps using the same channel within a session, 0 = disabled",
+            "sessionKeepTimeDefaultHint": "Leave empty or 0 to inherit the default from settings: {value}s",
+            "sessionKeepTimeDisabledHint": "Leave empty or 0 to disable it, or configure a global default in settings",
             "items": "Selected Models",
             "addItem": "Add Model",
             "autoAdd": "Auto Add",
             "clear": "Clear",
+            "selectedSearchPlaceholder": "Search model, channel, or base URL",
+            "selectedFilter": "Filter",
+            "selectedSort": "Sort",
+            "duplicateBadge": "{count} duplicates",
+            "duplicateHint": "Duplicates are detected by the same model name under the same base URL so repeated multi-key entries can be adjusted quickly.",
+            "reorderLockedHint": "Drag reorder is disabled while a filter or derived sort is active. Switch back to the default view to adjust the saved order.",
+            "filters": {
+                "all": "All models",
+                "duplicates": "Same-source duplicates"
+            },
+            "sorts": {
+                "manual": "Current order",
+                "modelAsc": "Model name",
+                "channelAsc": "Channel name",
+                "weightDesc": "Weight high to low"
+            },
             "selectChannel": "Channel",
             "selectModel": "Model"
         },
@@ -386,9 +435,72 @@
             "roundRobin": "Round Robin",
             "random": "Random",
             "failover": "Failover",
-            "weighted": "Weighted"
+            "weighted": "Weighted",
+            "scored": "Scored"
         },
         "empty": "No groups yet, click the button above to create one"
+    },
+    "health": {
+        "title": "Channel Health",
+        "description": "Evaluate channel and model health with success rate, average wait time, base delay, and available keys.",
+        "detailTitle": "Channel Detail",
+        "modelCount": "Models",
+        "expandModels": "Expand Models",
+        "collapseModels": "Collapse Models",
+        "loading": "Loading health data...",
+        "empty": "No health data",
+        "disabled": "Disabled",
+        "summary": {
+            "channels": "Channels",
+            "models": "Models",
+            "avgScore": "Average Score",
+            "healthy": "healthy",
+            "scoreHint": "Composite health score out of 100"
+        },
+        "grade": {
+            "excellent": "Excellent",
+            "good": "Good",
+            "warning": "Warning",
+            "critical": "Critical"
+        },
+        "columns": {
+            "successRate": "Success Rate",
+            "avgWait": "Avg Wait",
+            "keys": "Available Keys",
+            "requests": "Requests",
+            "baseDelay": "Base Delay",
+            "models": "Healthy Models",
+            "success": "Successful",
+            "failed": "Failed"
+        },
+        "modelColumns": {
+            "name": "Model",
+            "score": "Score",
+            "successRate": "Success Rate",
+            "requests": "Requests",
+            "avgWait": "Avg Wait"
+        },
+        "toolbar": {
+            "searchPlaceholder": "Search channels or models",
+            "filter": "Filter status",
+            "sort": "Sort by",
+            "expandAll": "Expand All",
+            "collapseAll": "Collapse All",
+            "resultCount": "Results",
+            "filters": {
+                "all": "All Channels",
+                "healthy": "Healthy Only",
+                "warning": "Warning Only",
+                "critical": "Critical Only"
+            },
+            "sorts": {
+                "scoreDesc": "Score High to Low",
+                "scoreAsc": "Score Low to High",
+                "successDesc": "Success Rate High to Low",
+                "waitAsc": "Avg Wait Low to High",
+                "requestsDesc": "Requests High to Low"
+            }
+        }
     },
     "model": {
         "create": {
@@ -425,6 +537,35 @@
         }
     },
     "log": {
+        "toolbar": {
+            "title": "Log Filters",
+            "description": "Filter logs by API format, model, channel, and status, and control whether live events are consumed.",
+            "searchPlaceholder": "Search model, channel, API key, or error",
+            "filter": "Filter",
+            "sort": "Sort",
+            "realtime": "Realtime",
+            "connected": "Live connected",
+            "connecting": "Live connecting",
+            "disconnected": "Live paused",
+            "resultCount": "Results",
+            "apiFormat": {
+                "label": "API Format",
+                "all": "All Formats",
+                "searchPlaceholder": "Type to search..."
+            },
+            "filters": {
+                "all": "All Logs",
+                "success": "Success Only",
+                "failed": "Failed Only",
+                "retry": "Retry Only"
+            },
+            "sorts": {
+                "timeDesc": "Newest First",
+                "timeAsc": "Oldest First",
+                "durationDesc": "Longest Duration",
+                "costDesc": "Highest Cost"
+            }
+        },
         "list": {
             "noMore": "No more logs"
         },

@@ -6,9 +6,11 @@ export const MODE_LABELS: Record<GroupMode, string> = {
     [GroupMode.Random]: 'random',
     [GroupMode.Failover]: 'failover',
     [GroupMode.Weighted]: 'weighted',
+    [GroupMode.Scored]: 'scored',
 } as const;
 
-export function normalizeKey(value: string) {
+export function normalizeKey(value?: string | null) {
+    if (typeof value !== 'string') return '';
     return value.trim().toLowerCase();
 }
 
@@ -32,5 +34,3 @@ export function buildChannelNameByModelKey(modelChannels: LLMChannel[]) {
     });
     return map;
 }
-
-

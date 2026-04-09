@@ -32,7 +32,7 @@ function reorderList<T>(list: T[], startIndex: number, endIndex: number): T[] {
 type MemberItemDnd = {
     innerRef: DraggableProvided['innerRef'];
     draggableProps: DraggableProvided['draggableProps'];
-    dragHandleProps: DraggableProvided['dragHandleProps'];
+    dragHandleProps?: DraggableProvided['dragHandleProps'];
     isDragging: boolean;
 };
 
@@ -46,6 +46,7 @@ function MemberItem({
     showConfirmDelete = true,
     layoutScope,
     dnd,
+    dragDisabled = false,
 }: {
     member: SelectedMember;
     onRemove: (id: string) => void;
@@ -56,6 +57,7 @@ function MemberItem({
     showConfirmDelete?: boolean;
     layoutScope?: string;
     dnd: MemberItemDnd;
+    dragDisabled?: boolean;
 }) {
     const { Avatar: ModelAvatar } = getModelIcon(member.name);
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -93,7 +95,9 @@ function MemberItem({
                 <div
                     className={cn(
                         'p-0.5 rounded touch-none transition-colors',
-                        isDisabled
+                        dragDisabled
+                            ? 'cursor-not-allowed opacity-40'
+                            : isDisabled
                             ? 'cursor-grab active:cursor-grabbing hover:bg-muted/60'
                             : 'cursor-grab active:cursor-grabbing hover:bg-muted'
                     )}
@@ -118,6 +122,9 @@ function MemberItem({
                         <TooltipContent key={member.name}>{member.name}</TooltipContent>
                     </Tooltip>
                     <span className="text-[10px] text-muted-foreground truncate leading-tight">{member.channel_name}</span>
+                    {member.base_url ? (
+                        <span className="text-[10px] text-muted-foreground/80 truncate leading-tight">{member.base_url}</span>
+                    ) : null}
                 </div>
 
                 {showWeight && (
@@ -207,6 +214,7 @@ export interface MemberListProps {
      */
     showConfirmDelete?: boolean;
     layoutScope?: string;
+    dragDisabled?: boolean;
 }
 
 export function MemberList({
@@ -222,6 +230,7 @@ export function MemberList({
     showWeight = false,
     showConfirmDelete = true,
     layoutScope: externalLayoutScope,
+    dragDisabled = false,
 }: MemberListProps) {
     const internalLayoutScope = useId();
     const layoutScope = externalLayoutScope ?? internalLayoutScope;
@@ -313,7 +322,7 @@ export function MemberList({
                                         key={member.id}
                                         draggableId={member.id}
                                         index={index}
-                                        isDragDisabled={removingIds.has(member.id)}
+                                        isDragDisabled={dragDisabled || removingIds.has(member.id)}
                                     >
                                         {(draggableProvided, snapshot) => (
                                             <MemberItem
@@ -325,6 +334,7 @@ export function MemberList({
                                                 showWeight={showWeight}
                                                 showConfirmDelete={showConfirmDelete}
                                                 layoutScope={layoutScope}
+                                                dragDisabled={dragDisabled}
                                                 dnd={{
                                                     innerRef: draggableProvided.innerRef,
                                                     draggableProps: draggableProvided.draggableProps,

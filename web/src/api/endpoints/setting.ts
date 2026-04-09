@@ -22,6 +22,9 @@ export const SettingKey = {
     CircuitBreakerThreshold: 'circuit_breaker_threshold',
     CircuitBreakerCooldown: 'circuit_breaker_cooldown',
     CircuitBreakerMaxCooldown: 'circuit_breaker_max_cooldown',
+    HealthScoreWeights: 'health_score_weights',
+    GroupDefaultFirstTokenTimeOut: 'group_default_first_token_time_out',
+    GroupDefaultSessionKeepTime: 'group_default_session_keep_time',
 } as const;
 
 /**
@@ -209,4 +212,3 @@ export function useImportDB() {
         },
     });
 }
-
