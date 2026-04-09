@@ -18,10 +18,7 @@ type WithAsChild<Base extends object> =
 type SlotProps<T extends HTMLElement = HTMLElement> = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   children?: any;
-} & Omit<React.HTMLAttributes<T>, 'style'> & {
-  ref?: React.Ref<T>;
-  style?: React.CSSProperties;
-};
+} & DOMMotionProps<T>;
 
 function mergeRefs<T>(
   ...refs: (React.Ref<T> | undefined)[]
@@ -68,13 +65,14 @@ function Slot<T extends HTMLElement = HTMLElement>({
 }: SlotProps<T>) {
   if (!React.isValidElement(children)) return null;
 
-  const { ref: childRef, ...childProps } = children.props as AnyProps;
+  const child = children as React.ReactElement<AnyProps & { ref?: React.Ref<T> }>;
+  const { ref: childRef, ...childProps } = child.props;
 
   const mergedProps = mergeProps(childProps, props as DOMMotionProps<T>);
 
-  return React.cloneElement(children, {
+  return React.cloneElement(child, {
     ...mergedProps,
-    ref: mergeRefs(childRef as React.Ref<T>, ref),
+    ref: mergeRefs(childRef, ref),
   });
 }
 

@@ -71,6 +71,20 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+get_python_cmd() {
+    if command_exists python; then
+        echo "python"
+        return 0
+    fi
+
+    if command_exists python3; then
+        echo "python3"
+        return 0
+    fi
+
+    return 1
+}
+
 prepare_environment() {
     log_step "Preparing build environment"
 
@@ -87,12 +101,13 @@ prepare_environment() {
     log_success "Go version: $go_version"
 
     # Check Python
-    if ! command_exists python3; then
+    local python_cmd
+    if ! python_cmd="$(get_python_cmd)"; then
         log_error "Python is not installed. Please install Python from https://www.python.org/downloads/"
         return 1
     fi
 
-    local python_version=$(python3 --version 2>/dev/null)
+    local python_version=$(${python_cmd} --version 2>/dev/null)
     log_success "Python version: $python_version"
 
     # Check Node.js
@@ -137,9 +152,9 @@ prepare_environment() {
         return 1
     fi
 
-    # Check zip
-    if ! command_exists zip; then
-        log_error "zip is not installed."
+    # Check archive tooling
+    if ! command_exists zip && ! command_exists powershell.exe; then
+        log_error "zip or powershell.exe is not installed."
         return 1
     fi
 
@@ -256,7 +271,14 @@ build_frontend() {
 
 update_price() {
     log_step "Updating price"
-    if ! python3 scripts/updatePrice.py; then
+
+    local python_cmd
+    if ! python_cmd="$(get_python_cmd)"; then
+        log_error "Python is not installed. Please install Python from https://www.python.org/downloads/"
+        return 1
+    fi
+
+    if ! ${python_cmd} scripts/updatePrice.py; then
         log_error "Failed to update price"
         return 1
     fi
@@ -310,6 +332,37 @@ build_standard() {
 # Post-build Functions
 # =============================================================================
 
+archive_zip() {
+    local archives_dir="$1"
+    local archive_name="$2"
+    shift 2
+    local archive_files=("$@")
+
+    if command_exists zip; then
+        (cd "${archives_dir}" && zip -q "${archive_name}" "${archive_files[@]}" 2>/dev/null)
+        return $?
+    fi
+
+    if command_exists powershell.exe; then
+        local joined_files=""
+        local file
+        for file in "${archive_files[@]}"; do
+            if [ -n "${joined_files}" ]; then
+                joined_files+=" ,"
+            fi
+            joined_files+="'${file}'"
+        done
+
+        (
+            cd "${archives_dir}" && \
+            powershell.exe -NoProfile -Command "Compress-Archive -Path ${joined_files} -DestinationPath '${archive_name}' -Force" >/dev/null
+        )
+        return $?
+    fi
+
+    return 1
+}
+
 create_archives() {
     log_step "Creating distribution archives"
 
@@ -334,7 +387,7 @@ create_archives() {
             continue
         fi
 
-        if (cd "${archives_dir}" && zip -q "${basename_file}.zip" "${APP_NAME}${extension}" README.md LICENSE 2>/dev/null); then
+        if archive_zip "${archives_dir}" "${basename_file}.zip" "${APP_NAME}${extension}" README.md LICENSE; then
             rm -f "${archives_dir}/${APP_NAME}${extension}"
             log_success "Archived: archives/${basename_file}.zip"
         else

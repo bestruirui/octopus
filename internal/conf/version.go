@@ -1,7 +1,7 @@
 package conf
 
 var (
-	Version   = "1.0.4"
+	Version   = "1.0.5"
 	Commit    = "unknown"
 	BuildTime = "unknown"
 	Author    = "lingyu"
