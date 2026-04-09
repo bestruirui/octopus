@@ -17,7 +17,8 @@
 - 🔑 **Multi-Key Support** - Support multiple API keys for a single channel
 - ⚡ **Smart Selection** - Multiple endpoints per channel, smart selection of the endpoint with the shortest delay
 - ⚖️ **Load Balancing** - Automatic request distribution for stable and efficient service
-- 🔄 **Protocol Conversion** - Seamless conversion between OpenAI Chat / OpenAI Responses / Anthropic API formats
+- 🔄 **Protocol Conversion** - Seamless conversion between OpenAI Chat / OpenAI Responses / OpenAI Embeddings / Anthropic API formats
+- 🌐 **Multi-Provider Support** - Built-in support for OpenAI-compatible, Anthropic, Gemini, and Volcengine channels
 - 💰 **Price Sync** - Automatic model pricing updates
 - 🔃 **Model Sync** - Automatic synchronization of available model lists with channels
 - 📊 **Analytics** - Comprehensive request statistics, token consumption, and cost tracking
@@ -32,7 +33,7 @@
 Run directly:
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.0.4
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.0.5
 ```
 
 Or use docker compose:
@@ -66,7 +67,7 @@ cd octopus
 cd web && pnpm install && pnpm run build && cd ..
 # Move frontend assets to static directory
 mv web/out static/
-# Set required initial admin credentials
+# Optional: bootstrap the initial admin via environment variables
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
 # Optional but recommended: set a persistent JWT secret
@@ -81,7 +82,7 @@ go run main.go start
 
 ```bash
 cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" pnpm run dev
-## Open a new terminal, set required initial admin credentials
+## Open a new terminal, optionally set initial admin credentials for automatic bootstrap
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
 ## Optional but recommended: set a persistent JWT secret
@@ -94,10 +95,10 @@ http://localhost:3000
 
 ### 🔐 Initial Admin Setup
 
-On first launch, you must provide the initial admin credentials through environment variables:
+On first launch, you can initialize the admin account in either of these ways:
 
-- `OCTOPUS_INITIAL_ADMIN_USERNAME`
-- `OCTOPUS_INITIAL_ADMIN_PASSWORD`
+- Provide `OCTOPUS_INITIAL_ADMIN_USERNAME` and `OCTOPUS_INITIAL_ADMIN_PASSWORD` to bootstrap automatically at startup
+- Or open the Web UI on first visit and create the initial admin account there
 
 > ⚠️ **Security Notice**: The initial admin password must be at least 12 characters long.
 >
@@ -253,8 +254,10 @@ The program automatically appends API paths based on channel type. You only need
 |--------------|-------------------|----------|--------------------------|
 | OpenAI Chat | `/chat/completions` | `https://api.openai.com/v1` | `https://api.openai.com/v1/chat/completions` |
 | OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
+| OpenAI Embeddings | `/embeddings` | `https://api.openai.com/v1` | `https://api.openai.com/v1/embeddings` |
 | Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
 | Gemini | `/models/:model:generateContent` | `https://generativelanguage.googleapis.com/v1beta` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
+| Volcengine | `/responses` | `https://ark.cn-beijing.volces.com/api/v3` | `https://ark.cn-beijing.volces.com/api/v3/responses` |
 
 > 💡 **Tip**: No need to include specific API endpoint paths in the Base URL - the program handles this automatically.
 
@@ -268,6 +271,8 @@ Groups aggregate multiple channels into a unified external model name.
 
 - **Group name** is the model name exposed by the program
 - When calling the API, set the `model` parameter to the group name
+- **First Token Timeout**: unit in seconds, only effective for streaming responses, `0` means no limit
+- **Session Keep Time**: unit in seconds, keeps using the same channel for the same API key + model within the configured session window, `0` means disabled
 
 **Load Balancing Modes:**
 
@@ -276,7 +281,7 @@ Groups aggregate multiple channels into a unified external model name.
 | 🔄 **Round Robin** | Cycles through channels sequentially for each request |
 | 🎲 **Random** | Randomly selects an available channel for each request |
 | 🛡️ **Failover** | Prioritizes high-priority channels, switches to lower priority only on failure |
-| ⚖️ **Weighted** | Distributes requests based on configured channel weights |
+| ⚖️ **Weighted** | Orders candidates by weight from high to low, then tries them in that order |
 
 > 💡 **Example**: Create a group named `gpt-4o`, add multiple providers' GPT-4o channels to it, then access all channels via a unified `model: gpt-4o`.
 

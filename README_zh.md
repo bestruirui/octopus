@@ -17,7 +17,8 @@
 - 🔑 **多Key支持** - 单渠道支持配置多 Key
 - ⚡ **智能优选** - 单渠道多端点，智能选择延迟最小的端点请求
 - ⚖️ **负载均衡** - 自动分配请求，确保服务稳定高效
-- 🔄 **协议互转** - 支持 OpenAI Chat / OpenAI Responses / Anthropic 三种 API 格式互相转换
+- 🔄 **协议互转** - 支持 OpenAI Chat / OpenAI Responses / OpenAI Embeddings / Anthropic 四种 API 格式互相转换
+- 🌐 **多供应商支持** - 内置支持 OpenAI 兼容、Anthropic、Gemini、Volcengine 渠道
 - 💰 **价格同步** - 自动更新模型价格
 - 🔃 **模型同步** - 自动与渠道同步可用模型列表，省心省力
 - 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪
@@ -32,7 +33,7 @@
 直接运行
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.0.4
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.0.5
 ```
 
 或者使用 docker compose 运行
@@ -66,7 +67,7 @@ cd octopus
 cd web && pnpm install && pnpm run build && cd ..
 # 移动前端产物到 static 目录
 mv web/out static/
-# 设置必需的初始管理员账户
+# 可选：通过环境变量预置初始管理员账户
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
 # 可选但强烈建议：设置持久化 JWT 密钥
@@ -81,7 +82,7 @@ go run main.go start
 
 ```bash
 cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" pnpm run dev
-## 新建终端,设置必需的初始管理员账户
+## 新建终端，可选：通过环境变量自动创建初始管理员账户
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
 ## 可选但强烈建议：设置持久化 JWT 密钥
@@ -94,10 +95,10 @@ http://localhost:3000
 
 ### 🔐 初始管理员设置
 
-首次启动时，必须通过环境变量提供初始管理员账户：
+首次启动时，可以通过以下任一方式完成管理员初始化：
 
-- `OCTOPUS_INITIAL_ADMIN_USERNAME`
-- `OCTOPUS_INITIAL_ADMIN_PASSWORD`
+- 设置 `OCTOPUS_INITIAL_ADMIN_USERNAME` 和 `OCTOPUS_INITIAL_ADMIN_PASSWORD`，在启动时自动创建初始管理员账户
+- 或在首次访问 Web UI 时，在引导页面中手动创建初始管理员账户
 
 > ⚠️ **安全提示**：初始管理员密码长度必须至少为 12 个字符。
 >
@@ -254,8 +255,10 @@ http://localhost:3000
 |----------|-------------|----------|-----------------|
 | OpenAI Chat | `/chat/completions` | `https://api.openai.com/v1` | `https://api.openai.com/v1/chat/completions` |
 | OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
+| OpenAI Embeddings | `/embeddings` | `https://api.openai.com/v1` | `https://api.openai.com/v1/embeddings` |
 | Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
 | Gemini | `/models/:model:generateContent` | `https://generativelanguage.googleapis.com/v1beta` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
+| Volcengine | `/responses` | `https://ark.cn-beijing.volces.com/api/v3` | `https://ark.cn-beijing.volces.com/api/v3/responses` |
 
 > 💡 **提示**：填写 Base URL 时无需包含具体的 API 端点路径，程序会自动处理。
 
@@ -269,6 +272,8 @@ http://localhost:3000
 
 - **分组名称** 即程序对外暴露的模型名称
 - 调用 API 时，将请求中的 `model` 参数设置为分组名称即可
+- **首字超时**：单位秒，仅对流式响应生效，`0` 表示不限制
+- **会话保持**：单位秒，在设定时间窗口内，同一 API Key + 模型会优先复用上次成功的渠道，`0` 表示禁用
 
 **负载均衡模式：**
 
@@ -277,7 +282,7 @@ http://localhost:3000
 | 🔄 **轮询** | 每次请求依次切换到下一个渠道 |
 | 🎲 **随机** | 每次请求随机选择一个可用渠道 |
 | 🛡️ **故障转移** | 优先使用高优先级渠道，仅当其故障时才切换到低优先级渠道 |
-| ⚖️ **加权分配** | 根据渠道设置的权重比例分配请求 |
+| ⚖️ **加权分配** | 按权重从高到低排序后依次尝试渠道 |
 
 > 💡 **示例**：创建分组名称为 `gpt-4o`，将多个供应商的 GPT-4o 渠道加入该分组，即可通过统一的 `model: gpt-4o` 访问所有渠道。
 

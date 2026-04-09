@@ -97,6 +97,9 @@ get_python_cmd() {
     if try_python_cmd "py -3"; then
         return 0
     fi
+    if try_python_cmd "python"; then
+        return 0
+    fi
     return 1
 }
 
@@ -140,7 +143,10 @@ prepare_environment() {
         require_command curl "curl is not installed." || return 1
         require_command unzip "unzip is not installed." || return 1
         require_command tar "tar is not installed." || return 1
-        require_command zip "zip is not installed." || return 1
+        if ! command_exists zip && ! command_exists powershell.exe; then
+            log_error "zip or powershell.exe is not installed."
+            return 1
+        fi
         if ! command_exists md5sum && ! command_exists md5; then
             log_error "md5sum or md5 is not installed."
             return 1
@@ -315,6 +321,37 @@ build_standard() {
 # Post-build Functions
 # =============================================================================
 
+archive_zip() {
+    local archives_dir="$1"
+    local archive_name="$2"
+    shift 2
+    local archive_files=("$@")
+
+    if command_exists zip; then
+        (cd "${archives_dir}" && zip -q "${archive_name}" "${archive_files[@]}" 2>/dev/null)
+        return $?
+    fi
+
+    if command_exists powershell.exe; then
+        local joined_files=""
+        local file
+        for file in "${archive_files[@]}"; do
+            if [ -n "${joined_files}" ]; then
+                joined_files+=" ,"
+            fi
+            joined_files+="'${file}'"
+        done
+
+        (
+            cd "${archives_dir}" && \
+            powershell.exe -NoProfile -Command "Compress-Archive -Path ${joined_files} -DestinationPath '${archive_name}' -Force" >/dev/null
+        )
+        return $?
+    fi
+
+    return 1
+}
+
 create_archives() {
     log_step "Creating distribution archives"
 
@@ -339,7 +376,7 @@ create_archives() {
             continue
         fi
 
-        if (cd "${archives_dir}" && zip -q "${basename_file}.zip" "${APP_NAME}${extension}" README.md LICENSE 2>/dev/null); then
+        if archive_zip "${archives_dir}" "${basename_file}.zip" "${APP_NAME}${extension}" README.md LICENSE; then
             rm -f "${archives_dir}/${APP_NAME}${extension}"
             log_success "Archived: archives/${basename_file}.zip"
         else
