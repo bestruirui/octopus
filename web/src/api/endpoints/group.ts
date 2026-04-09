@@ -37,6 +37,31 @@ export interface Group {
     items?: GroupItem[];
 }
 
+export interface GroupTestResult {
+    item_id: number;
+    channel_id: number;
+    channel_name: string;
+    model_name: string;
+    passed: boolean;
+    attempts: number;
+    status_code: number;
+    response_text?: string;
+    message?: string;
+}
+
+export interface GroupTestSummary {
+    passed: boolean;
+    completed: number;
+    total: number;
+    results: GroupTestResult[];
+}
+
+export interface GroupTestProgress extends GroupTestSummary {
+    id: string;
+    done: boolean;
+    message?: string;
+}
+
 /**
  * 新增 item 请求
  */
@@ -61,27 +86,16 @@ export interface GroupItemUpdateRequest {
  */
 export interface GroupUpdateRequest {
     id: number;
-    name?: string;                        // 仅在名称变更时发送
-    mode?: GroupMode;                     // 仅在模式变更时发送
-    match_regex?: string;                 // 仅在匹配正则变更时发送
-    first_token_time_out?: number;        // 仅在超时变更时发送
-    session_keep_time?: number;           // 仅在会话保持时间变更时发送
-    items_to_add?: GroupItemAddRequest[];    // 新增的 items
-    items_to_update?: GroupItemUpdateRequest[]; // 更新的 items (priority 变更)
-    items_to_delete?: number[];              // 删除的 item IDs
+    name?: string;
+    mode?: GroupMode;
+    match_regex?: string;
+    first_token_time_out?: number;
+    session_keep_time?: number;
+    items_to_add?: GroupItemAddRequest[];
+    items_to_update?: GroupItemUpdateRequest[];
+    items_to_delete?: number[];
 }
 
-/**
- * 获取分组列表 Hook
- * 
- * @example
- * const { data: groups, isLoading, error } = useGroupList();
- * 
- * if (isLoading) return <Loading />;
- * if (error) return <Error message={error.message} />;
- * 
- * groups?.forEach(group => console.log(group.name, group.items));
- */
 export function useGroupList() {
     return useQuery({
         queryKey: ['groups', 'list'],
@@ -93,19 +107,6 @@ export function useGroupList() {
     });
 }
 
-/**
- * 创建分组 Hook
- * 
- * @example
- * const createGroup = useCreateGroup();
- * 
- * createGroup.mutate({
- *   name: 'my-group',
- *   items: [
- *     { channel_id: 1, model_name: 'gpt-4', priority: 1 },
- *   ],
- * });
- */
 export function useCreateGroup() {
     const queryClient = useQueryClient();
 
@@ -123,20 +124,6 @@ export function useCreateGroup() {
     });
 }
 
-/**
- * 更新分组 Hook - 仅发送变更的数据
- * 
- * @example
- * const updateGroup = useUpdateGroup();
- * 
- * updateGroup.mutate({
- *   id: 1,
- *   name: 'updated-group',  // 可选，仅在名称变更时发送
- *   items_to_add: [{ channel_id: 1, model_name: 'gpt-4', priority: 1 }],
- *   items_to_update: [{ id: 1, priority: 2 }],
- *   items_to_delete: [2, 3],
- * });
- */
 export function useUpdateGroup() {
     const queryClient = useQueryClient();
 
@@ -154,14 +141,6 @@ export function useUpdateGroup() {
     });
 }
 
-/**
- * 删除分组 Hook
- * 
- * @example
- * const deleteGroup = useDeleteGroup();
- * 
- * deleteGroup.mutate(1); // 删除 ID 为 1 的分组
- */
 export function useDeleteGroup() {
     const queryClient = useQueryClient();
 
@@ -175,6 +154,37 @@ export function useDeleteGroup() {
         },
         onError: (error) => {
             logger.error('分组删除失败:', error);
+        },
+    });
+}
+
+export function useTestGroup() {
+    return useMutation({
+        mutationFn: async (groupId: number) => {
+            return apiClient.post<GroupTestProgress>('/api/v1/group/test', { group_id: groupId });
+        },
+        onSuccess: (data) => {
+            logger.log('分组检测成功:', data);
+        },
+        onError: (error) => {
+            logger.error('分组检测失败:', error);
+        },
+    });
+}
+
+export function useGroupTestProgress(progressId: string | null) {
+    return useQuery({
+        queryKey: ['groups', 'test-progress', progressId],
+        queryFn: async () => {
+            return apiClient.get<GroupTestProgress>(`/api/v1/group/test/progress/${progressId}`);
+        },
+        enabled: Boolean(progressId),
+        refetchInterval: (query) => {
+            const data = query.state.data;
+            if (!progressId || data?.done) {
+                return false;
+            }
+            return 800;
         },
     });
 }

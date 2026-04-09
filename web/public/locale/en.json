@@ -164,6 +164,7 @@
             "sortByCost": "Cost",
             "sortByCount": "Count",
             "sortByTokens": "Tokens",
+            "sortByKeyUsage": "Key Usage",
             "noData": "No ranking data",
             "successRate": "Success Rate"
         }
@@ -386,7 +387,13 @@
             "updated": "Updated successfully",
             "updateFailed": "Update failed",
             "deleted": "Deleted successfully",
-            "autoAddFailed": "Auto add failed"
+            "removedFailedModels": "Failed models removed",
+            "autoAddFailed": "Auto add failed",
+            "testAllPassed": "All models in this group are available",
+            "testPartialFailed": "Some models are unavailable",
+            "testPartialFailedDescription": "You may want to remove the failed models",
+            "testRequestFailed": "Group test failed",
+            "removableSuggestion": "Suggested removals"
         },
         "create": {
             "title": "Create Group",
@@ -394,7 +401,15 @@
             "submitting": "Creating..."
         },
         "card": {
-            "empty": "No rules"
+            "empty": "No rules",
+            "testProgressTitle": "Test progress",
+            "testProgressCount": "Completed {completed}/{total}",
+            "testPending": "Pending",
+            "testPassed": "Passed",
+            "testFailedTitle": "The following models failed 3 consecutive checks and can be removed",
+            "testAttempts": "retried {count} times",
+            "testUnknownError": "Unknown error",
+            "testRemovableHint": "You can edit this group and remove the models above."
         },
         "detail": {
             "actions": {
@@ -403,7 +418,9 @@
                 "save": "Save",
                 "copyName": "Copy Name",
                 "delete": "Delete",
-                "confirmDelete": "Confirm Delete"
+                "confirmDelete": "Confirm Delete",
+                "testAvailability": "Test availability",
+                "removeFailedModels": "Remove failed models"
             }
         },
         "form": {

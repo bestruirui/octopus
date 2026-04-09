@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type RankSortMode = 'cost' | 'count' | 'tokens';
+export type RankSortMode = 'cost' | 'count' | 'tokens' | 'key-usage';
 export type ChartMetricType = 'cost' | 'count' | 'tokens';
 export type ChartPeriod = '1' | '7' | '30';
 

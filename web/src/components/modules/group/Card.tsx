@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Trash2, X, Pencil } from 'lucide-react';
+import { Trash2, X, Pencil, Activity, Loader2, CircleCheck, CircleX, Clock3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { type Group, useDeleteGroup, useUpdateGroup } from '@/api/endpoints/group';
+import { type Group, useDeleteGroup, useUpdateGroup, useTestGroup, useGroupTestProgress, type GroupTestResult } from '@/api/endpoints/group';
 import { useModelChannelList } from '@/api/endpoints/model';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ import {
     MorphingDialogTrigger,
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
+import { Progress } from '@/components/ui/progress';
 
 interface EditDialogContentProps {
     group: Group;
@@ -72,6 +73,7 @@ export function GroupCard({ group }: { group: Group }) {
     const t = useTranslations('group');
     const updateGroup = useUpdateGroup();
     const deleteGroup = useDeleteGroup();
+    const testGroup = useTestGroup();
     const { data: modelChannels = [] } = useModelChannelList();
 
     const channelNameByKey = useMemo(() => buildChannelNameByModelKey(modelChannels), [modelChannels]);
@@ -102,8 +104,12 @@ export function GroupCard({ group }: { group: Group }) {
     const [members, setMembers] = useState<SelectedMember[]>(displayMembers);
     const [lastDisplayMembers, setLastDisplayMembers] = useState(displayMembers);
     const [isDragging, setIsDragging] = useState(false);
+    const [currentTestId, setCurrentTestId] = useState<string | null>(null);
     const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
     const membersRef = useRef<SelectedMember[]>([]);
+    const handledTestCompletionRef = useRef<string | null>(null);
+    const testProgressQuery = useGroupTestProgress(currentTestId);
+    const testProgress = testProgressQuery.data;
 
     if (!isDragging && lastDisplayMembers !== displayMembers) {
         setLastDisplayMembers(displayMembers);
@@ -120,6 +126,50 @@ export function GroupCard({ group }: { group: Group }) {
 
     const onSuccess = useCallback(() => toast.success(t('toast.updated')), [t]);
     const onError = useCallback((error: Error) => toast.error(t('toast.updateFailed'), { description: error.message }), [t]);
+    const getRemovableSuggestion = useCallback((results: GroupTestResult[]) => results
+        .filter((result) => !result.passed)
+        .map((result) => `${result.model_name} @ ${result.channel_name}`), []);
+
+    useEffect(() => {
+        if (!testProgress?.done || !testProgress.id || handledTestCompletionRef.current === testProgress.id) {
+            return;
+        }
+
+        handledTestCompletionRef.current = testProgress.id;
+
+        if (testProgress.message) {
+            toast.error(t('toast.testRequestFailed'), { description: testProgress.message });
+            return;
+        }
+
+        const failedResults = testProgress.results.filter((result) => !result.passed);
+        if (failedResults.length === 0) {
+            toast.success(t('toast.testAllPassed'));
+            return;
+        }
+
+        const removable = getRemovableSuggestion(failedResults);
+        toast.warning(t('toast.testPartialFailed'), {
+            description: removable.length > 0
+                ? `${t('toast.removableSuggestion')}: ${removable.join(', ')}`
+                : t('toast.testPartialFailedDescription'),
+            duration: 8000,
+        });
+    }, [getRemovableSuggestion, t, testProgress]);
+
+    const handleTestGroup = useCallback(() => {
+        if (!group.id) return;
+        setCurrentTestId(null);
+        handledTestCompletionRef.current = null;
+        testGroup.mutate(group.id, {
+            onSuccess: (progress) => {
+                setCurrentTestId(progress.id);
+            },
+            onError: (error: Error) => {
+                toast.error(t('toast.testRequestFailed'), { description: error.message });
+            },
+        });
+    }, [group.id, t, testGroup]);
 
     // Avoid UI flicker: drag-reorder also uses the same mutation, so only "mode switch" should lock mode buttons.
     const isUpdatingMode = (() => {
@@ -156,6 +206,34 @@ export function GroupCard({ group }: { group: Group }) {
         const member = members.find((m) => m.id === id);
         if (member?.item_id !== undefined) updateGroup.mutate({ id: group.id!, items_to_delete: [member.item_id] }, { onSuccess, onError });
     }, [members, group.id, updateGroup, onSuccess, onError]);
+
+    const handleRemoveFailedMembers = useCallback(() => {
+        if (!group.id) return;
+
+        const failedIds = Array.from(new Set(
+            (testProgress?.results ?? [])
+                .filter((result) => !result.passed)
+                .map((result) => result.item_id)
+                .filter((itemId): itemId is number => typeof itemId === 'number')
+        ));
+
+        if (failedIds.length === 0) {
+            return;
+        }
+
+        updateGroup.mutate(
+            { id: group.id, items_to_delete: failedIds },
+            {
+                onSuccess: () => {
+                    setCurrentTestId(null);
+                    handledTestCompletionRef.current = null;
+                    onSuccess();
+                    toast.success(t('toast.removedFailedModels'));
+                },
+                onError,
+            }
+        );
+    }, [group.id, onError, onSuccess, t, testProgress?.results, updateGroup]);
 
     const handleWeightChange = useCallback((id: string, weight: number) => {
         setMembers((prev) => prev.map((m) => m.id === id ? { ...m, weight } : m));
@@ -242,6 +320,25 @@ export function GroupCard({ group }: { group: Group }) {
         });
     }, [group.first_token_time_out, group.session_keep_time, group.id, group.items, group.match_regex, group.mode, group.name, onSuccess, onError, updateGroup]);
 
+    const failedTestResults = useMemo(
+        () => (testProgress?.done ? testProgress.results.filter((result) => !result.passed) : []),
+        [testProgress]
+    );
+
+    const resultByItemId = useMemo(() => {
+        const map = new Map<number, GroupTestResult>();
+        const activeResults = testProgress?.results ?? [];
+        activeResults.forEach((result) => {
+            map.set(result.item_id, result);
+        });
+        return map;
+    }, [testProgress]);
+
+    const isTesting = testGroup.isPending || (!!currentTestId && !testProgress?.done);
+    const completedCount = testProgress?.completed ?? 0;
+    const totalCount = testProgress?.total ?? group.items?.length ?? 0;
+    const progressValue = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
     return (
         <article className="flex flex-col rounded-3xl border border-border bg-card text-card-foreground p-4 custom-shadow">
             <header className="flex items-start justify-between mb-3 relative overflow-visible rounded-xl -mx-1 px-1 -my-1 py-1">
@@ -276,6 +373,20 @@ export function GroupCard({ group }: { group: Group }) {
                             </MorphingDialogContent>
                         </MorphingDialogContainer>
                     </MorphingDialog>
+
+                    <Tooltip side="top" sideOffset={10} align="center">
+                        <TooltipTrigger asChild>
+                            <button
+                                type="button"
+                                onClick={handleTestGroup}
+                                disabled={isTesting || !group.id}
+                                className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isTesting ? <Loader2 className="size-4 animate-spin" /> : <Activity className="size-4" />}
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('detail.actions.testAvailability')}</TooltipContent>
+                    </Tooltip>
 
                     <Tooltip side="top" sideOffset={10} align="center">
                         <TooltipTrigger>
@@ -353,6 +464,86 @@ export function GroupCard({ group }: { group: Group }) {
                     layoutScope={`card-${group.id ?? 'unknown'}`}
                 />
             </section>
+
+            {(isTesting || resultByItemId.size > 0) && (
+                <section className="mt-3 rounded-xl border border-border/60 bg-background/80 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <div className="text-sm font-medium text-foreground">{t('card.testProgressTitle')}</div>
+                            <p className="text-xs text-muted-foreground">
+                                {t('card.testProgressCount', { completed: completedCount, total: totalCount })}
+                            </p>
+                        </div>
+                        {isTesting && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+                    </div>
+                    <Progress value={progressValue} className="mt-3 h-2" />
+                    <ul className="mt-3 space-y-2">
+                        {displayMembers.map((member) => {
+                            const result = member.item_id !== undefined ? resultByItemId.get(member.item_id) : undefined;
+                            const status = !result ? 'pending' : result.passed ? 'passed' : 'failed';
+
+                            return (
+                                <li key={`test-status-${member.id}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+                                    <div className="min-w-0">
+                                        <div className="truncate text-sm font-medium text-foreground">{member.name}</div>
+                                        <div className="truncate text-xs text-muted-foreground">{member.channel_name}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs">
+                                        {status === 'pending' && (
+                                            <>
+                                                <Clock3 className="size-3.5 text-muted-foreground" />
+                                                <span className="text-muted-foreground">{t('card.testPending')}</span>
+                                            </>
+                                        )}
+                                        {status === 'passed' && (
+                                            <>
+                                                <CircleCheck className="size-3.5 text-emerald-500" />
+                                                <span className="text-emerald-600 dark:text-emerald-400">{t('card.testPassed')}</span>
+                                            </>
+                                        )}
+                                        {status === 'failed' && (
+                                            <>
+                                                <CircleX className="size-3.5 text-destructive" />
+                                                <span className="max-w-48 truncate text-destructive" title={result?.message || t('card.testUnknownError')}>
+                                                    {result?.message || t('card.testUnknownError')}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+            )}
+
+            {failedTestResults.length > 0 && (
+                <section className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                            {t('card.testFailedTitle')}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleRemoveFailedMembers}
+                            disabled={updateGroup.isPending}
+                            className="shrink-0 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-300"
+                        >
+                            {t('detail.actions.removeFailedModels')}
+                        </button>
+                    </div>
+                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {failedTestResults.map((result) => (
+                                <li key={`${result.item_id}-${result.channel_id}-${result.model_name}`}>
+                                    {result.model_name} @ {result.channel_name} · {t('card.testAttempts', { count: result.attempts })} · {result.message || t('card.testUnknownError')}
+                                </li>
+                            ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-amber-700/90 dark:text-amber-300/90">
+                        {t('card.testRemovableHint')}
+                    </p>
+                </section>
+            )}
         </article >
     );
 }

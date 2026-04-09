@@ -4,13 +4,14 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/dlclark/regexp2"
+	"github.com/gin-gonic/gin"
+	"github.com/lingyuins/octopus/internal/helper"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
-	"github.com/dlclark/regexp2"
-	"github.com/gin-gonic/gin"
 )
 
 func init() {
@@ -28,6 +29,14 @@ func init() {
 		AddRoute(
 			router.NewRoute("/update", http.MethodPost).
 				Handle(updateGroup),
+		).
+		AddRoute(
+			router.NewRoute("/test", http.MethodPost).
+				Handle(startGroupTest),
+		).
+		AddRoute(
+			router.NewRoute("/test/progress/:id", http.MethodGet).
+				Handle(getGroupTestProgress),
 		).
 		AddRoute(
 			router.NewRoute("/delete/:id", http.MethodDelete).
@@ -87,6 +96,55 @@ func updateGroup(c *gin.Context) {
 		return
 	}
 	resp.Success(c, group)
+}
+
+func startGroupTest(c *gin.Context) {
+	var req helper.GroupModelTestRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	group, err := op.GroupGet(req.GroupID, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	channels := make(map[int]model.Channel, len(group.Items))
+	for _, item := range group.Items {
+		if _, ok := channels[item.ChannelID]; ok {
+			continue
+		}
+		channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
+		if err != nil {
+			continue
+		}
+		channels[item.ChannelID] = *channel
+	}
+
+	progress, err := helper.StartGroupModelTest(group, channels)
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, progress)
+}
+
+func getGroupTestProgress(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		resp.Error(c, http.StatusBadRequest, "missing progress id")
+		return
+	}
+
+	progress, ok := helper.GetGroupModelTestProgress(id)
+	if !ok {
+		resp.Error(c, http.StatusNotFound, "group test progress not found")
+		return
+	}
+
+	resp.Success(c, progress)
 }
 
 func deleteGroup(c *gin.Context) {

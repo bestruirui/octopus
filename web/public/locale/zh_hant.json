@@ -164,6 +164,7 @@
             "sortByCost": "金額",
             "sortByCount": "次數",
             "sortByTokens": "Tokens",
+            "sortByKeyUsage": "Key 使用",
             "noData": "暫無排行數據",
             "successRate": "成功率"
         }
@@ -386,7 +387,13 @@
             "updated": "更新成功",
             "updateFailed": "更新失敗",
             "deleted": "刪除成功",
-            "autoAddFailed": "自動新增失敗"
+            "removedFailedModels": "已移除檢測失敗模型",
+            "autoAddFailed": "自動新增失敗",
+            "testAllPassed": "分組內模型均可用",
+            "testPartialFailed": "部分模型不可用",
+            "testPartialFailedDescription": "檢測失敗的模型建議移除",
+            "testRequestFailed": "分組檢測失敗",
+            "removableSuggestion": "可考慮移除"
         },
         "create": {
             "title": "建立分組",
@@ -394,7 +401,15 @@
             "submitting": "建立中..."
         },
         "card": {
-            "empty": "暫無規則"
+            "empty": "暫無規則",
+            "testProgressTitle": "檢測進度",
+            "testProgressCount": "已完成 {completed}/{total}",
+            "testPending": "待檢測",
+            "testPassed": "檢測通過",
+            "testFailedTitle": "以下模型連續檢測失敗 3 次，可考慮移除",
+            "testAttempts": "已重試 {count} 次",
+            "testUnknownError": "未知錯誤",
+            "testRemovableHint": "你可以編輯該分組並移除上面這些模型。"
         },
         "detail": {
             "actions": {
@@ -403,7 +418,9 @@
                 "save": "儲存",
                 "copyName": "複製名稱",
                 "delete": "刪除",
-                "confirmDelete": "確認刪除"
+                "confirmDelete": "確認刪除",
+                "testAvailability": "檢測可用功能",
+                "removeFailedModels": "移除失敗模型"
             }
         },
         "form": {
