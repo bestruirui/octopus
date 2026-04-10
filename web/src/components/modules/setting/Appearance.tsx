@@ -56,8 +56,8 @@ export function SettingAppearance() {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                        <SelectItem value="zh_hans" className="rounded-xl">{t('language.zh_hans')}</SelectItem>
-                        <SelectItem value="zh_hant" className="rounded-xl">{t('language.zh_hant')}</SelectItem>
+                        <SelectItem value="zh-Hans" className="rounded-xl">{t('language.zh_hans')}</SelectItem>
+                        <SelectItem value="zh-Hant" className="rounded-xl">{t('language.zh_hant')}</SelectItem>
                         <SelectItem value="en" className="rounded-xl">{t('language.en')}</SelectItem>
                     </SelectContent>
                 </Select>

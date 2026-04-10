@@ -212,6 +212,7 @@ function TabsContents({
   const itemRefs = React.useRef<Array<HTMLDivElement | null>>([]);
   const [height, setHeight] = React.useState(0);
   const roRef = React.useRef<ResizeObserver | null>(null);
+  const safeActiveIndex = activeIndex >= 0 ? activeIndex : 0;
 
   const measure = React.useCallback((index: number) => {
     const pane = itemRefs.current[index];
@@ -242,6 +243,11 @@ function TabsContents({
     if (roRef.current) {
       roRef.current.disconnect();
       roRef.current = null;
+    }
+
+    if (activeIndex < 0) {
+      setHeight(0);
+      return;
     }
 
     const pane = itemRefs.current[activeIndex];
@@ -283,7 +289,7 @@ function TabsContents({
     >
       <motion.div
         className="flex -mx-2"
-        animate={{ x: activeIndex * -100 + '%' }}
+        animate={{ x: safeActiveIndex * -100 + '%' }}
         transition={transition}
       >
         {childrenArray.map((child, index) => (

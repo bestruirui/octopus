@@ -102,9 +102,9 @@ export function APIKeyDashboard() {
 
     const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
     const toggleLanguage = () => {
-        if (locale === 'zh_hans') setLocale('zh_hant');
-        else if (locale === 'zh_hant') setLocale('en');
-        else setLocale('zh_hans');
+        if (locale === 'zh-Hans') setLocale('zh-Hant');
+        else if (locale === 'zh-Hant') setLocale('en');
+        else setLocale('zh-Hans');
     };
 
     return (
