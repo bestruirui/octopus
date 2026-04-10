@@ -102,23 +102,31 @@ export function GroupCard({ group }: { group: Group }) {
 
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [members, setMembers] = useState<SelectedMember[]>(displayMembers);
-    const [lastDisplayMembers, setLastDisplayMembers] = useState(displayMembers);
     const [isDragging, setIsDragging] = useState(false);
     const [currentTestId, setCurrentTestId] = useState<string | null>(null);
     const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
     const membersRef = useRef<SelectedMember[]>([]);
+    const lastDisplayMembersRef = useRef(displayMembers);
     const handledTestCompletionRef = useRef<string | null>(null);
     const testProgressQuery = useGroupTestProgress(currentTestId);
     const testProgress = testProgressQuery.data;
 
-    if (!isDragging && lastDisplayMembers !== displayMembers) {
-        setLastDisplayMembers(displayMembers);
-        setMembers(displayMembers);
-    }
-
     useEffect(() => {
         membersRef.current = members;
     }, [members]);
+
+    useEffect(() => {
+        if (isDragging || lastDisplayMembersRef.current === displayMembers) {
+            return;
+        }
+
+        lastDisplayMembersRef.current = displayMembers;
+        const frameId = window.requestAnimationFrame(() => {
+            setMembers(displayMembers);
+        });
+
+        return () => window.cancelAnimationFrame(frameId);
+    }, [displayMembers, isDragging]);
 
     useEffect(() => {
         return () => { if (weightTimerRef.current) clearTimeout(weightTimerRef.current); };
@@ -142,7 +150,7 @@ export function GroupCard({ group }: { group: Group }) {
             return;
         }
 
-        const failedResults = testProgress.results.filter((result) => !result.passed);
+        const failedResults = (testProgress.results ?? []).filter((result) => !result.passed);
         if (failedResults.length === 0) {
             toast.success(t('toast.testAllPassed'));
             return;
@@ -321,7 +329,7 @@ export function GroupCard({ group }: { group: Group }) {
     }, [group.first_token_time_out, group.session_keep_time, group.id, group.items, group.match_regex, group.mode, group.name, onSuccess, onError, updateGroup]);
 
     const failedTestResults = useMemo(
-        () => (testProgress?.done ? testProgress.results.filter((result) => !result.passed) : []),
+        () => (testProgress?.done ? (testProgress.results ?? []).filter((result) => !result.passed) : []),
         [testProgress]
     );
 

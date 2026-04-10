@@ -81,7 +81,7 @@ go run main.go start
 **构建嵌入式管理界面资源**
 
 ```bash
-cd web && pnpm install && pnpm run build && cd ..
+cd web && pnpm install && NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.0.10')" pnpm run build && cd ..
 # 将前端构建产物移动到 Go 二进制预期的嵌入目录
 mkdir -p static/out
 mv web/out/* static/out/
@@ -94,7 +94,7 @@ go run main.go start
 **开发模式**
 
 ```bash
-cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" pnpm run dev
+cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.0.10')" pnpm run dev
 ## 新建终端，可选：通过环境变量自动创建初始管理员账户
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
