@@ -33,7 +33,7 @@
 Run directly:
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.0.9
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.0.10
 ```
 
 Or use docker compose:
@@ -81,7 +81,7 @@ If `static/out/` already contains built frontend assets, the Go binary serves th
 **Build frontend assets for the embedded management UI**
 
 ```bash
-cd web && pnpm install && pnpm run build && cd ..
+cd web && pnpm install && NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.0.10')" pnpm run build && cd ..
 # Move frontend assets to the embed directory expected by the Go binary
 mkdir -p static/out
 mv web/out/* static/out/
@@ -94,7 +94,7 @@ go run main.go start
 **Development Mode**
 
 ```bash
-cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" pnpm run dev
+cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.0.10')" pnpm run dev
 ## Open a new terminal, optionally set initial admin credentials for automatic bootstrap
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"

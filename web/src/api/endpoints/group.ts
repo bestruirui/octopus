@@ -62,6 +62,17 @@ export interface GroupTestProgress extends GroupTestSummary {
     message?: string;
 }
 
+function normalizeGroupTestProgress(progress: GroupTestProgress): GroupTestProgress {
+    return {
+        ...progress,
+        results: Array.isArray(progress.results) ? progress.results : [],
+        completed: typeof progress.completed === 'number' ? progress.completed : 0,
+        total: typeof progress.total === 'number' ? progress.total : 0,
+        done: Boolean(progress.done),
+        passed: Boolean(progress.passed),
+    };
+}
+
 /**
  * 新增 item 请求
  */
@@ -161,7 +172,8 @@ export function useDeleteGroup() {
 export function useTestGroup() {
     return useMutation({
         mutationFn: async (groupId: number) => {
-            return apiClient.post<GroupTestProgress>('/api/v1/group/test', { group_id: groupId });
+            const progress = await apiClient.post<GroupTestProgress>('/api/v1/group/test', { group_id: groupId });
+            return normalizeGroupTestProgress(progress);
         },
         onSuccess: (data) => {
             logger.log('分组检测成功:', data);
@@ -176,7 +188,8 @@ export function useGroupTestProgress(progressId: string | null) {
     return useQuery({
         queryKey: ['groups', 'test-progress', progressId],
         queryFn: async () => {
-            return apiClient.get<GroupTestProgress>(`/api/v1/group/test/progress/${progressId}`);
+            const progress = await apiClient.get<GroupTestProgress>(`/api/v1/group/test/progress/${progressId}`);
+            return normalizeGroupTestProgress(progress);
         },
         enabled: Boolean(progressId),
         refetchInterval: (query) => {
