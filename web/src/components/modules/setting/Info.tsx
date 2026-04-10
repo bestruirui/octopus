@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Info, Tag, Github, RefreshCw, AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { Info, Tag, Github, AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { APP_VERSION, GITHUB_REPO } from '@/lib/info';
 import { useLatestInfo, useNowVersion, useUpdateCore } from '@/api/endpoints/update';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,10 @@ export function SettingInfo() {
     // 最新版本与后端当前版本不一致 → 有新版本可更新
     const hasNewVersion = latestVersion && backendNowVersion && latestVersion !== backendNowVersion;
 
+    const reloadToRoot = () => {
+        window.location.assign('/');
+    };
+
     const clearCacheAndReload = async () => {
         // 通知 Service Worker 清理缓存
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -41,12 +45,12 @@ export function SettingInfo() {
             const registrations = await navigator.serviceWorker.getRegistrations();
             await Promise.all(registrations.map((reg) => reg.unregister()));
         }
-        // 强制刷新（跳过缓存）
-        window.location.reload();
+        // 强制回到入口页，避免当前路径刷新后落到 404
+        reloadToRoot();
     };
 
     const handleForceRefresh = () => {
-        clearCacheAndReload();
+        void clearCacheAndReload();
     };
 
     const handleUpdate = () => {
@@ -55,7 +59,7 @@ export function SettingInfo() {
                 toast.success(t('info.updateSuccess'));
                 // 更新成功后清理缓存并刷新
                 setTimeout(() => {
-                    clearCacheAndReload();
+                    void clearCacheAndReload();
                 }, 1500);
             },
             onError: () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldAlert, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -25,6 +25,7 @@ export function FirstRunSetup() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [setupComplete, setSetupComplete] = useState(false);
 
   const { data, isLoading, refetch, error } = useQuery({
     queryKey: ['bootstrap', 'status'],
@@ -34,11 +35,18 @@ export function FirstRunSetup() {
     refetchOnWindowFocus: false,
   });
 
+  useEffect(() => {
+    if (setupComplete && data?.initialized) {
+      window.location.assign('/');
+    }
+  }, [setupComplete, data?.initialized]);
+
   const createAdminMutation = useMutation({
     mutationFn: async (payload: BootstrapCreateAdminRequest) =>
       apiClient.post<{ initialized: boolean }>('/api/v1/bootstrap/create-admin', payload, undefined, false),
     onSuccess: async () => {
       setErrorText(null);
+      setSetupComplete(true);
       toast.success(t('actions.submitSuccess'));
       await queryClient.invalidateQueries({ queryKey: ['bootstrap', 'status'] });
       await refetch();
@@ -104,7 +112,7 @@ export function FirstRunSetup() {
               <RefreshCw className="size-4 animate-spin" />
               <span>{t('checking')}</span>
             </div>
-          ) : data?.initialized ? (
+          ) : data?.initialized && !setupComplete ? (
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-900 dark:text-emerald-100">
               {t('initialized')}
             </div>

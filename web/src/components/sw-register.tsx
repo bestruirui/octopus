@@ -10,10 +10,14 @@ export function ServiceWorkerRegister() {
         if (process.env.NODE_ENV !== 'production') return;
 
         let hasRefreshed = false;
-        const onControllerChange = () => {
+        const reloadToRoot = () => {
             if (hasRefreshed) return;
             hasRefreshed = true;
-            window.location.reload();
+            window.location.assign('/');
+        };
+
+        const onControllerChange = () => {
+            reloadToRoot();
         };
 
         const activateUpdate = (registration: ServiceWorkerRegistration) => {
