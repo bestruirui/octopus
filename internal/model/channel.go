@@ -122,8 +122,17 @@ func (c *Channel) GetBaseUrl() string {
 }
 
 func (c *Channel) GetChannelKey() ChannelKey {
+	return c.GetChannelKeyExcluding(nil)
+}
+
+func (c *Channel) GetChannelKeyExcluding(excludeKeyIDs []int) ChannelKey {
 	if c == nil || len(c.Keys) == 0 {
 		return ChannelKey{}
+	}
+
+	excludeSet := make(map[int]struct{}, len(excludeKeyIDs))
+	for _, id := range excludeKeyIDs {
+		excludeSet[id] = struct{}{}
 	}
 
 	nowSec := time.Now().Unix()
@@ -134,6 +143,9 @@ func (c *Channel) GetChannelKey() ChannelKey {
 
 	for _, k := range c.Keys {
 		if !k.Enabled || k.ChannelKey == "" {
+			continue
+		}
+		if _, excluded := excludeSet[k.ID]; excluded {
 			continue
 		}
 		if k.StatusCode == 429 && k.LastUseTimeStamp > 0 {

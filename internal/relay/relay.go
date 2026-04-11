@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/helper"
 	dbmodel "github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
@@ -18,7 +19,6 @@ import (
 	"github.com/lingyuins/octopus/internal/transformer/model"
 	"github.com/lingyuins/octopus/internal/transformer/outbound"
 	"github.com/lingyuins/octopus/internal/utils/log"
-	"github.com/gin-gonic/gin"
 	"github.com/tmaxmax/go-sse"
 )
 
@@ -205,6 +205,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		}
 		internalRequest.Model = resolvedModelName
 
+		var failedKeyIDs []int
 		for tryIndex := 1; tryIndex <= retryCount; tryIndex++ {
 			select {
 			case <-c.Request.Context().Done():
@@ -214,8 +215,21 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			default:
 			}
 
-			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (candidate %d/%d, retry %d/%d, sticky=%t)",
-				requestModel, group.Mode, channel.Name, item.ModelName,
+			if tryIndex > 1 {
+				usedKey = channel.GetChannelKeyExcluding(failedKeyIDs)
+				if usedKey.ChannelKey == "" {
+					log.Infof("channel %s has no more keys to retry, moving to next channel", channel.Name)
+					break
+				}
+				if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
+					tryIndex--
+					continue
+				}
+			}
+
+			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s key_id: %d (candidate %d/%d, retry %d/%d, sticky=%t)",
+				requestModel, group.Mode, channel.Name, item.ModelName, usedKey.ID,
 				iter.Index()+1, iter.Len(), tryIndex, retryCount, iter.IsSticky())
 
 			ra := &relayAttempt{
@@ -238,6 +252,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 				return
 			}
 			lastErr = result.Err
+			failedKeyIDs = append(failedKeyIDs, usedKey.ID)
 		}
 	}
 
