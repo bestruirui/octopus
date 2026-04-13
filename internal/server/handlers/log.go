@@ -21,6 +21,10 @@ func init() {
 				Handle(listLog),
 		).
 		AddRoute(
+			router.NewRoute("/detail", http.MethodGet).
+				Handle(logDetail),
+		).
+		AddRoute(
 			router.NewRoute("/clear", http.MethodDelete).
 				Handle(clearLog),
 		).
@@ -72,6 +76,31 @@ func listLog(c *gin.Context) {
 	}
 
 	resp.Success(c, logs)
+}
+
+func logDetail(c *gin.Context) {
+	idStr := c.Query("id")
+	if idStr == "" {
+		resp.Error(c, http.StatusBadRequest, "id is required")
+		return
+	}
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	log, err := op.RelayLogGetByID(c.Request.Context(), id)
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if log == nil {
+		resp.Error(c, http.StatusNotFound, "log not found")
+		return
+	}
+
+	resp.Success(c, log)
 }
 
 func clearLog(c *gin.Context) {

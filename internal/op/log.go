@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/utils/log"
 	"github.com/lingyuins/octopus/internal/utils/snowflake"
+	"gorm.io/gorm"
 )
 
 const relayLogMaxSize = 20
@@ -92,7 +94,8 @@ func relayLogFlushToDB(ctx context.Context) error {
 	}
 	batch := make([]model.RelayLog, len(relayLogCache))
 	copy(batch, relayLogCache)
-	flushedUpto := len(batch)
+	// 记录 batch 中最后一条日志的 ID，用于安全截断
+	lastFlushedID := batch[len(batch)-1].ID
 	relayLogCacheLock.Unlock()
 
 	result := db.GetDB().WithContext(ctx).Create(&batch)
@@ -101,10 +104,20 @@ func relayLogFlushToDB(ctx context.Context) error {
 	}
 
 	relayLogCacheLock.Lock()
-	if len(relayLogCache) >= flushedUpto {
-		relayLogCache = relayLogCache[flushedUpto:]
-	} else {
-		relayLogCache = relayLogCache[:0]
+	// 安全截断：只移除 ID <= lastFlushedID 的前缀部分
+	cutIdx := 0
+	for i, l := range relayLogCache {
+		if l.ID == lastFlushedID {
+			cutIdx = i + 1
+			break
+		}
+		if l.ID > lastFlushedID {
+			// 遇到比 batch 更新的日志，说明截断点已过
+			break
+		}
+	}
+	if cutIdx > 0 {
+		relayLogCache = relayLogCache[cutIdx:]
 	}
 	if len(relayLogCache) == 0 {
 		relayLogCache = make([]model.RelayLog, 0, relayLogMaxSize)
@@ -188,7 +201,8 @@ func relayLogCleanup(ctx context.Context) error {
 
 // RelayLogList 查询日志列表，支持可选的时间范围过滤
 // startTime 和 endTime 为 nil 时表示不限制时间范围
-func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize int) ([]model.RelayLog, error) {
+// 返回轻量条目，不包含 request_content 和 response_content 大字段
+func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize int) ([]model.RelayLogListItem, error) {
 	enabled, err := SettingGetBool(model.SettingKeyRelayLogKeepEnabled)
 	if err != nil {
 		return nil, err
@@ -212,9 +226,9 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 	cacheCount := len(cachedLogs)
 	offset := (page - 1) * pageSize
 
-	var result []model.RelayLog
+	var result []model.RelayLogListItem
 
-	// 先从缓存中按“新 -> 旧”顺序分页提取，不再整段 reverse。
+	// 先从缓存中按"新 -> 旧"顺序分页提取，不再整段 reverse。
 	if offset < cacheCount {
 		cacheTake := min(pageSize, cacheCount-offset)
 		start := cacheCount - offset - 1
@@ -223,7 +237,7 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 			if idx < 0 {
 				break
 			}
-			result = append(result, cachedLogs[idx])
+			result = append(result, cachedLogs[idx].ToListItem())
 		}
 	}
 
@@ -236,12 +250,16 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 				dbOffset = offset - cacheCount
 			}
 
-			query := db.GetDB().WithContext(ctx)
+			query := db.GetDB().WithContext(ctx).
+				Select("id", "time", "request_model_name", "request_api_key_name",
+					"channel", "channel_name", "actual_model_name",
+					"input_tokens", "output_tokens", "ftut", "use_time",
+					"cost", "error", "attempts", "total_attempts")
 			if hasTimeFilter {
 				query = query.Where("time >= ? AND time <= ?", *startTime, *endTime)
 			}
 
-			var dbLogs []model.RelayLog
+			var dbLogs []model.RelayLogListItem
 			if err := query.Order("id DESC").Offset(dbOffset).Limit(remaining).Find(&dbLogs).Error; err != nil {
 				return nil, err
 			}
@@ -257,4 +275,16 @@ func RelayLogClear(ctx context.Context) error {
 	relayLogCache = make([]model.RelayLog, 0, relayLogMaxSize)
 	relayLogCacheLock.Unlock()
 	return db.GetDB().WithContext(ctx).Where("1 = 1").Delete(&model.RelayLog{}).Error
+}
+
+// RelayLogGetByID 根据ID获取完整日志详情（包含 request_content 和 response_content）
+func RelayLogGetByID(ctx context.Context, id int64) (*model.RelayLog, error) {
+	var log model.RelayLog
+	if err := db.GetDB().WithContext(ctx).Where("id = ?", id).First(&log).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &log, nil
 }

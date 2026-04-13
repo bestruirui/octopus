@@ -25,7 +25,7 @@ export interface ChannelAttempt {
 }
 
 /**
- * 日志数据
+ * 日志数据（列表条目，不含 request_content / response_content）
  */
 export interface RelayLog {
     id: number;
@@ -40,11 +40,17 @@ export interface RelayLog {
     ftut: number;                // 首字时间(毫秒)
     use_time: number;            // 总用时(毫秒)
     cost: number;                // 消耗费用
-    request_content: string;     // 请求内容
-    response_content: string;    // 响应内容
     error: string;               // 错误信息
     attempts?: ChannelAttempt[]; // 所有尝试记录
     total_attempts?: number;     // 总尝试次数
+}
+
+/**
+ * 日志详情（包含 request_content 和 response_content）
+ */
+export interface RelayLogDetail extends RelayLog {
+    request_content: string;     // 请求内容
+    response_content: string;    // 响应内容
 }
 
 /**
@@ -238,4 +244,36 @@ export function useLogs(options: { pageSize?: number } = {}) {
         refresh,
         clear,
     };
+}
+
+/**
+ * 日志详情 Hook
+ * 按需加载单条日志的 request_content 和 response_content
+ *
+ * @example
+ * const { detail, isLoading, fetchDetail } = useLogDetail();
+ * await fetchDetail(logId);
+ */
+export function useLogDetail() {
+    const [detail, setDetail] = useState<RelayLogDetail | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const fetchDetail = useCallback(async (id: number) => {
+        setIsLoading(true);
+        try {
+            const result = await apiClient.get<RelayLogDetail | null>(`/api/v1/log/detail?id=${id}`);
+            setDetail(result);
+        } catch (e) {
+            logger.error('获取日志详情失败:', e);
+            setDetail(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const reset = useCallback(() => {
+        setDetail(null);
+    }, []);
+
+    return { detail, isLoading, fetchDetail, reset };
 }

@@ -42,3 +42,43 @@ type RelayLog struct {
 	Attempts          []ChannelAttempt `json:"attempts" gorm:"serializer:json"`          // 所有尝试记录
 	TotalAttempts     int              `json:"total_attempts"`                           // 总尝试次数
 }
+
+// RelayLogListItem 日志列表轻量条目，排除了 RequestContent 和 ResponseContent 大字段
+type RelayLogListItem struct {
+	ID                int64            `json:"id"`
+	Time              int64            `json:"time"`
+	RequestModelName  string           `json:"request_model_name"`
+	RequestAPIKeyName string           `json:"request_api_key_name"`
+	ChannelId         int              `json:"channel"`
+	ChannelName       string           `json:"channel_name"`
+	ActualModelName   string           `json:"actual_model_name"`
+	InputTokens       int              `json:"input_tokens"`
+	OutputTokens      int              `json:"output_tokens"`
+	Ftut              int              `json:"ftut"`
+	UseTime           int              `json:"use_time"`
+	Cost              float64          `json:"cost"`
+	Error             string           `json:"error"`
+	Attempts          []ChannelAttempt `json:"attempts"`
+	TotalAttempts     int              `json:"total_attempts"`
+}
+
+// ToListItem 将完整的 RelayLog 转换为轻量的列表条目
+func (r *RelayLog) ToListItem() RelayLogListItem {
+	return RelayLogListItem{
+		ID:                r.ID,
+		Time:              r.Time,
+		RequestModelName:  r.RequestModelName,
+		RequestAPIKeyName: r.RequestAPIKeyName,
+		ChannelId:         r.ChannelId,
+		ChannelName:       r.ChannelName,
+		ActualModelName:   r.ActualModelName,
+		InputTokens:       r.InputTokens,
+		OutputTokens:      r.OutputTokens,
+		Ftut:              r.Ftut,
+		UseTime:           r.UseTime,
+		Cost:              r.Cost,
+		Error:             r.Error,
+		Attempts:          r.Attempts,
+		TotalAttempts:     r.TotalAttempts,
+	}
+}
