@@ -2,7 +2,7 @@ import type { InfiniteData } from '@tanstack/react-query';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, API_BASE_URL } from '../client';
 import { logger } from '@/lib/logger';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 /**
  * 尝试状态
@@ -90,6 +90,24 @@ export function useClearLogs() {
 
 const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize] as const;
 
+export const DEFAULT_LOG_PAGE_SIZE = 10;
+
+const logRefreshState = new Map<number, boolean>();
+const logRefreshListeners = new Set<() => void>();
+
+function setLogRefreshState(pageSize: number, isRefreshing: boolean) {
+    if (logRefreshState.get(pageSize) === isRefreshing) return;
+    logRefreshState.set(pageSize, isRefreshing);
+    logRefreshListeners.forEach((listener) => listener());
+}
+
+function subscribeLogRefresh(listener: () => void) {
+    logRefreshListeners.add(listener);
+    return () => {
+        logRefreshListeners.delete(listener);
+    };
+}
+
 /**
  * 日志管理 Hook
  * 整合初始加载、SSE 实时推送、滚动加载更多
@@ -104,7 +122,8 @@ const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize
  * if (hasMore && !isLoadingMore) loadMore();
  */
 export function useLogs(options: { pageSize?: number } = {}) {
-    const { pageSize = 20 } = options;
+    const { pageSize = DEFAULT_LOG_PAGE_SIZE } = options;
+    const { refresh } = useLogRefresh(pageSize);
 
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -155,15 +174,6 @@ export function useLogs(options: { pageSize?: number } = {}) {
             await logsQuery.fetchNextPage();
         } catch (e) {
             logger.error('加载更多日志失败:', e);
-        }
-    }, [logsQuery]);
-
-    const refresh = useCallback(async () => {
-        try {
-            await logsQuery.refetch();
-        } catch (e) {
-            logger.error('手动刷新日志失败:', e);
-            throw e;
         }
     }, [logsQuery]);
 
@@ -244,6 +254,29 @@ export function useLogs(options: { pageSize?: number } = {}) {
         refresh,
         clear,
     };
+}
+
+export function useLogRefresh(pageSize = DEFAULT_LOG_PAGE_SIZE) {
+    const queryClient = useQueryClient();
+    const isRefreshing = useSyncExternalStore(
+        subscribeLogRefresh,
+        () => logRefreshState.get(pageSize) ?? false,
+        () => false,
+    );
+
+    const refresh = useCallback(async () => {
+        setLogRefreshState(pageSize, true);
+        try {
+            await queryClient.refetchQueries({ queryKey: logsInfiniteQueryKey(pageSize) });
+        } catch (e) {
+            logger.error('手动刷新日志失败:', e);
+            throw e;
+        } finally {
+            setLogRefreshState(pageSize, false);
+        }
+    }, [pageSize, queryClient]);
+
+    return { isRefreshing, refresh };
 }
 
 /**

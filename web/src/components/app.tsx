@@ -1,8 +1,9 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from "motion/react"
+import { RefreshCw } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
 import { LoginForm } from '@/components/modules/login';
 import { APIKeyDashboard } from '@/components/modules/apikey-dashboard';
@@ -11,6 +12,9 @@ import { NavBar, useNavStore } from '@/components/modules/navbar';
 import { useTranslations } from 'next-intl'
 import Logo, { LOGO_DRAW_END_MS } from '@/components/modules/logo';
 import { Toolbar } from '@/components/modules/toolbar';
+import { DEFAULT_LOG_PAGE_SIZE, useLogRefresh } from '@/api/endpoints/log';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/common/Toast';
 import { ENTRANCE_VARIANTS } from '@/lib/animations/fluid-transitions';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { CONTENT_MAP } from '@/route';
@@ -21,6 +25,35 @@ import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
 
 function timeout(ms: number) {
     return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+function HeaderActions({ activeItem }: { activeItem: 'home' | 'channel' | 'group' | 'model' | 'log' | 'setting' }) {
+    const t = useTranslations('log');
+    const { isRefreshing, refresh } = useLogRefresh(DEFAULT_LOG_PAGE_SIZE);
+
+    const handleRefresh = useCallback(async () => {
+        try {
+            await refresh();
+            toast.success(t('actions.refreshSuccess'));
+        } catch {
+            toast.error(t('actions.refreshFailed'));
+        }
+    }, [refresh, t]);
+
+    if (activeItem !== 'log') return null;
+
+    return (
+        <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleRefresh()}
+            disabled={isRefreshing}
+            className="rounded-xl"
+        >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {t('actions.refresh')}
+        </Button>
+    );
 }
 
 export function AppContainer() {
@@ -285,7 +318,8 @@ export function AppContainer() {
                             </motion.div>
                         </AnimatePresence>
                     </div>
-                    <div className="ml-auto">
+                    <div className="flex items-center gap-2 ml-auto">
+                        <HeaderActions activeItem={activeItem} />
                         <Toolbar />
                     </div>
                 </header>

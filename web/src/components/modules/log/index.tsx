@@ -3,11 +3,9 @@
 import { useCallback, useMemo } from 'react';
 import { useLogs } from '@/api/endpoints/log';
 import { LogCard } from './Item';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/components/common/Toast';
 
 /**
  * 日志页面组件
@@ -17,7 +15,7 @@ import { toast } from '@/components/common/Toast';
  */
 export function Log() {
     const t = useTranslations('log');
-    const { logs, hasMore, isLoading, isLoadingMore, isRefreshing, loadMore, refresh } = useLogs({ pageSize: 10 });
+    const { logs, hasMore, isLoading, isLoadingMore, loadMore } = useLogs();
 
     const canLoadMore = hasMore && !isLoading && !isLoadingMore && logs.length > 0;
     const handleReachEnd = useCallback(() => {
@@ -43,30 +41,8 @@ export function Log() {
         return null;
     }, [hasMore, isLoading, isLoadingMore, logs.length, t]);
 
-    const handleRefresh = useCallback(async () => {
-        try {
-            await refresh();
-            toast.success(t('actions.refreshSuccess'));
-        } catch {
-            toast.error(t('actions.refreshFailed'));
-        }
-    }, [refresh, t]);
-
     return (
         <div className="flex h-full min-h-0 flex-col gap-4">
-            <div className="flex justify-end">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleRefresh()}
-                    disabled={isRefreshing}
-                    className="rounded-xl"
-                >
-                    <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {t('actions.refresh')}
-                </Button>
-            </div>
-
             <div className="min-h-0 flex-1">
                 <VirtualizedGrid
                     items={logs}
