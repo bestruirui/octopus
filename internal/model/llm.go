@@ -1,10 +1,10 @@
 package model
 
 type LLMPrice struct {
-	Input      float64 `json:"input"`
-	Output     float64 `json:"output"`
-	CacheRead  float64 `json:"cache_read"`
-	CacheWrite float64 `json:"cache_write"`
+	Input      float64 `json:"input" gorm:"column:input"`
+	Output     float64 `json:"output" gorm:"column:output"`
+	CacheRead  float64 `json:"cache_read" gorm:"column:cache_read"`
+	CacheWrite float64 `json:"cache_write" gorm:"column:cache_write"`
 }
 
 type LLMInfo struct {
@@ -54,3 +54,12 @@ type AnthropicModelList struct {
 	HasMore bool             `json:"has_more"`
 	LastID  string           `json:"last_id"`
 }
+
+// TableName explicitly returns "-" for DTO structs to prevent GORM auto-mapping.
+func (LLMChannel) TableName() string       { return "-" }
+func (GeminiModel) TableName() string      { return "-" }
+func (GeminiModelList) TableName() string  { return "-" }
+func (OpenAIModel) TableName() string      { return "-" }
+func (OpenAIModelList) TableName() string  { return "-" }
+func (AnthropicModel) TableName() string   { return "-" }
+func (AnthropicModelList) TableName() string { return "-" }

@@ -327,7 +327,7 @@ func GroupItemBatchAdd(groupID int, items []model.GroupIDAndLLMName, ctx context
 
 func GroupItemUpdate(item *model.GroupItem, ctx context.Context) error {
 	if err := db.GetDB().WithContext(ctx).Model(item).
-		Select("ModelName", "Priority", "Weight").
+		Select("model_name", "priority", "weight").
 		Updates(item).Error; err != nil {
 		return err
 	}

@@ -55,7 +55,15 @@ type GroupItemUpdateRequest struct {
 	Priority int `json:"priority,omitempty"`
 	Weight   int `json:"weight,omitempty"`
 }
+
+// GroupIDAndLLMName is a DTO for batch operations.
 type GroupIDAndLLMName struct {
 	ChannelID int
 	ModelName string
 }
+
+// TableName explicitly returns "-" for DTO structs to prevent GORM auto-mapping.
+func (GroupIDAndLLMName) TableName() string { return "-" }
+func (GroupUpdateRequest) TableName() string { return "-" }
+func (GroupItemAddRequest) TableName() string { return "-" }
+func (GroupItemUpdateRequest) TableName() string { return "-" }

@@ -98,6 +98,12 @@ type ChannelFetchModelRequest struct {
 	Proxy   bool                  `json:"proxy"`
 }
 
+// TableName explicitly returns "-" for DTO structs to prevent GORM auto-mapping.
+func (ChannelUpdateRequest) TableName() string    { return "-" }
+func (ChannelKeyAddRequest) TableName() string    { return "-" }
+func (ChannelKeyUpdateRequest) TableName() string { return "-" }
+func (ChannelFetchModelRequest) TableName() string { return "-" }
+
 func (c *Channel) GetBaseUrl() string {
 	if c == nil || len(c.BaseUrls) == 0 {
 		return ""

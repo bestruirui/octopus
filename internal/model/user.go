@@ -37,6 +37,13 @@ type UserLoginResponse struct {
 	ExpireAt string `json:"expire_at"`
 }
 
+// TableName explicitly returns "-" to prevent GORM from treating these DTOs as database tables.
+func (UserLogin) TableName() string            { return "-" }
+func (UserChangePassword) TableName() string   { return "-" }
+func (UserChangeUsername) TableName() string   { return "-" }
+func (UserBootstrapCreate) TableName() string  { return "-" }
+func (UserLoginResponse) TableName() string    { return "-" }
+
 func (u *User) HashPassword() error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
