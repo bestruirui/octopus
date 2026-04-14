@@ -45,22 +45,25 @@ type RelayLog struct {
 
 // RelayLogListItem 日志列表轻量条目，排除了 RequestContent 和 ResponseContent 大字段
 type RelayLogListItem struct {
-	ID                int64            `json:"id"`
-	Time              int64            `json:"time"`
-	RequestModelName  string           `json:"request_model_name"`
-	RequestAPIKeyName string           `json:"request_api_key_name"`
-	ChannelId         int              `json:"channel"`
-	ChannelName       string           `json:"channel_name"`
-	ActualModelName   string           `json:"actual_model_name"`
-	InputTokens       int              `json:"input_tokens"`
-	OutputTokens      int              `json:"output_tokens"`
-	Ftut              int              `json:"ftut"`
-	UseTime           int              `json:"use_time"`
-	Cost              float64          `json:"cost"`
-	Error             string           `json:"error"`
-	Attempts          []ChannelAttempt `json:"attempts" gorm:"-"`
-	TotalAttempts     int              `json:"total_attempts"`
+	ID                int64            `json:"id" gorm:"column:id"`
+	Time              int64            `json:"time" gorm:"column:time"`
+	RequestModelName  string           `json:"request_model_name" gorm:"column:request_model_name"`
+	RequestAPIKeyName string           `json:"request_api_key_name" gorm:"column:request_api_key_name"`
+	ChannelId         int              `json:"channel" gorm:"column:channel_id"`
+	ChannelName       string           `json:"channel_name" gorm:"column:channel_name"`
+	ActualModelName   string           `json:"actual_model_name" gorm:"column:actual_model_name"`
+	InputTokens       int              `json:"input_tokens" gorm:"column:input_tokens"`
+	OutputTokens      int              `json:"output_tokens" gorm:"column:output_tokens"`
+	Ftut              int              `json:"ftut" gorm:"column:ftut"`
+	UseTime           int              `json:"use_time" gorm:"column:use_time"`
+	Cost              float64          `json:"cost" gorm:"column:cost"`
+	Error             string           `json:"error" gorm:"column:error"`
+	Attempts          []ChannelAttempt `json:"attempts" gorm:"column:attempts;serializer:json"`
+	TotalAttempts     int              `json:"total_attempts" gorm:"column:total_attempts"`
 }
+
+// TableName 指定 RelayLogListItem 使用与 RelayLog 相同的数据库表
+func (RelayLogListItem) TableName() string { return "relay_logs" }
 
 // ToListItem 将完整的 RelayLog 转换为轻量的列表条目
 func (r *RelayLog) ToListItem() RelayLogListItem {
