@@ -58,7 +58,7 @@ type RelayLogListItem struct {
 	UseTime           int              `json:"use_time"`
 	Cost              float64          `json:"cost"`
 	Error             string           `json:"error"`
-	Attempts          []ChannelAttempt `json:"attempts"`
+	Attempts          []ChannelAttempt `json:"attempts" gorm:"-"`
 	TotalAttempts     int              `json:"total_attempts"`
 }
 
