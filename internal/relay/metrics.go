@@ -159,7 +159,7 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 
 	// 请求内容
 	if m.InternalRequest != nil {
-		if reqJSON, jsonErr := json.Marshal(m.InternalRequest); jsonErr == nil {
+		if reqJSON, jsonErr := json.Marshal(m.filterRequestForLog(m.InternalRequest)); jsonErr == nil {
 			relayLog.RequestContent = string(reqJSON)
 		}
 	}
@@ -188,46 +188,97 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	}
 }
 
+func filterMessageForLog(msg *transformerModel.Message) *transformerModel.Message {
+	if msg == nil {
+		return nil
+	}
+	c := *msg
+	c.Images = nil
+	if len(c.Content.MultipleContent) > 0 {
+		parts := make([]transformerModel.MessageContentPart, 0, len(c.Content.MultipleContent))
+		for _, p := range c.Content.MultipleContent {
+			switch {
+			case p.Type == "image_url" && p.ImageURL != nil:
+				parts = append(parts, transformerModel.MessageContentPart{
+					Type:     "image_url",
+					ImageURL: &transformerModel.ImageURL{URL: "[image data omitted for storage]", Detail: p.ImageURL.Detail},
+				})
+			case p.Type == "input_audio" && p.Audio != nil:
+				audio := *p.Audio
+				audio.Data = "[audio data omitted for storage]"
+				parts = append(parts, transformerModel.MessageContentPart{
+					Type:  p.Type,
+					Audio: &audio,
+				})
+			case p.Type == "file" && p.File != nil && p.File.FileData != "":
+				file := *p.File
+				file.FileData = "[file data omitted for storage]"
+				parts = append(parts, transformerModel.MessageContentPart{
+					Type: p.Type,
+					File: &file,
+				})
+			default:
+				parts = append(parts, p)
+			}
+		}
+		c.Content = transformerModel.MessageContent{Content: c.Content.Content, MultipleContent: parts}
+	}
+	if c.Audio != nil && c.Audio.Data != "" {
+		a := *c.Audio
+		a.Data = "[audio data omitted for storage]"
+		c.Audio = &a
+	}
+	return &c
+}
+
+func filterEmbeddingInputForLog(input *transformerModel.EmbeddingInput) *transformerModel.EmbeddingInput {
+	if input == nil {
+		return nil
+	}
+	cloned := *input
+	for i, value := range cloned.Multiple {
+		if len(value) > 4096 {
+			cloned.Multiple[i] = value[:4096] + "...[truncated for storage]"
+		}
+	}
+	if cloned.Single != nil && len(*cloned.Single) > 4096 {
+		truncated := (*cloned.Single)[:4096] + "...[truncated for storage]"
+		cloned.Single = &truncated
+	}
+	return &cloned
+}
+
+func (m *RelayMetrics) filterRequestForLog(req *transformerModel.InternalLLMRequest) *transformerModel.InternalLLMRequest {
+	if req == nil {
+		return nil
+	}
+
+	filtered := *req
+	if len(req.Messages) > 0 {
+		filtered.Messages = make([]transformerModel.Message, len(req.Messages))
+		for i, msg := range req.Messages {
+			filteredMsg := filterMessageForLog(&msg)
+			if filteredMsg != nil {
+				filtered.Messages[i] = *filteredMsg
+			}
+		}
+	}
+	filtered.EmbeddingInput = filterEmbeddingInputForLog(req.EmbeddingInput)
+	return &filtered
+}
+
 // filterResponseForLog 创建响应的浅拷贝，过滤掉 images、MultipleContent 中的图片数据和 Audio.Data 以减少存储压力
 func (m *RelayMetrics) filterResponseForLog(resp *transformerModel.InternalLLMResponse) *transformerModel.InternalLLMResponse {
 	if resp == nil {
 		return nil
 	}
 
-	filterMsg := func(msg *transformerModel.Message) *transformerModel.Message {
-		if msg == nil {
-			return nil
-		}
-		c := *msg
-		c.Images = nil
-		if len(c.Content.MultipleContent) > 0 {
-			parts := make([]transformerModel.MessageContentPart, 0, len(c.Content.MultipleContent))
-			for _, p := range c.Content.MultipleContent {
-				if p.Type == "image_url" && p.ImageURL != nil {
-					parts = append(parts, transformerModel.MessageContentPart{
-						Type:     "image_url",
-						ImageURL: &transformerModel.ImageURL{URL: "[image data omitted for storage]"},
-					})
-				} else {
-					parts = append(parts, p)
-				}
-			}
-			c.Content = transformerModel.MessageContent{Content: c.Content.Content, MultipleContent: parts}
-		}
-		if c.Audio != nil && c.Audio.Data != "" {
-			a := *c.Audio
-			a.Data = "[audio data omitted for storage]"
-			c.Audio = &a
-		}
-		return &c
-	}
-
 	filtered := *resp
 	filtered.Choices = make([]transformerModel.Choice, len(resp.Choices))
 	for i, choice := range resp.Choices {
 		filtered.Choices[i] = choice
-		filtered.Choices[i].Message = filterMsg(choice.Message)
-		filtered.Choices[i].Delta = filterMsg(choice.Delta)
+		filtered.Choices[i].Message = filterMessageForLog(choice.Message)
+		filtered.Choices[i].Delta = filterMessageForLog(choice.Delta)
 	}
 	return &filtered
 }

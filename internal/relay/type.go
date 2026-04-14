@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/conf"
 	dbmodel "github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/relay/balancer"
 	"github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/gin-gonic/gin"
 )
 
 // maxSSEEventSize 定义 SSE 事件的最大大小。
@@ -19,7 +19,11 @@ import (
 // 默认 32MB，可通过环境变量 OCTOPUS_RELAY_MAX_SSE_EVENT_SIZE 覆盖。
 var maxSSEEventSize = 32 * 1024 * 1024
 
-const defaultMaxRetryPerCandidate = 3
+const (
+	defaultMaxRetryPerCandidate = 3
+	defaultRatelimitCooldown    = 300
+	defaultMaxTotalAttempts     = 0
+)
 
 func init() {
 	if raw := strings.TrimSpace(os.Getenv(strings.ToUpper(conf.APP_NAME) + "_RELAY_MAX_SSE_EVENT_SIZE")); raw != "" {
@@ -33,6 +37,22 @@ func getMaxRetryPerCandidate() int {
 	v, err := op.SettingGetInt(dbmodel.SettingKeyRelayRetryCount)
 	if err != nil || v < 1 {
 		return defaultMaxRetryPerCandidate
+	}
+	return v
+}
+
+func getRatelimitCooldown() int {
+	v, err := op.SettingGetInt(dbmodel.SettingKeyRatelimitCooldown)
+	if err != nil || v < 0 {
+		return defaultRatelimitCooldown
+	}
+	return v
+}
+
+func getMaxTotalAttempts() int {
+	v, err := op.SettingGetInt(dbmodel.SettingKeyRelayMaxTotalAttempts)
+	if err != nil || v < 0 {
+		return defaultMaxTotalAttempts
 	}
 	return v
 }

@@ -140,8 +140,15 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 
 	var lastErr error
 	retryCount := getMaxRetryPerCandidate()
+	ratelimitCooldown := getRatelimitCooldown()
+	maxTotalAttempts := getMaxTotalAttempts()
 
+outer:
 	for iter.Next() {
+		if maxTotalAttempts > 0 && len(iter.Attempts()) >= maxTotalAttempts {
+			lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
+			break
+		}
 		select {
 		case <-c.Request.Context().Done():
 			log.Infof("request context canceled, stopping retry")
@@ -165,7 +172,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			continue
 		}
 
-		usedKey := channel.GetChannelKey()
+		usedKey := channel.GetChannelKeyWithCooldown(ratelimitCooldown)
 		if usedKey.ChannelKey == "" {
 			iter.Skip(channel.ID, 0, channel.Name, "no available key")
 			continue
@@ -207,6 +214,10 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 
 		var failedKeyIDs []int
 		for tryIndex := 1; tryIndex <= retryCount; tryIndex++ {
+			if maxTotalAttempts > 0 && len(iter.Attempts()) >= maxTotalAttempts {
+				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
+				break outer
+			}
 			select {
 			case <-c.Request.Context().Done():
 				log.Infof("request context canceled, stopping retry")
@@ -216,7 +227,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			}
 
 			if tryIndex > 1 {
-				usedKey = channel.GetChannelKeyExcluding(failedKeyIDs)
+				usedKey = channel.GetChannelKeyExcludingWithCooldown(failedKeyIDs, ratelimitCooldown)
 				if usedKey.ChannelKey == "" {
 					log.Infof("channel %s has no more keys to retry, moving to next channel", channel.Name)
 					break

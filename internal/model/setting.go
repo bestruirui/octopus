@@ -21,6 +21,8 @@ const (
 	SettingKeyCircuitBreakerCooldown    SettingKey = "circuit_breaker_cooldown"     // 熔断基础冷却时间（秒）
 	SettingKeyCircuitBreakerMaxCooldown SettingKey = "circuit_breaker_max_cooldown" // 熔断最大冷却时间（秒），指数退避上限
 	SettingKeyPublicAPIBaseURL          SettingKey = "public_api_base_url"          // 对外可访问的 API 基础地址，用于生成示例
+	SettingKeyRatelimitCooldown         SettingKey = "ratelimit_cooldown"           // 429 限流冷却时间（秒）
+	SettingKeyRelayMaxTotalAttempts     SettingKey = "relay_max_total_attempts"     // 所有候选渠道的最大总尝试次数，0 表示不限制
 )
 
 type Setting struct {
@@ -41,6 +43,8 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyCircuitBreakerThreshold, Value: "5"},     // 默认连续失败5次触发熔断
 		{Key: SettingKeyCircuitBreakerCooldown, Value: "60"},     // 默认基础冷却60秒
 		{Key: SettingKeyCircuitBreakerMaxCooldown, Value: "600"}, // 默认最大冷却600秒（10分钟）
+		{Key: SettingKeyRatelimitCooldown, Value: "300"},         // 默认429冷却300秒（5分钟）
+		{Key: SettingKeyRelayMaxTotalAttempts, Value: "0"},       // 默认不限制所有候选渠道的总尝试次数
 		{Key: SettingKeyPublicAPIBaseURL, Value: ""},
 	}
 }
@@ -48,13 +52,17 @@ func DefaultSettings() []Setting {
 func (s *Setting) Validate() error {
 	switch s.Key {
 	case SettingKeyModelInfoUpdateInterval, SettingKeySyncLLMInterval, SettingKeyRelayLogKeepPeriod,
-		SettingKeyRelayRetryCount, SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown, SettingKeyCircuitBreakerMaxCooldown:
+		SettingKeyRelayRetryCount, SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown,
+		SettingKeyCircuitBreakerMaxCooldown, SettingKeyRatelimitCooldown, SettingKeyRelayMaxTotalAttempts:
 		v, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("setting value must be an integer")
 		}
 		if s.Key == SettingKeyRelayRetryCount && v < 1 {
 			return fmt.Errorf("relay retry count must be greater than 0")
+		}
+		if (s.Key == SettingKeyRatelimitCooldown || s.Key == SettingKeyRelayMaxTotalAttempts) && v < 0 {
+			return fmt.Errorf("setting value must be greater than or equal to 0")
 		}
 		return nil
 	case SettingKeyRelayLogKeepEnabled:

@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
-	"github.com/gin-gonic/gin"
 )
 
 func init() {
@@ -54,18 +54,20 @@ func listLog(c *gin.Context) {
 	}
 
 	var startTime, endTime *int
-	if startTimeStr != "" && endTimeStr != "" {
+	if startTimeStr != "" {
 		st, err := strconv.Atoi(startTimeStr)
 		if err != nil {
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return
 		}
+		startTime = &st
+	}
+	if endTimeStr != "" {
 		et, err := strconv.Atoi(endTimeStr)
 		if err != nil {
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		startTime = &st
 		endTime = &et
 	}
 
@@ -151,7 +153,9 @@ func streamLog(c *gin.Context) {
 			if err != nil {
 				continue
 			}
-			c.Writer.Write([]byte(fmt.Sprintf("data: %s\n\n", data)))
+			if _, err := c.Writer.Write([]byte(fmt.Sprintf("data: %s\n\n", data))); err != nil {
+				return
+			}
 			c.Writer.Flush()
 		}
 	}

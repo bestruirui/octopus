@@ -122,10 +122,18 @@ func (c *Channel) GetBaseUrl() string {
 }
 
 func (c *Channel) GetChannelKey() ChannelKey {
-	return c.GetChannelKeyExcluding(nil)
+	return c.GetChannelKeyWithCooldown(300)
 }
 
 func (c *Channel) GetChannelKeyExcluding(excludeKeyIDs []int) ChannelKey {
+	return c.GetChannelKeyExcludingWithCooldown(excludeKeyIDs, 300)
+}
+
+func (c *Channel) GetChannelKeyWithCooldown(ratelimitCooldownSec int) ChannelKey {
+	return c.GetChannelKeyExcludingWithCooldown(nil, ratelimitCooldownSec)
+}
+
+func (c *Channel) GetChannelKeyExcludingWithCooldown(excludeKeyIDs []int, ratelimitCooldownSec int) ChannelKey {
 	if c == nil || len(c.Keys) == 0 {
 		return ChannelKey{}
 	}
@@ -148,8 +156,8 @@ func (c *Channel) GetChannelKeyExcluding(excludeKeyIDs []int) ChannelKey {
 		if _, excluded := excludeSet[k.ID]; excluded {
 			continue
 		}
-		if k.StatusCode == 429 && k.LastUseTimeStamp > 0 {
-			if nowSec-k.LastUseTimeStamp < int64(5*time.Minute/time.Second) {
+		if ratelimitCooldownSec > 0 && k.StatusCode == 429 && k.LastUseTimeStamp > 0 {
+			if nowSec-k.LastUseTimeStamp < int64(ratelimitCooldownSec) {
 				continue
 			}
 		}

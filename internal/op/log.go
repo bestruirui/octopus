@@ -17,6 +17,7 @@ import (
 
 const relayLogMaxSize = 20
 const relayLogMaxSizeNoDB = 100 // 当不保存到数据库时，允许更大的缓存用于实时查询
+const relayLogStreamTokenTTL = 5 * time.Minute
 
 var relayLogCache = make([]model.RelayLog, 0, relayLogMaxSize)
 var relayLogCacheLock sync.Mutex
@@ -26,7 +27,7 @@ var relayLogFlushLock sync.Mutex
 var relayLogSubscribers = make(map[chan model.RelayLog]struct{})
 var relayLogSubscribersLock sync.RWMutex
 
-var relayLogStreamTokens = make(map[string]struct{})
+var relayLogStreamTokens = make(map[string]time.Time)
 var relayLogStreamTokensLock sync.RWMutex
 
 func RelayLogStreamTokenCreate() (string, error) {
@@ -35,19 +36,31 @@ func RelayLogStreamTokenCreate() (string, error) {
 		return "", err
 	}
 	token := hex.EncodeToString(bytes)
+	createdAt := time.Now()
 
 	relayLogStreamTokensLock.Lock()
-	relayLogStreamTokens[token] = struct{}{}
+	relayLogStreamTokens[token] = createdAt
 	relayLogStreamTokensLock.Unlock()
 
 	return token, nil
 }
 
 func RelayLogStreamTokenVerify(token string) bool {
-	relayLogStreamTokensLock.RLock()
-	_, ok := relayLogStreamTokens[token]
-	relayLogStreamTokensLock.RUnlock()
-	return ok
+	now := time.Now()
+
+	relayLogStreamTokensLock.Lock()
+	createdAt, ok := relayLogStreamTokens[token]
+	if !ok {
+		relayLogStreamTokensLock.Unlock()
+		return false
+	}
+	if now.Sub(createdAt) > relayLogStreamTokenTTL {
+		delete(relayLogStreamTokens, token)
+		relayLogStreamTokensLock.Unlock()
+		return false
+	}
+	relayLogStreamTokensLock.Unlock()
+	return true
 }
 
 func RelayLogStreamTokenRevoke(token string) {
@@ -68,7 +81,6 @@ func RelayLogUnsubscribe(ch chan model.RelayLog) {
 	relayLogSubscribersLock.Lock()
 	delete(relayLogSubscribers, ch)
 	relayLogSubscribersLock.Unlock()
-	close(ch)
 }
 
 func notifySubscribers(relayLog model.RelayLog) {
@@ -81,6 +93,16 @@ func notifySubscribers(relayLog model.RelayLog) {
 		default:
 		}
 	}
+}
+
+func relayLogStreamTokenCleanup(now time.Time) {
+	relayLogStreamTokensLock.Lock()
+	for token, createdAt := range relayLogStreamTokens {
+		if now.Sub(createdAt) > relayLogStreamTokenTTL {
+			delete(relayLogStreamTokens, token)
+		}
+	}
+	relayLogStreamTokensLock.Unlock()
 }
 
 func relayLogFlushToDB(ctx context.Context) error {
@@ -162,6 +184,8 @@ func RelayLogSaveDBTask(ctx context.Context) error {
 	defer func() {
 		log.Debugf("relay log save db task finished, save time: %s", time.Since(startTime))
 	}()
+	now := time.Now()
+	defer relayLogStreamTokenCleanup(now)
 	enabled, err := SettingGetBool(model.SettingKeyRelayLogKeepEnabled)
 	if err != nil {
 		return err
@@ -207,19 +231,26 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 	if err != nil {
 		return nil, err
 	}
-	hasTimeFilter := startTime != nil && endTime != nil
+	hasTimeFilter := startTime != nil || endTime != nil
+
+	matchesTime := func(log model.RelayLog) bool {
+		if startTime != nil && log.Time < int64(*startTime) {
+			return false
+		}
+		if endTime != nil && log.Time > int64(*endTime) {
+			return false
+		}
+		return true
+	}
 
 	// 获取缓存中符合条件的日志（保持原始顺序：旧 -> 新）
 	relayLogCacheLock.Lock()
 	var cachedLogs []model.RelayLog
 	for _, log := range relayLogCache {
-		if hasTimeFilter {
-			if log.Time >= int64(*startTime) && log.Time <= int64(*endTime) {
-				cachedLogs = append(cachedLogs, log)
-			}
-		} else {
-			cachedLogs = append(cachedLogs, log)
+		if hasTimeFilter && !matchesTime(log) {
+			continue
 		}
+		cachedLogs = append(cachedLogs, log)
 	}
 	relayLogCacheLock.Unlock()
 
@@ -255,8 +286,11 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 					"channel", "channel_name", "actual_model_name",
 					"input_tokens", "output_tokens", "ftut", "use_time",
 					"cost", "error", "attempts", "total_attempts")
-			if hasTimeFilter {
-				query = query.Where("time >= ? AND time <= ?", *startTime, *endTime)
+			if startTime != nil {
+				query = query.Where("time >= ?", *startTime)
+			}
+			if endTime != nil {
+				query = query.Where("time <= ?", *endTime)
 			}
 
 			var dbLogs []model.RelayLogListItem
@@ -279,12 +313,21 @@ func RelayLogClear(ctx context.Context) error {
 
 // RelayLogGetByID 根据ID获取完整日志详情（包含 request_content 和 response_content）
 func RelayLogGetByID(ctx context.Context, id int64) (*model.RelayLog, error) {
-	var log model.RelayLog
-	if err := db.GetDB().WithContext(ctx).Where("id = ?", id).First(&log).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+	var relayLog model.RelayLog
+	if err := db.GetDB().WithContext(ctx).Where("id = ?", id).First(&relayLog).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
 		}
-		return nil, err
+
+		relayLogCacheLock.Lock()
+		defer relayLogCacheLock.Unlock()
+		for i := range relayLogCache {
+			if relayLogCache[i].ID == id {
+				cached := relayLogCache[i]
+				return &cached, nil
+			}
+		}
+		return nil, nil
 	}
-	return &log, nil
+	return &relayLog, nil
 }
