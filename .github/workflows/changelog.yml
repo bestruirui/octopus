@@ -21,16 +21,3 @@ jobs:
       - run: npx changelogithub
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Merge dev to master branch
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'github-actions@github.com'
-          if ! git show-ref --verify --quiet refs/heads/master; then
-            git checkout -b master
-          else
-            git checkout master
-          fi
-          git fetch origin dev
-          git merge origin/dev
-          git push origin master --force

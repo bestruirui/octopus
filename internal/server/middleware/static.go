@@ -39,7 +39,16 @@ func static(urlPrefix string, fileSystem http.FileSystem) gin.HandlerFunc {
 			requestPath = "/"
 		}
 		if _, err := fileSystem.Open(requestPath); err == nil {
-			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+			switch {
+			case requestPath == "/sw.js":
+				// Service worker scripts must revalidate on every navigation so clients can pick up updates.
+				c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+			case requestPath == "/" || path.Ext(requestPath) == ".html":
+				// HTML entrypoints should never be immutable, otherwise users can get stuck on an old app shell.
+				c.Header("Cache-Control", "no-cache")
+			default:
+				c.Header("Cache-Control", "public, max-age=31536000, immutable")
+			}
 			fileserver.ServeHTTP(c.Writer, c.Request)
 			c.Abort()
 			return
