@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/animate-ui
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
 import { GroupEditor, type GroupEditorValues } from './Editor';
+import { AIRouteButton } from './AIRouteButton';
 import { buildChannelNameByModelKey, modelChannelKey, MODE_LABELS, inferGroupCapabilities, CAPABILITY_LABEL_KEYS, CAPABILITY_COLORS, endpointTypeLabel, normalizeEndpointType } from './utils';
 import { GroupMode, type GroupUpdateRequest } from '@/api/endpoints/group';
 import {
@@ -40,11 +41,22 @@ function EditDialogContent({ group, displayMembers, isSubmitting, onSubmit }: Ed
     return (
         <>
             <MorphingDialogTitle className="shrink-0">
-                <header className="mb-3 flex items-center justify-between">
+                <header className="mb-3 flex items-center justify-between gap-3">
                     <h2 className="text-2xl font-bold text-card-foreground">
                         {t('detail.actions.edit')}
                     </h2>
-                    <MorphingDialogClose className="relative right-0 top-0" />
+                    <div className="flex items-center gap-2">
+                        {group.id ? (
+                            <AIRouteButton
+                                scope="group"
+                                groupId={group.id}
+                                variant="default"
+                                className="h-10 rounded-xl px-3"
+                                onSuccess={() => setIsOpen(false)}
+                            />
+                        ) : null}
+                        <MorphingDialogClose className="relative right-0 top-0" />
+                    </div>
                 </header>
             </MorphingDialogTitle>
             <MorphingDialogDescription className="flex-1 min-h-0 overflow-hidden">

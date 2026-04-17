@@ -78,30 +78,35 @@ export function SettingAIRoute() {
                 {t('aiRoute.title')}
             </h2>
 
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Sparkles className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">{t('aiRoute.group.label')}</span>
+            <div className="space-y-2">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <Sparkles className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium">{t('aiRoute.group.label')}</span>
+                    </div>
+                    <Select
+                        value={groupID}
+                        onValueChange={(value) => {
+                            setGroupID(value);
+                            saveSetting(SettingKey.AIRouteGroupID, value, initialGroupID);
+                        }}
+                    >
+                        <SelectTrigger className="w-72 rounded-xl">
+                            <SelectValue placeholder={t('aiRoute.group.placeholder')} />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="0">{t('aiRoute.group.placeholder')}</SelectItem>
+                            {groups.map((group) => (
+                                <SelectItem key={group.id} value={String(group.id)}>
+                                    {group.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
-                <Select
-                    value={groupID}
-                    onValueChange={(value) => {
-                        setGroupID(value);
-                        saveSetting(SettingKey.AIRouteGroupID, value, initialGroupID);
-                    }}
-                >
-                    <SelectTrigger className="w-72 rounded-xl">
-                        <SelectValue placeholder={t('aiRoute.group.placeholder')} />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                        <SelectItem value="0">{t('aiRoute.group.placeholder')}</SelectItem>
-                        {groups.map((group) => (
-                            <SelectItem key={group.id} value={String(group.id)}>
-                                {group.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <p className="pl-8 text-xs text-muted-foreground">
+                    {t('aiRoute.group.hint')}
+                </p>
             </div>
 
             <div className="flex items-center justify-between gap-4">

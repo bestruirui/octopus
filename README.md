@@ -16,12 +16,15 @@
 - 🔀 **Multi-Channel Aggregation** - Connect multiple LLM provider channels with unified management
 - 🔑 **Multi-Key Support** - Support multiple API keys for a single channel
 - ⚡ **Smart Selection** - Multiple endpoints per channel, smart selection of the endpoint with the shortest delay
-- ⚖️ **Load Balancing** - Automatic request distribution for stable and efficient service
+- ⚖️ **Load Balancing** - Support round robin, random, failover, weighted, and auto strategies
+- 🤖 **Auto Strategy** - Explore candidates first, then prefer higher in-window success rate automatically
+- 🧠 **AI Routing & Auto Grouping** - Generate the full routing table from the route page, or fill a single group from the edit dialog
 - 🔄 **Protocol Conversion** - Seamless conversion between OpenAI Chat / OpenAI Responses / OpenAI Embeddings / Anthropic API formats
 - 🌐 **Multi-Provider Support** - Built-in support for OpenAI-compatible, Anthropic, Gemini, and Volcengine channels
 - 💰 **Price Sync** - Automatic model pricing updates
 - 🔃 **Model Sync** - Automatic synchronization of available model lists with channels
-- 📊 **Analytics** - Comprehensive request statistics, token consumption, and cost tracking
+- 📊 **Analytics** - Comprehensive request statistics, token consumption, cost tracking, and relay logs
+- 💾 **Runtime State Persistence** - Persist auto strategy windows and circuit breaker state to the database
 - 🎨 **Elegant UI** - Clean and beautiful web management panel
 - 🗄️ **Multi-Database Support** - Support for SQLite, MySQL, PostgreSQL
 
@@ -33,17 +36,36 @@
 Run directly:
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.1.7
+docker run -d --name octopus \
+  -v /path/to/data:/app/data \
+  -p 8080:8080 \
+  -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
+  lingyuins/octopus:v1.2.3
 ```
 
 Or use docker compose:
 
+```yaml
+services:
+  octopus:
+    image: lingyuins/octopus:v1.2.3
+    container_name: octopus
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      OCTOPUS_AUTH_JWT_SECRET: "replace-with-a-long-random-secret"
+```
+
+Then run:
+
 ```bash
-wget https://raw.githubusercontent.com/lingyuins/octopus/refs/heads/master/docker-compose.yml
 docker compose up -d
 ```
 
-Before starting the container, set `OCTOPUS_AUTH_JWT_SECRET` in `docker-compose.yml` (or via `docker run -e OCTOPUS_AUTH_JWT_SECRET=...`) so login tokens remain valid across restarts.
+The official Docker image rebuilds the frontend during image build and embeds the latest exported UI into the Go binary, so the container includes the matching management UI for that release.
 
 If you are upgrading from an older web build and still see stale frontend errors in the browser, clear the site data / service worker cache once after upgrading so the latest embedded assets are loaded.
 
@@ -60,7 +82,7 @@ Download the binary for your platform from [Releases](https://github.com/lingyui
 
 **Requirements:**
 - Go 1.24.4
-- Node.js 18+
+- Node.js 20+
 - pnpm
 
 ```bash
@@ -81,7 +103,7 @@ If `static/out/` already contains built frontend assets, the Go binary serves th
 **Build frontend assets for the embedded management UI**
 
 ```bash
-cd web && pnpm install && NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.1.1')" pnpm run build && cd ..
+cd web && pnpm install && NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'dev')" pnpm run build && cd ..
 # Move frontend assets to the embed directory expected by the Go binary
 mkdir -p static/out
 mv web/out/* static/out/
@@ -94,7 +116,7 @@ go run main.go start
 **Development Mode**
 
 ```bash
-cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.1.1')" pnpm run dev
+cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'dev')" pnpm run dev
 ## Open a new terminal, optionally set initial admin credentials for automatic bootstrap
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
@@ -299,6 +321,23 @@ Groups aggregate multiple channels into a unified external model name.
 | 🎲 **Random** | Randomly selects an available channel for each request |
 | 🛡️ **Failover** | Prioritizes high-priority channels, switches to lower priority only on failure |
 | ⚖️ **Weighted** | Orders candidates by weight from high to low, then tries them in that order |
+| 🤖 **Auto** | Explores under-sampled candidates first, then prefers the candidate with the best success rate inside the configured window |
+
+**Auto Strategy Defaults:**
+
+- **Minimum samples**: `10`
+- **Time window**: `300` seconds
+- **Sliding window size**: `100` records per channel-model pair
+- Before a candidate reaches the minimum sample count, Octopus prioritizes exploration
+- After candidates are explored, Octopus sorts by success rate, then uses sample count, weight, and priority as tie-breakers
+- Auto-strategy windows are restored from the database at startup and saved periodically plus on graceful shutdown
+
+**AI Routing Behavior:**
+
+- Clicking **AI Route** on the route page sends all models to AI and generates the full routing table in batch
+- Existing groups with the same name only receive missing route items; existing groups are not cleared or replaced
+- Clicking **AI Fill Current Group** in the edit dialog sends all models to AI and appends only the matched route items to that group
+- The setting previously named AI route target group now acts as the default target group for the single-group compatibility flow only
 
 > 💡 **Example**: Create a group named `gpt-4o`, add multiple providers' GPT-4o channels to it, then access all channels via a unified `model: gpt-4o`.
 
@@ -335,6 +374,20 @@ Since the program handles numerous statistics, writing to the database on every 
 
 - Statistics are first stored in **memory**
 - Periodically **batch-written** to the database at the configured interval
+- Relay balancer runtime state uses the same periodic persistence pattern
+
+**Runtime State Persistence:**
+
+- Auto strategy windows are loaded from the database on startup
+- Circuit breaker state is loaded from the database on startup
+- Both are saved periodically using the same interval as statistics persistence
+- Both are also saved during graceful shutdown
+
+**Dangerous Operation in Settings:**
+
+- The Settings page provides **Delete All Route Groups**
+- The action requires a second confirmation before execution
+- It deletes all groups and group items, then resets the default target group for single-group AI routing to `0` to avoid dangling references
 
 > ⚠️ **Important**: When exiting the program, use proper shutdown methods (like `Ctrl+C` or sending `SIGTERM` signal) to ensure in-memory statistics are correctly written to the database. **Do NOT use `kill -9` or other forced termination methods**, as this may result in statistics data loss.
 

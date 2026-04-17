@@ -1,13 +1,23 @@
 package model
 
+type AIRouteScope string
+
+const (
+	AIRouteScopeGroup AIRouteScope = "group"
+	AIRouteScopeTable AIRouteScope = "table"
+)
+
 type GenerateAIRouteRequest struct {
-	GroupID int `json:"group_id,omitempty"`
+	Scope   AIRouteScope `json:"scope,omitempty"`
+	GroupID int          `json:"group_id,omitempty"`
 }
 
 type GenerateAIRouteResult struct {
-	GroupID    int `json:"group_id"`
-	RouteCount int `json:"route_count"`
-	ItemCount  int `json:"item_count"`
+	Scope      AIRouteScope `json:"scope,omitempty"`
+	GroupID    int          `json:"group_id,omitempty"`
+	GroupCount int          `json:"group_count"`
+	RouteCount int          `json:"route_count"`
+	ItemCount  int          `json:"item_count"`
 }
 
 type AIRouteModelInput struct {

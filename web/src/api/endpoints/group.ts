@@ -89,12 +89,17 @@ export interface AutoGroupResult {
     skipped: AutoGroupSkippedItem[];
 }
 
+export type AIRouteScope = 'group' | 'table';
+
 export interface GenerateAIRouteRequest {
+    scope?: AIRouteScope;
     group_id?: number;
 }
 
 export interface GenerateAIRouteResult {
-    group_id: number;
+    scope?: AIRouteScope;
+    group_id?: number;
+    group_count: number;
     route_count: number;
     item_count: number;
 }

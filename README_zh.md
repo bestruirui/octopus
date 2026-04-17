@@ -16,12 +16,15 @@
 - 🔀 **多渠道聚合** - 支持接入多个 LLM 供应商渠道，统一管理
 - 🔑 **多Key支持** - 单渠道支持配置多 Key
 - ⚡ **智能优选** - 单渠道多端点，智能选择延迟最小的端点请求
-- ⚖️ **负载均衡** - 自动分配请求，确保服务稳定高效
+- ⚖️ **负载均衡** - 支持轮询、随机、故障转移、加权分配、智能选择五种策略
+- 🤖 **Auto 智能策略** - 先探索样本不足的候选，再优先选择窗口内成功率更高的渠道
+- 🧠 **AI 路由与自动分组** - 支持在路由页生成整张路由表，或在分组编辑弹窗中补全单个分组
 - 🔄 **协议互转** - 支持 OpenAI Chat / OpenAI Responses / OpenAI Embeddings / Anthropic 四种 API 格式互相转换
 - 🌐 **多供应商支持** - 内置支持 OpenAI 兼容、Anthropic、Gemini、Volcengine 渠道
 - 💰 **价格同步** - 自动更新模型价格
 - 🔃 **模型同步** - 自动与渠道同步可用模型列表，省心省力
-- 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪
+- 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪和中继日志
+- 💾 **运行时状态持久化** - Auto 策略窗口和熔断器状态会持久化到数据库
 - 🎨 **优雅界面** - 简洁美观的 Web 管理面板
 - 🗄️ **多数据库支持** - 支持 SQLite、MySQL、PostgreSQL
 
@@ -33,17 +36,36 @@
 直接运行
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 lingyuins/octopus:v1.1.7
+docker run -d --name octopus \
+  -v /path/to/data:/app/data \
+  -p 8080:8080 \
+  -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
+  lingyuins/octopus:v1.2.3
 ```
 
 或者使用 docker compose 运行
 
+```yaml
+services:
+  octopus:
+    image: lingyuins/octopus:v1.2.3
+    container_name: octopus
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      OCTOPUS_AUTH_JWT_SECRET: "change-this-to-a-long-random-secret"
+```
+
+然后执行：
+
 ```bash
-wget https://raw.githubusercontent.com/lingyuins/octopus/refs/heads/master/docker-compose.yml
 docker compose up -d
 ```
 
-启动容器前，请先在 `docker-compose.yml` 中设置 `OCTOPUS_AUTH_JWT_SECRET`（或在 `docker run` 时通过 `-e OCTOPUS_AUTH_JWT_SECRET=...` 传入），这样登录 token 才能在服务重启后继续有效。
+官方 Docker 镜像会在构建阶段重新编译前端，并把最新导出的管理界面嵌入 Go 二进制，因此容器内前端和对应发布版本保持一致。
 
 如果是从旧版前端升级，升级后浏览器若仍出现旧页面脚本报错，请清理一次站点数据 / Service Worker 缓存，确保加载到最新嵌入式前端资源。
 
@@ -60,7 +82,7 @@ docker compose up -d
 
 **环境要求：**
 - Go 1.24.4
-- Node.js 18+
+- Node.js 20+
 - pnpm
 
 ```bash
@@ -81,7 +103,7 @@ go run main.go start
 **构建嵌入式管理界面资源**
 
 ```bash
-cd web && pnpm install && NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.1.1')" pnpm run build && cd ..
+cd web && pnpm install && NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'dev')" pnpm run build && cd ..
 # 将前端构建产物移动到 Go 二进制预期的嵌入目录
 mkdir -p static/out
 mv web/out/* static/out/
@@ -94,7 +116,7 @@ go run main.go start
 **开发模式**
 
 ```bash
-cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'v1.1.1')" pnpm run dev
+cd web && pnpm install && NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'dev')" pnpm run dev
 ## 新建终端，可选：通过环境变量自动创建初始管理员账户
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
@@ -300,6 +322,23 @@ http://localhost:3000
 | 🎲 **随机** | 每次请求随机选择一个可用渠道 |
 | 🛡️ **故障转移** | 优先使用高优先级渠道，仅当其故障时才切换到低优先级渠道 |
 | ⚖️ **加权分配** | 按权重从高到低排序后依次尝试渠道 |
+| 🤖 **智能选择** | 优先探索样本不足的候选，样本充足后按时间窗口内成功率优选 |
+
+**Auto 智能策略默认值：**
+
+- **最小样本数**：`10`
+- **时间窗口**：`300` 秒
+- **滑动窗口大小**：每个渠道-模型对保留 `100` 条记录
+- 当候选未达到最小样本数时，系统优先进行探索
+- 候选都完成探索后，系统按成功率排序；成功率相同时，再按样本量、权重、优先级兜底
+- Auto 策略窗口会在启动时从数据库恢复，并在定时任务和优雅退出时持久化
+
+**AI 路由行为：**
+
+- 在路由页点击 **AI路由** 时，系统会把全部模型发送给 AI，批量生成整张路由表
+- 遇到同名已有分组时，只会追加缺失的路由项，不会清空或替换已有分组
+- 在分组编辑弹窗点击 **AI补全当前分组** 时，系统会把全部模型发送给 AI，并只向当前分组追加匹配到的路由项
+- 原先的 “AI路由目标分组” 设置现在只作为单分组兼容模式下的默认目标分组使用
 
 > 💡 **示例**：创建分组名称为 `gpt-4o`，将多个供应商的 GPT-4o 渠道加入该分组，即可通过统一的 `model: gpt-4o` 访问所有渠道。
 
@@ -336,6 +375,20 @@ http://localhost:3000
 
 - 统计数据先保存在 **内存** 中
 - 按设定的周期 **定期批量写入** 数据库
+- 中继负载均衡运行时状态也采用同样的周期持久化方式
+
+**运行时状态持久化：**
+
+- Auto 策略窗口会在启动时从数据库恢复
+- 熔断器状态会在启动时从数据库恢复
+- 二者都会按统计保存周期定时落库
+- 二者也会在优雅退出时主动保存
+
+**设置页危险操作：**
+
+- 设置页新增了 **删除全部路由分组**
+- 执行前要求二次确认
+- 操作会删除全部分组和分组项，并把单分组 AI 路由默认目标分组重置为 `0`，避免残留悬挂引用
 
 > ⚠️ **重要提示**：退出程序时，请使用正常的关闭方式（如 `Ctrl+C` 或发送 `SIGTERM` 信号），以确保内存中的统计数据能正确写入数据库。**请勿使用 `kill -9` 等强制终止方式**，否则可能导致统计数据丢失。
 
@@ -355,7 +408,7 @@ client = OpenAI(
     api_key="sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg", 
 )
 completion = client.chat.completions.create(
-    model="octopus-openai",  // 填写正确的分组名称
+    model="octopus-openai",  # 填写正确的分组名称
     messages = [
         {"role": "user", "content": "Hello"},
     ],

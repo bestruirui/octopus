@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Octopus Web Console
 
-## Getting Started
+This directory contains the management UI for Octopus.
 
-First, run the development server:
+## Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- TanStack Query
+- `next-intl`
+
+The app uses App Router as the shell entrypoint, but the actual screen switching inside the console is handled client-side in `src/components/app.tsx`.
+
+## Commands
+
+Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run the frontend against a local backend:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080" pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Lint:
 
-## Learn More
+```bash
+pnpm lint
+```
 
-To learn more about Next.js, take a look at the following resources:
+Build the static export used by the embedded management UI:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'dev')" pnpm build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment Variables
 
-## Deploy on Vercel
+- `NEXT_PUBLIC_API_BASE_URL`: Optional API base URL. Defaults to relative requests against the current origin.
+- `NEXT_PUBLIC_APP_VERSION`: Version string shown in the UI. For release builds, set this to the current git tag or commit.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Output and Embedding
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`pnpm build` produces a static export in `out/`.
+
+The Go server embeds these files from `../static/out/`. A typical local embed flow is:
+
+```bash
+pnpm install
+NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'dev')" pnpm build
+cd ..
+mkdir -p static/out
+cp -r web/out/* static/out/
+```
+
+If `static/out/_not-found/` exists but is empty, add `.keep` before running `go build` or `go run main.go start`.
+
+The top-level `Dockerfile` already builds this frontend and copies the export into `static/out` during image build, so release images contain the matching frontend automatically.
+
+## Key Directories
+
+- `src/components/app.tsx`: Main application shell
+- `src/components/modules/*`: Feature modules such as channels, groups, settings, logs, and dashboards
+- `src/api/`: API client and endpoint hooks
+- `src/route/config.tsx`: UI route registration
+- `public/locale/`: Localized text resources
+
+## Notes
+
+- The settings module includes dangerous operations such as deleting all route groups; UI confirmation is required before executing them.
+- Group mode labels and endpoint type display values are shared with backend behavior and should be updated together when adding new strategies or capabilities.
+- AI routing has two entry points: the route page button generates the full routing table, while the group edit dialog button appends matched items into the current group only.
+- The settings field for AI routing is now the default target group for the single-group compatibility flow, not the target for full-table generation.

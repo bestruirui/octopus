@@ -16,6 +16,10 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 - Lint the frontend: `cd web && pnpm lint`
 - Build the frontend export: `cd web && NEXT_PUBLIC_APP_VERSION="$(git describe --tags --always 2>/dev/null || printf 'dev')" pnpm build`
 
+### Docker
+- Build the release image locally: `docker build --platform linux/amd64 -t lingyuins/octopus:<tag> --build-arg APP_VERSION=<tag> --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) --build-arg BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" .`
+- Verify embedded version metadata: `docker run --rm lingyuins/octopus:<tag> version`
+
 ### Tests
 - Run all Go tests: `go test ./...`
 - Run the existing transformer tests only: `go test ./internal/transformer/model/...`
@@ -58,6 +62,7 @@ There are two distinct HTTP surfaces:
 - `internal/server/server.go` creates the Gin engine, installs recovery/CORS/static middleware, and registers routes.
 - Route registration is side-effect driven: `server.Start()` blank-imports `internal/server/handlers`, and each handler file registers its own routes in `init()` using the custom router registry in `internal/server/router/router.go`.
 - Static UI serving is middleware-based. If `static.StaticFS` is nil, the API still runs but the management UI is unavailable.
+- Group management includes `DELETE /api/v1/group/delete-all`, which clears all groups and group items and resets the default target group for single-group AI routing to `0`.
 
 ### Core domain model
 The system revolves around a few persisted concepts in `internal/model/`:
@@ -71,13 +76,15 @@ The system revolves around a few persisted concepts in `internal/model/`:
 - `internal/db/db.go` initializes SQLite/MySQL/Postgres via GORM and runs migrations plus `AutoMigrate`.
 - `internal/op/` is the main service/repository layer. It fronts most reads through in-memory caches, refreshes them at startup (`op.InitCache()`), and periodically or gracefully flushes mutable runtime state back to the DB (`op.SaveCache()`).
 - Channel key usage state, stats, and relay logs are intentionally updated in memory first, then persisted in batches.
+- Relay balancer runtime state is persisted separately in `internal/relay/balancer/persistence.go`: auto-strategy windows and circuit-breaker state are restored at startup, saved on a periodic task, and flushed again during graceful shutdown.
 
 ### Relay pipeline
 The relay path is the most important runtime flow:
 1. A `/v1/...` handler picks an inbound protocol adapter in `internal/server/handlers/relay.go`.
 2. `internal/relay/relay.go` parses the inbound payload into the internal request model.
 3. The requested model is resolved to a `Group` via `internal/op`.
-4. `internal/relay/balancer/` builds a candidate iterator using the group mode (round robin, random, failover, weighted), sticky sessions, and circuit breaker state.
+4. `internal/relay/balancer/` builds a candidate iterator using the group mode (round robin, random, failover, weighted, auto), sticky sessions, and circuit breaker state.
+   - `auto` mode explores low-sample candidates first, then sorts by in-window success rate with sample count, weight, and priority as tie-breakers.
 5. A `Channel` and channel key are selected, with retry/cooldown logic controlled by settings.
 6. An outbound adapter from `internal/transformer/outbound/` converts the internal request into the target provider format and forwards it.
 7. Response usage, stats, relay logs, channel-key state, and sticky/circuit-breaker data are recorded.
@@ -98,6 +105,7 @@ Important relay details:
 - base URL latency probing
 - upstream model synchronization
 - stats flush
+- balancer runtime state flush
 - relay log flush
 
 Channel creation/update also kicks off async helper work such as model discovery, price hydration, base URL delay probing, and auto-grouping.
@@ -107,6 +115,7 @@ Channel creation/update also kicks off async helper work such as model discovery
 - Main sections are lazy-loaded from `web/src/components/modules/*` and registered in `web/src/route/config.tsx`.
 - API access is centralized in `web/src/api/client.ts`; by default it uses relative base URL `.` unless `NEXT_PUBLIC_API_BASE_URL` is set.
 - Production frontend output is a static export (`next.config.ts` uses `output: "export"`) that gets copied into `static/out/` for Go embedding.
+- Dangerous settings actions live under `web/src/components/modules/setting/`; bulk route-group deletion uses a confirmation dialog in `RouteGroupDanger.tsx`.
 
 ## Files to inspect first for common tasks
 - Startup / wiring: `main.go`, `cmd/start.go`

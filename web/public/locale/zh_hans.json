@@ -262,14 +262,15 @@
                 "placeholder": "100"
             }
         },
-        "aiRoute": {
-            "title": "AI 路由设置",
-            "group": {
-                "label": "AI路由目标分组",
-                "placeholder": "请选择目标分组"
-            },
-            "baseUrl": {
-                "label": "AI Base URL",
+  "aiRoute": {
+    "title": "AI 路由设置",
+    "group": {
+      "label": "单分组 AI 路由默认目标分组",
+      "placeholder": "请选择默认目标分组",
+      "hint": "用于兼容单分组 AI 路由模式；路由页点击“AI路由”会直接生成整张路由表。"
+    },
+    "baseUrl": {
+      "label": "AI Base URL",
                 "placeholder": "请输入 OpenAI 兼容 Base URL"
             },
             "apiKey": {
@@ -310,7 +311,7 @@
             "button": "删除全部路由分组",
             "deleting": "删除中...",
             "confirmTitle": "确认删除全部路由分组？",
-            "confirmDescription": "这会永久删除 {count, plural, =0 {全部路由分组} other {# 个路由分组}}及其路由项。\nAI 路由目标分组设置也会被重置。\n此操作不可恢复。\n是否继续？",
+    "confirmDescription": "这会永久删除 {count, plural, =0 {全部路由分组} other {# 个路由分组}}及其路由项。\n单分组 AI 路由默认目标分组设置也会被重置。\n此操作不可恢复。\n是否继续？",
             "confirm": "确认全部删除",
             "success": "已删除 {count} 个路由分组",
             "failed": "删除路由分组失败"
@@ -458,9 +459,10 @@
             "autoGroupSuccess": "自动分组完成，已创建 {created} 个分组，跳过 {skipped} 个已存在分组",
             "autoGroupSuccessDescription": "扫描到 {models} 个模型，识别出 {candidates} 个候选分组，创建 {created} 个，跳过 {skippedExisting} 个已存在分组，跳过 {skippedCovered} 个已覆盖模型",
             "autoGroupFailed": "自动分组失败",
-            "aiRouteSuccess": "AI路由生成成功，共生成 {routes} 个模型路由，写入 {items} 个路由项",
-            "aiRouteFailed": "AI路由生成失败",
-            "aiRouteMissingGroup": "请先在设置中选择AI路由目标分组",
+    "aiRouteTableSuccess": "AI路由生成成功，共生成 {routes} 个模型路由，影响 {groups} 个分组，写入 {items} 个路由项",
+    "aiRouteGroupSuccess": "AI路由补全成功，共生成 {routes} 个模型路由，向当前分组写入 {items} 个路由项",
+    "aiRouteFailed": "AI路由生成失败",
+    "aiRouteMissingGroup": "请先在设置中选择单分组 AI 路由默认目标分组",
             "removedFailedModels": "已移除检测失败模型",
             "autoAddFailed": "自动添加失败",
             "testAllPassed": "分组内模型均可用",
@@ -469,22 +471,31 @@
             "testRequestFailed": "分组检测失败",
             "removableSuggestion": "可考虑移除"
         },
-        "actions": {
-            "autoGroup": "自动分组",
-            "aiRoute": "AI路由"
-        },
+  "actions": {
+    "autoGroup": "自动分组",
+    "aiRoute": "AI路由",
+    "aiRouteGroup": "AI补全当前分组"
+  },
         "autoGroup": {
             "confirmTitle": "确认自动分组",
             "confirmDescription": "将自动扫描所有渠道模型，并根据模型归一化规则为未覆盖模型创建分组。\n不会修改已有分组，也不会删除已有分组。\n是否继续？",
             "submit": "开始自动分组",
             "submitting": "自动分组中..."
         },
-        "aiRoute": {
-            "confirmTitle": "确认 AI 路由",
-            "confirmDescription": "AI路由会把全部模型发送给AI分析，并将新生成的路由项追加到目标分组中。\n已存在的相同路由项会自动跳过。\n是否继续？",
-            "submit": "开始 AI 路由",
-            "submitting": "AI路由生成中..."
-        },
+  "aiRoute": {
+    "table": {
+      "confirmTitle": "确认生成整张 AI 路由表",
+      "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果批量生成整张路由表。\n已存在同名分组会追加缺失路由项，不会清空已有分组。\n是否继续？",
+      "submit": "开始生成路由表",
+      "submitting": "AI路由生成中..."
+    },
+    "group": {
+      "confirmTitle": "确认 AI 补全当前分组",
+      "confirmDescription": "系统会把全部模型发送给 AI 分析，并把识别出的路由项追加到当前分组。\n已存在的相同路由项会自动跳过，不会删除当前分组已有项。\n是否继续？",
+      "submit": "开始补全当前分组",
+      "submitting": "AI路由补全中..."
+    }
+  },
         "create": {
             "title": "创建分组",
             "submit": "创建",

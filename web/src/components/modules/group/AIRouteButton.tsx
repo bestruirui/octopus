@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Bot } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useGenerateAIRoute } from '@/api/endpoints/group';
+import { type AIRouteScope, useGenerateAIRoute } from '@/api/endpoints/group';
 import { SettingKey, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -22,22 +22,35 @@ import { cn } from '@/lib/utils';
 type AIRouteButtonProps = {
     variant?: 'ghost' | 'default';
     className?: string;
+    scope?: AIRouteScope;
+    groupId?: number;
+    onSuccess?: () => void;
 };
 
-export function AIRouteButton({ variant = 'ghost', className }: AIRouteButtonProps) {
+export function AIRouteButton({
+    variant = 'ghost',
+    className,
+    scope = 'table',
+    groupId,
+    onSuccess,
+}: AIRouteButtonProps) {
     const t = useTranslations('group');
     const { data: settings } = useSettingList();
     const generateAIRoute = useGenerateAIRoute();
     const [open, setOpen] = useState(false);
 
-    const groupID = useMemo(() => {
+    const configuredGroupID = useMemo(() => {
         const raw = settings?.find((item) => item.key === SettingKey.AIRouteGroupID)?.value?.trim() ?? '0';
         const parsed = Number(raw);
         return Number.isFinite(parsed) ? parsed : 0;
     }, [settings]);
 
+    const resolvedGroupID = groupId && groupId > 0 ? groupId : configuredGroupID;
+    const isGroupScope = scope === 'group';
+    const actionLabel = isGroupScope ? t('actions.aiRouteGroup') : t('actions.aiRoute');
+
     const handleOpen = () => {
-        if (groupID <= 0) {
+        if (isGroupScope && resolvedGroupID <= 0) {
             toast.error(t('toast.aiRouteMissingGroup'));
             return;
         }
@@ -46,16 +59,29 @@ export function AIRouteButton({ variant = 'ghost', className }: AIRouteButtonPro
 
     const handleSubmit = () => {
         generateAIRoute.mutate(
-            { group_id: groupID },
+            isGroupScope
+                ? { scope: 'group', group_id: resolvedGroupID }
+                : { scope: 'table' },
             {
                 onSuccess: (result) => {
                     setOpen(false);
-                    toast.success(
-                        t('toast.aiRouteSuccess', {
-                            routes: result.route_count,
-                            items: result.item_count,
-                        }),
-                    );
+                    if (isGroupScope) {
+                        toast.success(
+                            t('toast.aiRouteGroupSuccess', {
+                                routes: result.route_count,
+                                items: result.item_count,
+                            }),
+                        );
+                    } else {
+                        toast.success(
+                            t('toast.aiRouteTableSuccess', {
+                                routes: result.route_count,
+                                groups: result.group_count,
+                                items: result.item_count,
+                            }),
+                        );
+                    }
+                    onSuccess?.();
                 },
                 onError: (error: Error) => {
                     toast.error(t('toast.aiRouteFailed'), { description: error.message });
@@ -85,7 +111,7 @@ export function AIRouteButton({ variant = 'ghost', className }: AIRouteButtonPro
                     disabled={generateAIRoute.isPending}
                 >
                     <Bot className="size-4" />
-                    {t('actions.aiRoute')}
+                    {actionLabel}
                 </Button>
             ) : (
                 <button
@@ -95,16 +121,18 @@ export function AIRouteButton({ variant = 'ghost', className }: AIRouteButtonPro
                     disabled={generateAIRoute.isPending}
                 >
                     <Bot className="size-4" />
-                    <span>{t('actions.aiRoute')}</span>
+                    <span>{actionLabel}</span>
                 </button>
             )}
 
             <AlertDialog open={open} onOpenChange={setOpen}>
                 <AlertDialogContent className="rounded-2xl">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>{t('aiRoute.confirmTitle')}</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            {isGroupScope ? t('aiRoute.group.confirmTitle') : t('aiRoute.table.confirmTitle')}
+                        </AlertDialogTitle>
                         <AlertDialogDescription className="whitespace-pre-line">
-                            {t('aiRoute.confirmDescription')}
+                            {isGroupScope ? t('aiRoute.group.confirmDescription') : t('aiRoute.table.confirmDescription')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -118,7 +146,9 @@ export function AIRouteButton({ variant = 'ghost', className }: AIRouteButtonPro
                                 handleSubmit();
                             }}
                         >
-                            {generateAIRoute.isPending ? t('aiRoute.submitting') : t('aiRoute.submit')}
+                            {generateAIRoute.isPending
+                                ? (isGroupScope ? t('aiRoute.group.submitting') : t('aiRoute.table.submitting'))
+                                : (isGroupScope ? t('aiRoute.group.submit') : t('aiRoute.table.submit'))}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
