@@ -7,12 +7,14 @@ import (
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/price"
+	"github.com/lingyuins/octopus/internal/relay/balancer"
 	"github.com/lingyuins/octopus/internal/utils/log"
 )
 
 const (
 	TaskPriceUpdate  = "price_update"
 	TaskStatsSave    = "stats_save"
+	TaskRuntimeState = "runtime_state_save"
 	TaskRelayLogSave = "relay_log_save"
 	TaskSyncLLM      = "sync_llm"
 	TaskCleanLLM     = "clean_llm"
@@ -48,6 +50,7 @@ func Init() {
 	} else {
 		statsSaveInterval := time.Duration(statsSaveIntervalMinutes) * time.Minute
 		Register(TaskStatsSave, statsSaveInterval, false, op.StatsSaveDBTask)
+		Register(TaskRuntimeState, statsSaveInterval, false, balancer.RuntimeStateSaveDBTask)
 	}
 
 	Register(TaskRelayLogSave, 10*time.Minute, false, func() {

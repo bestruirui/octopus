@@ -16,6 +16,7 @@ import { useNavStore, type NavItem } from '@/components/modules/navbar';
 import { CreateDialogContent as ChannelCreateContent } from '@/components/modules/channel/Create';
 import { CreateDialogContent as GroupCreateContent } from '@/components/modules/group/Create';
 import { AutoGroupButton } from '@/components/modules/group/AutoGroupButton';
+import { AIRouteButton } from '@/components/modules/group/AIRouteButton';
 import { CreateDialogContent as ModelCreateContent } from '@/components/modules/model/Create';
 import { useTranslations } from 'next-intl';
 import { useSearchStore } from './search-store';
@@ -334,7 +335,12 @@ export function Toolbar() {
                     </PopoverContent>
                 </Popover>
 
-                {toolbarItem === 'group' && <AutoGroupButton />}
+                {toolbarItem === 'group' && (
+                    <>
+                        <AutoGroupButton />
+                        <AIRouteButton />
+                    </>
+                )}
 
                 {/* 创建按钮 */}
                 <MorphingDialog>

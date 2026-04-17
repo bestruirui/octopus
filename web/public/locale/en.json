@@ -262,6 +262,25 @@
                 "placeholder": "100"
             }
         },
+        "aiRoute": {
+            "title": "AI Routing Settings",
+            "group": {
+                "label": "AI Route Target Group",
+                "placeholder": "Select a target group"
+            },
+            "baseUrl": {
+                "label": "AI Base URL",
+                "placeholder": "Enter an OpenAI-compatible base URL"
+            },
+            "apiKey": {
+                "label": "AI API Key",
+                "placeholder": "Enter the AI API key"
+            },
+            "model": {
+                "label": "AI Model",
+                "placeholder": "Enter the model used for route analysis"
+            }
+        },
         "saved": "Saved",
         "backup": {
             "title": "Backup / Restore",
@@ -427,6 +446,9 @@
             "autoGroupSuccess": "Auto grouping completed: created {created} groups and skipped {skipped} existing groups",
             "autoGroupSuccessDescription": "Scanned {models} models, identified {candidates} candidate groups, created {created}, skipped {skippedExisting} existing groups, and skipped {skippedCovered} covered models",
             "autoGroupFailed": "Auto grouping failed",
+            "aiRouteSuccess": "AI routing completed: generated {routes} routes and wrote {items} route items",
+            "aiRouteFailed": "AI routing failed",
+            "aiRouteMissingGroup": "Please select an AI route target group in settings first",
             "removedFailedModels": "Failed models removed",
             "autoAddFailed": "Auto add failed",
             "testAllPassed": "All models in this group are available",
@@ -436,13 +458,20 @@
             "removableSuggestion": "Suggested removals"
         },
         "actions": {
-            "autoGroup": "Auto Group"
+            "autoGroup": "Auto Group",
+            "aiRoute": "AI Route"
         },
         "autoGroup": {
             "confirmTitle": "Confirm Auto Grouping",
             "confirmDescription": "This will scan all channel models and create groups for uncovered models based on normalization rules.\nExisting groups will not be modified or deleted.\nContinue?",
             "submit": "Start Auto Grouping",
             "submitting": "Grouping..."
+        },
+        "aiRoute": {
+            "confirmTitle": "Confirm AI Routing",
+            "confirmDescription": "AI routing will send all models to the AI for analysis and append newly generated route items to the target group.\nExisting identical route items will be skipped automatically.\nContinue?",
+            "submit": "Start AI Routing",
+            "submitting": "Generating..."
         },
         "create": {
             "title": "Create Group",
@@ -510,7 +539,7 @@
         "empty": "No groups yet, click the button above to create one",
         "emptyState": {
             "title": "No groups yet",
-            "description": "You can create a group manually or use auto grouping to generate them quickly."
+            "description": "You can create a group manually or use auto grouping / AI routing to generate them quickly."
         }
     },
     "model": {

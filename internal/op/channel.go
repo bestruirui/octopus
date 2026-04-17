@@ -17,6 +17,7 @@ var channelCache = cache.New[int, model.Channel](16)
 var channelKeyCache = cache.New[int, model.ChannelKey](16)
 var channelKeyCacheNeedUpdate = make(map[int]struct{})
 var channelKeyCacheNeedUpdateLock sync.Mutex
+var channelRuntimeUpdateLock sync.Mutex
 
 func ChannelList(ctx context.Context) ([]model.Channel, error) {
 	channels := make([]model.Channel, 0, channelCache.Len())
@@ -30,6 +31,8 @@ func ChannelCreate(channel *model.Channel, ctx context.Context) error {
 	if err := db.GetDB().WithContext(ctx).Create(channel).Error; err != nil {
 		return err
 	}
+	channelRuntimeUpdateLock.Lock()
+	defer channelRuntimeUpdateLock.Unlock()
 	channelCache.Set(channel.ID, *channel)
 	for _, k := range channel.Keys {
 		if k.ID != 0 {
@@ -44,6 +47,9 @@ func ChannelKeyUpdate(key model.ChannelKey) error {
 	if key.ID == 0 || key.ChannelID == 0 {
 		return fmt.Errorf("invalid channel key")
 	}
+	channelRuntimeUpdateLock.Lock()
+	defer channelRuntimeUpdateLock.Unlock()
+
 	ch, ok := channelCache.Get(key.ChannelID)
 	if !ok {
 		return fmt.Errorf("channel not found")
@@ -67,6 +73,9 @@ func ChannelKeyUpdate(key model.ChannelKey) error {
 	return nil
 }
 func ChannelBaseUrlUpdate(channelID int, baseUrl []model.BaseUrl) error {
+	channelRuntimeUpdateLock.Lock()
+	defer channelRuntimeUpdateLock.Unlock()
+
 	ch, ok := channelCache.Get(channelID)
 	if !ok {
 		return fmt.Errorf("channel not found")
@@ -264,6 +273,9 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 }
 
 func ChannelEnabled(id int, enabled bool, ctx context.Context) error {
+	channelRuntimeUpdateLock.Lock()
+	defer channelRuntimeUpdateLock.Unlock()
+
 	oldChannel, ok := channelCache.Get(id)
 	if !ok {
 		return fmt.Errorf("channel not found")
@@ -328,16 +340,21 @@ func ChannelDel(id int, ctx context.Context) error {
 	}
 
 	// 删除缓存
+	channelRuntimeUpdateLock.Lock()
 	channelCache.Del(id)
 	for _, k := range ch.Keys {
 		if k.ID != 0 {
 			channelKeyCache.Del(k.ID)
 		}
 	}
+	channelRuntimeUpdateLock.Unlock()
+
+	statsChannelMutationLock.Lock()
 	statsChannelCache.Del(id)
 	statsChannelCacheNeedUpdateLock.Lock()
 	delete(statsChannelCacheNeedUpdate, id)
 	statsChannelCacheNeedUpdateLock.Unlock()
+	statsChannelMutationLock.Unlock()
 
 	// 刷新受影响的分组缓存
 	for _, groupID := range affectedGroupIDs {
@@ -385,6 +402,9 @@ func channelRefreshCache(ctx context.Context) error {
 		log.Warnf("failed to get channels: %v", err)
 		return err
 	}
+	channelRuntimeUpdateLock.Lock()
+	defer channelRuntimeUpdateLock.Unlock()
+
 	channelCache.Clear()
 	channelKeyCache.Clear()
 	channelKeyCacheNeedUpdateLock.Lock()
@@ -402,6 +422,9 @@ func channelRefreshCache(ctx context.Context) error {
 }
 
 func channelRefreshCacheByID(id int, ctx context.Context) error {
+	channelRuntimeUpdateLock.Lock()
+	defer channelRuntimeUpdateLock.Unlock()
+
 	if old, ok := channelCache.Get(id); ok {
 		for _, k := range old.Keys {
 			if k.ID != 0 {

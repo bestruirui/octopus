@@ -89,6 +89,16 @@ export interface AutoGroupResult {
     skipped: AutoGroupSkippedItem[];
 }
 
+export interface GenerateAIRouteRequest {
+    group_id?: number;
+}
+
+export interface GenerateAIRouteResult {
+    group_id: number;
+    route_count: number;
+    item_count: number;
+}
+
 function normalizeGroupTestProgress(progress: GroupTestProgress): GroupTestProgress {
     return {
         ...progress,
@@ -210,6 +220,23 @@ export function useAutoGroupModels() {
         },
         onError: (error) => {
             logger.error('自动分组失败:', error);
+        },
+    });
+}
+
+export function useGenerateAIRoute() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: GenerateAIRouteRequest) => {
+            return apiClient.post<GenerateAIRouteResult>('/api/v1/route/ai-generate', data);
+        },
+        onSuccess: (data) => {
+            logger.log('AI 路由生成成功:', data);
+            queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+        },
+        onError: (error) => {
+            logger.error('AI 路由生成失败:', error);
         },
     });
 }

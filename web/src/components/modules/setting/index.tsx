@@ -13,6 +13,7 @@ import { SettingBackup } from './Backup';
 import { SettingCircuitBreaker } from './CircuitBreaker';
 import { SettingRetry } from './Retry';
 import { SettingAutoStrategy } from './AutoStrategy';
+import { SettingAIRoute } from './AIRoute';
 
 export function Setting() {
     return (
@@ -22,6 +23,7 @@ export function Setting() {
                 <SettingAppearance key="setting-appearance" />
                 <SettingAccount key="setting-account" />
                 <SettingSystem key="setting-system" />
+                <SettingAIRoute key="setting-ai-route" />
                 <SettingRetry key="setting-retry" />
                 <SettingAutoStrategy key="setting-auto-strategy" />
                 <SettingLog key="setting-log" />

@@ -27,14 +27,17 @@ var statsHourlyCacheLock sync.RWMutex
 var statsChannelCache = cache.New[int, model.StatsChannel](16)
 var statsChannelCacheNeedUpdate = make(map[int]struct{})
 var statsChannelCacheNeedUpdateLock sync.Mutex
+var statsChannelMutationLock sync.Mutex
 
 var statsModelCache = cache.New[int, model.StatsModel](16)
 var statsModelCacheNeedUpdate = make(map[int]struct{})
 var statsModelCacheNeedUpdateLock sync.Mutex
+var statsModelMutationLock sync.Mutex
 
 var statsAPIKeyCache = cache.New[int, model.StatsAPIKey](16)
 var statsAPIKeyCacheNeedUpdate = make(map[int]struct{})
 var statsAPIKeyCacheNeedUpdateLock sync.Mutex
+var statsAPIKeyMutationLock sync.Mutex
 
 func StatsSaveDBTask() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -290,6 +293,9 @@ func StatsTotalUpdate(metrics model.StatsMetrics) error {
 }
 
 func StatsChannelUpdate(channelID int, metrics model.StatsMetrics) error {
+	statsChannelMutationLock.Lock()
+	defer statsChannelMutationLock.Unlock()
+
 	channelCache, ok := statsChannelCache.Get(channelID)
 	if !ok {
 		channelCache = model.StatsChannel{
@@ -324,6 +330,9 @@ func StatsHourlyUpdate(metrics model.StatsMetrics) error {
 }
 
 func StatsModelUpdate(stats model.StatsModel) error {
+	statsModelMutationLock.Lock()
+	defer statsModelMutationLock.Unlock()
+
 	modelCache, ok := statsModelCache.Get(stats.ID)
 	if !ok {
 		modelCache = model.StatsModel{
@@ -339,6 +348,9 @@ func StatsModelUpdate(stats model.StatsModel) error {
 }
 
 func StatsAPIKeyUpdate(apiKeyID int, metrics model.StatsMetrics) error {
+	statsAPIKeyMutationLock.Lock()
+	defer statsAPIKeyMutationLock.Unlock()
+
 	apiKeyCache, ok := statsAPIKeyCache.Get(apiKeyID)
 	if !ok {
 		apiKeyCache = model.StatsAPIKey{
@@ -354,6 +366,9 @@ func StatsAPIKeyUpdate(apiKeyID int, metrics model.StatsMetrics) error {
 }
 
 func StatsChannelDel(id int) error {
+	statsChannelMutationLock.Lock()
+	defer statsChannelMutationLock.Unlock()
+
 	if _, ok := statsChannelCache.Get(id); !ok {
 		return nil
 	}
@@ -365,6 +380,9 @@ func StatsChannelDel(id int) error {
 }
 
 func StatsAPIKeyDel(id int) error {
+	statsAPIKeyMutationLock.Lock()
+	defer statsAPIKeyMutationLock.Unlock()
+
 	if _, ok := statsAPIKeyCache.Get(id); !ok {
 		return nil
 	}
@@ -388,6 +406,9 @@ func StatsTodayGet() model.StatsDaily {
 }
 
 func StatsChannelGet(id int) model.StatsChannel {
+	statsChannelMutationLock.Lock()
+	defer statsChannelMutationLock.Unlock()
+
 	stats, ok := statsChannelCache.Get(id)
 	if !ok {
 		tmp := model.StatsChannel{
@@ -403,6 +424,9 @@ func StatsChannelGet(id int) model.StatsChannel {
 }
 
 func StatsAPIKeyGet(id int) model.StatsAPIKey {
+	statsAPIKeyMutationLock.Lock()
+	defer statsAPIKeyMutationLock.Unlock()
+
 	stats, ok := statsAPIKeyCache.Get(id)
 	if !ok {
 		tmp := model.StatsAPIKey{

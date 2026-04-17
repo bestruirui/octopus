@@ -94,9 +94,10 @@ func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
 type Auto struct{}
 
 type autoScoredItem struct {
-	item     model.GroupItem
-	score    float64
-	explored bool
+	item         model.GroupItem
+	score        float64
+	totalSamples int
+	explored     bool
 }
 
 func (b *Auto) Candidates(items []model.GroupItem) []model.GroupItem {
@@ -114,12 +115,12 @@ func (b *Auto) Candidates(items []model.GroupItem) []model.GroupItem {
 		successRate, totalSamples := stats.GetStats(timeWindow)
 
 		scored[i].item = item
+		scored[i].totalSamples = totalSamples
 		scored[i].explored = totalSamples >= minSamples
 
 		if !scored[i].explored {
-			// Exploration phase: assign high score to prioritize unexplored channels
-			// Use negative index to ensure stable ordering for unexplored items
-			scored[i].score = 2.0
+			// Exploration phase: items with fewer samples are tried first.
+			scored[i].score = 0
 		} else {
 			// Exploitation phase: use success rate
 			scored[i].score = successRate
@@ -133,12 +134,27 @@ func (b *Auto) Candidates(items []model.GroupItem) []model.GroupItem {
 			return !scored[i].explored
 		}
 
+		// Exploration phase: prefer lower-sampled candidates first so other
+		// candidates are not starved by weight/priority.
+		if !scored[i].explored {
+			if scored[i].totalSamples != scored[j].totalSamples {
+				return scored[i].totalSamples < scored[j].totalSamples
+			}
+			return compareByWeightPriority(scored[i].item, scored[j].item)
+		}
+
 		// Both explored: sort by success rate descending
 		if scored[i].score != scored[j].score {
 			return scored[i].score > scored[j].score
 		}
 
-		// Same success rate (or both unexplored): fall back to weight/priority
+		// Same success rate: prefer the candidate backed by more in-window
+		// samples before falling back to weight/priority.
+		if scored[i].totalSamples != scored[j].totalSamples {
+			return scored[i].totalSamples > scored[j].totalSamples
+		}
+
+		// Same success rate: fall back to weight/priority
 		return compareByWeightPriority(scored[i].item, scored[j].item)
 	})
 

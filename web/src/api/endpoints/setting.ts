@@ -27,6 +27,10 @@ export const SettingKey = {
     AutoStrategyMinSamples: 'auto_strategy_min_samples',
     AutoStrategyTimeWindow: 'auto_strategy_time_window',
     AutoStrategySampleThreshold: 'auto_strategy_sample_threshold',
+    AIRouteGroupID: 'ai_route_group_id',
+    AIRouteBaseURL: 'ai_route_base_url',
+    AIRouteAPIKey: 'ai_route_api_key',
+    AIRouteModel: 'ai_route_model',
 } as const;
 
 /**

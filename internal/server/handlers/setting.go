@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
 	"github.com/lingyuins/octopus/internal/task"
-	"github.com/gin-gonic/gin"
 )
 
 func init() {
@@ -63,6 +63,15 @@ func setSetting(c *gin.Context) {
 		return
 	}
 	switch setting.Key {
+	case model.SettingKeyStatsSaveInterval:
+		minutes, err := strconv.Atoi(setting.Value)
+		if err != nil {
+			resp.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		interval := time.Duration(minutes) * time.Minute
+		task.Update(task.TaskStatsSave, interval)
+		task.Update(task.TaskRuntimeState, interval)
 	case model.SettingKeyModelInfoUpdateInterval:
 		hours, err := strconv.Atoi(setting.Value)
 		if err != nil {

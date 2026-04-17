@@ -2,6 +2,7 @@ package balancer
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,10 +27,10 @@ type ChannelStats struct {
 	count  int // Number of records written
 
 	// Cached values to avoid frequent recomputation
-	cachedSuccessRate   float64
-	cachedTotalSamples  int
-	lastCacheUpdate     time.Time
-	cacheValidDuration  time.Duration
+	cachedSuccessRate  float64
+	cachedTotalSamples int
+	lastCacheUpdate    time.Time
+	cacheValidDuration time.Duration
 }
 
 // Global storage for channel statistics.
@@ -38,7 +39,11 @@ var globalAutoStats sync.Map // string -> *ChannelStats
 
 // statsKey generates the key for channel stats storage.
 func statsKey(channelID int, modelName string) string {
-	return fmt.Sprintf("%d:%s", channelID, modelName)
+	return fmt.Sprintf("%d:%s", channelID, normalizeAutoStatsModelName(modelName))
+}
+
+func normalizeAutoStatsModelName(modelName string) string {
+	return strings.ToLower(strings.TrimSpace(modelName))
 }
 
 // getOrCreateStats retrieves or creates a ChannelStats entry.

@@ -86,10 +86,12 @@ func APIKeyDelete(id int, ctx context.Context) error {
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("failed to commit API key deletion: %w", err)
 	}
+	statsAPIKeyMutationLock.Lock()
 	statsAPIKeyCache.Del(id)
 	statsAPIKeyCacheNeedUpdateLock.Lock()
 	delete(statsAPIKeyCacheNeedUpdate, id)
 	statsAPIKeyCacheNeedUpdateLock.Unlock()
+	statsAPIKeyMutationLock.Unlock()
 	apiKeyCache.Del(id)
 	apiKeyIDMap.Del(apiKey.APIKey)
 	return nil

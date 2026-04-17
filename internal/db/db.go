@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/lingyuins/octopus/internal/db/migrate"
 	"github.com/lingyuins/octopus/internal/model"
-	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -67,6 +67,8 @@ func InitDB(dbType, dsn string, debug bool) error {
 		&model.StatsChannel{},
 		&model.StatsAPIKey{},
 		&model.RelayLog{},
+		&model.AutoStrategyState{},
+		&model.CircuitBreakerState{},
 		&migrate.MigrationRecord{},
 	); err != nil {
 		return err

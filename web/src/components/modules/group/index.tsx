@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { GroupCard } from './Card';
 import { AutoGroupButton } from './AutoGroupButton';
+import { AIRouteButton } from './AIRouteButton';
 import { useGroupList } from '@/api/endpoints/group';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
@@ -78,6 +79,7 @@ export function Group() {
                     <p className="mt-3 text-sm text-muted-foreground">{t('emptyState.description')}</p>
                     <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                         <AutoGroupButton variant="default" className="min-w-36" />
+                        <AIRouteButton variant="default" className="min-w-36" />
                         <MorphingDialog>
                             <MorphingDialogTrigger className={buttonVariants({ variant: 'outline', className: 'rounded-xl min-w-36' })}>
                                 {t('create.submit')}

@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"context"
+	"time"
+
 	"github.com/lingyuins/octopus/internal/conf"
 	"github.com/lingyuins/octopus/internal/db"
 	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/relay/balancer"
 	"github.com/lingyuins/octopus/internal/server"
 	"github.com/lingyuins/octopus/internal/task"
 	"github.com/lingyuins/octopus/internal/utils/log"
@@ -38,6 +42,16 @@ var startCmd = &cobra.Command{
 			return
 		}
 		shutdown.Register(op.SaveCache)
+		restoreCtx, restoreCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if err := balancer.LoadRuntimeState(restoreCtx); err != nil {
+			log.Warnf("balancer runtime state load error: %v", err)
+		}
+		restoreCancel()
+		shutdown.Register(func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			return balancer.SaveRuntimeState(ctx)
+		})
 
 		if err := op.UserInit(); err != nil {
 			log.Errorf("user init error: %v", err)
