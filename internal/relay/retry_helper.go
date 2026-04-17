@@ -223,7 +223,9 @@ func RecordFailureSideEffects(
 	}
 
 	// 日志记录决策
-	log.Warnf("channel %s failed: %s (decision: %s)", channel.Name, msg, decision.Scope.String())
+	if decision.IsError {
+		log.Warnf("channel %s failed: %s (decision: %s)", channel.Name, msg, decision.Scope.String())
+	}
 }
 
 // IsRetryAllowed 根据决策判断是否允许继续重试

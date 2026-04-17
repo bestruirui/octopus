@@ -17,7 +17,9 @@ import (
 var groupCache = cache.New[int, model.Group](16)
 var groupMap = cache.New[string, model.Group](16)
 
-var groupRegexMatchers []compiledGroupMatcher
+const groupCacheKeySep = "\x00"
+
+var groupRegexMatchersByEndpoint = make(map[string][]compiledGroupMatcher)
 var groupRegexMatchersLock sync.RWMutex
 
 type compiledGroupMatcher struct {
@@ -25,13 +27,62 @@ type compiledGroupMatcher struct {
 	re    *regexp2.Regexp
 }
 
+func makeGroupCacheKey(endpointType, name string) string {
+	return model.NormalizeEndpointType(endpointType) + groupCacheKeySep + name
+}
+
+func normalizeGroup(group model.Group) model.Group {
+	group.EndpointType = model.NormalizeEndpointType(group.EndpointType)
+	return group
+}
+
+func finalizeMatchedGroup(group model.Group) model.Group {
+	group = normalizeGroup(group)
+	if len(group.Items) == 0 {
+		group.Items = nil
+		return group
+	}
+
+	enabledItems := make([]model.GroupItem, 0, len(group.Items))
+	for _, item := range group.Items {
+		channel, ok := channelCache.Get(item.ChannelID)
+		if !ok || !channel.Enabled {
+			continue
+		}
+		enabledItems = append(enabledItems, item)
+	}
+	group.Items = enabledItems
+	return group
+}
+
+func findGroupByEndpoint(endpointType, name string) (model.Group, bool) {
+	group, ok := groupMap.Get(makeGroupCacheKey(endpointType, name))
+	if ok {
+		return group, true
+	}
+
+	groupRegexMatchersLock.RLock()
+	matchers := groupRegexMatchersByEndpoint[model.NormalizeEndpointType(endpointType)]
+	for _, matcher := range matchers {
+		isMatched, err := matcher.re.MatchString(name)
+		if err != nil || !isMatched {
+			continue
+		}
+		groupRegexMatchersLock.RUnlock()
+		return matcher.group, true
+	}
+	groupRegexMatchersLock.RUnlock()
+	return model.Group{}, false
+}
+
 func rebuildGroupIndexesFromCache() {
 	groups := groupCache.GetAll()
 	groupMap.Clear()
 
-	matchers := make([]compiledGroupMatcher, 0, len(groups))
+	matchersByEndpoint := make(map[string][]compiledGroupMatcher)
 	for _, group := range groups {
-		groupMap.Set(group.Name, group)
+		group = normalizeGroup(group)
+		groupMap.Set(makeGroupCacheKey(group.EndpointType, group.Name), group)
 		regex := strings.TrimSpace(group.MatchRegex)
 		if regex == "" {
 			continue
@@ -40,18 +91,19 @@ func rebuildGroupIndexesFromCache() {
 		if err != nil {
 			continue
 		}
-		matchers = append(matchers, compiledGroupMatcher{group: group, re: re})
+		endpointType := model.NormalizeEndpointType(group.EndpointType)
+		matchersByEndpoint[endpointType] = append(matchersByEndpoint[endpointType], compiledGroupMatcher{group: group, re: re})
 	}
 
 	groupRegexMatchersLock.Lock()
-	groupRegexMatchers = matchers
+	groupRegexMatchersByEndpoint = matchersByEndpoint
 	groupRegexMatchersLock.Unlock()
 }
 
 func GroupList(ctx context.Context) ([]model.Group, error) {
 	groups := make([]model.Group, 0, groupCache.Len())
 	for _, group := range groupCache.GetAll() {
-		groups = append(groups, group)
+		groups = append(groups, normalizeGroup(group))
 	}
 	return groups, nil
 }
@@ -69,49 +121,34 @@ func GroupGet(id int, ctx context.Context) (*model.Group, error) {
 	if !ok {
 		return nil, fmt.Errorf("group not found")
 	}
+	group = normalizeGroup(group)
 	return &group, nil
 }
 
-func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
-	group, ok := groupMap.Get(name)
-	if !ok {
-		groupRegexMatchersLock.RLock()
-		for _, matcher := range groupRegexMatchers {
-			isMatched, err := matcher.re.MatchString(name)
-			if err != nil || !isMatched {
-				continue
-			}
-			group = matcher.group
-			ok = true
-			break
-		}
-		groupRegexMatchersLock.RUnlock()
-		if !ok {
-			return model.Group{}, fmt.Errorf("group not found")
-		}
-	}
-	if len(group.Items) == 0 {
-		group.Items = nil
-		return group, nil
-	}
+func GroupGetEnabledMapByEndpoint(endpointType string, name string, ctx context.Context) (model.Group, error) {
+	endpointType = model.NormalizeEndpointType(endpointType)
 
-	enabledItems := make([]model.GroupItem, 0, len(group.Items))
-	for _, item := range group.Items {
-		channel, ok := channelCache.Get(item.ChannelID)
-		if !ok || !channel.Enabled {
-			continue
-		}
-		enabledItems = append(enabledItems, item)
+	if group, ok := findGroupByEndpoint(endpointType, name); ok {
+		return finalizeMatchedGroup(group), nil
 	}
-	group.Items = enabledItems
-	return group, nil
+	if endpointType != model.EndpointTypeAll {
+		if group, ok := findGroupByEndpoint(model.EndpointTypeAll, name); ok {
+			return finalizeMatchedGroup(group), nil
+		}
+	}
+	return model.Group{}, fmt.Errorf("group not found")
+}
+
+func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
+	return GroupGetEnabledMapByEndpoint(model.EndpointTypeAll, name, ctx)
 }
 
 func GroupCreate(group *model.Group, ctx context.Context) error {
+	group.EndpointType = model.NormalizeEndpointType(group.EndpointType)
 	if err := db.GetDB().WithContext(ctx).Create(group).Error; err != nil {
 		return err
 	}
-	groupCache.Set(group.ID, *group)
+	groupCache.Set(group.ID, normalizeGroup(*group))
 	rebuildGroupIndexesFromCache()
 	return nil
 }
@@ -135,6 +172,10 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	if req.Name != nil {
 		selectFields = append(selectFields, "name")
 		updates.Name = *req.Name
+	}
+	if req.EndpointType != nil {
+		selectFields = append(selectFields, "endpoint_type")
+		updates.EndpointType = model.NormalizeEndpointType(*req.EndpointType)
 	}
 	if req.Mode != nil {
 		selectFields = append(selectFields, "mode")
@@ -405,6 +446,7 @@ func groupRefreshCache(ctx context.Context) error {
 	}
 	groupCache.Clear()
 	for _, group := range groups {
+		group = normalizeGroup(group)
 		groupCache.Set(group.ID, group)
 	}
 	rebuildGroupIndexesFromCache()
@@ -418,6 +460,7 @@ func groupRefreshCacheByID(id int, ctx context.Context) error {
 		First(&group, id).Error; err != nil {
 		return err
 	}
+	group = normalizeGroup(group)
 	groupCache.Set(group.ID, group)
 	rebuildGroupIndexesFromCache()
 	return nil
@@ -435,6 +478,7 @@ func groupRefreshCacheByIDs(ids []int, ctx context.Context) error {
 		return err
 	}
 	for _, group := range groups {
+		group = normalizeGroup(group)
 		groupCache.Set(group.ID, group)
 	}
 	rebuildGroupIndexesFromCache()

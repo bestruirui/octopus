@@ -104,15 +104,18 @@
                     "all": "全部分組",
                     "withMembers": "有成員",
                     "empty": "空分組",
-                    "chat": "對話能力",
-                    "rerank": "重排序能力",
-                    "moderation": "審查能力",
+                    "chat": "Chat",
+                    "responses": "Responses",
+                    "messages": "Messages",
+                    "embeddings": "Embeddings",
+                    "rerank": "Rerank",
+                    "moderations": "Moderations",
                     "imageGeneration": "圖像生成",
                     "audioSpeech": "語音合成",
                     "audioTranscription": "語音轉寫",
                     "videoGeneration": "影片生成",
                     "musicGeneration": "音樂生成",
-                    "search": "搜尋能力"
+                    "search": "搜尋"
                 },
                 "model": {
                     "all": "全部模型",

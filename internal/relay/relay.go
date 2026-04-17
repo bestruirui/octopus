@@ -92,7 +92,7 @@ func resolveCandidateModelName(requestModel string, item dbmodel.GroupItem) stri
 }
 
 // Handler 处理入站请求并转发到上游服务
-func Handler(inboundType inbound.InboundType, c *gin.Context) {
+func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Context) {
 	// 解析请求
 	internalRequest, inAdapter, err := parseRequest(inboundType, c)
 	if err != nil {
@@ -111,7 +111,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	apiKeyID := c.GetInt("api_key_id")
 
 	// 获取通道分组
-	group, err := op.GroupGetEnabledMap(requestModel, c.Request.Context())
+	group, err := op.GroupGetEnabledMapByEndpoint(endpointType, requestModel, c.Request.Context())
 	if err != nil {
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
@@ -266,7 +266,7 @@ outer:
 				// 不重试，直接失败
 				lastErr = result.Err
 				metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
-				resp.Error(c, http.StatusBadGateway, lastErr.Error())
+				resp.BadGateway(c)
 				return
 
 			case ScopeAbortAll:
@@ -292,7 +292,7 @@ outer:
 				// 未知决策，保守停止
 				lastErr = result.Err
 				metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
-				resp.Error(c, http.StatusBadGateway, lastErr.Error())
+				resp.BadGateway(c)
 				return
 			}
 		}
@@ -372,8 +372,10 @@ func (ra *relayAttempt) attempt() attemptResult {
 	}
 
 	// 记录决策日志
-	log.Warnf("channel %s failed on retry %d/%d: %s (decision: %s)",
-		ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr, decision.Scope.String())
+	if decision.IsError {
+		log.Warnf("channel %s failed on retry %d/%d: %s (decision: %s)",
+			ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr, decision.Scope.String())
+	}
 
 	return attemptResult{
 		Success:  false,
@@ -436,12 +438,9 @@ func (ra *relayAttempt) forward() (int, error) {
 	defer response.Body.Close()
 
 	// 检查响应状态
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		body, err := io.ReadAll(response.Body)
-		if err != nil {
-			return 0, fmt.Errorf("failed to read response body: %w", err)
-		}
-		return 0, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
+	statusCode, err := ra.handleForwardResponse(response)
+	if err != nil {
+		return statusCode, err
 	}
 
 	// 处理响应
@@ -455,6 +454,18 @@ func (ra *relayAttempt) forward() (int, error) {
 		return 0, err
 	}
 	return response.StatusCode, nil
+}
+
+func (ra *relayAttempt) handleForwardResponse(response *http.Response) (int, error) {
+	if response.StatusCode >= 200 && response.StatusCode < 300 {
+		return response.StatusCode, nil
+	}
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return response.StatusCode, fmt.Errorf("failed to read response body: %w", err)
+	}
+	return response.StatusCode, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
 }
 
 // copyHeaders 复制请求头，过滤 hop-by-hop 头
@@ -493,6 +504,9 @@ func (ra *relayAttempt) sendRequest(req *http.Request) (*http.Response, error) {
 
 // handleStreamResponse 处理流式响应
 func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http.Response) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	if ct := response.Header.Get("Content-Type"); ct != "" && !strings.Contains(strings.ToLower(ct), "text/event-stream") {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 16*1024))
 		return fmt.Errorf("upstream returned non-SSE content-type %q for stream request: %s", ct, string(body))
@@ -515,11 +529,23 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 		defer close(results)
 		readCfg := &sse.ReadConfig{MaxEventSize: maxSSEEventSize}
 		for ev, err := range sse.Read(response.Body, readCfg) {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 			if err != nil {
-				results <- sseReadResult{err: err}
+				select {
+				case results <- sseReadResult{err: err}:
+				case <-ctx.Done():
+				}
 				return
 			}
-			results <- sseReadResult{data: ev.Data}
+			select {
+			case results <- sseReadResult{data: ev.Data}:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 

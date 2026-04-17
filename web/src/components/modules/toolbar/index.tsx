@@ -30,7 +30,7 @@ import {
 } from './view-options-store';
 
 const CHANNEL_FILTER_OPTIONS: ChannelFilter[] = ['all', 'enabled', 'disabled'];
-const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty', 'chat', 'rerank', 'moderation', 'image_generation', 'audio_speech', 'audio_transcription', 'video_generation', 'music_generation', 'search'];
+const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty', 'chat', 'responses', 'messages', 'embeddings', 'rerank', 'moderations', 'image_generation', 'audio_speech', 'audio_transcription', 'video_generation', 'music_generation', 'search'];
 const MODEL_FILTER_OPTIONS: ModelFilter[] = ['all', 'priced', 'free'];
 type CombinedSortOption = {
     value: `${ToolbarSortField}-${ToolbarSortOrder}`;
@@ -97,8 +97,11 @@ export function Toolbar() {
         'with-members': 'popover.filter.group.withMembers',
         empty: 'popover.filter.group.empty',
         chat: 'popover.filter.group.chat',
+        responses: 'popover.filter.group.responses',
+        messages: 'popover.filter.group.messages',
+        embeddings: 'popover.filter.group.embeddings',
         rerank: 'popover.filter.group.rerank',
-        moderation: 'popover.filter.group.moderation',
+        moderations: 'popover.filter.group.moderations',
         image_generation: 'popover.filter.group.imageGeneration',
         audio_speech: 'popover.filter.group.audioSpeech',
         audio_transcription: 'popover.filter.group.audioTranscription',

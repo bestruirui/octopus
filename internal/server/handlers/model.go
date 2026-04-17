@@ -57,13 +57,13 @@ func init() {
 func getModelList(c *gin.Context) {
 	models, err := op.GroupListModel(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	apiKeyId := c.GetInt("api_key_id")
 	apiKey, err := op.APIKeyGet(apiKeyId, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	if apiKey.SupportedModels != "" {
@@ -115,7 +115,7 @@ func getModelList(c *gin.Context) {
 func listLLM(c *gin.Context) {
 	models, err := op.LLMList(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, models)
@@ -124,7 +124,7 @@ func listLLM(c *gin.Context) {
 func listLLMByChannel(c *gin.Context) {
 	channels, err := op.ChannelLLMList(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, channels)
@@ -137,7 +137,7 @@ func createLLM(c *gin.Context) {
 		return
 	}
 	if err := op.LLMCreate(model, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, model)
@@ -150,7 +150,7 @@ func updateLLM(c *gin.Context) {
 		return
 	}
 	if err := op.LLMUpdate(model, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, model)
@@ -165,7 +165,7 @@ func deleteLLM(c *gin.Context) {
 		return
 	}
 	if err := op.LLMDelete(req.Name, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -174,7 +174,7 @@ func deleteLLM(c *gin.Context) {
 func updateLLMPrice(c *gin.Context) {
 	err := price.UpdateLLMPrice(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)

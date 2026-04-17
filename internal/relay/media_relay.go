@@ -20,6 +20,29 @@ import (
 	"github.com/lingyuins/octopus/internal/utils/log"
 )
 
+func mediaEndpointTypeToGroupEndpointType(endpointType MediaEndpointType) string {
+	switch endpointType {
+	case MediaEndpointImageGeneration:
+		return dbmodel.EndpointTypeImageGeneration
+	case MediaEndpointAudioSpeech:
+		return dbmodel.EndpointTypeAudioSpeech
+	case MediaEndpointAudioTranscription:
+		return dbmodel.EndpointTypeAudioTranscription
+	case MediaEndpointVideoGeneration:
+		return dbmodel.EndpointTypeVideoGeneration
+	case MediaEndpointMusicGeneration:
+		return dbmodel.EndpointTypeMusicGeneration
+	case MediaEndpointSearch:
+		return dbmodel.EndpointTypeSearch
+	case MediaEndpointRerank:
+		return dbmodel.EndpointTypeRerank
+	case MediaEndpointModeration:
+		return dbmodel.EndpointTypeModerations
+	default:
+		return dbmodel.EndpointTypeAll
+	}
+}
+
 // MediaHandler handles non-LLLM media/utility endpoints by forwarding requests
 // directly to upstream channels, reusing the existing channel/group/balancer/circuit-breaker
 // infrastructure without going through the Inbound/Outbound transformer pipeline.
@@ -40,7 +63,8 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 	apiKeyID := c.GetInt("api_key_id")
 
 	// 2. Resolve channel group
-	group, err := op.GroupGetEnabledMap(requestModel, c.Request.Context())
+	groupEndpointType := mediaEndpointTypeToGroupEndpointType(endpointType)
+	group, err := op.GroupGetEnabledMapByEndpoint(groupEndpointType, requestModel, c.Request.Context())
 	if err != nil {
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
@@ -74,35 +98,25 @@ outer:
 
 		item := iter.Item()
 
-		// Get channel
-		channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
-		if err != nil {
-			log.Warnf("media relay: failed to get channel %d: %v", item.ChannelID, err)
-			iter.Skip(item.ChannelID, 0, fmt.Sprintf("channel_%d", item.ChannelID), fmt.Sprintf("channel not found: %v", err))
-			lastErr = err
-			continue
-		}
-		if !channel.Enabled {
-			iter.Skip(channel.ID, 0, channel.Name, "channel disabled")
-			continue
-		}
-
-		usedKey := channel.GetChannelKeyWithCooldown(ratelimitCooldown)
-		if usedKey.ChannelKey == "" {
-			iter.Skip(channel.ID, 0, channel.Name, "no available key")
+		prepare := PrepareCandidate(c.Request.Context(), item, iter, ratelimitCooldown, requestModel, nil)
+		if prepare.SkipReason != "" {
+			channelID := item.ChannelID
+			channelName := fmt.Sprintf("channel_%d", item.ChannelID)
+			keyID := 0
+			if prepare.Channel != nil {
+				channelID = prepare.Channel.ID
+				channelName = prepare.Channel.Name
+			}
+			if prepare.UsedKey.ID != 0 {
+				keyID = prepare.UsedKey.ID
+			}
+			iter.Skip(channelID, keyID, channelName, prepare.SkipReason)
 			continue
 		}
 
-		// Circuit breaker check
-		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
-			continue
-		}
-
-		// Resolve the actual upstream model name
-		resolvedModel := item.ModelName
-		if strings.TrimSpace(resolvedModel) == "" {
-			resolvedModel = requestModel
-		}
+		channel := prepare.Channel
+		usedKey := prepare.UsedKey
+		resolvedModel := prepare.ResolvedModel
 
 		var failedKeyIDs []int
 	innerRetry:
@@ -184,8 +198,10 @@ outer:
 				balancer.RecordAutoFailure(channel.ID, resolvedModel)
 			}
 
-			log.Warnf("media relay: channel %s failed on retry %d/%d: %v (decision: %s)",
-				channel.Name, tryIndex, retryCount, fwdErr, decision.Scope.String())
+			if decision.IsError {
+				log.Warnf("media relay: channel %s failed on retry %d/%d: %v (decision: %s)",
+					channel.Name, tryIndex, retryCount, fwdErr, decision.Scope.String())
+			}
 
 			// 根据错误分类决策进行重试控制
 			switch decision.Scope {

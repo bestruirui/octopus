@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/relay"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/router"
@@ -33,14 +34,14 @@ func init() {
 }
 
 func chat(c *gin.Context) {
-	relay.Handler(inbound.InboundTypeOpenAIChat, c)
+	relay.Handler(model.EndpointTypeChat, inbound.InboundTypeOpenAIChat, c)
 }
 func response(c *gin.Context) {
-	relay.Handler(inbound.InboundTypeOpenAIResponse, c)
+	relay.Handler(model.EndpointTypeResponses, inbound.InboundTypeOpenAIResponse, c)
 }
 func message(c *gin.Context) {
-	relay.Handler(inbound.InboundTypeAnthropic, c)
+	relay.Handler(model.EndpointTypeMessages, inbound.InboundTypeAnthropic, c)
 }
 func embedding(c *gin.Context) {
-	relay.Handler(inbound.InboundTypeOpenAIEmbedding, c)
+	relay.Handler(model.EndpointTypeEmbeddings, inbound.InboundTypeOpenAIEmbedding, c)
 }

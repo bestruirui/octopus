@@ -55,7 +55,7 @@ func createAPIKey(c *gin.Context) {
 	}
 	req.APIKey = auth.GenerateAPIKey()
 	if err := op.APIKeyCreate(&req, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, req)
@@ -64,7 +64,7 @@ func createAPIKey(c *gin.Context) {
 func listAPIKey(c *gin.Context) {
 	apiKeys, err := op.APIKeyList(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, apiKeys)
@@ -77,7 +77,7 @@ func updateAPIKey(c *gin.Context) {
 		return
 	}
 	if err := op.APIKeyUpdate(&req, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, req)
@@ -91,7 +91,7 @@ func deleteAPIKey(c *gin.Context) {
 		return
 	}
 	if err := op.APIKeyDelete(idNum, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -102,12 +102,12 @@ func getStatsAPIKeyById(c *gin.Context) {
 	stats := op.StatsAPIKeyGet(id)
 	info, err := op.APIKeyGet(id, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	models, err := op.GroupListModel(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	var modelsString string

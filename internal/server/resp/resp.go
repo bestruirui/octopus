@@ -26,3 +26,11 @@ func Error(c *gin.Context, code int, err string) {
 		Message: err,
 	})
 }
+
+func InternalError(c *gin.Context) {
+	Error(c, http.StatusInternalServerError, ErrInternalServer)
+}
+
+func BadGateway(c *gin.Context) {
+	Error(c, http.StatusBadGateway, "upstream service unavailable")
+}

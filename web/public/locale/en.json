@@ -104,15 +104,18 @@
                     "all": "All groups",
                     "withMembers": "With members",
                     "empty": "Empty groups",
-                    "chat": "Chat capable",
-                    "rerank": "Rerank capable",
-                    "moderation": "Moderation capable",
+                    "chat": "Chat",
+                    "responses": "Responses",
+                    "messages": "Messages",
+                    "embeddings": "Embeddings",
+                    "rerank": "Rerank",
+                    "moderations": "Moderations",
                     "imageGeneration": "Image generation",
                     "audioSpeech": "Text-to-speech",
                     "audioTranscription": "Speech-to-text",
                     "videoGeneration": "Video generation",
                     "musicGeneration": "Music generation",
-                    "search": "Search capable"
+                    "search": "Search"
                 },
                 "model": {
                     "all": "All models",

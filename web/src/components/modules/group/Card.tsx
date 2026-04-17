@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/animate-ui
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
 import { GroupEditor, type GroupEditorValues } from './Editor';
-import { buildChannelNameByModelKey, modelChannelKey, MODE_LABELS, inferGroupCapabilities, CAPABILITY_LABEL_KEYS, CAPABILITY_COLORS } from './utils';
+import { buildChannelNameByModelKey, modelChannelKey, MODE_LABELS, inferGroupCapabilities, CAPABILITY_LABEL_KEYS, CAPABILITY_COLORS, endpointTypeLabel, normalizeEndpointType } from './utils';
 import { GroupMode, type GroupUpdateRequest } from '@/api/endpoints/group';
 import {
     MorphingDialog,
@@ -52,6 +52,7 @@ function EditDialogContent({ group, displayMembers, isSubmitting, onSubmit }: Ed
                     key={`edit-group-${group.id}`}
                     initial={{
                         name: group.name,
+                        endpoint_type: normalizeEndpointType(group.endpoint_type),
                         match_regex: group.match_regex ?? '',
                         mode: group.mode,
                         first_token_time_out: group.first_token_time_out ?? 0,
@@ -301,11 +302,13 @@ export function GroupCard({ group }: { group: Group }) {
 
         const payload: GroupUpdateRequest = { id: group.id };
         const nextName = values.name.trim();
+        const nextEndpointType = normalizeEndpointType(values.endpoint_type);
         const nextRegex = (values.match_regex ?? '').trim();
         const nextFirstTokenTimeOut = values.first_token_time_out ?? 0;
         const nextSessionKeepTime = values.session_keep_time ?? 0;
 
         if (nextName && nextName !== group.name) payload.name = nextName;
+        if (nextEndpointType !== normalizeEndpointType(group.endpoint_type)) payload.endpoint_type = nextEndpointType;
         if (values.mode !== group.mode) payload.mode = values.mode;
         if (nextRegex !== (group.match_regex ?? '')) payload.match_regex = nextRegex;
         if (nextFirstTokenTimeOut !== (group.first_token_time_out ?? 0)) payload.first_token_time_out = nextFirstTokenTimeOut;
@@ -465,6 +468,9 @@ export function GroupCard({ group }: { group: Group }) {
                 const modelCount = modelNames.length;
                 return (
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-500/15 text-slate-700 dark:text-slate-300">
+                            API 分类：{endpointTypeLabel(group.endpoint_type)}
+                        </span>
                         {capabilities.map((cap) => (
                             <span
                                 key={cap}

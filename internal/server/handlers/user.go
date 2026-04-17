@@ -95,7 +95,7 @@ func changeUsername(c *gin.Context) {
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, "username changed successfully")

@@ -2,7 +2,10 @@ package relay
 
 import (
 	"errors"
+	"io"
 	"net"
+	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -61,6 +64,7 @@ func TestClassifyRelayError_Written(t *testing.T) {
 		err        error
 		written    bool
 		wantScope  RetryScope
+		wantError  bool
 	}{
 		{
 			name:       "written with error",
@@ -68,13 +72,15 @@ func TestClassifyRelayError_Written(t *testing.T) {
 			err:        errors.New("some error"),
 			written:    true,
 			wantScope:  ScopeAbortAll,
+			wantError:  true,
 		},
 		{
 			name:       "written with success",
 			statusCode: 200,
 			err:        nil,
 			written:    true,
-			wantScope:  ScopeAbortAll, // written takes precedence
+			wantScope:  ScopeNone,
+			wantError:  false,
 		},
 	}
 
@@ -83,6 +89,9 @@ func TestClassifyRelayError_Written(t *testing.T) {
 			got := ClassifyRelayError(tt.statusCode, tt.err, tt.written)
 			if got.Scope != tt.wantScope {
 				t.Errorf("ClassifyRelayError() Scope = %v, want %v", got.Scope, tt.wantScope)
+			}
+			if got.IsError != tt.wantError {
+				t.Errorf("ClassifyRelayError() IsError = %v, want %v", got.IsError, tt.wantError)
 			}
 		})
 	}
@@ -251,6 +260,25 @@ func TestClassifyRelayError_TransformerError(t *testing.T) {
 	}
 	if !got.IsError {
 		t.Errorf("ClassifyRelayError() IsError should be true for transformer error")
+	}
+}
+
+func TestRelayAttemptForward_ReturnsUpstreamStatusCodeOnError(t *testing.T) {
+	ra := &relayAttempt{}
+	resp := &http.Response{
+		StatusCode: http.StatusTooManyRequests,
+		Body:       io.NopCloser(strings.NewReader("rate limited")),
+	}
+
+	statusCode, err := ra.handleForwardResponse(resp)
+	if statusCode != http.StatusTooManyRequests {
+		t.Fatalf("handleForwardResponse() statusCode = %d, want %d", statusCode, http.StatusTooManyRequests)
+	}
+	if err == nil {
+		t.Fatal("handleForwardResponse() error = nil, want non-nil")
+	}
+	if !strings.Contains(err.Error(), "429") {
+		t.Fatalf("handleForwardResponse() error = %q, want to contain 429", err.Error())
 	}
 }
 

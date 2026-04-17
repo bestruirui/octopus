@@ -42,7 +42,7 @@ func getStatsToday(c *gin.Context) {
 func getStatsDaily(c *gin.Context) {
 	statsDaily, err := op.StatsGetDaily(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, statsDaily)

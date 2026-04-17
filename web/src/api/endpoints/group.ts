@@ -31,6 +31,7 @@ export enum GroupMode {
 export interface Group {
     id?: number;
     name: string;
+    endpoint_type: string;
     mode: GroupMode;
     match_regex: string;
     first_token_time_out?: number;
@@ -99,6 +100,7 @@ export interface GroupItemUpdateRequest {
 export interface GroupUpdateRequest {
     id: number;
     name?: string;
+    endpoint_type?: string;
     mode?: GroupMode;
     match_regex?: string;
     first_token_time_out?: number;

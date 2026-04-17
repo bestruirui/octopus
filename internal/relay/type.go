@@ -163,32 +163,32 @@ func (d RetryDecision) String() string {
 //   - 直接失败（400 类客户端错误）
 //   - 换 Key 重试（401/403/429、网络错误）
 //   - 换候选重试（404、5xx、超时、上游业务错误）
-//   - 停止所有重试（已写入流式响应）
+//   - 停止所有重试（流式响应已部分写出且本次尝试发生错误）
 //
 // 参数：
 //   - statusCode: HTTP 状态码（0 表示非 HTTP 错误）
 //   - err: 错误对象（nil 表示成功）
-//   - written: 是否已开始写入流式响应
+//   - written: 是否已开始向客户端写出响应；仅表示后续不能安全重试，不等同于失败
 //
 // 返回：RetryDecision 决策结果
 func ClassifyRelayError(statusCode int, err error, written bool) RetryDecision {
-	// 优先检查：流式响应已写入 → 停止所有重试
-	if written {
-		return RetryDecision{
-			Scope:   ScopeAbortAll,
-			Reason:  "stream response already written",
-			Code:    statusCode,
-			IsError: true,
-		}
-	}
-
-	// 成功：无需重试
+	// 成功：无需重试。流式成功完成即使已经写出响应，也不应视为失败。
 	if err == nil && statusCode >= 200 && statusCode < 300 {
 		return RetryDecision{
 			Scope:   ScopeNone,
 			Reason:  "success",
 			Code:    statusCode,
 			IsError: false,
+		}
+	}
+
+	// 流式响应已部分写出且本次尝试发生错误：停止所有重试，避免再次写回客户端。
+	if written {
+		return RetryDecision{
+			Scope:   ScopeAbortAll,
+			Reason:  "stream response already written before failure",
+			Code:    statusCode,
+			IsError: true,
 		}
 	}
 

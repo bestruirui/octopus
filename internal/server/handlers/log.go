@@ -73,7 +73,7 @@ func listLog(c *gin.Context) {
 
 	logs, err := op.RelayLogList(c.Request.Context(), startTime, endTime, page, pageSize)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 
@@ -94,7 +94,7 @@ func logDetail(c *gin.Context) {
 
 	log, err := op.RelayLogGetByID(c.Request.Context(), id)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	if log == nil {
@@ -107,7 +107,7 @@ func logDetail(c *gin.Context) {
 
 func clearLog(c *gin.Context) {
 	if err := op.RelayLogClear(c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -116,7 +116,7 @@ func clearLog(c *gin.Context) {
 func getStreamToken(c *gin.Context) {
 	token, err := op.RelayLogStreamTokenCreate()
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, gin.H{"token": token})

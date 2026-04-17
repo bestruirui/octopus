@@ -5,9 +5,27 @@ import { GroupCard } from './Card';
 import { useGroupList } from '@/api/endpoints/group';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
-import { inferGroupCapabilities, ALL_CAPABILITIES, type CapabilityType } from './utils';
+import { normalizeEndpointType } from './utils';
 
-const CAPABILITY_FILTERS = new Set<string>(ALL_CAPABILITIES);
+const ENDPOINT_TYPE_FILTERS = new Set<string>([
+    'chat',
+    'responses',
+    'messages',
+    'embeddings',
+    'rerank',
+    'moderations',
+    'image_generation',
+    'audio_speech',
+    'audio_transcription',
+    'video_generation',
+    'music_generation',
+    'search',
+]);
+
+function normalizeGroupFilter(value: string) {
+    if (value === 'moderation') return 'moderations';
+    return value;
+}
 
 export function Group() {
     const { data: groups } = useGroupList();
@@ -15,7 +33,7 @@ export function Group() {
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
     const sortField = useToolbarViewOptionsStore((s) => s.getSortField(pageKey));
     const sortOrder = useToolbarViewOptionsStore((s) => s.getSortOrder(pageKey));
-    const filter = useToolbarViewOptionsStore((s) => s.groupFilter);
+    const filter = useToolbarViewOptionsStore((s) => normalizeGroupFilter(s.groupFilter));
 
     const sortedGroups = useMemo(() => {
         if (!groups) return [];
@@ -34,14 +52,8 @@ export function Group() {
         if (filter === 'with-members') return result.filter((g) => (g.items?.length || 0) > 0);
         if (filter === 'empty') return result.filter((g) => (g.items?.length || 0) === 0);
 
-        // Capability-based filter
-        if (CAPABILITY_FILTERS.has(filter)) {
-            const cap = filter as CapabilityType;
-            result = result.filter((g) => {
-                const modelNames = (g.items || []).map((item) => item.model_name);
-                return inferGroupCapabilities(modelNames).includes(cap);
-            });
-            return result;
+        if (ENDPOINT_TYPE_FILTERS.has(filter)) {
+            return result.filter((g) => normalizeEndpointType(g.endpoint_type) === filter);
         }
 
         return result;

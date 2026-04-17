@@ -51,7 +51,7 @@ func init() {
 func getGroupList(c *gin.Context) {
 	groups, err := op.GroupList(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, groups)
@@ -63,6 +63,7 @@ func createGroup(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	group.EndpointType = model.NormalizeEndpointType(group.EndpointType)
 	if group.MatchRegex != "" {
 		_, err := regexp2.Compile(group.MatchRegex, regexp2.ECMAScript)
 		if err != nil {
@@ -71,7 +72,7 @@ func createGroup(c *gin.Context) {
 		}
 	}
 	if err := op.GroupCreate(&group, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, group)
@@ -83,6 +84,10 @@ func updateGroup(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	if req.EndpointType != nil {
+		normalized := model.NormalizeEndpointType(*req.EndpointType)
+		req.EndpointType = &normalized
+	}
 	if req.MatchRegex != nil {
 		_, err := regexp2.Compile(*req.MatchRegex, regexp2.ECMAScript)
 		if err != nil {
@@ -92,7 +97,7 @@ func updateGroup(c *gin.Context) {
 	}
 	group, err := op.GroupUpdate(&req, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, group)
@@ -107,7 +112,7 @@ func startGroupTest(c *gin.Context) {
 
 	group, err := op.GroupGet(req.GroupID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusNotFound, err.Error())
+		resp.Error(c, http.StatusNotFound, "group not found")
 		return
 	}
 
@@ -155,7 +160,7 @@ func deleteGroup(c *gin.Context) {
 		return
 	}
 	if err := op.GroupDel(idNum, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, "group deleted successfully")

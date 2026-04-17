@@ -64,7 +64,7 @@ func init() {
 func listChannel(c *gin.Context) {
 	channels, err := op.ChannelList(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	for i, channel := range channels {
@@ -81,7 +81,7 @@ func createChannel(c *gin.Context) {
 		return
 	}
 	if err := op.ChannelCreate(&channel, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	stats := op.StatsChannelGet(channel.ID)
@@ -106,7 +106,7 @@ func updateChannel(c *gin.Context) {
 	}
 	channel, err := op.ChannelUpdate(&req, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	stats := op.StatsChannelGet(channel.ID)
@@ -133,7 +133,7 @@ func enableChannel(c *gin.Context) {
 		return
 	}
 	if err := op.ChannelEnabled(request.ID, request.Enabled, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -147,7 +147,7 @@ func deleteChannel(c *gin.Context) {
 		return
 	}
 	if err := op.ChannelDel(idNum, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -160,7 +160,7 @@ func fetchModel(c *gin.Context) {
 	}
 	models, err := helper.FetchModels(c.Request.Context(), request)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, models)

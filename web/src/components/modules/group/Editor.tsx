@@ -14,7 +14,7 @@ import { getModelIcon } from '@/lib/model-icons';
 import type { GroupMode } from '@/api/endpoints/group';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
-import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS } from './utils';
+import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS, ENDPOINT_TYPE_OPTIONS, normalizeEndpointType } from './utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
 import { HelpCircle } from 'lucide-react';
 
@@ -22,6 +22,7 @@ import { HelpCircle } from 'lucide-react';
 
 export type GroupEditorValues = {
     name: string;
+    endpoint_type: string;
     match_regex: string;
     mode: GroupMode;
     first_token_time_out: number;
@@ -253,6 +254,7 @@ export function GroupEditor({
     const { data: modelChannels = [] } = useModelChannelList();
 
     const [groupName, setGroupName] = useState(initial?.name ?? '');
+    const [endpointType, setEndpointType] = useState(normalizeEndpointType(initial?.endpoint_type));
     const [matchRegex, setMatchRegex] = useState(initial?.match_regex ?? '');
     const [mode, setMode] = useState<GroupMode>((initial?.mode ?? 1) as GroupMode);
     const [firstTokenTimeOut, setFirstTokenTimeOut] = useState<number>(initial?.first_token_time_out ?? 0);
@@ -336,6 +338,7 @@ export function GroupEditor({
         if (!isValid) return;
         onSubmit({
             name: groupName,
+            endpoint_type: endpointType,
             match_regex: regexKey,
             mode,
             first_token_time_out: firstTokenTimeOut,
@@ -358,6 +361,21 @@ export function GroupEditor({
                                 onChange={(e) => setGroupName(e.target.value)}
                                 className="rounded-xl"
                             />
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor="group-endpoint-type">API 分类</FieldLabel>
+                            <select
+                                id="group-endpoint-type"
+                                value={endpointType}
+                                onChange={(e) => setEndpointType(normalizeEndpointType(e.target.value))}
+                                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                            >
+                                {ENDPOINT_TYPE_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="group-match-regex">{t('form.matchRegex')}</FieldLabel>
