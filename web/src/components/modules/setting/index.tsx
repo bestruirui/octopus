@@ -14,6 +14,7 @@ import { SettingCircuitBreaker } from './CircuitBreaker';
 import { SettingRetry } from './Retry';
 import { SettingAutoStrategy } from './AutoStrategy';
 import { SettingAIRoute } from './AIRoute';
+import { SettingRouteGroupDanger } from './RouteGroupDanger';
 
 export function Setting() {
     return (
@@ -32,6 +33,7 @@ export function Setting() {
                 <SettingLLMSync key="setting-llmsync" />
                 <SettingCircuitBreaker key="setting-circuit-breaker" />
                 <SettingBackup key="setting-backup" />
+                <SettingRouteGroupDanger key="setting-route-group-danger" />
             </PageWrapper>
         </div>
     );

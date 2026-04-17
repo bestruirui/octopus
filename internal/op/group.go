@@ -296,6 +296,48 @@ func GroupDel(id int, ctx context.Context) error {
 	return nil
 }
 
+func GroupDelAll(ctx context.Context) (int64, error) {
+	tx := db.GetDB().WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var deletedCount int64
+	if err := tx.Model(&model.Group{}).Count(&deletedCount).Error; err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to count groups: %w", err)
+	}
+
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.GroupItem{}).Error; err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to delete group items: %w", err)
+	}
+
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.Group{}).Error; err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to delete groups: %w", err)
+	}
+
+	if err := tx.Model(&model.Setting{}).
+		Where("key = ?", model.SettingKeyAIRouteGroupID).
+		Update("value", "0").Error; err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to reset ai route group setting: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	groupCache.Clear()
+	rebuildGroupIndexesFromCache()
+	settingCache.Set(model.SettingKeyAIRouteGroupID, "0")
+
+	return deletedCount, nil
+}
+
 func GroupItemAdd(item *model.GroupItem, ctx context.Context) error {
 	if _, ok := groupCache.Get(item.GroupID); !ok {
 		return fmt.Errorf("group not found")

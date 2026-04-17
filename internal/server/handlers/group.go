@@ -43,6 +43,10 @@ func init() {
 				Handle(getGroupTestProgress),
 		).
 		AddRoute(
+			router.NewRoute("/delete-all", http.MethodDelete).
+				Handle(deleteAllGroups),
+		).
+		AddRoute(
 			router.NewRoute("/delete/:id", http.MethodDelete).
 				Handle(deleteGroup),
 		)
@@ -177,6 +181,15 @@ func deleteGroup(c *gin.Context) {
 		return
 	}
 	resp.Success(c, "group deleted successfully")
+}
+
+func deleteAllGroups(c *gin.Context) {
+	deletedCount, err := op.GroupDelAll(c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, gin.H{"deleted_count": deletedCount})
 }
 
 // func autoAddGroupItem(c *gin.Context) {

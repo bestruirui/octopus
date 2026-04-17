@@ -99,6 +99,10 @@ export interface GenerateAIRouteResult {
     item_count: number;
 }
 
+export interface DeleteAllGroupsResult {
+    deleted_count: number;
+}
+
 function normalizeGroupTestProgress(progress: GroupTestProgress): GroupTestProgress {
     return {
         ...progress,
@@ -220,6 +224,24 @@ export function useAutoGroupModels() {
         },
         onError: (error) => {
             logger.error('自动分组失败:', error);
+        },
+    });
+}
+
+export function useDeleteAllGroups() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            return apiClient.delete<DeleteAllGroupsResult>('/api/v1/group/delete-all');
+        },
+        onSuccess: (data) => {
+            logger.log('全部分组删除成功:', data);
+            queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['settings', 'list'] });
+        },
+        onError: (error) => {
+            logger.error('全部分组删除失败:', error);
         },
     });
 }

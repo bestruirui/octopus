@@ -303,6 +303,18 @@
                 "result": "Import result"
             }
         },
+        "routeGroups": {
+            "title": "Route Groups",
+            "description": "Delete all route groups and all route items at once. This action cannot be undone.",
+            "count": "{count, plural, =0 {No route groups} one {# route group} other {# route groups}}",
+            "button": "Delete All Route Groups",
+            "deleting": "Deleting...",
+            "confirmTitle": "Delete all route groups?",
+            "confirmDescription": "This will permanently delete {count, plural, =0 {all route groups} one {# route group} other {# route groups}} and all route items.\nThe AI route target group setting will also be reset.\nThis action cannot be undone.\nContinue?",
+            "confirm": "Delete All",
+            "success": "Deleted {count} route groups",
+            "failed": "Failed to delete route groups"
+        },
         "apiKey": {
             "title": "API Keys",
             "empty": "No API keys",

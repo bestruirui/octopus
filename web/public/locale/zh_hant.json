@@ -303,6 +303,18 @@
                 "result": "匯入結果"
             }
         },
+        "routeGroups": {
+            "title": "路由分組",
+            "description": "一次刪除全部路由分組及其路由項。此操作無法復原。",
+            "count": "{count, plural, =0 {目前沒有路由分組} other {目前共有 # 個路由分組}}",
+            "button": "刪除全部路由分組",
+            "deleting": "刪除中...",
+            "confirmTitle": "確認刪除全部路由分組？",
+            "confirmDescription": "這會永久刪除 {count, plural, =0 {全部路由分組} other {# 個路由分組}}及其路由項。\nAI 路由目標分組設定也會被重置。\n此操作無法復原。\n是否繼續？",
+            "confirm": "確認全部刪除",
+            "success": "已刪除 {count} 個路由分組",
+            "failed": "刪除路由分組失敗"
+        },
         "apiKey": {
             "title": "API 金鑰",
             "empty": "暫無 API 金鑰",
