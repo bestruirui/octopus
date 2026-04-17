@@ -12,6 +12,7 @@ import { SettingLog } from './Log';
 import { SettingBackup } from './Backup';
 import { SettingCircuitBreaker } from './CircuitBreaker';
 import { SettingRetry } from './Retry';
+import { SettingAutoStrategy } from './AutoStrategy';
 
 export function Setting() {
     return (
@@ -22,6 +23,7 @@ export function Setting() {
                 <SettingAccount key="setting-account" />
                 <SettingSystem key="setting-system" />
                 <SettingRetry key="setting-retry" />
+                <SettingAutoStrategy key="setting-auto-strategy" />
                 <SettingLog key="setting-log" />
                 <SettingLLMPrice key="setting-llmprice" />
                 <SettingAPIKey key="setting-apikey" />

@@ -103,7 +103,16 @@
                 "group": {
                     "all": "全部分組",
                     "withMembers": "有成員",
-                    "empty": "空分組"
+                    "empty": "空分組",
+                    "chat": "對話能力",
+                    "rerank": "重排序能力",
+                    "moderation": "審查能力",
+                    "imageGeneration": "圖像生成",
+                    "audioSpeech": "語音合成",
+                    "audioTranscription": "語音轉寫",
+                    "videoGeneration": "影片生成",
+                    "musicGeneration": "音樂生成",
+                    "search": "搜尋能力"
                 },
                 "model": {
                     "all": "全部模型",
@@ -223,6 +232,25 @@
             "count": {
                 "label": "單個渠道最大重試次數",
                 "placeholder": "請輸入重試次數"
+            }
+        },
+        "autoStrategy": {
+            "title": "智慧選擇策略",
+            "hint": "設定自動渠道選擇策略。樣本數不足的渠道優先探索，之後根據成功率選擇。",
+            "minSamples": {
+                "label": "最小樣本數",
+                "hint": "使用成功率選擇前的最小請求數",
+                "placeholder": "10"
+            },
+            "timeWindow": {
+                "label": "時間窗口（秒）",
+                "hint": "計算成功率的時間窗口",
+                "placeholder": "300"
+            },
+            "sampleThreshold": {
+                "label": "樣本閾值",
+                "hint": "滑動窗口保留的最大樣本數",
+                "placeholder": "100"
             }
         },
         "saved": "已儲存",
@@ -402,6 +430,7 @@
         },
         "card": {
             "empty": "暫無規則",
+            "modelCount": "{count} 個模型",
             "testProgressTitle": "檢測進度",
             "testProgressCount": "已完成 {completed}/{total}",
             "testPending": "待檢測",
@@ -443,7 +472,19 @@
             "roundRobin": "輪詢",
             "random": "隨機",
             "failover": "故障轉移",
-            "weighted": "加權分配"
+            "weighted": "加權分配",
+            "auto": "智能選擇"
+        },
+        "capability": {
+            "chat": "對話",
+            "rerank": "重排序",
+            "moderation": "內容審查",
+            "imageGeneration": "圖像生成",
+            "audioSpeech": "語音合成",
+            "audioTranscription": "語音轉寫",
+            "videoGeneration": "影片生成",
+            "musicGeneration": "音樂生成",
+            "search": "搜尋"
         },
         "empty": "暫無分組，點擊左上角按鈕建立"
     },

@@ -5,6 +5,9 @@ import { GroupCard } from './Card';
 import { useGroupList } from '@/api/endpoints/group';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
+import { inferGroupCapabilities, ALL_CAPABILITIES, type CapabilityType } from './utils';
+
+const CAPABILITY_FILTERS = new Set<string>(ALL_CAPABILITIES);
 
 export function Group() {
     const { data: groups } = useGroupList();
@@ -26,12 +29,22 @@ export function Group() {
 
     const visibleGroups = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
-        const byName = !term ? sortedGroups : sortedGroups.filter((g) => g.name.toLowerCase().includes(term));
+        let result = !term ? sortedGroups : sortedGroups.filter((g) => g.name.toLowerCase().includes(term));
 
-        if (filter === 'with-members') return byName.filter((g) => (g.items?.length || 0) > 0);
-        if (filter === 'empty') return byName.filter((g) => (g.items?.length || 0) === 0);
+        if (filter === 'with-members') return result.filter((g) => (g.items?.length || 0) > 0);
+        if (filter === 'empty') return result.filter((g) => (g.items?.length || 0) === 0);
 
-        return byName;
+        // Capability-based filter
+        if (CAPABILITY_FILTERS.has(filter)) {
+            const cap = filter as CapabilityType;
+            result = result.filter((g) => {
+                const modelNames = (g.items || []).map((item) => item.model_name);
+                return inferGroupCapabilities(modelNames).includes(cap);
+            });
+            return result;
+        }
+
+        return result;
     }, [sortedGroups, searchTerm, filter]);
 
     return (

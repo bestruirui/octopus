@@ -28,6 +28,8 @@ func GetBalancer(mode model.GroupMode) Balancer {
 		return &Failover{}
 	case model.GroupModeWeighted:
 		return &Weighted{}
+	case model.GroupModeAuto:
+		return &Auto{}
 	default:
 		return &RoundRobin{}
 	}
@@ -83,6 +85,97 @@ func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
 		return nil
 	}
 	return sortByWeight(items)
+}
+
+// Auto 自动策略：探索优先，基于成功率动态选择
+// - 探索阶段：优先选择未达到最小样本数的渠道
+// - 利用阶段：选择成功率最高的渠道
+// - 相同成功率时：按权重/优先级兜底
+type Auto struct{}
+
+type autoScoredItem struct {
+	item     model.GroupItem
+	score    float64
+	explored bool
+}
+
+func (b *Auto) Candidates(items []model.GroupItem) []model.GroupItem {
+	if len(items) == 0 {
+		return nil
+	}
+
+	minSamples := getMinSamples()
+	timeWindow := getTimeWindow()
+
+	// Calculate scores for each item
+	scored := make([]autoScoredItem, len(items))
+	for i, item := range items {
+		stats := getOrCreateStats(item.ChannelID, item.ModelName)
+		successRate, totalSamples := stats.GetStats(timeWindow)
+
+		scored[i].item = item
+		scored[i].explored = totalSamples >= minSamples
+
+		if !scored[i].explored {
+			// Exploration phase: assign high score to prioritize unexplored channels
+			// Use negative index to ensure stable ordering for unexplored items
+			scored[i].score = 2.0
+		} else {
+			// Exploitation phase: use success rate
+			scored[i].score = successRate
+		}
+	}
+
+	// Sort: unexplored first, then by success rate descending
+	sort.SliceStable(scored, func(i, j int) bool {
+		// Exploration priority: unexplored channels come first
+		if scored[i].explored != scored[j].explored {
+			return !scored[i].explored
+		}
+
+		// Both explored: sort by success rate descending
+		if scored[i].score != scored[j].score {
+			return scored[i].score > scored[j].score
+		}
+
+		// Same success rate (or both unexplored): fall back to weight/priority
+		return compareByWeightPriority(scored[i].item, scored[j].item)
+	})
+
+	// Extract sorted items
+	result := make([]model.GroupItem, len(items))
+	for i, s := range scored {
+		result[i] = s.item
+	}
+	return result
+}
+
+// compareByWeightPriority compares two items by weight (descending), then priority (ascending).
+// Returns true if a should come before b.
+func compareByWeightPriority(a, b model.GroupItem) bool {
+	// Compare weight (higher weight first)
+	leftWeight := a.Weight
+	if leftWeight <= 0 {
+		leftWeight = 1
+	}
+	rightWeight := b.Weight
+	if rightWeight <= 0 {
+		rightWeight = 1
+	}
+	if leftWeight != rightWeight {
+		return leftWeight > rightWeight
+	}
+
+	// Compare priority (lower priority value first)
+	if a.Priority != b.Priority {
+		return a.Priority < b.Priority
+	}
+
+	// Tie-breaker: channel ID, then model name
+	if a.ChannelID != b.ChannelID {
+		return a.ChannelID < b.ChannelID
+	}
+	return a.ModelName < b.ModelName
 }
 
 func sortByPriority(items []model.GroupItem) []model.GroupItem {

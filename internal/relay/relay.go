@@ -213,6 +213,7 @@ outer:
 		internalRequest.Model = resolvedModelName
 
 		var failedKeyIDs []int
+	innerRetry:
 		for tryIndex := 1; tryIndex <= retryCount; tryIndex++ {
 			if maxTotalAttempts > 0 && len(iter.Attempts()) >= maxTotalAttempts {
 				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
@@ -230,7 +231,7 @@ outer:
 				usedKey = channel.GetChannelKeyExcludingWithCooldown(failedKeyIDs, ratelimitCooldown)
 				if usedKey.ChannelKey == "" {
 					log.Infof("channel %s has no more keys to retry, moving to next channel", channel.Name)
-					break
+					break innerRetry
 				}
 				if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
 					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
@@ -258,12 +259,42 @@ outer:
 				metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
 				return
 			}
-			if result.Written {
+
+			// 根据错误分类决策进行重试控制
+			switch result.Decision.Scope {
+			case ScopeNone:
+				// 不重试，直接失败
+				lastErr = result.Err
+				metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
+				resp.Error(c, http.StatusBadGateway, lastErr.Error())
+				return
+
+			case ScopeAbortAll:
+				// 停止所有重试（流式响应已写入）
 				metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
 				return
+
+			case ScopeSameChannel:
+				// 同候选换 Key 重试
+				lastErr = result.Err
+				failedKeyIDs = append(failedKeyIDs, usedKey.ID)
+				// 继续内层循环，尝试下一个 Key
+				continue innerRetry
+
+			case ScopeNextChannel:
+				// 换下一个候选重试
+				lastErr = result.Err
+				failedKeyIDs = append(failedKeyIDs, usedKey.ID)
+				// 跳出内层循环，进入下一个候选
+				break innerRetry
+
+			default:
+				// 未知决策，保守停止
+				lastErr = result.Err
+				metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
+				resp.Error(c, http.StatusBadGateway, lastErr.Error())
+				return
 			}
-			lastErr = result.Err
-			failedKeyIDs = append(failedKeyIDs, usedKey.ID)
 		}
 	}
 
@@ -279,11 +310,17 @@ func (ra *relayAttempt) attempt() attemptResult {
 	// 转发请求
 	statusCode, fwdErr := ra.forward()
 
+	// 检查是否已写入流式响应
+	written := ra.c.Writer.Written()
+
+	// 使用错误分类驱动决策
+	decision := ClassifyRelayError(statusCode, fwdErr, written)
+
 	// 更新 channel key 状态
 	ra.usedKey.StatusCode = statusCode
 	ra.usedKey.LastUseTimeStamp = time.Now().Unix()
 
-	if fwdErr == nil {
+	if decision.Scope == ScopeNone && !decision.IsError {
 		// ====== 成功 ======
 		ra.collectResponse()
 		ra.usedKey.TotalCost += ra.metrics.Stats.InputCost + ra.metrics.Stats.OutputCost
@@ -299,17 +336,21 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 		// 熔断器：记录成功
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		// Auto策略：记录成功
+		balancer.RecordAutoSuccess(ra.channel.ID, ra.internalRequest.Model)
 		// 会话保持：更新粘性记录
 		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
 
-		return attemptResult{Success: true}
+		return attemptResult{Success: true, Decision: decision}
 	}
 
 	// ====== 失败 ======
 	op.ChannelKeyUpdate(ra.usedKey)
-	msg := fwdErr.Error()
+
+	// 构造日志消息
+	msg := decision.String()
 	if ra.tryTotal > 1 {
-		msg = fmt.Sprintf("retry %d/%d failed: %s", ra.tryIndex, ra.tryTotal, msg)
+		msg = fmt.Sprintf("retry %d/%d: %s", ra.tryIndex, ra.tryTotal, msg)
 	}
 	span.End(dbmodel.AttemptFailed, statusCode, msg)
 
@@ -319,17 +360,26 @@ func (ra *relayAttempt) attempt() attemptResult {
 		RequestFailed: 1,
 	})
 
-	// 熔断器：记录失败
-	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	// 熔断器和 Auto 策略：只在换候选或停止时记录失败
+	// 换 Key 重试不触发熔断计数，避免误熔断
+	if decision.Scope == ScopeNextChannel || decision.Scope == ScopeAbortAll {
+		balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		balancer.RecordAutoFailure(ra.channel.ID, ra.internalRequest.Model)
+	}
 
-	written := ra.c.Writer.Written()
 	if written {
 		ra.collectResponse()
 	}
+
+	// 记录决策日志
+	log.Warnf("channel %s failed on retry %d/%d: %s (decision: %s)",
+		ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr, decision.Scope.String())
+
 	return attemptResult{
-		Success: false,
-		Written: written,
-		Err:     fmt.Errorf("channel %s failed on retry %d/%d: %v", ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr),
+		Success:  false,
+		Written:  written,
+		Err:      fmt.Errorf("channel %s failed on retry %d/%d: %v", ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr),
+		Decision: decision,
 	}
 }
 

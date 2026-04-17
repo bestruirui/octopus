@@ -103,7 +103,16 @@
                 "group": {
                     "all": "全部分组",
                     "withMembers": "有成员",
-                    "empty": "空分组"
+                    "empty": "空分组",
+                    "chat": "对话能力",
+                    "rerank": "重排序能力",
+                    "moderation": "审查能力",
+                    "imageGeneration": "图像生成",
+                    "audioSpeech": "语音合成",
+                    "audioTranscription": "语音转写",
+                    "videoGeneration": "视频生成",
+                    "musicGeneration": "音乐生成",
+                    "search": "搜索能力"
                 },
                 "model": {
                     "all": "全部模型",
@@ -223,6 +232,25 @@
             "count": {
                 "label": "单个渠道最大重试次数",
                 "placeholder": "请输入重试次数"
+            }
+        },
+        "autoStrategy": {
+            "title": "智能选择策略",
+            "hint": "配置自动渠道选择策略。样本数不足的渠道优先探索，之后根据成功率选择。",
+            "minSamples": {
+                "label": "最小样本数",
+                "hint": "使用成功率选择前的最小请求数",
+                "placeholder": "10"
+            },
+            "timeWindow": {
+                "label": "时间窗口（秒）",
+                "hint": "计算成功率的时间窗口",
+                "placeholder": "300"
+            },
+            "sampleThreshold": {
+                "label": "样本阈值",
+                "hint": "滑动窗口保留的最大样本数",
+                "placeholder": "100"
             }
         },
         "saved": "已保存",
@@ -402,6 +430,7 @@
         },
         "card": {
             "empty": "暂无规则",
+            "modelCount": "{count} 个模型",
             "testProgressTitle": "检测进度",
             "testProgressCount": "已完成 {completed}/{total}",
             "testPending": "待检测",
@@ -443,7 +472,19 @@
             "roundRobin": "轮询",
             "random": "随机",
             "failover": "故障转移",
-            "weighted": "加权分配"
+            "weighted": "加权分配",
+            "auto": "智能选择"
+        },
+        "capability": {
+            "chat": "对话",
+            "rerank": "重排序",
+            "moderation": "内容审查",
+            "imageGeneration": "图像生成",
+            "audioSpeech": "语音合成",
+            "audioTranscription": "语音转写",
+            "videoGeneration": "视频生成",
+            "musicGeneration": "音乐生成",
+            "search": "搜索"
         },
         "empty": "暂无分组，点击左上角按钮创建"
     },

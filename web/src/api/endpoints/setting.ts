@@ -24,6 +24,9 @@ export const SettingKey = {
     CircuitBreakerThreshold: 'circuit_breaker_threshold',
     CircuitBreakerCooldown: 'circuit_breaker_cooldown',
     CircuitBreakerMaxCooldown: 'circuit_breaker_max_cooldown',
+    AutoStrategyMinSamples: 'auto_strategy_min_samples',
+    AutoStrategyTimeWindow: 'auto_strategy_time_window',
+    AutoStrategySampleThreshold: 'auto_strategy_sample_threshold',
 } as const;
 
 /**

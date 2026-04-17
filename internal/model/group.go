@@ -7,6 +7,7 @@ const (
 	GroupModeRandom     GroupMode = 2 // 随机：每次随机选择一个渠道
 	GroupModeFailover   GroupMode = 3 // 故障转移：按优先级选择，失败时降级到下一个
 	GroupModeWeighted   GroupMode = 4 // 加权分配：按优权重分配流量
+	GroupModeAuto       GroupMode = 5 // 自动：探索优先，基于成功率动态选择
 )
 
 type Group struct {

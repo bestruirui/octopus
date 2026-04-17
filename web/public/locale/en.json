@@ -103,7 +103,16 @@
                 "group": {
                     "all": "All groups",
                     "withMembers": "With members",
-                    "empty": "Empty groups"
+                    "empty": "Empty groups",
+                    "chat": "Chat capable",
+                    "rerank": "Rerank capable",
+                    "moderation": "Moderation capable",
+                    "imageGeneration": "Image generation",
+                    "audioSpeech": "Text-to-speech",
+                    "audioTranscription": "Speech-to-text",
+                    "videoGeneration": "Video generation",
+                    "musicGeneration": "Music generation",
+                    "search": "Search capable"
                 },
                 "model": {
                     "all": "All models",
@@ -223,6 +232,25 @@
             "count": {
                 "label": "Max retries per channel",
                 "placeholder": "Enter retry count"
+            }
+        },
+        "autoStrategy": {
+            "title": "Auto Strategy",
+            "hint": "Configure the automatic channel selection strategy. Channels with insufficient samples are explored first, then selection is based on success rate.",
+            "minSamples": {
+                "label": "Min Samples",
+                "hint": "Minimum requests before using success rate for selection",
+                "placeholder": "10"
+            },
+            "timeWindow": {
+                "label": "Time Window (sec)",
+                "hint": "Time window for calculating success rate",
+                "placeholder": "300"
+            },
+            "sampleThreshold": {
+                "label": "Sample Threshold",
+                "hint": "Maximum number of samples to keep in sliding window",
+                "placeholder": "100"
             }
         },
         "saved": "Saved",
@@ -402,6 +430,7 @@
         },
         "card": {
             "empty": "No rules",
+            "modelCount": "{count, plural, one {# model} other {# models}}",
             "testProgressTitle": "Test progress",
             "testProgressCount": "Completed {completed}/{total}",
             "testPending": "Pending",
@@ -443,7 +472,19 @@
             "roundRobin": "Round Robin",
             "random": "Random",
             "failover": "Failover",
-            "weighted": "Weighted"
+            "weighted": "Weighted",
+            "auto": "Auto"
+        },
+        "capability": {
+            "chat": "Chat",
+            "rerank": "Rerank",
+            "moderation": "Moderation",
+            "imageGeneration": "Image",
+            "audioSpeech": "TTS",
+            "audioTranscription": "STT",
+            "videoGeneration": "Video",
+            "musicGeneration": "Music",
+            "search": "Search"
         },
         "empty": "No groups yet, click the button above to create one"
     },
