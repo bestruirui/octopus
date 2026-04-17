@@ -202,7 +202,7 @@ export function useAutoGroupModels() {
 
     return useMutation({
         mutationFn: async () => {
-            return apiClient.post<AutoGroupResult>('/api/v1/group/auto-group');
+            return apiClient.post<AutoGroupResult>('/api/v1/group/auto-group', {});
         },
         onSuccess: (data) => {
             logger.log('自动分组成功:', data);
