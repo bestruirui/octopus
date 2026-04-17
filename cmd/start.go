@@ -16,10 +16,13 @@ var cfgFile string
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start " + conf.APP_NAME,
-	PreRun: func(cmd *cobra.Command, args []string) {
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		conf.PrintBanner()
-		conf.Load(cfgFile)
+		if err := conf.Load(cfgFile); err != nil {
+			return err
+		}
 		log.SetLevel(conf.AppConfig.Log.Level)
+		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		shutdown.Init(log.Logger)

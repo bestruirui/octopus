@@ -63,16 +63,33 @@ func APIKeyDelete(id int, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := StatsAPIKeyDel(id); err != nil {
-		return fmt.Errorf("failed to delete stats API key: %v", err)
-	}
-	result := db.GetDB().WithContext(ctx).Delete(&model.APIKey{ID: id})
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("API key not found")
-	}
+	tx := db.GetDB().WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	result := tx.Delete(&model.APIKey{ID: id})
 	if result.Error != nil {
+		tx.Rollback()
 		return fmt.Errorf("failed to delete API key: %w", result.Error)
 	}
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		return fmt.Errorf("API key not found")
+	}
+	if err := tx.Where("api_key_id = ?", id).Delete(&model.StatsAPIKey{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete stats API key: %w", err)
+	}
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit API key deletion: %w", err)
+	}
+	statsAPIKeyCache.Del(id)
+	statsAPIKeyCacheNeedUpdateLock.Lock()
+	delete(statsAPIKeyCacheNeedUpdate, id)
+	statsAPIKeyCacheNeedUpdateLock.Unlock()
 	apiKeyCache.Del(id)
 	apiKeyIDMap.Del(apiKey.APIKey)
 	return nil
@@ -83,6 +100,8 @@ func apiKeyRefreshCache(ctx context.Context) error {
 	if err := db.GetDB().WithContext(ctx).Find(&apiKeys).Error; err != nil {
 		return err
 	}
+	apiKeyCache.Clear()
+	apiKeyIDMap.Clear()
 	for _, apiKey := range apiKeys {
 		apiKeyCache.Set(apiKey.ID, apiKey)
 		apiKeyIDMap.Set(apiKey.APIKey, apiKey.ID)

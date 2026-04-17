@@ -95,8 +95,7 @@ func (it *Iterator) Skip(channelID, channelKeyID int, channelName, msg string) {
 }
 
 // SkipCircuitBreak 检查熔断状态，若已熔断自动记录（含剩余冷却时间）并返回 true
-func (it *Iterator) SkipCircuitBreak(channelID, channelKeyID int, channelName string) bool {
-	modelName := it.candidates[it.index].ModelName
+func (it *Iterator) SkipCircuitBreak(channelID, channelKeyID int, channelName, modelName string) bool {
 	tripped, remaining := IsTripped(channelID, channelKeyID, modelName)
 	if !tripped {
 		return false
@@ -120,14 +119,14 @@ func (it *Iterator) SkipCircuitBreak(channelID, channelKeyID int, channelName st
 }
 
 // StartAttempt 开始一次真实转发尝试，返回 Span 用于记录结果
-func (it *Iterator) StartAttempt(channelID, channelKeyID int, channelName string) *AttemptSpan {
+func (it *Iterator) StartAttempt(channelID, channelKeyID int, channelName, modelName string) *AttemptSpan {
 	it.count++
 	return &AttemptSpan{
 		attempt: model.ChannelAttempt{
 			ChannelID:    channelID,
 			ChannelKeyID: channelKeyID,
 			ChannelName:  channelName,
-			ModelName:    it.candidates[it.index].ModelName,
+			ModelName:    modelName,
 			AttemptNum:   it.count,
 			Sticky:       it.IsSticky(),
 		},

@@ -64,6 +64,31 @@ export interface GroupTestProgress extends GroupTestSummary {
     message?: string;
 }
 
+export interface AutoGroupCreatedItem {
+    name: string;
+    endpoint_type: string;
+    matched_models: string[];
+}
+
+export interface AutoGroupSkippedItem {
+    name: string;
+    endpoint_type: string;
+    reason: string;
+}
+
+export interface AutoGroupResult {
+    total_channels: number;
+    total_models_seen: number;
+    total_distinct_raw_models: number;
+    total_candidates: number;
+    created_groups: number;
+    skipped_existing_groups: number;
+    skipped_covered_models: number;
+    failed_groups: number;
+    created: AutoGroupCreatedItem[];
+    skipped: AutoGroupSkippedItem[];
+}
+
 function normalizeGroupTestProgress(progress: GroupTestProgress): GroupTestProgress {
     return {
         ...progress,
@@ -168,6 +193,23 @@ export function useDeleteGroup() {
         },
         onError: (error) => {
             logger.error('分组删除失败:', error);
+        },
+    });
+}
+
+export function useAutoGroupModels() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            return apiClient.post<AutoGroupResult>('/api/v1/group/auto-group');
+        },
+        onSuccess: (data) => {
+            logger.log('自动分组成功:', data);
+            queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+        },
+        onError: (error) => {
+            logger.error('自动分组失败:', error);
         },
     });
 }

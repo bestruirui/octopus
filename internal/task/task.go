@@ -2,6 +2,7 @@ package task
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/lingyuins/octopus/internal/utils/log"
@@ -15,6 +16,7 @@ type taskEntry struct {
 	ticker     *time.Ticker
 	stopCh     chan struct{}
 	updateCh   chan time.Duration
+	running    atomic.Bool
 }
 
 var (
@@ -90,9 +92,19 @@ func RUN() {
 }
 
 func runTask(entry *taskEntry) {
-	// 根据配置决定是否在启动时立即执行
+	runOnce := func() {
+		if !entry.running.CompareAndSwap(false, true) {
+			log.Warnf("task %s is still running, skipping overlapping run", entry.name)
+			return
+		}
+		go func() {
+			defer entry.running.Store(false)
+			entry.fn()
+		}()
+	}
+
 	if entry.runOnStart {
-		go entry.fn()
+		runOnce()
 	}
 
 	entry.ticker = time.NewTicker(entry.interval)
@@ -101,7 +113,7 @@ func runTask(entry *taskEntry) {
 	for {
 		select {
 		case <-entry.ticker.C:
-			go entry.fn()
+			runOnce()
 		case newInterval := <-entry.updateCh:
 			entry.ticker.Stop()
 			entry.interval = newInterval

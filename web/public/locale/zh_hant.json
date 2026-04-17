@@ -142,11 +142,15 @@
         },
         "total": {
             "requestStats": "請求統計",
-            "totalStats": "全部統計",
-            "inputStats": "輸入統計",
-            "outputStats": "輸出統計",
+            "qualityStats": "品質統計",
+            "efficiencyStats": "效率統計",
+            "supplyStats": "供給統計",
             "requestCount": "請求次數",
             "timeConsumed": "消耗時間",
+            "successRate": "全域成功率",
+            "avgWaitTime": "平均請求耗時",
+            "avgCostPerRequest": "平均每請求成本",
+            "activeChannels": "活躍 Channel 數",
             "totalToken": "消耗 Token",
             "totalCost": "消耗費用",
             "inputTokens": "輸入 Tokens",
@@ -163,8 +167,10 @@
             "metricType": {
                 "cost": "金額",
                 "count": "次數",
-                "tokens": "Tokens"
+                "tokens": "Tokens",
+                "successRate": "成功率"
             },
+            "successRate": "成功率",
             "period": {
                 "today": "今天",
                 "last7Days": "7天",
@@ -418,6 +424,9 @@
             "updated": "更新成功",
             "updateFailed": "更新失敗",
             "deleted": "刪除成功",
+            "autoGroupSuccess": "自動分組完成，已建立 {created} 個分組，跳過 {skipped} 個已存在分組",
+            "autoGroupSuccessDescription": "掃描到 {models} 個模型，識別出 {candidates} 個候選分組，建立 {created} 個，跳過 {skippedExisting} 個已存在分組，跳過 {skippedCovered} 個已覆蓋模型",
+            "autoGroupFailed": "自動分組失敗",
             "removedFailedModels": "已移除檢測失敗模型",
             "autoAddFailed": "自動新增失敗",
             "testAllPassed": "分組內模型均可用",
@@ -425,6 +434,15 @@
             "testPartialFailedDescription": "檢測失敗的模型建議移除",
             "testRequestFailed": "分組檢測失敗",
             "removableSuggestion": "可考慮移除"
+        },
+        "actions": {
+            "autoGroup": "自動分組"
+        },
+        "autoGroup": {
+            "confirmTitle": "確認自動分組",
+            "confirmDescription": "將自動掃描所有供應源模型，並根據模型歸一化規則為未覆蓋模型建立分組。\n不會修改已有分組，也不會刪除已有分組。\n是否繼續？",
+            "submit": "開始自動分組",
+            "submitting": "自動分組中..."
         },
         "create": {
             "title": "建立分組",
@@ -489,7 +507,11 @@
             "musicGeneration": "音樂生成",
             "search": "搜尋"
         },
-        "empty": "暫無分組，點擊左上角按鈕建立"
+        "empty": "暫無分組，點擊左上角按鈕建立",
+        "emptyState": {
+            "title": "暫無分組",
+            "description": "你可以手動建立分組，或使用自動分組快速生成。"
+        }
     },
     "model": {
         "create": {

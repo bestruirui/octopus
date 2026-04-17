@@ -13,11 +13,11 @@ import (
 
 // PrepareCandidateResult 准备候选的结果
 type PrepareCandidateResult struct {
-	Channel      *dbmodel.Channel
-	UsedKey      dbmodel.ChannelKey
-	SkipReason   string       // 不为空表示应跳过该候选
-	SkipStatus   dbmodel.AttemptStatus // 跳过时的状态（用于 Iterator 追踪）
-	ResolvedModel string      // 解析后的上游模型名
+	Channel       *dbmodel.Channel
+	UsedKey       dbmodel.ChannelKey
+	SkipReason    string                // 不为空表示应跳过该候选
+	SkipStatus    dbmodel.AttemptStatus // 跳过时的状态（用于 Iterator 追踪）
+	ResolvedModel string                // 解析后的上游模型名
 }
 
 // PrepareCandidate 准备候选：熔断检查、Key选择、类型兼容检查
@@ -68,14 +68,7 @@ func PrepareCandidate(
 	}
 	result.UsedKey = usedKey
 
-	// 4. 熔断检查
-	if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
-		result.SkipReason = "circuit breaker tripped"
-		result.SkipStatus = dbmodel.AttemptCircuitBreak
-		return result
-	}
-
-	// 5. 解析上游模型名
+	// 4. 解析上游模型名
 	resolvedModel := resolveCandidateModelName(requestModel, item)
 	if resolvedModel == "" {
 		result.SkipReason = "resolved upstream model is empty"
@@ -83,6 +76,13 @@ func PrepareCandidate(
 		return result
 	}
 	result.ResolvedModel = resolvedModel
+
+	// 5. 熔断检查
+	if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name, resolvedModel) {
+		result.SkipReason = "circuit breaker tripped"
+		result.SkipStatus = dbmodel.AttemptCircuitBreak
+		return result
+	}
 
 	// 6. Zen 模型前缀类型兼容性检查（如果提供）
 	if zenPreferredCheck != nil && !zenPreferredCheck(int(channel.Type)) {
@@ -111,6 +111,7 @@ func PrepareCandidateForRetry(
 	failedKeyIDs []int,
 	iter *balancer.Iterator,
 	ratelimitCooldown int,
+	modelName string,
 ) (dbmodel.ChannelKey, string) {
 	// 换 Key（排除已失败的 + 429 cooldown）
 	usedKey := channel.GetChannelKeyExcludingWithCooldown(failedKeyIDs, ratelimitCooldown)
@@ -119,7 +120,7 @@ func PrepareCandidateForRetry(
 	}
 
 	// 熔断检查
-	if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+	if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name, modelName) {
 		return usedKey, "circuit breaker tripped on retry key"
 	}
 

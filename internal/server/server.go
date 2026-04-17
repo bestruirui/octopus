@@ -2,8 +2,10 @@ package server
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/conf"
 	_ "github.com/lingyuins/octopus/internal/server/handlers"
 	"github.com/lingyuins/octopus/internal/server/middleware"
@@ -11,7 +13,6 @@ import (
 	"github.com/lingyuins/octopus/internal/server/router"
 	"github.com/lingyuins/octopus/internal/utils/log"
 	"github.com/lingyuins/octopus/static"
-	"github.com/gin-gonic/gin"
 )
 
 var httpSrv http.Server
@@ -45,8 +46,12 @@ func Start() error {
 
 	httpSrv.Addr = fmt.Sprintf("%s:%d", conf.AppConfig.Server.Host, conf.AppConfig.Server.Port)
 	httpSrv.Handler = r
+	ln, err := net.Listen("tcp", httpSrv.Addr)
+	if err != nil {
+		return fmt.Errorf("listen on %s: %w", httpSrv.Addr, err)
+	}
 	go func() {
-		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := httpSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			log.Errorf("http server listen and serve error: %v", err)
 		}
 	}()

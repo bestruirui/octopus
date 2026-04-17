@@ -142,11 +142,15 @@
         },
         "total": {
             "requestStats": "请求统计",
-            "totalStats": "全部统计",
-            "inputStats": "输入统计",
-            "outputStats": "输出统计",
+            "qualityStats": "质量统计",
+            "efficiencyStats": "效率统计",
+            "supplyStats": "供给统计",
             "requestCount": "请求次数",
             "timeConsumed": "消耗时间",
+            "successRate": "全局成功率",
+            "avgWaitTime": "平均请求耗时",
+            "avgCostPerRequest": "平均每请求成本",
+            "activeChannels": "活跃 Channel 数",
             "totalToken": "消耗 Token",
             "totalCost": "消耗费用",
             "inputTokens": "输入 Tokens",
@@ -163,8 +167,10 @@
             "metricType": {
                 "cost": "金额",
                 "count": "次数",
-                "tokens": "Tokens"
+                "tokens": "Tokens",
+                "successRate": "成功率"
             },
+            "successRate": "成功率",
             "period": {
                 "today": "今天",
                 "last7Days": "7天",
@@ -418,6 +424,9 @@
             "updated": "更新成功",
             "updateFailed": "更新失败",
             "deleted": "删除成功",
+            "autoGroupSuccess": "自动分组完成，已创建 {created} 个分组，跳过 {skipped} 个已存在分组",
+            "autoGroupSuccessDescription": "扫描到 {models} 个模型，识别出 {candidates} 个候选分组，创建 {created} 个，跳过 {skippedExisting} 个已存在分组，跳过 {skippedCovered} 个已覆盖模型",
+            "autoGroupFailed": "自动分组失败",
             "removedFailedModels": "已移除检测失败模型",
             "autoAddFailed": "自动添加失败",
             "testAllPassed": "分组内模型均可用",
@@ -425,6 +434,15 @@
             "testPartialFailedDescription": "检测失败的模型建议移除",
             "testRequestFailed": "分组检测失败",
             "removableSuggestion": "可考虑移除"
+        },
+        "actions": {
+            "autoGroup": "自动分组"
+        },
+        "autoGroup": {
+            "confirmTitle": "确认自动分组",
+            "confirmDescription": "将自动扫描所有渠道模型，并根据模型归一化规则为未覆盖模型创建分组。\n不会修改已有分组，也不会删除已有分组。\n是否继续？",
+            "submit": "开始自动分组",
+            "submitting": "自动分组中..."
         },
         "create": {
             "title": "创建分组",
@@ -489,7 +507,11 @@
             "musicGeneration": "音乐生成",
             "search": "搜索"
         },
-        "empty": "暂无分组，点击左上角按钮创建"
+        "empty": "暂无分组，点击左上角按钮创建",
+        "emptyState": {
+            "title": "暂无分组",
+            "description": "你可以手动新建分组，或使用自动分组快速生成。"
+        }
     },
     "model": {
         "create": {

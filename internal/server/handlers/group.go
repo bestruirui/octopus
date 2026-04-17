@@ -31,6 +31,10 @@ func init() {
 				Handle(updateGroup),
 		).
 		AddRoute(
+			router.NewRoute("/auto-group", http.MethodPost).
+				Handle(autoGroupModels),
+		).
+		AddRoute(
 			router.NewRoute("/test", http.MethodPost).
 				Handle(startGroupTest),
 		).
@@ -150,6 +154,15 @@ func getGroupTestProgress(c *gin.Context) {
 	}
 
 	resp.Success(c, progress)
+}
+
+func autoGroupModels(c *gin.Context) {
+	result, err := op.AutoGroupModels(c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp.Success(c, result)
 }
 
 func deleteGroup(c *gin.Context) {

@@ -334,7 +334,10 @@ func ChannelDel(id int, ctx context.Context) error {
 			channelKeyCache.Del(k.ID)
 		}
 	}
-	StatsChannelDel(id)
+	statsChannelCache.Del(id)
+	statsChannelCacheNeedUpdateLock.Lock()
+	delete(statsChannelCacheNeedUpdate, id)
+	statsChannelCacheNeedUpdateLock.Unlock()
 
 	// 刷新受影响的分组缓存
 	for _, groupID := range affectedGroupIDs {
@@ -382,6 +385,7 @@ func channelRefreshCache(ctx context.Context) error {
 		log.Warnf("failed to get channels: %v", err)
 		return err
 	}
+	channelCache.Clear()
 	channelKeyCache.Clear()
 	channelKeyCacheNeedUpdateLock.Lock()
 	channelKeyCacheNeedUpdate = make(map[int]struct{})

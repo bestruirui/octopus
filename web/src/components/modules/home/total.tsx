@@ -5,117 +5,105 @@ import {
     Activity,
     MessageSquare,
     Clock,
-    ArrowDownToLine,
-    ChartColumnBig,
-    Bot,
-    ArrowUpFromLine,
-    Rewind,
+    CircleCheckBig,
     DollarSign,
-    FastForward
+    Network,
+    Percent
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useStatsTotal } from '@/api/endpoints/stats';
+import { useChannelList } from '@/api/endpoints/channel';
 import { AnimatedNumber } from '@/components/common/AnimatedNumber';
 import { EASING } from '@/lib/animations/fluid-transitions';
+import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 
 
 export function Total() {
     const { data: statsTotalFormatted } = useStatsTotal();
+    const { data: channelData } = useChannelList();
     const t = useTranslations('home.total');
+
+    const requestCount = statsTotalFormatted?.request_count.raw ?? 0;
+    const successCount = statsTotalFormatted?.request_success.raw ?? 0;
+    const totalCost = statsTotalFormatted?.total_cost.raw ?? 0;
+    const totalWaitTime = statsTotalFormatted?.wait_time.raw ?? 0;
+
+    const successRate = requestCount > 0 ? (successCount / requestCount) * 100 : 0;
+    const avgWaitTime = requestCount > 0 ? totalWaitTime / requestCount : 0;
+    const avgCostPerRequest = requestCount > 0 ? totalCost / requestCount : 0;
+    const activeChannelCount = channelData?.filter((channel) => channel.formatted.request_count.raw > 0).length ?? 0;
 
     const cards = [
         {
-            title: t('requestStats'),
+            title: t('qualityStats'),
             headerIcon: Activity,
             items: [
+                {
+                    label: t('successRate'),
+                    value: successRate.toFixed(2),
+                    icon: CircleCheckBig,
+                    color: 'text-primary',
+                    bgColor: 'bg-primary/10',
+                    unit: '%'
+                },
+                {
+                    label: t('avgWaitTime'),
+                    value: formatTime(avgWaitTime).formatted.value,
+                    icon: Clock,
+                    color: 'text-primary',
+                    bgColor: 'bg-accent/10',
+                    unit: formatTime(avgWaitTime).formatted.unit
+                }
+            ]
+        },
+        {
+            title: t('efficiencyStats'),
+            headerIcon: DollarSign,
+            items: [
+                {
+                    label: t('avgCostPerRequest'),
+                    value: formatMoney(avgCostPerRequest).formatted.value,
+                    icon: Percent,
+                    color: 'text-primary',
+                    bgColor: 'bg-chart-1/10',
+                    unit: formatMoney(avgCostPerRequest).formatted.unit
+                },
                 {
                     label: t('requestCount'),
                     value: statsTotalFormatted?.request_count.formatted.value,
                     icon: MessageSquare,
                     color: 'text-primary',
-                    bgColor: 'bg-primary/10',
+                    bgColor: 'bg-chart-2/10',
                     unit: statsTotalFormatted?.request_count.formatted.unit
-                },
-                {
-                    label: t('timeConsumed'),
-                    value: statsTotalFormatted?.wait_time.formatted.value,
-                    icon: Clock,
-                    color: 'text-primary',
-                    bgColor: 'bg-accent/10',
-                    unit: statsTotalFormatted?.wait_time.formatted.unit
                 }
             ]
         },
         {
-            title: t('totalStats'),
-            headerIcon: ChartColumnBig,
+            title: t('supplyStats'),
+            headerIcon: Network,
             items: [
                 {
-                    label: t('totalToken'),
-                    value: statsTotalFormatted?.total_token.formatted.value,
-                    icon: Bot,
+                    label: t('activeChannels'),
+                    value: formatCount(activeChannelCount).formatted.value,
+                    icon: Network,
                     color: 'text-primary',
-                    bgColor: 'bg-chart-1/10',
-                    unit: statsTotalFormatted?.total_token.formatted.unit
+                    bgColor: 'bg-chart-3/10',
+                    unit: formatCount(activeChannelCount).formatted.unit
                 },
                 {
                     label: t('totalCost'),
                     value: statsTotalFormatted?.total_cost.formatted.value,
                     icon: DollarSign,
                     color: 'text-primary',
-                    bgColor: 'bg-chart-2/10',
+                    bgColor: 'bg-chart-3/10',
                     unit: statsTotalFormatted?.total_cost.formatted.unit
-                }
-            ]
-        },
-        {
-            title: t('inputStats'),
-            headerIcon: ArrowDownToLine,
-            items: [
-                {
-                    label: t('inputTokens'),
-                    value: statsTotalFormatted?.input_token.formatted.value,
-                    icon: Rewind,
-                    color: 'text-primary',
-                    bgColor: 'bg-chart-3/10',
-                    unit: statsTotalFormatted?.input_token.formatted.unit
-                },
-                {
-                    label: t('inputCost'),
-                    value: statsTotalFormatted?.input_cost.formatted.value,
-                    icon: DollarSign,
-                    color: 'text-primary',
-                    bgColor: 'bg-chart-3/10',
-                    unit: statsTotalFormatted?.input_cost.formatted.unit
-                }
-            ]
-        },
-        {
-            title: t('outputStats'),
-            headerIcon: ArrowUpFromLine,
-            items: [
-                {
-                    label: t('outputTokens'),
-                    value: statsTotalFormatted?.output_token.formatted.value,
-                    icon: FastForward,
-                    color: 'text-primary',
-                    bgColor: 'bg-chart-4/10',
-                    unit: statsTotalFormatted?.output_token.formatted.unit
-                },
-                {
-                    label: t('outputCost'),
-                    value: statsTotalFormatted?.output_cost.formatted.value,
-                    icon: DollarSign,
-                    color: 'text-primary',
-                    bgColor: 'bg-chart-4/10',
-                    unit: statsTotalFormatted?.output_cost.formatted.unit
                 }
             ]
         }
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {cards.map((card, index) => (
                 <motion.section
                     key={index}

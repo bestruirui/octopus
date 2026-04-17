@@ -138,7 +138,7 @@ outer:
 					log.Infof("channel %s has no more keys to retry, moving to next channel", channel.Name)
 					break innerRetry
 				}
-				if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+				if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name, resolvedModel) {
 					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
 					tryIndex--
 					continue
@@ -149,7 +149,7 @@ outer:
 				endpointType, requestModel, channel.Name, resolvedModel, usedKey.ID,
 				iter.Index()+1, iter.Len(), tryIndex, retryCount)
 
-			span := iter.StartAttempt(channel.ID, usedKey.ID, channel.Name)
+			span := iter.StartAttempt(channel.ID, usedKey.ID, channel.Name, resolvedModel)
 
 			// Build and send upstream request
 			statusCode, fwdErr := forwardMediaRequest(c, cfg, channel, usedKey.ChannelKey, bodyBytes, requestModel, resolvedModel)

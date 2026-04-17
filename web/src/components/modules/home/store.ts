@@ -4,11 +4,11 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type RankSortMode = 'cost' | 'count' | 'tokens' | 'key-usage';
-export type ChartMetricType = 'cost' | 'count' | 'tokens';
+export type ChartMetricType = 'cost' | 'count' | 'tokens' | 'success-rate';
 export type ChartPeriod = '1' | '7' | '30';
 
 const RANK_SORT_MODES: readonly RankSortMode[] = ['cost', 'count', 'tokens', 'key-usage'];
-const CHART_METRIC_TYPES: readonly ChartMetricType[] = ['cost', 'count', 'tokens'];
+const CHART_METRIC_TYPES: readonly ChartMetricType[] = ['cost', 'count', 'tokens', 'success-rate'];
 const CHART_PERIODS: readonly ChartPeriod[] = ['1', '7', '30'];
 
 function normalizeRankSortMode(value: string | null | undefined): RankSortMode {

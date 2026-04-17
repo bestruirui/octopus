@@ -470,6 +470,9 @@ func groupRefreshCacheByIDs(ids []int, ctx context.Context) error {
 	if len(ids) == 0 {
 		return nil
 	}
+	for _, id := range ids {
+		groupCache.Del(id)
+	}
 	var groups []model.Group
 	if err := db.GetDB().WithContext(ctx).
 		Preload("Items").

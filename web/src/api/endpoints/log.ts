@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { apiClient, API_BASE_URL } from '../client';
 import { logger } from '@/lib/logger';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useAuthStore } from './user';
 
 /**
  * 尝试状态
@@ -124,10 +125,11 @@ function subscribeLogRefresh(listener: () => void) {
 export function useLogs(options: { pageSize?: number } = {}) {
     const { pageSize = DEFAULT_LOG_PAGE_SIZE } = options;
     const { refresh } = useLogRefresh(pageSize);
+    const token = useAuthStore((state) => state.token);
 
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<Error | null>(null);
-    const eventSourceRef = useRef<EventSource | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -181,21 +183,49 @@ export function useLogs(options: { pageSize?: number } = {}) {
         let cancelled = false;
 
         const connect = async () => {
+            if (!token) {
+                setIsConnected(false);
+                setError(new Error('未认证，无法建立日志流'));
+                return;
+            }
+
             try {
-                const { token } = await apiClient.get<{ token: string }>('/api/v1/log/stream-token');
+                const controller = new AbortController();
+                abortRef.current = controller;
+                const response = await fetch(`${API_BASE_URL}/api/v1/log/stream`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    signal: controller.signal,
+                });
                 if (cancelled) return;
+                if (!response.ok) {
+                    throw new Error(`日志流连接失败: ${response.status}`);
+                }
+                if (!response.body) {
+                    throw new Error('日志流响应为空');
+                }
 
-                const eventSource = new EventSource(`${API_BASE_URL}/api/v1/log/stream?token=${token}`);
-                eventSourceRef.current = eventSource;
+                setIsConnected(true);
+                setError(null);
 
-                eventSource.onopen = () => {
-                    setIsConnected(true);
-                    setError(null);
-                };
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
 
-                eventSource.onmessage = (event) => {
+                const handleEvent = (chunk: string) => {
+                    const lines = chunk.split('\n');
+                    const dataLines: string[] = [];
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            dataLines.push(line.slice(5).trimStart());
+                        }
+                    }
+                    if (dataLines.length === 0) return;
+
                     try {
-                        const log: RelayLog = JSON.parse(event.data);
+                        const log: RelayLog = JSON.parse(dataLines.join('\n'));
                         queryClient.setQueryData(
                             logsInfiniteQueryKey(pageSize),
                             (old: InfiniteData<RelayLog[], number> | undefined) => {
@@ -215,16 +245,29 @@ export function useLogs(options: { pageSize?: number } = {}) {
                     }
                 };
 
-                eventSource.onerror = () => {
-                    setIsConnected(false);
+                while (!cancelled) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    let boundary = buffer.indexOf('\n\n');
+                    while (boundary >= 0) {
+                        const eventChunk = buffer.slice(0, boundary);
+                        buffer = buffer.slice(boundary + 2);
+                        handleEvent(eventChunk);
+                        boundary = buffer.indexOf('\n\n');
+                    }
+                }
+
+                setIsConnected(false);
+                if (!cancelled) {
                     setError(new Error('SSE 连接断开'));
-                    eventSource.close();
-                    eventSourceRef.current = null;
-                };
+                }
             } catch (e) {
                 if (cancelled) return;
-                setError(e instanceof Error ? e : new Error('获取 stream token 失败'));
-                logger.error('获取 stream token 失败:', e);
+                setIsConnected(false);
+                setError(e instanceof Error ? e : new Error('日志流连接失败'));
+                logger.error('日志流连接失败:', e);
             }
         };
 
@@ -232,11 +275,11 @@ export function useLogs(options: { pageSize?: number } = {}) {
 
         return () => {
             cancelled = true;
-            eventSourceRef.current?.close();
-            eventSourceRef.current = null;
+            abortRef.current?.abort();
+            abortRef.current = null;
             setIsConnected(false);
         };
-    }, [pageSize, queryClient]);
+    }, [pageSize, queryClient, token]);
 
     const clear = useCallback(() => {
         queryClient.removeQueries({ queryKey: logsInfiniteQueryKey(pageSize) });

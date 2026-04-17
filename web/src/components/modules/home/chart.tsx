@@ -28,7 +28,10 @@ export function StatsChart() {
     }, [statsDaily]);
 
     const getChartDataKey = (type: ChartMetricType) => {
-        return type === 'cost' ? 'total_cost' : type === 'count' ? 'request_count' : 'total_token';
+        if (type === 'cost') return 'total_cost';
+        if (type === 'count') return 'request_count';
+        if (type === 'success-rate') return 'success_rate';
+        return 'total_token';
     };
 
     const chartData = useMemo(() => {
@@ -39,6 +42,10 @@ export function StatsChart() {
                 date: `${stat.hour}:00`,
                 [dataKey]: chartMetricType === 'cost'
                     ? stat.total_cost.raw
+                    : chartMetricType === 'success-rate'
+                        ? ((stat.request_success.raw + stat.request_failed.raw) > 0
+                            ? (stat.request_success.raw / (stat.request_success.raw + stat.request_failed.raw)) * 100
+                            : 0)
                     : chartMetricType === 'count'
                         ? stat.request_count.raw
                         : (stat.input_token.raw + stat.output_token.raw),
@@ -49,6 +56,10 @@ export function StatsChart() {
                 date: dayjs(stat.date).format('MM/DD'),
                 [dataKey]: chartMetricType === 'cost'
                     ? stat.total_cost.raw
+                    : chartMetricType === 'success-rate'
+                        ? ((stat.request_success.raw + stat.request_failed.raw) > 0
+                            ? (stat.request_success.raw / (stat.request_success.raw + stat.request_failed.raw)) * 100
+                            : 0)
                     : chartMetricType === 'count'
                         ? (stat.request_success.raw + stat.request_failed.raw)
                         : (stat.input_token.raw + stat.output_token.raw),
@@ -58,14 +69,17 @@ export function StatsChart() {
 
     const totals = useMemo(() => {
         if (period === '1') {
-            if (!statsHourly) return { requests: 0, cost: 0, tokens: 0 };
+            if (!statsHourly) return { requests: 0, cost: 0, tokens: 0, successRate: 0 };
             const requests = statsHourly.reduce((acc, stat) => acc + stat.request_count.raw, 0);
             const cost = statsHourly.reduce((acc, stat) => acc + stat.total_cost.raw, 0);
             const tokens = statsHourly.reduce((acc, stat) => acc + stat.input_token.raw + stat.output_token.raw, 0);
+            const success = statsHourly.reduce((acc, stat) => acc + stat.request_success.raw, 0);
+            const failed = statsHourly.reduce((acc, stat) => acc + stat.request_failed.raw, 0);
             return {
                 requests,
                 cost,
                 tokens,
+                successRate: success+failed > 0 ? (success / (success + failed)) * 100 : 0,
             };
         } else {
             const days = Number(period);
@@ -73,10 +87,13 @@ export function StatsChart() {
             const requests = recentStats.reduce((acc, stat) => acc + stat.request_success.raw + stat.request_failed.raw, 0);
             const cost = recentStats.reduce((acc, stat) => acc + stat.total_cost.raw, 0);
             const tokens = recentStats.reduce((acc, stat) => acc + stat.input_token.raw + stat.output_token.raw, 0);
+            const success = recentStats.reduce((acc, stat) => acc + stat.request_success.raw, 0);
+            const failed = recentStats.reduce((acc, stat) => acc + stat.request_failed.raw, 0);
             return {
                 requests,
                 cost,
                 tokens,
+                successRate: success+failed > 0 ? (success / (success + failed)) * 100 : 0,
             };
         }
     }, [sortedDaily, statsHourly, period]);
@@ -87,6 +104,7 @@ export function StatsChart() {
             'total_cost': t('totalCost'),
             'request_count': t('totalRequests'),
             'total_token': t('totalTokens'),
+            'success_rate': t('successRate'),
         };
         return {
             [dataKey]: { label: labels[dataKey] },
@@ -113,12 +131,14 @@ export function StatsChart() {
     const getChartStroke = (type: ChartMetricType) => {
         if (type === 'cost') return 'var(--chart-1)';
         if (type === 'count') return 'var(--chart-2)';
+        if (type === 'success-rate') return 'var(--chart-4)';
         return 'var(--chart-3)';
     };
 
     const getChartFill = (type: ChartMetricType) => {
         if (type === 'cost') return 'url(#fillMetric1)';
         if (type === 'count') return 'url(#fillMetric2)';
+        if (type === 'success-rate') return 'url(#fillMetric4)';
         return 'url(#fillMetric3)';
     };
 
@@ -132,6 +152,7 @@ export function StatsChart() {
                             <TabsTrigger value="cost">{t('metricType.cost')}</TabsTrigger>
                             <TabsTrigger value="count">{t('metricType.count')}</TabsTrigger>
                             <TabsTrigger value="tokens">{t('metricType.tokens')}</TabsTrigger>
+                            <TabsTrigger value="success-rate">{t('metricType.successRate')}</TabsTrigger>
                         </TabsList>
                     </Tabs>
                 </div>
@@ -162,6 +183,14 @@ export function StatsChart() {
                                 <span className="ml-0.5 text-sm text-muted-foreground">{formatCount(totals.tokens).formatted.unit}</span>
                             </div>
                         </div>
+                        <div className="w-px bg-border self-stretch"></div>
+                        <div>
+                            <div className="text-xs text-muted-foreground">{t('successRate')}</div>
+                            <div className="text-xl font-semibold">
+                                <AnimatedNumber value={totals.successRate.toFixed(2)} />
+                                <span className="ml-0.5 text-sm text-muted-foreground">%</span>
+                            </div>
+                        </div>
                     </div>
                     <div
                         className="flex gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
@@ -189,6 +218,10 @@ export function StatsChart() {
                             <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={1.0} />
                             <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0.1} />
                         </linearGradient>
+                        <linearGradient id="fillMetric4" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={1.0} />
+                            <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0.1} />
+                        </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="date" tickLine={false} axisLine={false} />
@@ -199,6 +232,8 @@ export function StatsChart() {
                             if (chartMetricType === 'cost') {
                                 const formatted = formatMoney(value);
                                 return `${formatted.formatted.value}${formatted.formatted.unit}`;
+                            } else if (chartMetricType === 'success-rate') {
+                                return `${value.toFixed(0)}%`;
                             } else if (chartMetricType === 'count' || chartMetricType === 'tokens') {
                                 const formatted = formatCount(value);
                                 return `${formatted.formatted.value}${formatted.formatted.unit}`;

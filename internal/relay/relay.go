@@ -101,6 +101,9 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	supportedModels := c.GetString("supported_models")
 	if supportedModels != "" {
 		supportedModelsArray := strings.Split(supportedModels, ",")
+		for i := range supportedModelsArray {
+			supportedModelsArray[i] = strings.TrimSpace(supportedModelsArray[i])
+		}
 		if !slices.Contains(supportedModelsArray, internalRequest.Model) {
 			resp.Error(c, http.StatusBadRequest, "model not supported")
 			return
@@ -178,8 +181,14 @@ outer:
 			continue
 		}
 
+		resolvedModelName := resolveCandidateModelName(requestModel, item)
+		if strings.TrimSpace(resolvedModelName) == "" {
+			iter.Skip(channel.ID, usedKey.ID, channel.Name, "resolved upstream model is empty")
+			continue
+		}
+
 		// 熔断检查
-		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name, resolvedModelName) {
 			continue
 		}
 
@@ -205,11 +214,6 @@ outer:
 		}
 
 		// 设置实际模型
-		resolvedModelName := resolveCandidateModelName(requestModel, item)
-		if strings.TrimSpace(resolvedModelName) == "" {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, "resolved upstream model is empty")
-			continue
-		}
 		internalRequest.Model = resolvedModelName
 
 		var failedKeyIDs []int
@@ -233,7 +237,7 @@ outer:
 					log.Infof("channel %s has no more keys to retry, moving to next channel", channel.Name)
 					break innerRetry
 				}
-				if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+				if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name, resolvedModelName) {
 					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
 					tryIndex--
 					continue
@@ -241,7 +245,7 @@ outer:
 			}
 
 			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s key_id: %d (candidate %d/%d, retry %d/%d, sticky=%t)",
-				requestModel, group.Mode, channel.Name, item.ModelName, usedKey.ID,
+				requestModel, group.Mode, channel.Name, resolvedModelName, usedKey.ID,
 				iter.Index()+1, iter.Len(), tryIndex, retryCount, iter.IsSticky())
 
 			ra := &relayAttempt{
@@ -305,7 +309,7 @@ outer:
 
 // attempt 统一管理一次通道尝试的完整生命周期
 func (ra *relayAttempt) attempt() attemptResult {
-	span := ra.iter.StartAttempt(ra.channel.ID, ra.usedKey.ID, ra.channel.Name)
+	span := ra.iter.StartAttempt(ra.channel.ID, ra.usedKey.ID, ra.channel.Name, ra.internalRequest.Model)
 
 	// 转发请求
 	statusCode, fwdErr := ra.forward()

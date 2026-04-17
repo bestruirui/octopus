@@ -142,11 +142,15 @@
         },
         "total": {
             "requestStats": "Request Stats",
-            "totalStats": "Total Stats",
-            "inputStats": "Input Stats",
-            "outputStats": "Output Stats",
+            "qualityStats": "Quality Stats",
+            "efficiencyStats": "Efficiency Stats",
+            "supplyStats": "Supply Stats",
             "requestCount": "Requests",
             "timeConsumed": "Time Consumed",
+            "successRate": "Global Success Rate",
+            "avgWaitTime": "Avg Request Latency",
+            "avgCostPerRequest": "Avg Cost per Request",
+            "activeChannels": "Active Channels",
             "totalToken": "Tokens Used",
             "totalCost": "Total Cost",
             "inputTokens": "Input Tokens",
@@ -163,8 +167,10 @@
             "metricType": {
                 "cost": "Cost",
                 "count": "Count",
-                "tokens": "Tokens"
+                "tokens": "Tokens",
+                "successRate": "Success Rate"
             },
+            "successRate": "Success Rate",
             "period": {
                 "today": "Today",
                 "last7Days": "7 Days",
@@ -418,6 +424,9 @@
             "updated": "Updated successfully",
             "updateFailed": "Update failed",
             "deleted": "Deleted successfully",
+            "autoGroupSuccess": "Auto grouping completed: created {created} groups and skipped {skipped} existing groups",
+            "autoGroupSuccessDescription": "Scanned {models} models, identified {candidates} candidate groups, created {created}, skipped {skippedExisting} existing groups, and skipped {skippedCovered} covered models",
+            "autoGroupFailed": "Auto grouping failed",
             "removedFailedModels": "Failed models removed",
             "autoAddFailed": "Auto add failed",
             "testAllPassed": "All models in this group are available",
@@ -425,6 +434,15 @@
             "testPartialFailedDescription": "You may want to remove the failed models",
             "testRequestFailed": "Group test failed",
             "removableSuggestion": "Suggested removals"
+        },
+        "actions": {
+            "autoGroup": "Auto Group"
+        },
+        "autoGroup": {
+            "confirmTitle": "Confirm Auto Grouping",
+            "confirmDescription": "This will scan all channel models and create groups for uncovered models based on normalization rules.\nExisting groups will not be modified or deleted.\nContinue?",
+            "submit": "Start Auto Grouping",
+            "submitting": "Grouping..."
         },
         "create": {
             "title": "Create Group",
@@ -489,7 +507,11 @@
             "musicGeneration": "Music",
             "search": "Search"
         },
-        "empty": "No groups yet, click the button above to create one"
+        "empty": "No groups yet, click the button above to create one",
+        "emptyState": {
+            "title": "No groups yet",
+            "description": "You can create a group manually or use auto grouping to generate them quickly."
+        }
     },
     "model": {
         "create": {
