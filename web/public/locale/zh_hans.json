@@ -462,6 +462,7 @@
     "aiRouteTableSuccess": "AI路由生成成功，共生成 {routes} 个模型路由，影响 {groups} 个分组，写入 {items} 个路由项",
     "aiRouteGroupSuccess": "AI路由补全成功，共生成 {routes} 个模型路由，向当前分组写入 {items} 个路由项",
     "aiRouteFailed": "AI路由生成失败",
+    "aiRouteEmptyResult": "AI 路由结果为空",
     "aiRouteMissingGroup": "请先在设置中选择单分组 AI 路由默认目标分组",
             "removedFailedModels": "已移除检测失败模型",
             "autoAddFailed": "自动添加失败",

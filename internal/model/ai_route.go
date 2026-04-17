@@ -20,6 +20,15 @@ type GenerateAIRouteResult struct {
 	ItemCount  int          `json:"item_count"`
 }
 
+type GenerateAIRouteProgress struct {
+	ID      string                 `json:"id"`
+	Scope   AIRouteScope           `json:"scope,omitempty"`
+	GroupID int                    `json:"group_id,omitempty"`
+	Done    bool                   `json:"done"`
+	Message string                 `json:"message,omitempty"`
+	Result  *GenerateAIRouteResult `json:"result,omitempty"`
+}
+
 type AIRouteModelInput struct {
 	ChannelID   int    `json:"channel_id"`
 	ChannelName string `json:"channel_name"`
@@ -32,6 +41,7 @@ type AIRouteResponse struct {
 }
 
 type AIRouteEntry struct {
+	EndpointType   string            `json:"endpoint_type,omitempty"`
 	RequestedModel string            `json:"requested_model"`
 	Items          []AIRouteItemSpec `json:"items"`
 }
@@ -45,6 +55,9 @@ type AIRouteItemSpec struct {
 
 func (GenerateAIRouteRequest) TableName() string { return "-" }
 func (GenerateAIRouteResult) TableName() string  { return "-" }
+func (GenerateAIRouteProgress) TableName() string {
+	return "-"
+}
 func (AIRouteModelInput) TableName() string      { return "-" }
 func (AIRouteResponse) TableName() string        { return "-" }
 func (AIRouteEntry) TableName() string           { return "-" }

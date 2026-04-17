@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bot } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type AIRouteScope, useGenerateAIRoute } from '@/api/endpoints/group';
+import { useQueryClient } from '@tanstack/react-query';
+import { type AIRouteScope, useGenerateAIRoute, useGenerateAIRouteProgress } from '@/api/endpoints/group';
 import { SettingKey, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -35,9 +36,14 @@ export function AIRouteButton({
     onSuccess,
 }: AIRouteButtonProps) {
     const t = useTranslations('group');
+    const queryClient = useQueryClient();
     const { data: settings } = useSettingList();
     const generateAIRoute = useGenerateAIRoute();
     const [open, setOpen] = useState(false);
+    const [currentProgressId, setCurrentProgressId] = useState<string | null>(null);
+    const aiRouteProgress = useGenerateAIRouteProgress(currentProgressId);
+    const handledProgressRef = useRef<string | null>(null);
+    const loadingToastRef = useRef<string | number | null>(null);
 
     const configuredGroupID = useMemo(() => {
         const raw = settings?.find((item) => item.key === SettingKey.AIRouteGroupID)?.value?.trim() ?? '0';
@@ -48,6 +54,74 @@ export function AIRouteButton({
     const resolvedGroupID = groupId && groupId > 0 ? groupId : configuredGroupID;
     const isGroupScope = scope === 'group';
     const actionLabel = isGroupScope ? t('actions.aiRouteGroup') : t('actions.aiRoute');
+    const isRunning = Boolean(currentProgressId) && !aiRouteProgress.data?.done;
+
+    useEffect(() => {
+        const progress = aiRouteProgress.data;
+        if (!progress?.done || !progress.id || handledProgressRef.current === progress.id) {
+            return;
+        }
+
+        handledProgressRef.current = progress.id;
+        setCurrentProgressId(null);
+
+        if (loadingToastRef.current !== null) {
+            toast.dismiss(loadingToastRef.current);
+            loadingToastRef.current = null;
+        }
+
+        if (progress.message) {
+            toast.error(t('toast.aiRouteFailed'), { description: progress.message });
+            return;
+        }
+
+        const result = progress.result;
+        if (!result) {
+            toast.error(t('toast.aiRouteFailed'), { description: t('toast.aiRouteEmptyResult') });
+            return;
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+        if (isGroupScope) {
+            toast.success(
+                t('toast.aiRouteGroupSuccess', {
+                    routes: result.route_count,
+                    items: result.item_count,
+                }),
+            );
+        } else {
+            toast.success(
+                t('toast.aiRouteTableSuccess', {
+                    routes: result.route_count,
+                    groups: result.group_count,
+                    items: result.item_count,
+                }),
+            );
+        }
+        onSuccess?.();
+    }, [aiRouteProgress.data, isGroupScope, onSuccess, queryClient, t]);
+
+    useEffect(() => {
+        if (!currentProgressId || !aiRouteProgress.error) {
+            return;
+        }
+
+        setCurrentProgressId(null);
+        if (loadingToastRef.current !== null) {
+            toast.dismiss(loadingToastRef.current);
+            loadingToastRef.current = null;
+        }
+
+        const description = (() => {
+            const error = aiRouteProgress.error;
+            if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+                return error.message;
+            }
+            return undefined;
+        })();
+
+        toast.error(t('toast.aiRouteFailed'), { description });
+    }, [aiRouteProgress.error, currentProgressId, t]);
 
     const handleOpen = () => {
         if (isGroupScope && resolvedGroupID <= 0) {
@@ -58,32 +132,28 @@ export function AIRouteButton({
     };
 
     const handleSubmit = () => {
+        if (loadingToastRef.current !== null) {
+            toast.dismiss(loadingToastRef.current);
+        }
+        loadingToastRef.current = toast.loading(
+            isGroupScope ? t('aiRoute.group.submitting') : t('aiRoute.table.submitting'),
+        );
+
         generateAIRoute.mutate(
             isGroupScope
                 ? { scope: 'group', group_id: resolvedGroupID }
                 : { scope: 'table' },
             {
-                onSuccess: (result) => {
+                onSuccess: (progress) => {
                     setOpen(false);
-                    if (isGroupScope) {
-                        toast.success(
-                            t('toast.aiRouteGroupSuccess', {
-                                routes: result.route_count,
-                                items: result.item_count,
-                            }),
-                        );
-                    } else {
-                        toast.success(
-                            t('toast.aiRouteTableSuccess', {
-                                routes: result.route_count,
-                                groups: result.group_count,
-                                items: result.item_count,
-                            }),
-                        );
-                    }
-                    onSuccess?.();
+                    handledProgressRef.current = null;
+                    setCurrentProgressId(progress.id);
                 },
                 onError: (error: Error) => {
+                    if (loadingToastRef.current !== null) {
+                        toast.dismiss(loadingToastRef.current);
+                        loadingToastRef.current = null;
+                    }
                     toast.error(t('toast.aiRouteFailed'), { description: error.message });
                 },
             },
@@ -108,7 +178,7 @@ export function AIRouteButton({
                     type="button"
                     className={buttonClassName}
                     onClick={handleOpen}
-                    disabled={generateAIRoute.isPending}
+                    disabled={generateAIRoute.isPending || isRunning}
                 >
                     <Bot className="size-4" />
                     {actionLabel}
@@ -118,7 +188,7 @@ export function AIRouteButton({
                     type="button"
                     className={buttonClassName}
                     onClick={handleOpen}
-                    disabled={generateAIRoute.isPending}
+                    disabled={generateAIRoute.isPending || isRunning}
                 >
                     <Bot className="size-4" />
                     <span>{actionLabel}</span>
@@ -136,11 +206,11 @@ export function AIRouteButton({
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={generateAIRoute.isPending}>
+                        <AlertDialogCancel disabled={generateAIRoute.isPending || isRunning}>
                             {t('detail.actions.cancel')}
                         </AlertDialogCancel>
                         <AlertDialogAction
-                            disabled={generateAIRoute.isPending}
+                            disabled={generateAIRoute.isPending || isRunning}
                             onClick={(event) => {
                                 event.preventDefault();
                                 handleSubmit();

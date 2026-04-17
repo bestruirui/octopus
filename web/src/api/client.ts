@@ -27,6 +27,26 @@ const handleError = (error: ApiError) => {
     }
 };
 
+function summarizeNonJSONErrorBody(status: number, body: string, statusText: string): string {
+    const text = body.trim();
+    if (!text) {
+        return statusText || `HTTP ${status}`;
+    }
+
+    if (/^<html[\s>]/i.test(text)) {
+        if (status === HttpStatus.GATEWAY_TIMEOUT) {
+            return 'Gateway timeout';
+        }
+        return statusText || `HTTP ${status}`;
+    }
+
+    if (text.length > 200) {
+        return `${text.slice(0, 200)}...`;
+    }
+
+    return text;
+}
+
 /**
  * 处理响应
  */
@@ -46,7 +66,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
             code: response.status,
             message: (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string')
                 ? data.message
-                : (typeof data === 'string' ? data : response.statusText),
+                : (typeof data === 'string'
+                    ? summarizeNonJSONErrorBody(response.status, data, response.statusText)
+                    : response.statusText),
         };
 
         handleError(error);

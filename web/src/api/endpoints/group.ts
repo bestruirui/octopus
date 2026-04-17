@@ -104,6 +104,15 @@ export interface GenerateAIRouteResult {
     item_count: number;
 }
 
+export interface GenerateAIRouteProgress {
+    id: string;
+    scope?: AIRouteScope;
+    group_id?: number;
+    done: boolean;
+    message?: string;
+    result?: GenerateAIRouteResult;
+}
+
 export interface DeleteAllGroupsResult {
     deleted_count: number;
 }
@@ -252,18 +261,33 @@ export function useDeleteAllGroups() {
 }
 
 export function useGenerateAIRoute() {
-    const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: async (data: GenerateAIRouteRequest) => {
-            return apiClient.post<GenerateAIRouteResult>('/api/v1/route/ai-generate', data);
+            return apiClient.post<GenerateAIRouteProgress>('/api/v1/route/ai-generate', data);
         },
         onSuccess: (data) => {
-            logger.log('AI 路由生成成功:', data);
-            queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+            logger.log('AI 路由任务已启动:', data);
         },
         onError: (error) => {
             logger.error('AI 路由生成失败:', error);
+        },
+    });
+}
+
+export function useGenerateAIRouteProgress(progressId: string | null) {
+    return useQuery({
+        queryKey: ['groups', 'ai-route-progress', progressId],
+        queryFn: async () => {
+            return apiClient.get<GenerateAIRouteProgress>(`/api/v1/route/ai-generate/progress/${progressId}`);
+        },
+        enabled: Boolean(progressId),
+        retry: false,
+        refetchInterval: (query) => {
+            const data = query.state.data;
+            if (!progressId || data?.done) {
+                return false;
+            }
+            return 800;
         },
     });
 }

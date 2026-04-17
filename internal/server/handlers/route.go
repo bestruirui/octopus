@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lingyuins/octopus/internal/helper"
 	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
@@ -18,6 +18,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/ai-generate", http.MethodPost).
 				Handle(generateAIRoute),
+		).
+		AddRoute(
+			router.NewRoute("/ai-generate/progress/:id", http.MethodGet).
+				Handle(getGenerateAIRouteProgress),
 		)
 }
 
@@ -28,11 +32,27 @@ func generateAIRoute(c *gin.Context) {
 		return
 	}
 
-	result, err := op.GenerateAIRoute(c.Request.Context(), req)
+	progress, err := helper.StartGenerateAIRoute(req)
 	if err != nil {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	resp.Success(c, result)
+	resp.Success(c, progress)
+}
+
+func getGenerateAIRouteProgress(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		resp.Error(c, http.StatusBadRequest, "missing progress id")
+		return
+	}
+
+	progress, ok := helper.GetGenerateAIRouteProgress(id)
+	if !ok {
+		resp.Error(c, http.StatusNotFound, "ai route progress not found")
+		return
+	}
+
+	resp.Success(c, progress)
 }

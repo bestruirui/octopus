@@ -9,6 +9,7 @@ import (
 func TestNormalizeAIRouteEntriesMergesSameRequestedModel(t *testing.T) {
 	routes := []model.AIRouteEntry{
 		{
+			EndpointType:   model.EndpointTypeAll,
 			RequestedModel: " gpt-4o ",
 			Items: []model.AIRouteItemSpec{
 				{ChannelID: 1, UpstreamModel: "gpt-4o", Priority: 1, Weight: 100},
@@ -16,6 +17,7 @@ func TestNormalizeAIRouteEntriesMergesSameRequestedModel(t *testing.T) {
 			},
 		},
 		{
+			EndpointType:   model.EndpointTypeAll,
 			RequestedModel: "GPT-4O",
 			Items: []model.AIRouteItemSpec{
 				{ChannelID: 2, UpstreamModel: "chatgpt-4o-latest", Priority: 1, Weight: 80},
@@ -71,5 +73,86 @@ func TestDedupeAIRouteItemsPreservesFirstOccurrence(t *testing.T) {
 
 	if got[1].ChannelID != 2 || got[1].UpstreamModel != "model-a" {
 		t.Fatalf("dedupeAIRouteItems()[1] = %+v, want channel 2 / model-a", got[1])
+	}
+}
+
+func TestNormalizeAIRouteEntriesKeepsDifferentEndpointTypesSeparated(t *testing.T) {
+	routes := []model.AIRouteEntry{
+		{
+			EndpointType:   model.EndpointTypeAll,
+			RequestedModel: "common-model",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 1, UpstreamModel: "gpt-4o"},
+			},
+		},
+		{
+			EndpointType:   model.EndpointTypeEmbeddings,
+			RequestedModel: "common-model",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 2, UpstreamModel: "text-embedding-3-large"},
+			},
+		},
+	}
+
+	got := normalizeAIRouteEntries(routes)
+	if len(got) != 2 {
+		t.Fatalf("normalizeAIRouteEntries() len = %d, want 2", len(got))
+	}
+
+	if got[0].EndpointType == got[1].EndpointType {
+		t.Fatalf("normalizeAIRouteEntries() endpoint types should stay separated, got %+v", got)
+	}
+}
+
+func TestBuildAIRoutePromptBucketsSplitsCapabilities(t *testing.T) {
+	inputs := []model.AIRouteModelInput{
+		{ChannelID: 1, ChannelName: "chat", Provider: "openai", Model: "gpt-4o"},
+		{ChannelID: 1, ChannelName: "chat", Provider: "openai", Model: "gpt-4o"},
+		{ChannelID: 2, ChannelName: "embed", Provider: "openai", Model: "text-embedding-3-large"},
+		{ChannelID: 3, ChannelName: "image", Provider: "openai", Model: "gpt-image-1"},
+		{ChannelID: 4, ChannelName: "chat2", Provider: "anthropic", Model: "claude-sonnet-4.5"},
+	}
+
+	got := buildAIRoutePromptBuckets(inputs, "")
+	if len(got) != 3 {
+		t.Fatalf("buildAIRoutePromptBuckets() len = %d, want 3", len(got))
+	}
+
+	if got[0].PromptEndpointType != model.EndpointTypeChat || got[0].GroupEndpointType != model.EndpointTypeAll {
+		t.Fatalf("buildAIRoutePromptBuckets()[0] = %+v, want chat bucket mapped to *", got[0])
+	}
+	if len(got[0].ModelInputs) != 2 {
+		t.Fatalf("chat bucket len = %d, want 2", len(got[0].ModelInputs))
+	}
+	if got[1].PromptEndpointType != model.EndpointTypeEmbeddings || got[1].GroupEndpointType != model.EndpointTypeEmbeddings {
+		t.Fatalf("buildAIRoutePromptBuckets()[1] = %+v, want embeddings bucket", got[1])
+	}
+	if len(got[1].ModelInputs) != 1 || got[1].ModelInputs[0].Model != "text-embedding-3-large" {
+		t.Fatalf("embeddings bucket = %+v, want text-embedding-3-large", got[1].ModelInputs)
+	}
+	if got[2].PromptEndpointType != model.EndpointTypeImageGeneration || got[2].GroupEndpointType != model.EndpointTypeImageGeneration {
+		t.Fatalf("buildAIRoutePromptBuckets()[2] = %+v, want image bucket", got[2])
+	}
+}
+
+func TestSummarizeAIRouteErrorBodyCollapsesHTML(t *testing.T) {
+	got := summarizeAIRouteErrorBody("<html><body>504 Gateway Time-out</body></html>")
+	if got != "upstream returned an HTML error page" {
+		t.Fatalf("summarizeAIRouteErrorBody() = %q, want %q", got, "upstream returned an HTML error page")
+	}
+}
+
+func TestDetectAIRoutePromptEndpointTypeForGroupPrefersNonChatWhenStable(t *testing.T) {
+	group := model.Group{
+		EndpointType: model.EndpointTypeAll,
+		Items: []model.GroupItem{
+			{ModelName: "text-embedding-3-large"},
+			{ModelName: "text-embedding-3-small"},
+		},
+	}
+
+	got := detectAIRoutePromptEndpointTypeForGroup(group)
+	if got != model.EndpointTypeEmbeddings {
+		t.Fatalf("detectAIRoutePromptEndpointTypeForGroup() = %q, want %q", got, model.EndpointTypeEmbeddings)
 	}
 }

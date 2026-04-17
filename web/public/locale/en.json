@@ -462,6 +462,7 @@
     "aiRouteTableSuccess": "AI routing completed: generated {routes} routes, affected {groups} groups, and wrote {items} route items",
     "aiRouteGroupSuccess": "AI group completion completed: generated {routes} routes and wrote {items} route items into the current group",
     "aiRouteFailed": "AI routing failed",
+    "aiRouteEmptyResult": "AI route result is empty",
     "aiRouteMissingGroup": "Please select the default target group for single-group AI routing in settings first",
             "removedFailedModels": "Failed models removed",
             "autoAddFailed": "Auto add failed",

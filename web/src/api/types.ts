@@ -47,6 +47,9 @@ export const HttpStatus = {
     NOT_FOUND: 404,
     CONFLICT: 409,
     TOO_MANY_REQUESTS: 429,
+    BAD_GATEWAY: 502,
+    SERVICE_UNAVAILABLE: 503,
+    GATEWAY_TIMEOUT: 504,
     INTERNAL_SERVER_ERROR: 500,
 } as const;
 
