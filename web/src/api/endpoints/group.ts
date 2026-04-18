@@ -123,6 +123,8 @@ export type AIRouteTaskStep =
 
 export type AIRouteChannelStatus = 'pending' | 'running' | 'completed' | 'failed';
 
+export type AIRouteBatchStatus = 'running' | 'parsing' | 'retrying' | 'failed';
+
 export interface GenerateAIRouteProgressSummary {
     total_channels: number;
     completed_channels: number;
@@ -140,6 +142,23 @@ export interface GenerateAIRouteCurrentBatch {
     model_count: number;
     channel_ids?: number[];
     channel_names?: string[];
+    service_name?: string;
+    attempt?: number;
+    status?: string;
+    message?: string;
+}
+
+export interface GenerateAIRouteRunningBatch {
+    index: number;
+    total: number;
+    endpoint_type?: string;
+    model_count: number;
+    channel_ids?: number[];
+    channel_names?: string[];
+    service_name?: string;
+    attempt?: number;
+    status?: AIRouteBatchStatus;
+    message?: string;
 }
 
 export interface GenerateAIRouteChannelProgress {
@@ -172,6 +191,7 @@ export interface GenerateAIRouteProgress {
     event_sequence?: number;
     summary?: GenerateAIRouteProgressSummary;
     current_batch?: GenerateAIRouteCurrentBatch;
+    running_batches?: GenerateAIRouteRunningBatch[];
     channels: GenerateAIRouteChannelProgress[];
     result?: GenerateAIRouteResult;
 }
@@ -206,8 +226,27 @@ function normalizeGenerateAIRouteProgress(progress: GenerateAIRouteProgress): Ge
             model_count: typeof progress.current_batch.model_count === 'number' ? progress.current_batch.model_count : 0,
             channel_ids: Array.isArray(progress.current_batch.channel_ids) ? progress.current_batch.channel_ids : [],
             channel_names: Array.isArray(progress.current_batch.channel_names) ? progress.current_batch.channel_names : [],
+            service_name: typeof progress.current_batch.service_name === 'string' ? progress.current_batch.service_name : undefined,
+            attempt: typeof progress.current_batch.attempt === 'number' ? progress.current_batch.attempt : 0,
+            status: typeof progress.current_batch.status === 'string' ? progress.current_batch.status : undefined,
+            message: typeof progress.current_batch.message === 'string' ? progress.current_batch.message : undefined,
         }
         : undefined;
+
+    const normalizedRunningBatches = Array.isArray(progress.running_batches)
+        ? progress.running_batches.map((batch) => ({
+            ...batch,
+            index: typeof batch.index === 'number' ? batch.index : 0,
+            total: typeof batch.total === 'number' ? batch.total : 0,
+            model_count: typeof batch.model_count === 'number' ? batch.model_count : 0,
+            channel_ids: Array.isArray(batch.channel_ids) ? batch.channel_ids : [],
+            channel_names: Array.isArray(batch.channel_names) ? batch.channel_names : [],
+            service_name: typeof batch.service_name === 'string' ? batch.service_name : undefined,
+            attempt: typeof batch.attempt === 'number' ? batch.attempt : 0,
+            status: typeof batch.status === 'string' ? batch.status as AIRouteBatchStatus : undefined,
+            message: typeof batch.message === 'string' ? batch.message : undefined,
+        }))
+        : [];
 
     return {
         ...progress,
@@ -222,6 +261,7 @@ function normalizeGenerateAIRouteProgress(progress: GenerateAIRouteProgress): Ge
         error_reason: typeof progress.error_reason === 'string' ? progress.error_reason : undefined,
         summary: normalizedSummary,
         current_batch: normalizedBatch,
+        running_batches: normalizedRunningBatches,
         channels: normalizedChannels,
     };
 }

@@ -31,6 +31,8 @@ const (
 	SettingKeyAIRouteAPIKey               SettingKey = "ai_route_api_key"               // AI路由分析服务 API Key
 	SettingKeyAIRouteModel                SettingKey = "ai_route_model"                 // AI路由分析模型名称
 	SettingKeyAIRouteTimeoutSeconds       SettingKey = "ai_route_timeout_seconds"       // AI路由分析单次请求超时（秒）
+	SettingKeyAIRouteParallelism          SettingKey = "ai_route_parallelism"           // AI路由分析批次最大并发数
+	SettingKeyAIRouteServices             SettingKey = "ai_route_services"              // AI路由分析服务池(JSON)
 )
 
 type Setting struct {
@@ -62,6 +64,8 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},
 		{Key: SettingKeyAIRouteModel, Value: ""},
 		{Key: SettingKeyAIRouteTimeoutSeconds, Value: "180"},
+		{Key: SettingKeyAIRouteParallelism, Value: "3"},
+		{Key: SettingKeyAIRouteServices, Value: "[]"},
 	}
 }
 
@@ -71,7 +75,7 @@ func (s *Setting) Validate() error {
 		SettingKeyRelayRetryCount, SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown,
 		SettingKeyCircuitBreakerMaxCooldown, SettingKeyRatelimitCooldown, SettingKeyRelayMaxTotalAttempts,
 		SettingKeyAutoStrategyMinSamples, SettingKeyAutoStrategyTimeWindow, SettingKeyAutoStrategySampleThreshold,
-		SettingKeyAIRouteGroupID, SettingKeyAIRouteTimeoutSeconds:
+		SettingKeyAIRouteGroupID, SettingKeyAIRouteTimeoutSeconds, SettingKeyAIRouteParallelism:
 		v, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("setting value must be an integer")
@@ -90,6 +94,9 @@ func (s *Setting) Validate() error {
 		}
 		if s.Key == SettingKeyAIRouteTimeoutSeconds && v < 1 {
 			return fmt.Errorf("ai route timeout must be greater than 0")
+		}
+		if s.Key == SettingKeyAIRouteParallelism && (v < 1 || v > 4) {
+			return fmt.Errorf("ai route parallelism must be between 1 and 4")
 		}
 		return nil
 	case SettingKeyRelayLogKeepEnabled:
@@ -145,6 +152,8 @@ func (s *Setting) Validate() error {
 			return fmt.Errorf("public API base URL must have a host")
 		}
 		return nil
+	case SettingKeyAIRouteServices:
+		return ValidateAIRouteServiceConfigs(s.Value)
 	}
 
 	return nil

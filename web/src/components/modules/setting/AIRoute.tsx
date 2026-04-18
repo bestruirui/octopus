@@ -26,12 +26,16 @@ export function SettingAIRoute() {
     const [apiKey, setAPIKey] = useState('');
     const [model, setModel] = useState('');
     const [timeoutSeconds, setTimeoutSeconds] = useState('180');
+    const [parallelism, setParallelism] = useState('3');
+    const [servicesJSON, setServicesJSON] = useState('[]');
 
     const initialGroupID = useRef('0');
     const initialBaseURL = useRef('');
     const initialAPIKey = useRef('');
     const initialModel = useRef('');
     const initialTimeoutSeconds = useRef('180');
+    const initialParallelism = useRef('3');
+    const initialServicesJSON = useRef('[]');
 
     useEffect(() => {
         if (!settings) return;
@@ -41,6 +45,8 @@ export function SettingAIRoute() {
         const apiKeySetting = settings.find((item) => item.key === SettingKey.AIRouteAPIKey);
         const modelSetting = settings.find((item) => item.key === SettingKey.AIRouteModel);
         const timeoutSetting = settings.find((item) => item.key === SettingKey.AIRouteTimeoutSeconds);
+        const parallelismSetting = settings.find((item) => item.key === SettingKey.AIRouteParallelism);
+        const servicesSetting = settings.find((item) => item.key === SettingKey.AIRouteServices);
 
         if (groupSetting) {
             queueMicrotask(() => setGroupID(groupSetting.value || '0'));
@@ -62,6 +68,15 @@ export function SettingAIRoute() {
             queueMicrotask(() => setTimeoutSeconds(timeoutSetting.value || '180'));
             initialTimeoutSeconds.current = timeoutSetting.value || '180';
         }
+        if (parallelismSetting) {
+            queueMicrotask(() => setParallelism(parallelismSetting.value || '3'));
+            initialParallelism.current = parallelismSetting.value || '3';
+        }
+        if (servicesSetting) {
+            const nextValue = servicesSetting.value || '[]';
+            queueMicrotask(() => setServicesJSON(nextValue));
+            initialServicesJSON.current = nextValue;
+        }
     }, [settings]);
 
     const saveSetting = (key: string, value: string, initialRef: MutableRefObject<string>) => {
@@ -76,6 +91,31 @@ export function SettingAIRoute() {
                 },
             },
         );
+    };
+
+    const saveServicesSetting = () => {
+        const normalizedValue = servicesJSON.trim() === '' ? '[]' : servicesJSON;
+        if (normalizedValue === initialServicesJSON.current) {
+            if (normalizedValue !== servicesJSON) {
+                setServicesJSON(normalizedValue);
+            }
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(normalizedValue);
+            if (!Array.isArray(parsed)) {
+                throw new Error('not-array');
+            }
+        } catch {
+            toast.error(t('aiRoute.services.invalid'));
+            return;
+        }
+
+        if (normalizedValue !== servicesJSON) {
+            setServicesJSON(normalizedValue);
+        }
+        saveSetting(SettingKey.AIRouteServices, normalizedValue, initialServicesJSON);
     };
 
     return (
@@ -183,6 +223,49 @@ export function SettingAIRoute() {
                 </div>
                 <p className="pl-8 text-xs text-muted-foreground">
                     {t('aiRoute.timeoutSeconds.hint')}
+                </p>
+            </div>
+
+            <div className="space-y-2">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <Sparkles className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium">{t('aiRoute.parallelism.label')}</span>
+                    </div>
+                    <Input
+                        type="number"
+                        min="1"
+                        max="4"
+                        value={parallelism}
+                        onChange={(event) => setParallelism(event.target.value)}
+                        onBlur={() => saveSetting(SettingKey.AIRouteParallelism, parallelism, initialParallelism)}
+                        placeholder={t('aiRoute.parallelism.placeholder')}
+                        className="w-72 rounded-xl"
+                    />
+                </div>
+                <p className="pl-8 text-xs text-muted-foreground">
+                    {t('aiRoute.parallelism.hint')}
+                </p>
+            </div>
+
+            <div className="space-y-2">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <Link2 className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium">{t('aiRoute.services.label')}</span>
+                    </div>
+                    <div className="w-72">
+                        <textarea
+                            value={servicesJSON}
+                            onChange={(event) => setServicesJSON(event.target.value)}
+                            onBlur={saveServicesSetting}
+                            placeholder={t('aiRoute.services.placeholder')}
+                            className="min-h-36 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        />
+                    </div>
+                </div>
+                <p className="pl-8 text-xs text-muted-foreground">
+                    {t('aiRoute.services.hint')}
                 </p>
             </div>
         </div>

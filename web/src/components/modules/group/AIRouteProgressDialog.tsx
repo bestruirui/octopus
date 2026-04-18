@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type {
+    AIRouteBatchStatus,
     AIRouteChannelStatus,
     AIRouteScope,
     AIRouteTaskStatus,
     AIRouteTaskStep,
+    GenerateAIRouteCurrentBatch,
     GenerateAIRouteProgress,
 } from '@/api/endpoints/group';
 import { Button } from '@/components/ui/button';
@@ -76,6 +78,26 @@ function channelBadgeClass(status?: AIRouteChannelStatus) {
     }
 }
 
+function batchBadgeClass(status?: AIRouteBatchStatus | string) {
+    switch (status) {
+        case 'completed':
+            return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+        case 'failed':
+            return 'border-destructive/30 bg-destructive/10 text-destructive';
+        case 'parsing':
+            return 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300';
+        case 'retrying':
+            return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
+        default:
+            return 'border-primary/30 bg-primary/10 text-primary';
+    }
+}
+
+type BatchCardData = Pick<
+    GenerateAIRouteCurrentBatch,
+    'index' | 'total' | 'endpoint_type' | 'model_count' | 'channel_ids' | 'channel_names' | 'service_name' | 'attempt' | 'status' | 'message'
+>;
+
 export function AIRouteProgressDialog({
     open,
     onOpenChange,
@@ -89,6 +111,21 @@ export function AIRouteProgressDialog({
     const step = progress?.current_step ?? (progress?.done ? 'completed' : 'queued');
     const summary = progress?.summary;
     const currentBatch = progress?.current_batch;
+    const runningBatches = progress?.running_batches ?? [];
+    const activeBatches: BatchCardData[] = runningBatches.length > 0
+        ? runningBatches
+        : currentBatch && !progress?.done && currentBatch.status !== 'completed'
+            ? [currentBatch]
+            : [];
+    const shouldShowRecentBatch = Boolean(
+        currentBatch
+        && (
+            activeBatches.length === 0
+            || currentBatch.status === 'completed'
+            || currentBatch.status === 'failed'
+            || !activeBatches.some((batch) => batch.index === currentBatch.index && batch.status === currentBatch.status)
+        ),
+    );
     const channels = progress?.channels ?? [];
     const runningChannels = channels.filter((channel) => channel.status === 'running');
     const completedChannels = channels.filter((channel) => channel.status === 'completed');
@@ -200,6 +237,68 @@ export function AIRouteProgressDialog({
         );
     };
 
+    const renderBatchCard = (batch: BatchCardData, title: string) => (
+        <section className="rounded-2xl border border-border/60 bg-background px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm font-medium text-foreground">{title}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                    {batch.status ? (
+                        <Badge variant="outline" className={cn('rounded-full', batchBadgeClass(batch.status))}>
+                            {t(`aiRoute.progress.batchStatus.${batch.status}`)}
+                        </Badge>
+                    ) : null}
+                    <Badge variant="outline" className="rounded-full">
+                        {t('aiRoute.progress.batchLabel', {
+                            index: batch.index,
+                            total: batch.total,
+                        })}
+                    </Badge>
+                </div>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-5">
+                <div>
+                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchCapability')}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground">
+                        {batch.endpoint_type ? endpointTypeLabel(batch.endpoint_type) : '--'}
+                    </div>
+                </div>
+                <div>
+                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchModels')}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground">{batch.model_count}</div>
+                </div>
+                <div>
+                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchChannels')}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground">
+                        {batch.channel_names?.length || batch.channel_ids?.length || 0}
+                    </div>
+                </div>
+                <div>
+                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchService')}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground">{batch.service_name || '--'}</div>
+                </div>
+                <div>
+                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchAttempt')}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground">{batch.attempt || 1}</div>
+                </div>
+            </div>
+            {batch.message ? (
+                <div className="mt-3 rounded-xl bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    {batch.message}
+                </div>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+                {(batch.channel_names ?? []).map((channelName, index) => (
+                    <span
+                        key={`${batch.channel_ids?.[index] ?? index}-${channelName}`}
+                        className="inline-flex rounded-full border border-border/60 bg-muted px-2.5 py-1 text-xs text-foreground"
+                    >
+                        {channelName}
+                    </span>
+                ))}
+            </div>
+        </section>
+    );
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="rounded-3xl sm:max-w-3xl max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col">
@@ -281,47 +380,28 @@ export function AIRouteProgressDialog({
                         </section>
                     ) : null}
 
-                    {currentBatch ? (
-                        <section className="rounded-2xl border border-border/60 bg-background px-4 py-4">
+                    {activeBatches.length > 0 ? (
+                        <section className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="text-sm font-medium text-foreground">{t('aiRoute.progress.currentBatch')}</div>
+                                <div className="text-sm font-medium text-foreground">{t('aiRoute.progress.activeBatches')}</div>
                                 <Badge variant="outline" className="rounded-full">
-                                    {t('aiRoute.progress.batchLabel', {
-                                        index: currentBatch.index,
-                                        total: currentBatch.total,
-                                    })}
+                                    {t('aiRoute.progress.activeBatchCount', { count: activeBatches.length })}
                                 </Badge>
                             </div>
-                            <div className="mt-3 grid gap-3 md:grid-cols-3">
-                                <div>
-                                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchCapability')}</div>
-                                    <div className="mt-1 text-sm font-medium text-foreground">
-                                        {currentBatch.endpoint_type ? endpointTypeLabel(currentBatch.endpoint_type) : '--'}
+                            <div className="grid gap-4 xl:grid-cols-2">
+                                {activeBatches.map((batch) => (
+                                    <div key={`${batch.index}-${batch.status ?? 'running'}-${batch.attempt ?? 0}`}>
+                                        {renderBatchCard(
+                                            batch,
+                                            t('aiRoute.progress.currentBatch'),
+                                        )}
                                     </div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchModels')}</div>
-                                    <div className="mt-1 text-sm font-medium text-foreground">{currentBatch.model_count}</div>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchChannels')}</div>
-                                    <div className="mt-1 text-sm font-medium text-foreground">
-                                        {currentBatch.channel_names?.length || currentBatch.channel_ids?.length || 0}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {(currentBatch.channel_names ?? []).map((channelName, index) => (
-                                    <span
-                                        key={`${currentBatch.channel_ids?.[index] ?? index}-${channelName}`}
-                                        className="inline-flex rounded-full border border-border/60 bg-muted px-2.5 py-1 text-xs text-foreground"
-                                    >
-                                        {channelName}
-                                    </span>
                                 ))}
                             </div>
                         </section>
                     ) : null}
+
+                    {shouldShowRecentBatch && currentBatch ? renderBatchCard(currentBatch, t('aiRoute.progress.recentBatch')) : null}
 
                     {resultSummary ? (
                         <section className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">

@@ -60,6 +60,15 @@ const (
 	AIRouteChannelStatusFailed    AIRouteChannelStatus = "failed"
 )
 
+type AIRouteBatchStatus string
+
+const (
+	AIRouteBatchStatusRunning  AIRouteBatchStatus = "running"
+	AIRouteBatchStatusParsing  AIRouteBatchStatus = "parsing"
+	AIRouteBatchStatusRetrying AIRouteBatchStatus = "retrying"
+	AIRouteBatchStatusFailed   AIRouteBatchStatus = "failed"
+)
+
 type GenerateAIRouteProgressSummary struct {
 	TotalChannels     int `json:"total_channels"`
 	CompletedChannels int `json:"completed_channels"`
@@ -77,6 +86,23 @@ type GenerateAIRouteCurrentBatch struct {
 	ModelCount   int      `json:"model_count"`
 	ChannelIDs   []int    `json:"channel_ids,omitempty"`
 	ChannelNames []string `json:"channel_names,omitempty"`
+	ServiceName  string   `json:"service_name,omitempty"`
+	Attempt      int      `json:"attempt,omitempty"`
+	Status       string   `json:"status,omitempty"`
+	Message      string   `json:"message,omitempty"`
+}
+
+type GenerateAIRouteRunningBatch struct {
+	Index        int                `json:"index"`
+	Total        int                `json:"total"`
+	EndpointType string             `json:"endpoint_type,omitempty"`
+	ModelCount   int                `json:"model_count"`
+	ChannelIDs   []int              `json:"channel_ids,omitempty"`
+	ChannelNames []string           `json:"channel_names,omitempty"`
+	ServiceName  string             `json:"service_name,omitempty"`
+	Attempt      int                `json:"attempt,omitempty"`
+	Status       AIRouteBatchStatus `json:"status,omitempty"`
+	Message      string             `json:"message,omitempty"`
 }
 
 type GenerateAIRouteChannelProgress struct {
@@ -109,6 +135,7 @@ type GenerateAIRouteProgress struct {
 	EventSequence    int64                            `json:"event_sequence"`
 	Summary          *GenerateAIRouteProgressSummary  `json:"summary,omitempty"`
 	CurrentBatch     *GenerateAIRouteCurrentBatch     `json:"current_batch,omitempty"`
+	RunningBatches   []GenerateAIRouteRunningBatch    `json:"running_batches,omitempty"`
 	Channels         []GenerateAIRouteChannelProgress `json:"channels,omitempty"`
 	Result           *GenerateAIRouteResult           `json:"result,omitempty"`
 }
@@ -162,6 +189,9 @@ func (GenerateAIRouteProgressSummary) TableName() string {
 	return "-"
 }
 func (GenerateAIRouteCurrentBatch) TableName() string {
+	return "-"
+}
+func (GenerateAIRouteRunningBatch) TableName() string {
 	return "-"
 }
 func (GenerateAIRouteChannelProgress) TableName() string {

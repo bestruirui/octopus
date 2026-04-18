@@ -20,12 +20,15 @@ import (
 	"github.com/lingyuins/octopus/internal/utils/log"
 	"github.com/lingyuins/octopus/internal/utils/xstrings"
 	"golang.org/x/net/proxy"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
 	defaultAIRouteHTTPTimeout  = 180 * time.Second
 	aiRouteMaxModelsPerRequest = 120
 	aiRouteResponseMaxSize     = 2 << 20
+	defaultAIRouteRetryBackoff = 10 * time.Second
 )
 
 type aiRoutePromptModelInput struct {
@@ -56,6 +59,28 @@ type aiRouteChatCompletionResponse struct {
 			Content any `json:"content"`
 		} `json:"message"`
 	} `json:"choices"`
+}
+
+type aiRouteCallError struct {
+	StatusCode int
+	Retryable  bool
+	Cooldown   time.Duration
+	Message    string
+	Cause      error
+}
+
+func (e *aiRouteCallError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return e.Message
+}
+
+func (e *aiRouteCallError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Cause
 }
 
 func GenerateAIRoute(
@@ -305,19 +330,9 @@ func generateAIRoutesFromModelList(
 	targetPromptEndpointType string,
 	tracker *aiRouteProgressTracker,
 ) ([]model.AIRouteEntry, error) {
-	baseURL, err := SettingGetString(model.SettingKeyAIRouteBaseURL)
-	if err != nil || strings.TrimSpace(baseURL) == "" {
-		return nil, fmt.Errorf("AI路由模型配置不完整")
-	}
-
-	apiKey, err := SettingGetString(model.SettingKeyAIRouteAPIKey)
-	if err != nil || strings.TrimSpace(apiKey) == "" {
-		return nil, fmt.Errorf("AI路由模型配置不完整")
-	}
-
-	modelName, err := SettingGetString(model.SettingKeyAIRouteModel)
-	if err != nil || strings.TrimSpace(modelName) == "" {
-		return nil, fmt.Errorf("AI路由模型配置不完整")
+	services, err := loadAIRouteServicesSnapshot()
+	if err != nil {
+		return nil, err
 	}
 
 	buckets := buildAIRoutePromptBuckets(modelInputs, targetPromptEndpointType)
@@ -331,28 +346,49 @@ func generateAIRoutesFromModelList(
 		tracker.SetBuckets(buckets)
 	}
 
+	parallelism := clampAIRouteParallelism(loadAIRouteParallelism(), len(buckets))
+	servicePool := newAIRouteServicePool(services)
+	bucketResults := make([][]model.AIRouteEntry, len(buckets))
+
+	group, groupCtx := errgroup.WithContext(ctx)
+	sem := semaphore.NewWeighted(int64(parallelism))
+
+	for i := range buckets {
+		bucketIndex := i
+		bucket := buckets[i]
+		group.Go(func() error {
+			if err := sem.Acquire(groupCtx, 1); err != nil {
+				return err
+			}
+			defer sem.Release(1)
+
+			routes, bucketErr := generateAIRoutesForBucket(
+				groupCtx,
+				servicePool,
+				len(services),
+				bucket,
+				targetGroupName,
+				bucketIndex+1,
+				tracker,
+			)
+			if bucketErr != nil {
+				return bucketErr
+			}
+			bucketResults[bucketIndex] = routes
+			return nil
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		return nil, err
+	}
+
 	allRoutes := make([]model.AIRouteEntry, 0)
-	for i, bucket := range buckets {
-		if tracker != nil {
-			tracker.StartBatch(i+1, bucket)
+	for i := range bucketResults {
+		if len(bucketResults[i]) == 0 {
+			continue
 		}
-		routes, bucketErr := generateAIRoutesForBucket(
-			ctx,
-			baseURL,
-			apiKey,
-			modelName,
-			bucket,
-			targetGroupName,
-			i+1,
-			tracker,
-		)
-		if bucketErr != nil {
-			return nil, bucketErr
-		}
-		if tracker != nil {
-			tracker.CompleteBatch(i+1, bucket)
-		}
-		allRoutes = append(allRoutes, routes...)
+		allRoutes = append(allRoutes, bucketResults[i]...)
 	}
 
 	normalizedRoutes := normalizeAIRouteEntries(allRoutes)
@@ -365,12 +401,103 @@ func generateAIRoutesFromModelList(
 
 func generateAIRoutesForBucket(
 	ctx context.Context,
-	baseURL string,
-	apiKey string,
-	modelName string,
+	servicePool aiRouteServicePool,
+	serviceCount int,
 	bucket aiRoutePromptBucket,
 	targetGroupName string,
 	batchIndex int,
+	tracker *aiRouteProgressTracker,
+) ([]model.AIRouteEntry, error) {
+	if servicePool == nil {
+		return nil, fmt.Errorf("没有可用的 AI 路由分析服务")
+	}
+	if serviceCount <= 0 {
+		return nil, fmt.Errorf("没有可用的 AI 路由分析服务")
+	}
+
+	hint := aiRouteServiceHint{
+		PromptEndpointType: bucket.PromptEndpointType,
+		BucketIndex:        batchIndex,
+	}
+	exclude := make(map[int]struct{}, serviceCount)
+
+	lease, err := servicePool.Acquire(ctx, hint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for attempt := 1; ; attempt++ {
+		if tracker != nil {
+			tracker.StartBatch(batchIndex, bucket, lease.Service.Name, attempt)
+		}
+
+		routes, callErr := generateAIRoutesForBucketWithService(
+			ctx,
+			lease.Service,
+			bucket,
+			targetGroupName,
+			batchIndex,
+			attempt,
+			tracker,
+		)
+		if callErr == nil {
+			servicePool.Release(lease, aiRouteServiceOutcome{Success: true})
+			if tracker != nil {
+				tracker.CompleteBatch(batchIndex, bucket, lease.Service.Name, attempt)
+			}
+			return routes, nil
+		}
+
+		outcome := aiRouteServiceOutcome{Err: callErr}
+		var routeErr *aiRouteCallError
+		if errors.As(callErr, &routeErr) && routeErr.Retryable && ctx.Err() == nil {
+			outcome.Retryable = true
+			outcome.Cooldown = routeErr.Cooldown
+		}
+		servicePool.Release(lease, outcome)
+
+		if !outcome.Retryable {
+			if tracker != nil {
+				tracker.FailBatch(batchIndex, bucket, lease.Service.Name, attempt, callErr.Error())
+			}
+			return nil, callErr
+		}
+
+		if tracker != nil {
+			tracker.MarkBatchRetry(batchIndex, bucket, lease.Service.Name, attempt, callErr.Error())
+		}
+		log.Warnf("ai route bucket retrying with next service: batch=%d service=%s attempt=%d err=%v",
+			batchIndex, lease.Service.Name, attempt, callErr)
+
+		exclude[lease.Index] = struct{}{}
+		if len(exclude) >= serviceCount {
+			if tracker != nil {
+				tracker.FailBatch(batchIndex, bucket, lease.Service.Name, attempt, callErr.Error())
+			}
+			return nil, callErr
+		}
+
+		nextLease, nextErr := servicePool.Next(ctx, lease, hint, exclude, callErr)
+		if nextErr != nil {
+			if tracker != nil {
+				tracker.FailBatch(batchIndex, bucket, lease.Service.Name, attempt, callErr.Error())
+			}
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, callErr
+		}
+		lease = nextLease
+	}
+}
+
+func generateAIRoutesForBucketWithService(
+	ctx context.Context,
+	service aiRouteService,
+	bucket aiRoutePromptBucket,
+	targetGroupName string,
+	batchIndex int,
+	attempt int,
 	tracker *aiRouteProgressTracker,
 ) ([]model.AIRouteEntry, error) {
 	payload, err := json.Marshal(bucket.ModelInputs)
@@ -379,7 +506,7 @@ func generateAIRoutesForBucket(
 	}
 
 	requestBody := aiRouteChatCompletionRequest{
-		Model: strings.TrimSpace(modelName),
+		Model: strings.TrimSpace(service.Model),
 		Messages: []aiRouteChatCompletionItem{
 			{Role: "system", Content: buildAIRouteSystemPrompt(bucket.PromptEndpointType)},
 			{Role: "user", Content: buildAIRouteUserPrompt(bucket.PromptEndpointType, targetGroupName, payload)},
@@ -402,7 +529,7 @@ func generateAIRoutesForBucket(
 	requestCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	endpoint, err := joinAIRouteChatCompletionsURL(baseURL)
+	endpoint, err := joinAIRouteChatCompletionsURL(service.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("AI路由模型配置不完整")
 	}
@@ -413,12 +540,20 @@ func generateAIRoutesForBucket(
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(service.APIKey))
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		if isAIRouteTimeoutError(err) {
-			return nil, fmt.Errorf("AI 分析超时（%s）", formatAIRouteTimeout(timeout))
+			return nil, &aiRouteCallError{
+				Retryable: true,
+				Cooldown:  getAIRouteRetryCooldown(http.StatusRequestTimeout),
+				Message:   fmt.Sprintf("AI 分析超时（%s）", formatAIRouteTimeout(timeout)),
+				Cause:     err,
+			}
+		}
+		if requestCtx.Err() != nil && errors.Is(requestCtx.Err(), context.Canceled) && ctx.Err() != nil {
+			return nil, ctx.Err()
 		}
 		return nil, fmt.Errorf("AI 分析失败: %w", err)
 	}
@@ -436,7 +571,7 @@ func generateAIRoutesForBucket(
 			PromptEndpointType: bucket.PromptEndpointType,
 			GroupEndpointType:  bucket.GroupEndpointType,
 			ModelInputs:        append([]aiRoutePromptModelInput(nil), bucket.ModelInputs...),
-		})
+		}, service.Name, attempt)
 	}
 
 	var completionResp aiRouteChatCompletionResponse
@@ -751,22 +886,44 @@ func buildAIRouteUpstreamStatusError(statusCode int, rawBody []byte) error {
 	body := strings.TrimSpace(string(rawBody))
 	body = summarizeAIRouteErrorBody(body)
 
+	message := ""
 	switch statusCode {
+	case http.StatusTooManyRequests:
+		if body == "" {
+			message = "AI 分析服务触发限流，正在尝试切换其他服务"
+		} else {
+			message = fmt.Sprintf("AI 分析服务触发限流，正在尝试切换其他服务: %s", body)
+		}
 	case http.StatusGatewayTimeout:
 		if body == "" {
-			return fmt.Errorf("AI 分析服务响应超时，请更换更快的 AI 模型，或减少待分析模型数量后重试")
+			message = "AI 分析服务响应超时，请更换更快的 AI 模型，或减少待分析模型数量后重试"
+		} else {
+			message = fmt.Sprintf("AI 分析服务响应超时，请更换更快的 AI 模型，或减少待分析模型数量后重试: %s", body)
 		}
-		return fmt.Errorf("AI 分析服务响应超时，请更换更快的 AI 模型，或减少待分析模型数量后重试: %s", body)
-	case http.StatusBadGateway, http.StatusServiceUnavailable:
+	case http.StatusRequestTimeout, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable:
 		if body == "" {
-			return fmt.Errorf("AI 分析服务暂时不可用，请稍后重试")
+			message = "AI 分析服务暂时不可用，请稍后重试"
+		} else {
+			message = fmt.Sprintf("AI 分析服务暂时不可用，请稍后重试: %s", body)
 		}
-		return fmt.Errorf("AI 分析服务暂时不可用，请稍后重试: %s", body)
 	default:
 		if body == "" {
-			return fmt.Errorf("AI 分析失败: upstream status %d", statusCode)
+			message = fmt.Sprintf("AI 分析失败: upstream status %d", statusCode)
+		} else {
+			message = fmt.Sprintf("AI 分析失败: upstream status %d: %s", statusCode, body)
 		}
-		return fmt.Errorf("AI 分析失败: upstream status %d: %s", statusCode, body)
+	}
+
+	retryable := isAIRouteRetryableStatusCode(statusCode)
+	if !retryable {
+		return errors.New(message)
+	}
+
+	return &aiRouteCallError{
+		StatusCode: statusCode,
+		Retryable:  true,
+		Cooldown:   getAIRouteRetryCooldown(statusCode),
+		Message:    message,
 	}
 }
 
@@ -1140,6 +1297,31 @@ func getAIRouteHTTPTimeout() time.Duration {
 		return defaultAIRouteHTTPTimeout
 	}
 	return time.Duration(timeoutSeconds) * time.Second
+}
+
+func isAIRouteRetryableStatusCode(statusCode int) bool {
+	switch statusCode {
+	case http.StatusTooManyRequests,
+		http.StatusRequestTimeout,
+		http.StatusInternalServerError,
+		http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+func getAIRouteRetryCooldown(statusCode int) time.Duration {
+	if statusCode == http.StatusTooManyRequests {
+		cooldownSeconds, err := SettingGetInt(model.SettingKeyRatelimitCooldown)
+		if err == nil && cooldownSeconds >= 0 {
+			return time.Duration(cooldownSeconds) * time.Second
+		}
+		return 5 * time.Minute
+	}
+	return defaultAIRouteRetryBackoff
 }
 
 func formatAIRouteTimeout(timeout time.Duration) string {

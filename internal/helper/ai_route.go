@@ -3,6 +3,7 @@ package helper
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -217,6 +218,7 @@ func cloneAIRouteProgress(progress *model.GenerateAIRouteProgress) model.Generat
 	cloned.FinishedAt = cloneTimePtr(progress.FinishedAt)
 	cloned.Summary = cloneAIRouteProgressSummary(progress.Summary)
 	cloned.CurrentBatch = cloneAIRouteCurrentBatch(progress.CurrentBatch)
+	cloned.RunningBatches = cloneAIRouteRunningBatchList(progress.RunningBatches)
 	cloned.Channels = cloneAIRouteChannelProgressList(progress.Channels)
 	cloned.Result = cloneAIRouteResult(progress.Result)
 	return cloned
@@ -253,6 +255,24 @@ func cloneAIRouteCurrentBatch(batch *model.GenerateAIRouteCurrentBatch) *model.G
 		cloned.ChannelNames = append([]string(nil), batch.ChannelNames...)
 	}
 	return &cloned
+}
+
+func cloneAIRouteRunningBatchList(batches []model.GenerateAIRouteRunningBatch) []model.GenerateAIRouteRunningBatch {
+	if len(batches) == 0 {
+		return nil
+	}
+
+	cloned := make([]model.GenerateAIRouteRunningBatch, len(batches))
+	for i := range batches {
+		cloned[i] = batches[i]
+		if len(batches[i].ChannelIDs) > 0 {
+			cloned[i].ChannelIDs = append([]int(nil), batches[i].ChannelIDs...)
+		}
+		if len(batches[i].ChannelNames) > 0 {
+			cloned[i].ChannelNames = append([]string(nil), batches[i].ChannelNames...)
+		}
+	}
+	return cloned
 }
 
 func cloneAIRouteChannelProgressList(channels []model.GenerateAIRouteChannelProgress) []model.GenerateAIRouteChannelProgress {
@@ -298,6 +318,7 @@ func mergeAIRouteProgressSnapshot(dst *model.GenerateAIRouteProgress, snapshot m
 	dst.ErrorReason = snapshot.ErrorReason
 	dst.Summary = cloneAIRouteProgressSummary(snapshot.Summary)
 	dst.CurrentBatch = cloneAIRouteCurrentBatch(snapshot.CurrentBatch)
+	dst.RunningBatches = cloneAIRouteRunningBatchList(snapshot.RunningBatches)
 	dst.Channels = cloneAIRouteChannelProgressList(snapshot.Channels)
 	dst.Result = cloneAIRouteResult(snapshot.Result)
 }
@@ -362,6 +383,7 @@ func finalizeAIRouteProgress(
 		}
 		progress.ErrorReason = progress.Message
 		markRunningAIRouteChannelsFailed(progress, progress.Message)
+		markRunningAIRouteBatchesFailed(progress, progress.Message)
 		return
 	}
 
@@ -369,6 +391,7 @@ func finalizeAIRouteProgress(
 	progress.CurrentStep = model.AIRouteTaskStepCompleted
 	progress.ProgressPercent = 100
 	progress.CurrentBatch = nil
+	progress.RunningBatches = nil
 	progress.Message = "AI 路由生成完成"
 	progress.ResultReady = result != nil
 }
@@ -407,6 +430,30 @@ func markRunningAIRouteChannelsFailed(progress *model.GenerateAIRouteProgress, m
 			progress.Summary.RunningChannels++
 		default:
 			progress.Summary.PendingChannels++
+		}
+	}
+}
+
+func markRunningAIRouteBatchesFailed(progress *model.GenerateAIRouteProgress, message string) {
+	if progress == nil {
+		return
+	}
+
+	if progress.CurrentBatch != nil {
+		progress.CurrentBatch.Status = "failed"
+		if strings.TrimSpace(progress.CurrentBatch.Message) == "" {
+			progress.CurrentBatch.Message = message
+		}
+	}
+
+	if len(progress.RunningBatches) == 0 {
+		return
+	}
+
+	for i := range progress.RunningBatches {
+		progress.RunningBatches[i].Status = model.AIRouteBatchStatusFailed
+		if strings.TrimSpace(progress.RunningBatches[i].Message) == "" {
+			progress.RunningBatches[i].Message = message
 		}
 	}
 }

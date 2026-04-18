@@ -22,6 +22,7 @@ type AIRouteTask struct {
 	EventSequence    int64                            `json:"event_sequence" gorm:"not null;default:0"`
 	Summary          *GenerateAIRouteProgressSummary  `json:"summary,omitempty" gorm:"serializer:json"`
 	CurrentBatch     *GenerateAIRouteCurrentBatch     `json:"current_batch,omitempty" gorm:"serializer:json"`
+	RunningBatches   []GenerateAIRouteRunningBatch    `json:"running_batches,omitempty" gorm:"serializer:json"`
 	Channels         []GenerateAIRouteChannelProgress `json:"channels,omitempty" gorm:"serializer:json"`
 	Result           *GenerateAIRouteResult           `json:"result,omitempty" gorm:"serializer:json"`
 }
@@ -49,6 +50,7 @@ func NewAIRouteTask(progress GenerateAIRouteProgress) AIRouteTask {
 		EventSequence:    progress.EventSequence,
 		Summary:          cloneAIRouteTaskSummary(progress.Summary),
 		CurrentBatch:     cloneAIRouteTaskCurrentBatch(progress.CurrentBatch),
+		RunningBatches:   cloneAIRouteTaskRunningBatches(progress.RunningBatches),
 		Channels:         cloneAIRouteTaskChannels(progress.Channels),
 		Result:           cloneAIRouteTaskResult(progress.Result),
 	}
@@ -79,6 +81,7 @@ func (task *AIRouteTask) ToProgress() GenerateAIRouteProgress {
 		EventSequence:    task.EventSequence,
 		Summary:          cloneAIRouteTaskSummary(task.Summary),
 		CurrentBatch:     cloneAIRouteTaskCurrentBatch(task.CurrentBatch),
+		RunningBatches:   cloneAIRouteTaskRunningBatches(task.RunningBatches),
 		Channels:         cloneAIRouteTaskChannels(task.Channels),
 		Result:           cloneAIRouteTaskResult(task.Result),
 	}
@@ -106,6 +109,24 @@ func cloneAIRouteTaskCurrentBatch(batch *GenerateAIRouteCurrentBatch) *GenerateA
 		cloned.ChannelNames = append([]string(nil), batch.ChannelNames...)
 	}
 	return &cloned
+}
+
+func cloneAIRouteTaskRunningBatches(batches []GenerateAIRouteRunningBatch) []GenerateAIRouteRunningBatch {
+	if len(batches) == 0 {
+		return nil
+	}
+
+	cloned := make([]GenerateAIRouteRunningBatch, len(batches))
+	for i := range batches {
+		cloned[i] = batches[i]
+		if len(batches[i].ChannelIDs) > 0 {
+			cloned[i].ChannelIDs = append([]int(nil), batches[i].ChannelIDs...)
+		}
+		if len(batches[i].ChannelNames) > 0 {
+			cloned[i].ChannelNames = append([]string(nil), batches[i].ChannelNames...)
+		}
+	}
+	return cloned
 }
 
 func cloneAIRouteTaskChannels(channels []GenerateAIRouteChannelProgress) []GenerateAIRouteChannelProgress {

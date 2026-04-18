@@ -125,6 +125,18 @@ func interruptAIRouteTaskProgress(progress *model.GenerateAIRouteProgress, messa
 	if progress.ProgressPercent > 99 {
 		progress.ProgressPercent = 99
 	}
+	if progress.CurrentBatch != nil {
+		progress.CurrentBatch.Status = "failed"
+		if strings.TrimSpace(progress.CurrentBatch.Message) == "" {
+			progress.CurrentBatch.Message = message
+		}
+	}
+	for i := range progress.RunningBatches {
+		progress.RunningBatches[i].Status = model.AIRouteBatchStatusFailed
+		if strings.TrimSpace(progress.RunningBatches[i].Message) == "" {
+			progress.RunningBatches[i].Message = message
+		}
+	}
 
 	for i := range progress.Channels {
 		if progress.Channels[i].Status != model.AIRouteChannelStatusRunning {

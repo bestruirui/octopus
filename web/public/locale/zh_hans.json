@@ -271,23 +271,34 @@
     },
     "baseUrl": {
       "label": "AI Base URL",
-                "placeholder": "请输入 OpenAI 兼容 Base URL"
-            },
-            "apiKey": {
-                "label": "AI API Key",
-                "placeholder": "请输入 AI API Key"
-            },
-            "model": {
-                "label": "AI 模型",
-                "placeholder": "请输入用于路由分析的模型名称"
-            },
-            "timeoutSeconds": {
-                "label": "AI 超时（秒）",
-                "placeholder": "请输入单次请求超时时间",
-                "hint": "用于单次 AI 路由分析请求。模型较慢或模型列表较大时可适当调大。"
-            }
-        },
-        "saved": "已保存",
+      "placeholder": "请输入 OpenAI 兼容 Base URL"
+    },
+    "apiKey": {
+      "label": "AI API Key",
+      "placeholder": "请输入 AI API Key"
+    },
+    "model": {
+      "label": "AI 模型",
+      "placeholder": "请输入用于路由分析的模型名称"
+    },
+    "timeoutSeconds": {
+      "label": "AI 超时（秒）",
+      "placeholder": "请输入单次请求超时时间",
+      "hint": "用于单次 AI 路由分析请求。模型较慢或模型列表较大时可适当调大。"
+    },
+    "parallelism": {
+      "label": "批次并发数",
+      "placeholder": "请输入 1 到 4",
+      "hint": "控制 AI 路由 bucket 的最大并发分析数。默认 3，最大 4。"
+    },
+    "services": {
+      "label": "AI 服务池（JSON）",
+      "placeholder": "请输入 AI 服务配置 JSON 数组",
+      "hint": "留空或 [] 时继续使用上面的单服务配置；填写 JSON 数组后会启用多服务池和失败切换。",
+      "invalid": "AI 服务池 JSON 必须是数组"
+    }
+  },
+  "saved": "已保存",
         "backup": {
             "title": "备份 / 恢复",
             "export": {
@@ -519,19 +530,24 @@
       "lastUpdated": "状态更新时间：{time}",
       "lastHeartbeat": "心跳时间：{time}",
       "heartbeatStale": "后端心跳暂时未更新，可能仍在等待 AI 返回",
-      "currentBatch": "当前批次",
+      "currentBatch": "活跃批次",
+      "recentBatch": "最近活跃批次",
+      "activeBatches": "活跃批次",
+      "activeBatchCount": "{count} 个活跃批次",
       "batchLabel": "第 {index}/{total} 批",
       "batchCapability": "能力类型",
       "batchModels": "本批模型数",
       "batchChannels": "涉及渠道数",
+      "batchService": "分析服务",
+      "batchAttempt": "尝试次数",
       "channelList": "渠道处理进度",
       "channelSections": {
-        "running": "当前处理中",
+        "running": "当前活跃",
         "completed": "已完成",
         "pending": "待处理",
         "failed": "失败",
         "empty": {
-          "running": "当前没有正在分析的渠道",
+          "running": "当前没有活跃渠道",
           "completed": "当前还没有已完成渠道",
           "pending": "当前没有待处理渠道",
           "failed": "当前没有失败渠道"
@@ -568,10 +584,17 @@
         "completed": "已完成",
         "failed": "失败"
       },
+      "batchStatus": {
+        "running": "分析中",
+        "parsing": "解析中",
+        "retrying": "重试中",
+        "failed": "失败",
+        "completed": "已完成"
+      },
       "summary": {
         "totalChannels": "总渠道数",
         "completedChannels": "已完成渠道",
-        "runningChannels": "处理中渠道",
+        "runningChannels": "活跃渠道",
         "pendingChannels": "待处理渠道",
         "failedChannels": "失败渠道",
         "modelsProgress": "模型处理进度"

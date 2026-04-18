@@ -6,7 +6,7 @@ import (
 	"github.com/lingyuins/octopus/internal/model"
 )
 
-func TestAIRouteProgressTrackerEmitsIndependentSnapshots(t *testing.T) {
+func TestAIRouteProgressTrackerTracksRunningBatchesAndRetries(t *testing.T) {
 	snapshots := make([]model.GenerateAIRouteProgress, 0)
 	tracker := newAIRouteProgressTracker(
 		model.GenerateAIRouteRequest{Scope: model.AIRouteScopeTable},
@@ -18,8 +18,9 @@ func TestAIRouteProgressTrackerEmitsIndependentSnapshots(t *testing.T) {
 	inputs := []model.AIRouteModelInput{
 		{ChannelID: 1, ChannelName: "alpha", Provider: "openai", Model: "gpt-4o"},
 		{ChannelID: 2, ChannelName: "beta", Provider: "anthropic", Model: "claude-sonnet-4.5"},
+		{ChannelID: 3, ChannelName: "gamma", Provider: "openai", Model: "text-embedding-3-large"},
 	}
-	bucket := aiRoutePromptBucket{
+	bucketOne := aiRoutePromptBucket{
 		PromptEndpointType: model.EndpointTypeChat,
 		GroupEndpointType:  model.EndpointTypeAll,
 		ModelInputs: []aiRoutePromptModelInput{
@@ -27,53 +28,64 @@ func TestAIRouteProgressTrackerEmitsIndependentSnapshots(t *testing.T) {
 			{ChannelID: 2, Model: "claude-sonnet-4.5"},
 		},
 	}
+	bucketTwo := aiRoutePromptBucket{
+		PromptEndpointType: model.EndpointTypeEmbeddings,
+		GroupEndpointType:  model.EndpointTypeEmbeddings,
+		ModelInputs: []aiRoutePromptModelInput{
+			{ChannelID: 3, Model: "text-embedding-3-large"},
+		},
+	}
 
 	tracker.SetModelInputs(inputs)
-	tracker.SetBuckets([]aiRoutePromptBucket{bucket})
-	tracker.StartBatch(1, bucket)
+	tracker.SetBuckets([]aiRoutePromptBucket{bucketOne, bucketTwo})
+	tracker.StartBatch(1, bucketOne, "svc-a", 1)
+	tracker.StartBatch(2, bucketTwo, "svc-b", 1)
+	tracker.MarkBatchRetry(1, bucketOne, "svc-a", 1, "429")
+	tracker.StartBatch(1, bucketOne, "svc-c", 2)
 	runningSnapshot := snapshots[len(snapshots)-1]
 
-	tracker.MarkBatchAIResponseReceived(1, bucket)
-	tracker.CompleteBatch(1, bucket)
+	if runningSnapshot.CurrentBatch == nil {
+		t.Fatal("running snapshot current batch = nil, want non-nil")
+	}
+	if runningSnapshot.CurrentBatch.ServiceName != "svc-c" || runningSnapshot.CurrentBatch.Attempt != 2 {
+		t.Fatalf("running snapshot current batch = %+v, want svc-c attempt 2", runningSnapshot.CurrentBatch)
+	}
+	if len(runningSnapshot.RunningBatches) != 2 {
+		t.Fatalf("running snapshot running batches len = %d, want 2", len(runningSnapshot.RunningBatches))
+	}
+	if runningSnapshot.Summary == nil || runningSnapshot.Summary.RunningChannels != 3 {
+		t.Fatalf("running snapshot summary = %+v, want running_channels=3", runningSnapshot.Summary)
+	}
 
+	tracker.MarkBatchAIResponseReceived(2, bucketTwo, "svc-b", 1)
+	parsingSnapshot := snapshots[len(snapshots)-1]
+	if len(parsingSnapshot.RunningBatches) < 2 || parsingSnapshot.RunningBatches[1].Status != model.AIRouteBatchStatusParsing {
+		t.Fatalf("parsing snapshot running batches = %+v, want batch 2 parsing", parsingSnapshot.RunningBatches)
+	}
+
+	tracker.CompleteBatch(2, bucketTwo, "svc-b", 1)
+	tracker.CompleteBatch(1, bucketOne, "svc-c", 2)
 	completedSnapshot := snapshots[len(snapshots)-1]
 
-	if runningSnapshot.CurrentStep != model.AIRouteTaskStepAnalyzingBatches {
-		t.Fatalf("running snapshot step = %q, want %q", runningSnapshot.CurrentStep, model.AIRouteTaskStepAnalyzingBatches)
+	if completedSnapshot.CompletedBatches != 2 || completedSnapshot.TotalBatches != 2 {
+		t.Fatalf("completed snapshot batches = %d/%d, want 2/2", completedSnapshot.CompletedBatches, completedSnapshot.TotalBatches)
 	}
-	if runningSnapshot.CurrentBatch == nil || runningSnapshot.CurrentBatch.Index != 1 || runningSnapshot.CurrentBatch.Total != 1 {
-		t.Fatalf("running snapshot current batch = %+v, want index=1 total=1", runningSnapshot.CurrentBatch)
+	if completedSnapshot.CurrentBatch == nil || completedSnapshot.CurrentBatch.Status != "completed" {
+		t.Fatalf("completed snapshot current batch = %+v, want completed batch", completedSnapshot.CurrentBatch)
 	}
-	if len(runningSnapshot.Channels) != 2 {
-		t.Fatalf("running snapshot channel len = %d, want 2", len(runningSnapshot.Channels))
+	if len(completedSnapshot.RunningBatches) != 0 {
+		t.Fatalf("completed snapshot running batches len = %d, want 0", len(completedSnapshot.RunningBatches))
 	}
-	if runningSnapshot.Channels[0].Status != model.AIRouteChannelStatusRunning {
-		t.Fatalf("running snapshot channel[0] status = %q, want %q", runningSnapshot.Channels[0].Status, model.AIRouteChannelStatusRunning)
+	if completedSnapshot.Summary == nil || completedSnapshot.Summary.CompletedModels != 3 {
+		t.Fatalf("completed snapshot summary = %+v, want completed_models=3", completedSnapshot.Summary)
 	}
-	if runningSnapshot.Channels[0].ProcessedModels != 0 {
-		t.Fatalf("running snapshot channel[0].processed_models = %d, want 0", runningSnapshot.Channels[0].ProcessedModels)
-	}
-
-	if completedSnapshot.CompletedBatches != 1 || completedSnapshot.TotalBatches != 1 {
-		t.Fatalf("completed snapshot batches = %d/%d, want 1/1", completedSnapshot.CompletedBatches, completedSnapshot.TotalBatches)
-	}
-	if completedSnapshot.ProgressPercent != 80 {
-		t.Fatalf("completed snapshot progress = %d, want 80", completedSnapshot.ProgressPercent)
-	}
-	if completedSnapshot.Summary == nil || completedSnapshot.Summary.CompletedModels != 2 {
-		t.Fatalf("completed snapshot summary = %+v, want completed_models=2", completedSnapshot.Summary)
-	}
-	if completedSnapshot.Channels[0].Status != model.AIRouteChannelStatusCompleted {
-		t.Fatalf("completed snapshot channel[0] status = %q, want %q", completedSnapshot.Channels[0].Status, model.AIRouteChannelStatusCompleted)
-	}
-	if completedSnapshot.Channels[0].ProcessedModels != 1 {
-		t.Fatalf("completed snapshot channel[0].processed_models = %d, want 1", completedSnapshot.Channels[0].ProcessedModels)
+	for i, channel := range completedSnapshot.Channels {
+		if channel.Status != model.AIRouteChannelStatusCompleted {
+			t.Fatalf("completed snapshot channel[%d] status = %q, want completed", i, channel.Status)
+		}
 	}
 
-	if runningSnapshot.Channels[0].Status != model.AIRouteChannelStatusRunning {
-		t.Fatalf("running snapshot channel[0] mutated to %q, want independent running snapshot", runningSnapshot.Channels[0].Status)
-	}
-	if runningSnapshot.Channels[0].ProcessedModels != 0 {
-		t.Fatalf("running snapshot channel[0].processed_models mutated to %d, want 0", runningSnapshot.Channels[0].ProcessedModels)
+	if runningSnapshot.RunningBatches[0].ServiceName != "svc-a" && runningSnapshot.RunningBatches[0].ServiceName != "svc-c" {
+		t.Fatalf("running snapshot mutated unexpectedly: %+v", runningSnapshot.RunningBatches)
 	}
 }

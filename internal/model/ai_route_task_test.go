@@ -42,6 +42,24 @@ func TestAIRouteTaskRoundTripPreservesProgressSnapshot(t *testing.T) {
 			ModelCount:   2,
 			ChannelIDs:   []int{1, 2},
 			ChannelNames: []string{"alpha", "beta"},
+			ServiceName:  "svc-a",
+			Attempt:      2,
+			Status:       "completed",
+			Message:      "当前批次已完成",
+		},
+		RunningBatches: []GenerateAIRouteRunningBatch{
+			{
+				Index:        2,
+				Total:        3,
+				EndpointType: EndpointTypeEmbeddings,
+				ModelCount:   1,
+				ChannelIDs:   []int{2},
+				ChannelNames: []string{"beta"},
+				ServiceName:  "svc-b",
+				Attempt:      1,
+				Status:       AIRouteBatchStatusParsing,
+				Message:      "解析中",
+			},
 		},
 		Channels: []GenerateAIRouteChannelProgress{
 			{
@@ -81,6 +99,9 @@ func TestAIRouteTaskRoundTripPreservesProgressSnapshot(t *testing.T) {
 	}
 	if got.CurrentBatch == nil || len(got.CurrentBatch.ChannelIDs) != 2 || got.CurrentBatch.ChannelNames[1] != "beta" {
 		t.Fatalf("current batch not preserved: got %+v", got.CurrentBatch)
+	}
+	if len(got.RunningBatches) != 1 || got.RunningBatches[0].ServiceName != "svc-b" || got.RunningBatches[0].Status != AIRouteBatchStatusParsing {
+		t.Fatalf("running batches not preserved: got %+v", got.RunningBatches)
 	}
 	if len(got.Channels) != 2 || got.Channels[0].ChannelName != "alpha" || got.Channels[1].ProcessedModels != 1 {
 		t.Fatalf("channels not preserved: got %+v", got.Channels)

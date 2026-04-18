@@ -271,23 +271,34 @@
     },
     "baseUrl": {
       "label": "AI Base URL",
-                "placeholder": "請輸入 OpenAI 相容 Base URL"
-            },
-            "apiKey": {
-                "label": "AI API Key",
-                "placeholder": "請輸入 AI API Key"
-            },
-            "model": {
-                "label": "AI 模型",
-                "placeholder": "請輸入用於路由分析的模型名稱"
-            },
-            "timeoutSeconds": {
-                "label": "AI 超時（秒）",
-                "placeholder": "請輸入單次請求超時時間",
-                "hint": "用於單次 AI 路由分析請求。模型較慢或模型列表較大時可適度調大。"
-            }
-        },
-        "saved": "已儲存",
+      "placeholder": "請輸入 OpenAI 相容 Base URL"
+    },
+    "apiKey": {
+      "label": "AI API Key",
+      "placeholder": "請輸入 AI API Key"
+    },
+    "model": {
+      "label": "AI 模型",
+      "placeholder": "請輸入用於路由分析的模型名稱"
+    },
+    "timeoutSeconds": {
+      "label": "AI 超時（秒）",
+      "placeholder": "請輸入單次請求超時時間",
+      "hint": "用於單次 AI 路由分析請求。模型較慢或模型列表較大時可適度調大。"
+    },
+    "parallelism": {
+      "label": "批次並發數",
+      "placeholder": "請輸入 1 到 4",
+      "hint": "控制 AI 路由 bucket 的最大並發分析數。預設 3，最大 4。"
+    },
+    "services": {
+      "label": "AI 服務池（JSON）",
+      "placeholder": "請輸入 AI 服務設定 JSON 陣列",
+      "hint": "留空或 [] 時會繼續使用上方單服務設定；填入 JSON 陣列後會啟用多服務池與失敗切換。",
+      "invalid": "AI 服務池 JSON 必須是陣列"
+    }
+  },
+  "saved": "已儲存",
         "backup": {
             "title": "備份 / 復原",
             "export": {
@@ -519,25 +530,30 @@
       "lastUpdated": "狀態更新時間：{time}",
       "lastHeartbeat": "心跳時間：{time}",
       "heartbeatStale": "後端心跳暫時未更新，可能仍在等待 AI 返回",
-      "currentBatch": "目前批次",
+      "currentBatch": "活躍批次",
+      "recentBatch": "最近活躍批次",
+      "activeBatches": "活躍批次",
+      "activeBatchCount": "{count} 個活躍批次",
       "batchLabel": "第 {index}/{total} 批",
       "batchCapability": "能力類型",
       "batchModels": "本批模型數",
       "batchChannels": "涉及供應源數",
-        "channelList": "供應源處理進度",
-        "channelSections": {
-          "running": "目前處理中",
-          "completed": "已完成",
-          "pending": "待處理",
-          "failed": "失敗",
-          "empty": {
-            "running": "目前沒有正在分析的供應源",
-            "completed": "目前還沒有已完成供應源",
-            "pending": "目前沒有待處理供應源",
-            "failed": "目前沒有失敗供應源"
-          }
-        },
-        "channelModels": "已處理 {completed}/{total} 個模型",
+      "batchService": "分析服務",
+      "batchAttempt": "嘗試次數",
+      "channelList": "供應源處理進度",
+      "channelSections": {
+        "running": "目前活躍",
+        "completed": "已完成",
+        "pending": "待處理",
+        "failed": "失敗",
+        "empty": {
+          "running": "目前沒有活躍供應源",
+          "completed": "目前還沒有已完成供應源",
+          "pending": "目前沒有待處理供應源",
+          "failed": "目前沒有失敗供應源"
+        }
+      },
+      "channelModels": "已處理 {completed}/{total} 個模型",
       "result": {
         "groupSummary": "AI 路由補全完成，共生成 {routes} 條路由，寫入 {items} 個路由項。",
         "tableSummary": "AI 路由表生成完成，共生成 {routes} 條路由，影響 {groups} 個分組，寫入 {items} 個路由項。"
@@ -568,10 +584,17 @@
         "completed": "已完成",
         "failed": "失敗"
       },
+      "batchStatus": {
+        "running": "分析中",
+        "parsing": "解析中",
+        "retrying": "重試中",
+        "failed": "失敗",
+        "completed": "已完成"
+      },
       "summary": {
         "totalChannels": "總供應源數",
         "completedChannels": "已完成供應源",
-        "runningChannels": "處理中供應源",
+        "runningChannels": "活躍供應源",
         "pendingChannels": "待處理供應源",
         "failedChannels": "失敗供應源",
         "modelsProgress": "模型處理進度"
