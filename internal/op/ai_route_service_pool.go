@@ -14,7 +14,6 @@ import (
 
 const (
 	defaultAIRouteParallelism = 3
-	maxAIRouteParallelism     = 4
 )
 
 type aiRouteService struct {
@@ -196,9 +195,6 @@ func loadAIRouteParallelism() int {
 	if err != nil || value < 1 {
 		return defaultAIRouteParallelism
 	}
-	if value > maxAIRouteParallelism {
-		return maxAIRouteParallelism
-	}
 	return value
 }
 
@@ -208,9 +204,6 @@ func clampAIRouteParallelism(value int, bucketCount int) int {
 	}
 	if value < 1 {
 		value = defaultAIRouteParallelism
-	}
-	if value > maxAIRouteParallelism {
-		value = maxAIRouteParallelism
 	}
 	if value > bucketCount {
 		return bucketCount

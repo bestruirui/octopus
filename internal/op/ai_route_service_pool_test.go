@@ -10,11 +10,11 @@ func TestClampAIRouteParallelism(t *testing.T) {
 	if got := clampAIRouteParallelism(0, 5); got != defaultAIRouteParallelism {
 		t.Fatalf("clampAIRouteParallelism(0, 5) = %d, want %d", got, defaultAIRouteParallelism)
 	}
-	if got := clampAIRouteParallelism(9, 10); got != maxAIRouteParallelism {
-		t.Fatalf("clampAIRouteParallelism(9, 10) = %d, want %d", got, maxAIRouteParallelism)
+	if got := clampAIRouteParallelism(9, 10); got != 9 {
+		t.Fatalf("clampAIRouteParallelism(9, 10) = %d, want 9", got)
 	}
-	if got := clampAIRouteParallelism(4, 2); got != 2 {
-		t.Fatalf("clampAIRouteParallelism(4, 2) = %d, want 2", got)
+	if got := clampAIRouteParallelism(99, 2); got != 2 {
+		t.Fatalf("clampAIRouteParallelism(99, 2) = %d, want 2", got)
 	}
 }
 

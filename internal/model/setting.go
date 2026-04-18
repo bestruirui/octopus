@@ -95,8 +95,8 @@ func (s *Setting) Validate() error {
 		if s.Key == SettingKeyAIRouteTimeoutSeconds && v < 1 {
 			return fmt.Errorf("ai route timeout must be greater than 0")
 		}
-		if s.Key == SettingKeyAIRouteParallelism && (v < 1 || v > 4) {
-			return fmt.Errorf("ai route parallelism must be between 1 and 4")
+		if s.Key == SettingKeyAIRouteParallelism && v < 1 {
+			return fmt.Errorf("ai route parallelism must be greater than 0")
 		}
 		return nil
 	case SettingKeyRelayLogKeepEnabled:

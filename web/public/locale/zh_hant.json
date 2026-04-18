@@ -288,8 +288,8 @@
     },
     "parallelism": {
       "label": "批次並發數",
-      "placeholder": "請輸入 1 到 4",
-      "hint": "控制 AI 路由 bucket 的最大並發分析數。預設 3，最大 4。"
+      "placeholder": "請輸入大於 0 的整數",
+      "hint": "控制 AI 路由 bucket 的最大並發分析數。預設 3，可自訂更高並發；實際執行不會超過目前任務批次數。"
     },
     "services": {
       "label": "AI 服務池（JSON）",

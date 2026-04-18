@@ -288,8 +288,8 @@
     },
     "parallelism": {
       "label": "Batch Parallelism",
-      "placeholder": "Enter 1 to 4",
-      "hint": "Controls the maximum number of AI route buckets analyzed in parallel. Defaults to 3 and caps at 4."
+      "placeholder": "Enter an integer greater than 0",
+      "hint": "Controls the maximum number of AI route buckets analyzed in parallel. Defaults to 3, allows higher values, and never exceeds the number of batches in the current task."
     },
     "services": {
       "label": "AI Service Pool (JSON)",

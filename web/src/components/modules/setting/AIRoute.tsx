@@ -235,7 +235,6 @@ export function SettingAIRoute() {
                     <Input
                         type="number"
                         min="1"
-                        max="4"
                         value={parallelism}
                         onChange={(event) => setParallelism(event.target.value)}
                         onBlur={() => saveSetting(SettingKey.AIRouteParallelism, parallelism, initialParallelism)}
