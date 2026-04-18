@@ -31,6 +31,7 @@ export const SettingKey = {
     AIRouteBaseURL: 'ai_route_base_url',
     AIRouteAPIKey: 'ai_route_api_key',
     AIRouteModel: 'ai_route_model',
+    AIRouteTimeoutSeconds: 'ai_route_timeout_seconds',
 } as const;
 
 /**

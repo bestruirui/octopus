@@ -280,6 +280,11 @@
             "model": {
                 "label": "AI 模型",
                 "placeholder": "请输入用于路由分析的模型名称"
+            },
+            "timeoutSeconds": {
+                "label": "AI 超时（秒）",
+                "placeholder": "请输入单次请求超时时间",
+                "hint": "用于单次 AI 路由分析请求。模型较慢或模型列表较大时可适当调大。"
             }
         },
         "saved": "已保存",

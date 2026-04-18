@@ -10,7 +10,7 @@ import (
 	"github.com/lingyuins/octopus/internal/op"
 )
 
-const aiRouteTaskTimeout = 10 * time.Minute
+const aiRouteTaskTimeout = 30 * time.Minute
 
 var aiRouteProgress sync.Map
 

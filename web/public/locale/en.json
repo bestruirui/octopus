@@ -280,6 +280,11 @@
             "model": {
                 "label": "AI Model",
                 "placeholder": "Enter the model used for route analysis"
+            },
+            "timeoutSeconds": {
+                "label": "AI Timeout (seconds)",
+                "placeholder": "Enter the per-request timeout",
+                "hint": "Applies to a single AI route analysis request. Increase it if the model is slow or the model list is large."
             }
         },
         "saved": "Saved",

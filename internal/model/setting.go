@@ -30,6 +30,7 @@ const (
 	SettingKeyAIRouteBaseURL              SettingKey = "ai_route_base_url"              // AI路由分析服务 Base URL
 	SettingKeyAIRouteAPIKey               SettingKey = "ai_route_api_key"               // AI路由分析服务 API Key
 	SettingKeyAIRouteModel                SettingKey = "ai_route_model"                 // AI路由分析模型名称
+	SettingKeyAIRouteTimeoutSeconds       SettingKey = "ai_route_timeout_seconds"       // AI路由分析单次请求超时（秒）
 )
 
 type Setting struct {
@@ -60,6 +61,7 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyAIRouteBaseURL, Value: ""},
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},
 		{Key: SettingKeyAIRouteModel, Value: ""},
+		{Key: SettingKeyAIRouteTimeoutSeconds, Value: "180"},
 	}
 }
 
@@ -69,7 +71,7 @@ func (s *Setting) Validate() error {
 		SettingKeyRelayRetryCount, SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown,
 		SettingKeyCircuitBreakerMaxCooldown, SettingKeyRatelimitCooldown, SettingKeyRelayMaxTotalAttempts,
 		SettingKeyAutoStrategyMinSamples, SettingKeyAutoStrategyTimeWindow, SettingKeyAutoStrategySampleThreshold,
-		SettingKeyAIRouteGroupID:
+		SettingKeyAIRouteGroupID, SettingKeyAIRouteTimeoutSeconds:
 		v, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("setting value must be an integer")
@@ -85,6 +87,9 @@ func (s *Setting) Validate() error {
 		}
 		if s.Key == SettingKeyAIRouteGroupID && v < 0 {
 			return fmt.Errorf("ai route group id must be greater than or equal to 0")
+		}
+		if s.Key == SettingKeyAIRouteTimeoutSeconds && v < 1 {
+			return fmt.Errorf("ai route timeout must be greater than 0")
 		}
 		return nil
 	case SettingKeyRelayLogKeepEnabled:

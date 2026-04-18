@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { Bot, KeyRound, Link2, Sparkles } from 'lucide-react';
+import { Bot, Clock3, KeyRound, Link2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import {
@@ -25,11 +25,13 @@ export function SettingAIRoute() {
     const [baseURL, setBaseURL] = useState('');
     const [apiKey, setAPIKey] = useState('');
     const [model, setModel] = useState('');
+    const [timeoutSeconds, setTimeoutSeconds] = useState('180');
 
     const initialGroupID = useRef('0');
     const initialBaseURL = useRef('');
     const initialAPIKey = useRef('');
     const initialModel = useRef('');
+    const initialTimeoutSeconds = useRef('180');
 
     useEffect(() => {
         if (!settings) return;
@@ -38,6 +40,7 @@ export function SettingAIRoute() {
         const baseURLSetting = settings.find((item) => item.key === SettingKey.AIRouteBaseURL);
         const apiKeySetting = settings.find((item) => item.key === SettingKey.AIRouteAPIKey);
         const modelSetting = settings.find((item) => item.key === SettingKey.AIRouteModel);
+        const timeoutSetting = settings.find((item) => item.key === SettingKey.AIRouteTimeoutSeconds);
 
         if (groupSetting) {
             queueMicrotask(() => setGroupID(groupSetting.value || '0'));
@@ -54,6 +57,10 @@ export function SettingAIRoute() {
         if (modelSetting) {
             queueMicrotask(() => setModel(modelSetting.value));
             initialModel.current = modelSetting.value;
+        }
+        if (timeoutSetting) {
+            queueMicrotask(() => setTimeoutSeconds(timeoutSetting.value || '180'));
+            initialTimeoutSeconds.current = timeoutSetting.value || '180';
         }
     }, [settings]);
 
@@ -150,6 +157,33 @@ export function SettingAIRoute() {
                     placeholder={t('aiRoute.model.placeholder')}
                     className="w-72 rounded-xl"
                 />
+            </div>
+
+            <div className="space-y-2">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <Clock3 className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium">{t('aiRoute.timeoutSeconds.label')}</span>
+                    </div>
+                    <Input
+                        type="number"
+                        min="1"
+                        value={timeoutSeconds}
+                        onChange={(event) => setTimeoutSeconds(event.target.value)}
+                        onBlur={() =>
+                            saveSetting(
+                                SettingKey.AIRouteTimeoutSeconds,
+                                timeoutSeconds,
+                                initialTimeoutSeconds,
+                            )
+                        }
+                        placeholder={t('aiRoute.timeoutSeconds.placeholder')}
+                        className="w-72 rounded-xl"
+                    />
+                </div>
+                <p className="pl-8 text-xs text-muted-foreground">
+                    {t('aiRoute.timeoutSeconds.hint')}
+                </p>
             </div>
         </div>
     );

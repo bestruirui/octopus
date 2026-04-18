@@ -1,7 +1,10 @@
 package op
 
 import (
+	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/lingyuins/octopus/internal/model"
 )
@@ -154,5 +157,47 @@ func TestDetectAIRoutePromptEndpointTypeForGroupPrefersNonChatWhenStable(t *test
 	got := detectAIRoutePromptEndpointTypeForGroup(group)
 	if got != model.EndpointTypeEmbeddings {
 		t.Fatalf("detectAIRoutePromptEndpointTypeForGroup() = %q, want %q", got, model.EndpointTypeEmbeddings)
+	}
+}
+
+func TestBuildAIRoutePromptBucketsSplitsLargeBucket(t *testing.T) {
+	inputs := make([]model.AIRouteModelInput, 0, aiRouteMaxModelsPerRequest+5)
+	for i := 0; i < aiRouteMaxModelsPerRequest+5; i++ {
+		inputs = append(inputs, model.AIRouteModelInput{
+			ChannelID:   i + 1,
+			ChannelName: "chat",
+			Provider:    "openai",
+			Model:       fmt.Sprintf("gpt-4o-variant-%03d", i),
+		})
+	}
+
+	got := buildAIRoutePromptBuckets(inputs, model.EndpointTypeChat)
+	if len(got) != 2 {
+		t.Fatalf("buildAIRoutePromptBuckets() len = %d, want 2", len(got))
+	}
+
+	total := 0
+	for _, bucket := range got {
+		if len(bucket.ModelInputs) > aiRouteMaxModelsPerRequest {
+			t.Fatalf("bucket len = %d, want <= %d", len(bucket.ModelInputs), aiRouteMaxModelsPerRequest)
+		}
+		total += len(bucket.ModelInputs)
+	}
+
+	if total != len(inputs) {
+		t.Fatalf("buildAIRoutePromptBuckets() total = %d, want %d", total, len(inputs))
+	}
+}
+
+func TestFormatAIRouteTimeout(t *testing.T) {
+	got := formatAIRouteTimeout(3 * time.Minute)
+	if got != "180s" {
+		t.Fatalf("formatAIRouteTimeout() = %q, want %q", got, "180s")
+	}
+}
+
+func TestIsAIRouteTimeoutErrorDetectsContextDeadlineExceeded(t *testing.T) {
+	if !isAIRouteTimeoutError(context.DeadlineExceeded) {
+		t.Fatal("isAIRouteTimeoutError() = false, want true")
 	}
 }

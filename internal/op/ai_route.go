@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -22,8 +23,9 @@ import (
 )
 
 const (
-	aiRouteHTTPTimeout     = 60 * time.Second
-	aiRouteResponseMaxSize = 2 << 20
+	defaultAIRouteHTTPTimeout  = 180 * time.Second
+	aiRouteMaxModelsPerRequest = 120
+	aiRouteResponseMaxSize     = 2 << 20
 )
 
 type aiRoutePromptModelInput struct {
@@ -333,12 +335,14 @@ func generateAIRoutesForBucket(
 		return nil, fmt.Errorf("构造AI请求失败: %w", err)
 	}
 
-	httpClient, err := getAIRouteHTTPClient()
+	timeout := getAIRouteHTTPTimeout()
+
+	httpClient, err := getAIRouteHTTPClient(timeout)
 	if err != nil {
 		return nil, fmt.Errorf("初始化AI请求客户端失败: %w", err)
 	}
 
-	requestCtx, cancel := context.WithTimeout(ctx, aiRouteHTTPTimeout)
+	requestCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	endpoint, err := joinAIRouteChatCompletionsURL(baseURL)
@@ -356,6 +360,9 @@ func generateAIRoutesForBucket(
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
+		if isAIRouteTimeoutError(err) {
+			return nil, fmt.Errorf("AI 分析超时（%s）", formatAIRouteTimeout(timeout))
+		}
 		return nil, fmt.Errorf("AI 分析失败: %w", err)
 	}
 	defer resp.Body.Close()
@@ -505,9 +512,67 @@ func buildAIRoutePromptBuckets(modelInputs []model.AIRouteModelInput, targetProm
 		if state == nil || len(state.bucket.ModelInputs) == 0 {
 			continue
 		}
-		result = append(result, state.bucket)
+		result = append(result, splitAIRoutePromptBucket(state.bucket)...)
 	}
 
+	return result
+}
+
+func splitAIRoutePromptBucket(bucket aiRoutePromptBucket) []aiRoutePromptBucket {
+	if len(bucket.ModelInputs) <= aiRouteMaxModelsPerRequest {
+		return []aiRoutePromptBucket{bucket}
+	}
+
+	familyOrder := make([]string, 0)
+	familyInputs := make(map[string][]aiRoutePromptModelInput)
+	for _, input := range bucket.ModelInputs {
+		identity := NormalizeModelIdentity(input.Model)
+		key := strings.ToLower(strings.TrimSpace(identity.Canonical))
+		if key == "" {
+			key = strings.ToLower(strings.TrimSpace(input.Model))
+		}
+		if _, ok := familyInputs[key]; !ok {
+			familyOrder = append(familyOrder, key)
+		}
+		familyInputs[key] = append(familyInputs[key], input)
+	}
+
+	result := make([]aiRoutePromptBucket, 0)
+	currentInputs := make([]aiRoutePromptModelInput, 0, aiRouteMaxModelsPerRequest)
+
+	flush := func() {
+		if len(currentInputs) == 0 {
+			return
+		}
+		next := bucket
+		next.ModelInputs = append([]aiRoutePromptModelInput(nil), currentInputs...)
+		result = append(result, next)
+		currentInputs = make([]aiRoutePromptModelInput, 0, aiRouteMaxModelsPerRequest)
+	}
+
+	for _, key := range familyOrder {
+		inputs := familyInputs[key]
+		if len(inputs) >= aiRouteMaxModelsPerRequest {
+			flush()
+			for start := 0; start < len(inputs); start += aiRouteMaxModelsPerRequest {
+				end := start + aiRouteMaxModelsPerRequest
+				if end > len(inputs) {
+					end = len(inputs)
+				}
+				next := bucket
+				next.ModelInputs = append([]aiRoutePromptModelInput(nil), inputs[start:end]...)
+				result = append(result, next)
+			}
+			continue
+		}
+
+		if len(currentInputs)+len(inputs) > aiRouteMaxModelsPerRequest {
+			flush()
+		}
+		currentInputs = append(currentInputs, inputs...)
+	}
+
+	flush()
 	return result
 }
 
@@ -987,7 +1052,32 @@ func ensureAIRouteGroupEndpointType(ctx context.Context, group *model.Group, rou
 	return nil, fmt.Errorf("分组 %q 的 API 分类为 %s，与 AI 路由结果 %s 冲突", group.Name, current, target)
 }
 
-func getAIRouteHTTPClient() (*http.Client, error) {
+func getAIRouteHTTPTimeout() time.Duration {
+	timeoutSeconds, err := SettingGetInt(model.SettingKeyAIRouteTimeoutSeconds)
+	if err != nil || timeoutSeconds < 1 {
+		return defaultAIRouteHTTPTimeout
+	}
+	return time.Duration(timeoutSeconds) * time.Second
+}
+
+func formatAIRouteTimeout(timeout time.Duration) string {
+	seconds := int(timeout / time.Second)
+	if seconds < 1 {
+		seconds = int(defaultAIRouteHTTPTimeout / time.Second)
+	}
+	return fmt.Sprintf("%ds", seconds)
+}
+
+func isAIRouteTimeoutError(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
+}
+
+func getAIRouteHTTPClient(timeout time.Duration) (*http.Client, error) {
 	proxyURL, _ := SettingGetString(model.SettingKeyProxyURL)
 
 	baseClient, err := newAIRouteHTTPClient(strings.TrimSpace(proxyURL))
@@ -996,7 +1086,10 @@ func getAIRouteHTTPClient() (*http.Client, error) {
 	}
 
 	cloned := *baseClient
-	cloned.Timeout = aiRouteHTTPTimeout
+	if timeout <= 0 {
+		timeout = defaultAIRouteHTTPTimeout
+	}
+	cloned.Timeout = timeout
 	return &cloned, nil
 }
 
