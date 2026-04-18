@@ -40,7 +40,7 @@ docker run -d --name octopus \
   -v /path/to/data:/app/data \
   -p 8080:8080 \
   -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
-  lingyuins/octopus:v1.2.3
+  lingyuins/octopus:latest
 ```
 
 Or use docker compose:
@@ -48,7 +48,7 @@ Or use docker compose:
 ```yaml
 services:
   octopus:
-    image: lingyuins/octopus:v1.2.3
+    image: lingyuins/octopus:latest
     container_name: octopus
     restart: unless-stopped
     ports:
