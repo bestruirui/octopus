@@ -10,8 +10,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lingyuins/octopus/internal/db"
@@ -20,7 +22,6 @@ import (
 	"github.com/lingyuins/octopus/internal/utils/log"
 	"github.com/lingyuins/octopus/internal/utils/xstrings"
 	"golang.org/x/net/proxy"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -69,6 +70,30 @@ type aiRouteCallError struct {
 	Cause      error
 }
 
+type aiRouteTableRouteCorrection struct {
+	OriginalName  string
+	EndpointType  string
+	CorrectedName string
+}
+
+type aiRouteBucketFailure struct {
+	Index int
+	Total int
+	Err   error
+}
+
+type aiRouteBucketResult struct {
+	Index  int
+	Total  int
+	Routes []model.AIRouteEntry
+	Err    error
+}
+
+type AIRoutePartialFailureError struct {
+	Message string
+	Cause   error
+}
+
 func (e *aiRouteCallError) Error() string {
 	if e == nil {
 		return ""
@@ -77,6 +102,20 @@ func (e *aiRouteCallError) Error() string {
 }
 
 func (e *aiRouteCallError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Cause
+}
+
+func (e *AIRoutePartialFailureError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return e.Message
+}
+
+func (e *AIRoutePartialFailureError) Unwrap() error {
 	if e == nil {
 		return nil
 	}
@@ -186,20 +225,29 @@ func generateAIRouteTable(
 	inputModelSet map[int]map[string]struct{},
 	tracker *aiRouteProgressTracker,
 ) (*model.GenerateAIRouteResult, error) {
-	routes, err := generateAIRoutesFromModelList(ctx, modelInputs, "", "", tracker)
-	if err != nil {
-		return nil, err
+	routes, routesErr := generateAIRoutesFromModelList(ctx, modelInputs, "", "", tracker)
+	if routesErr != nil && len(routes) == 0 {
+		return nil, routesErr
 	}
 	if tracker != nil {
 		tracker.SetValidatingRoutes(len(routes))
-	}
-	if err := validateAIRouteTableRoutes(routes); err != nil {
-		return nil, err
 	}
 
 	existingGroups, err := GroupList(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("读取现有分组失败: %w", err)
+	}
+
+	routes, corrections := autoCorrectAIRouteTableRoutes(routes, existingGroups)
+	for _, correction := range corrections {
+		log.Warnf("ai route auto-corrected conflicting route name: requested_model=%q endpoint=%s corrected=%q",
+			correction.OriginalName,
+			correction.EndpointType,
+			correction.CorrectedName,
+		)
+	}
+	if err := validateAIRouteTableRoutes(routes); err != nil {
+		return nil, err
 	}
 
 	groupByName := make(map[string]model.Group, len(existingGroups))
@@ -243,7 +291,7 @@ func generateAIRouteTable(
 			continue
 		}
 
-		createdGroup, addedCount, err := createAIRouteGroup(ctx, groupName, route.EndpointType, validatedItems)
+		createdGroup, addedCount, err := createAIRouteGroup(ctx, groupName, route.EndpointType, route.MatchRegex, validatedItems)
 		if err != nil {
 			log.Warnf("ai route failed to create group: group=%q err=%v", groupName, err)
 			continue
@@ -255,21 +303,31 @@ func generateAIRouteTable(
 	}
 
 	if affectedGroups == 0 {
+		if routesErr != nil {
+			return nil, fmt.Errorf("%s；且未成功写入任何分组", routesErr.Error())
+		}
 		return nil, fmt.Errorf("AI 返回结果为空，未写入任何路由")
 	}
 	if tracker != nil {
 		tracker.SetFinalizing("路由表写入完成，正在完成任务")
 	}
 
-	log.Infof("ai route table generated successfully: routes=%d groups=%d added_items=%d",
-		len(routes), affectedGroups, addedItems)
-
-	return &model.GenerateAIRouteResult{
+	result := &model.GenerateAIRouteResult{
 		Scope:      model.AIRouteScopeTable,
 		GroupCount: affectedGroups,
 		RouteCount: len(routes),
 		ItemCount:  addedItems,
-	}, nil
+	}
+	if routesErr != nil {
+		log.Warnf("ai route table partially generated: routes=%d groups=%d added_items=%d err=%v",
+			len(routes), affectedGroups, addedItems, routesErr)
+		return result, newAIRouteTablePartialFailureError(affectedGroups, routesErr)
+	}
+
+	log.Infof("ai route table generated successfully: routes=%d groups=%d added_items=%d",
+		len(routes), affectedGroups, addedItems)
+
+	return result, nil
 }
 
 func collectAIRouteModelInputs(ctx context.Context) ([]model.AIRouteModelInput, map[int]map[string]struct{}, error) {
@@ -349,21 +407,24 @@ func generateAIRoutesFromModelList(
 	parallelism := clampAIRouteParallelism(loadAIRouteParallelism(), len(buckets))
 	servicePool := newAIRouteServicePool(services)
 	bucketResults := make([][]model.AIRouteEntry, len(buckets))
-
-	group, groupCtx := errgroup.WithContext(ctx)
 	sem := semaphore.NewWeighted(int64(parallelism))
+	results := make(chan aiRouteBucketResult, len(buckets))
+	var wg sync.WaitGroup
 
 	for i := range buckets {
 		bucketIndex := i
 		bucket := buckets[i]
-		group.Go(func() error {
-			if err := sem.Acquire(groupCtx, 1); err != nil {
-				return err
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := sem.Acquire(ctx, 1); err != nil {
+				results <- aiRouteBucketResult{Index: bucketIndex, Total: len(buckets), Err: err}
+				return
 			}
 			defer sem.Release(1)
 
 			routes, bucketErr := generateAIRoutesForBucket(
-				groupCtx,
+				ctx,
 				servicePool,
 				len(services),
 				bucket,
@@ -371,16 +432,29 @@ func generateAIRoutesFromModelList(
 				bucketIndex+1,
 				tracker,
 			)
-			if bucketErr != nil {
-				return bucketErr
+			results <- aiRouteBucketResult{
+				Index:  bucketIndex,
+				Total:  len(buckets),
+				Routes: routes,
+				Err:    bucketErr,
 			}
-			bucketResults[bucketIndex] = routes
-			return nil
-		})
+		}()
 	}
 
-	if err := group.Wait(); err != nil {
-		return nil, err
+	wg.Wait()
+	close(results)
+
+	failures := make([]aiRouteBucketFailure, 0)
+	for result := range results {
+		if result.Err != nil {
+			failures = append(failures, aiRouteBucketFailure{
+				Index: result.Index + 1,
+				Total: result.Total,
+				Err:   result.Err,
+			})
+			continue
+		}
+		bucketResults[result.Index] = result.Routes
 	}
 
 	allRoutes := make([]model.AIRouteEntry, 0)
@@ -393,10 +467,52 @@ func generateAIRoutesFromModelList(
 
 	normalizedRoutes := normalizeAIRouteEntries(allRoutes)
 	if len(normalizedRoutes) == 0 {
+		if len(failures) > 0 {
+			return nil, summarizeAIRouteBucketFailures(failures)
+		}
 		return nil, fmt.Errorf("AI返回结果为空")
 	}
 
+	if len(failures) > 0 {
+		return normalizedRoutes, summarizeAIRouteBucketFailures(failures)
+	}
+
 	return normalizedRoutes, nil
+}
+
+func summarizeAIRouteBucketFailures(failures []aiRouteBucketFailure) error {
+	if len(failures) == 0 {
+		return nil
+	}
+
+	sort.SliceStable(failures, func(i, j int) bool {
+		return failures[i].Index < failures[j].Index
+	})
+
+	first := failures[0]
+	if len(failures) == 1 {
+		return fmt.Errorf("第 %d/%d 批 AI 分析失败：%w", first.Index, first.Total, first.Err)
+	}
+
+	return fmt.Errorf("%d 个 AI 分析批次失败，首个错误为第 %d/%d 批：%w",
+		len(failures),
+		first.Index,
+		first.Total,
+		first.Err,
+	)
+}
+
+func newAIRouteTablePartialFailureError(successGroups int, cause error) error {
+	if cause == nil {
+		return nil
+	}
+	if successGroups <= 0 {
+		return cause
+	}
+	return &AIRoutePartialFailureError{
+		Message: fmt.Sprintf("AI 路由部分失败，但已保留成功写入的 %d 个分组：%s", successGroups, cause.Error()),
+		Cause:   cause,
+	}
 }
 
 func generateAIRoutesForBucket(
@@ -1102,7 +1218,7 @@ func dedupeAIRouteItems(items []model.AIRouteItemSpec) []model.AIRouteItemSpec {
 }
 
 func validateAIRouteTableRoutes(routes []model.AIRouteEntry) error {
-	seen := make(map[string]string, len(routes))
+	seen := make(map[string]struct{}, len(routes))
 
 	for _, route := range routes {
 		requestedModel := strings.TrimSpace(route.RequestedModel)
@@ -1111,15 +1227,204 @@ func validateAIRouteTableRoutes(routes []model.AIRouteEntry) error {
 		}
 
 		nameKey := strings.ToLower(requestedModel)
-		endpointType := normalizeAIRouteGroupEndpointType(route.EndpointType)
-
-		if existingEndpointType, ok := seen[nameKey]; ok && existingEndpointType != endpointType {
-			return fmt.Errorf("AI 返回结果包含同名但不同 API 分类的路由: %q", requestedModel)
+		if _, ok := seen[nameKey]; ok {
+			return fmt.Errorf("AI 自动修正后仍存在重复路由名: %q", requestedModel)
 		}
-		seen[nameKey] = endpointType
+		seen[nameKey] = struct{}{}
 	}
 
 	return nil
+}
+
+func autoCorrectAIRouteTableRoutes(
+	routes []model.AIRouteEntry,
+	existingGroups []model.Group,
+) ([]model.AIRouteEntry, []aiRouteTableRouteCorrection) {
+	if len(routes) == 0 {
+		return nil, nil
+	}
+
+	corrected := make([]model.AIRouteEntry, len(routes))
+	copy(corrected, routes)
+
+	indexesByName := make(map[string][]int, len(corrected))
+	orderedConflictNames := make([]string, 0)
+	conflictNameSeen := make(map[string]struct{})
+	conflictingNames := make(map[string]struct{})
+	for i, route := range corrected {
+		requestedModel := strings.TrimSpace(route.RequestedModel)
+		if requestedModel == "" {
+			continue
+		}
+		corrected[i].RequestedModel = requestedModel
+		corrected[i].EndpointType = normalizeAIRouteGroupEndpointType(route.EndpointType)
+
+		nameKey := strings.ToLower(requestedModel)
+		indexesByName[nameKey] = append(indexesByName[nameKey], i)
+	}
+	for nameKey, indexes := range indexesByName {
+		endpointTypes := make(map[string]struct{}, len(indexes))
+		for _, idx := range indexes {
+			endpointTypes[corrected[idx].EndpointType] = struct{}{}
+		}
+		if len(indexes) > 1 && len(endpointTypes) > 1 {
+			conflictingNames[nameKey] = struct{}{}
+		}
+	}
+	for _, route := range corrected {
+		nameKey := strings.ToLower(route.RequestedModel)
+		if _, ok := conflictingNames[nameKey]; !ok {
+			continue
+		}
+		if _, ok := conflictNameSeen[nameKey]; ok {
+			continue
+		}
+		conflictNameSeen[nameKey] = struct{}{}
+		orderedConflictNames = append(orderedConflictNames, nameKey)
+	}
+
+	usedNames := make(map[string]struct{}, len(existingGroups)+len(corrected))
+	existingByName := make(map[string]model.Group, len(existingGroups))
+	for _, group := range existingGroups {
+		nameKey := strings.ToLower(strings.TrimSpace(group.Name))
+		if nameKey == "" {
+			continue
+		}
+		usedNames[nameKey] = struct{}{}
+		existingByName[nameKey] = group
+	}
+	for _, route := range corrected {
+		nameKey := strings.ToLower(route.RequestedModel)
+		if nameKey == "" {
+			continue
+		}
+		if _, ok := conflictingNames[nameKey]; ok {
+			continue
+		}
+		usedNames[nameKey] = struct{}{}
+	}
+
+	corrections := make([]aiRouteTableRouteCorrection, 0)
+	for _, nameKey := range orderedConflictNames {
+		indexes := indexesByName[nameKey]
+		keepIdx := selectAIRouteTablePrimaryRoute(corrected, indexes, existingByName[nameKey])
+		for _, idx := range indexes {
+			if idx == keepIdx {
+				usedNames[strings.ToLower(corrected[idx].RequestedModel)] = struct{}{}
+				continue
+			}
+
+			originalName := corrected[idx].RequestedModel
+			candidate := buildAIRouteScopedRouteName(originalName, corrected[idx].EndpointType)
+			candidate = ensureUniqueAIRouteRouteName(candidate, usedNames)
+
+			corrected[idx].RequestedModel = candidate
+			if strings.TrimSpace(corrected[idx].MatchRegex) == "" {
+				corrected[idx].MatchRegex = buildAIRouteExactMatchRegex(originalName)
+			}
+			usedNames[strings.ToLower(candidate)] = struct{}{}
+			corrections = append(corrections, aiRouteTableRouteCorrection{
+				OriginalName:  originalName,
+				EndpointType:  corrected[idx].EndpointType,
+				CorrectedName: candidate,
+			})
+		}
+	}
+
+	return corrected, corrections
+}
+
+func selectAIRouteTablePrimaryRoute(
+	routes []model.AIRouteEntry,
+	indexes []int,
+	existing model.Group,
+) int {
+	if len(indexes) == 0 {
+		return -1
+	}
+
+	if strings.TrimSpace(existing.Name) != "" {
+		current := model.NormalizeEndpointType(existing.EndpointType)
+		if current == "" {
+			current = model.EndpointTypeAll
+		}
+		switch current {
+		case model.EndpointTypeAll:
+			for _, idx := range indexes {
+				if normalizeAIRouteGroupEndpointType(routes[idx].EndpointType) == model.EndpointTypeAll {
+					return idx
+				}
+			}
+			return -1
+		case model.EndpointTypeChat, model.EndpointTypeResponses, model.EndpointTypeMessages:
+			for _, idx := range indexes {
+				if normalizeAIRouteGroupEndpointType(routes[idx].EndpointType) == model.EndpointTypeAll {
+					return idx
+				}
+			}
+			return -1
+		default:
+			for _, idx := range indexes {
+				if normalizeAIRouteGroupEndpointType(routes[idx].EndpointType) == current {
+					return idx
+				}
+			}
+			return -1
+		}
+	}
+
+	for _, idx := range indexes {
+		if normalizeAIRouteGroupEndpointType(routes[idx].EndpointType) == model.EndpointTypeAll {
+			return idx
+		}
+	}
+
+	return indexes[0]
+}
+
+func buildAIRouteScopedRouteName(baseName string, endpointType string) string {
+	baseName = strings.TrimSpace(baseName)
+	suffix := airouteScopedRouteNameSuffix(endpointType)
+	if baseName == "" {
+		return suffix
+	}
+	return fmt.Sprintf("%s (%s)", baseName, suffix)
+}
+
+func airouteScopedRouteNameSuffix(endpointType string) string {
+	switch normalizeAIRouteGroupEndpointType(endpointType) {
+	case model.EndpointTypeAll, model.EndpointTypeChat, model.EndpointTypeResponses, model.EndpointTypeMessages:
+		return "chat"
+	default:
+		return strings.ReplaceAll(normalizeAIRouteGroupEndpointType(endpointType), "_", "-")
+	}
+}
+
+func ensureUniqueAIRouteRouteName(candidate string, usedNames map[string]struct{}) string {
+	candidate = strings.TrimSpace(candidate)
+	if candidate == "" {
+		candidate = "unnamed-route"
+	}
+
+	if _, exists := usedNames[strings.ToLower(candidate)]; !exists {
+		return candidate
+	}
+
+	base := candidate
+	for i := 2; ; i++ {
+		next := fmt.Sprintf("%s %d", base, i)
+		if _, exists := usedNames[strings.ToLower(next)]; !exists {
+			return next
+		}
+	}
+}
+
+func buildAIRouteExactMatchRegex(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+	return "(?i)^" + regexp.QuoteMeta(name) + "$"
 }
 
 func syncGroupItemsWithAIRoute(ctx context.Context, groupID int, routeEndpointType string, items []model.GroupItem) (int, error) {
@@ -1171,7 +1476,7 @@ func syncGroupItemsWithAIRoute(ctx context.Context, groupID int, routeEndpointTy
 	return len(itemsToAdd), nil
 }
 
-func createAIRouteGroup(ctx context.Context, groupName string, endpointType string, items []model.GroupItem) (*model.Group, int, error) {
+func createAIRouteGroup(ctx context.Context, groupName string, endpointType string, matchRegex string, items []model.GroupItem) (*model.Group, int, error) {
 	groupName = strings.TrimSpace(groupName)
 	if groupName == "" {
 		return nil, 0, fmt.Errorf("AI返回结果缺少 requested_model")
@@ -1188,7 +1493,7 @@ func createAIRouteGroup(ctx context.Context, groupName string, endpointType stri
 		Name:              groupName,
 		EndpointType:      normalizeAIRouteGroupEndpointType(endpointType),
 		Mode:              model.GroupModeRoundRobin,
-		MatchRegex:        "",
+		MatchRegex:        strings.TrimSpace(matchRegex),
 		FirstTokenTimeOut: 0,
 		SessionKeepTime:   0,
 	}

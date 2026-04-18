@@ -154,6 +154,7 @@ type AIRouteResponse struct {
 type AIRouteEntry struct {
 	EndpointType   string            `json:"endpoint_type,omitempty"`
 	RequestedModel string            `json:"requested_model"`
+	MatchRegex     string            `json:"match_regex,omitempty"`
 	Items          []AIRouteItemSpec `json:"items"`
 }
 

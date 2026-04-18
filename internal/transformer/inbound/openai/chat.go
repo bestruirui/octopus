@@ -185,13 +185,7 @@ func (i *ChatInbound) GetInternalResponse(ctx context.Context) (*model.InternalL
 		}
 	}
 
-	// Convert map to slice, sorted by index
-	result.Choices = make([]model.Choice, 0, len(choicesMap))
-	for idx := 0; idx < len(choicesMap); idx++ {
-		if choice, exists := choicesMap[idx]; exists {
-			result.Choices = append(result.Choices, *choice)
-		}
-	}
+	result.Choices = model.SortedChoicesByIndex(choicesMap)
 
 	// Clear stored chunks after aggregation
 	i.streamChunks = nil

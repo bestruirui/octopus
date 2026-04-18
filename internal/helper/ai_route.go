@@ -370,9 +370,13 @@ func finalizeAIRouteProgress(
 	}
 
 	if runErr != nil {
-		progress.Result = nil
 		progress.ProgressPercent = minInt(progress.ProgressPercent, 99)
-		if errors.Is(runErr, context.DeadlineExceeded) || errors.Is(ctxErr, context.DeadlineExceeded) {
+		var partialErr *op.AIRoutePartialFailureError
+		if errors.As(runErr, &partialErr) {
+			progress.Status = model.AIRouteTaskStatusFailed
+			progress.CurrentStep = model.AIRouteTaskStepFailed
+			progress.Message = partialErr.Error()
+		} else if errors.Is(runErr, context.DeadlineExceeded) || errors.Is(ctxErr, context.DeadlineExceeded) {
 			progress.Status = model.AIRouteTaskStatusTimeout
 			progress.CurrentStep = model.AIRouteTaskStepTimeout
 			progress.Message = "AI 路由任务超时，请稍后重试"
@@ -382,6 +386,7 @@ func finalizeAIRouteProgress(
 			progress.Message = runErr.Error()
 		}
 		progress.ErrorReason = progress.Message
+		progress.ResultReady = progress.Result != nil
 		markRunningAIRouteChannelsFailed(progress, progress.Message)
 		markRunningAIRouteBatchesFailed(progress, progress.Message)
 		return

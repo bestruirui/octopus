@@ -2,7 +2,9 @@ package op
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -104,6 +106,122 @@ func TestNormalizeAIRouteEntriesKeepsDifferentEndpointTypesSeparated(t *testing.
 
 	if got[0].EndpointType == got[1].EndpointType {
 		t.Fatalf("normalizeAIRouteEntries() endpoint types should stay separated, got %+v", got)
+	}
+}
+
+func TestAutoCorrectAIRouteTableRoutesRenamesConflictingEndpointTypes(t *testing.T) {
+	routes := []model.AIRouteEntry{
+		{
+			EndpointType:   model.EndpointTypeAll,
+			RequestedModel: "deepseek",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 1, UpstreamModel: "deepseek-chat"},
+			},
+		},
+		{
+			EndpointType:   model.EndpointTypeEmbeddings,
+			RequestedModel: "deepseek",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 2, UpstreamModel: "deepseek-embedding"},
+			},
+		},
+	}
+
+	got, corrections := autoCorrectAIRouteTableRoutes(routes, nil)
+	if len(corrections) != 1 {
+		t.Fatalf("autoCorrectAIRouteTableRoutes() corrections len = %d, want 1", len(corrections))
+	}
+
+	if got[0].RequestedModel != "deepseek" {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[0].RequestedModel = %q, want %q", got[0].RequestedModel, "deepseek")
+	}
+	if got[0].MatchRegex != "" {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[0].MatchRegex = %q, want empty", got[0].MatchRegex)
+	}
+
+	if got[1].RequestedModel != "deepseek (embeddings)" {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[1].RequestedModel = %q, want %q", got[1].RequestedModel, "deepseek (embeddings)")
+	}
+	if got[1].MatchRegex != `(?i)^deepseek$` {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[1].MatchRegex = %q, want %q", got[1].MatchRegex, `(?i)^deepseek$`)
+	}
+}
+
+func TestAutoCorrectAIRouteTableRoutesKeepsExistingCompatibleGroupName(t *testing.T) {
+	routes := []model.AIRouteEntry{
+		{
+			EndpointType:   model.EndpointTypeAll,
+			RequestedModel: "deepseek",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 1, UpstreamModel: "deepseek-chat"},
+			},
+		},
+		{
+			EndpointType:   model.EndpointTypeEmbeddings,
+			RequestedModel: "deepseek",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 2, UpstreamModel: "deepseek-embedding"},
+			},
+		},
+	}
+	existing := []model.Group{
+		{
+			Name:         "deepseek",
+			EndpointType: model.EndpointTypeEmbeddings,
+		},
+	}
+
+	got, corrections := autoCorrectAIRouteTableRoutes(routes, existing)
+	if len(corrections) != 1 {
+		t.Fatalf("autoCorrectAIRouteTableRoutes() corrections len = %d, want 1", len(corrections))
+	}
+
+	if got[0].RequestedModel != "deepseek (chat)" {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[0].RequestedModel = %q, want %q", got[0].RequestedModel, "deepseek (chat)")
+	}
+	if got[0].MatchRegex != `(?i)^deepseek$` {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[0].MatchRegex = %q, want %q", got[0].MatchRegex, `(?i)^deepseek$`)
+	}
+
+	if got[1].RequestedModel != "deepseek" {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[1].RequestedModel = %q, want %q", got[1].RequestedModel, "deepseek")
+	}
+	if got[1].MatchRegex != "" {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[1].MatchRegex = %q, want empty", got[1].MatchRegex)
+	}
+}
+
+func TestAutoCorrectAIRouteTableRoutesAvoidsReservedNames(t *testing.T) {
+	routes := []model.AIRouteEntry{
+		{
+			EndpointType:   model.EndpointTypeAll,
+			RequestedModel: "deepseek",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 1, UpstreamModel: "deepseek-chat"},
+			},
+		},
+		{
+			EndpointType:   model.EndpointTypeEmbeddings,
+			RequestedModel: "deepseek",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 2, UpstreamModel: "deepseek-embedding"},
+			},
+		},
+	}
+	existing := []model.Group{
+		{
+			Name:         "deepseek (embeddings)",
+			EndpointType: model.EndpointTypeEmbeddings,
+		},
+	}
+
+	got, corrections := autoCorrectAIRouteTableRoutes(routes, existing)
+	if len(corrections) != 1 {
+		t.Fatalf("autoCorrectAIRouteTableRoutes() corrections len = %d, want 1", len(corrections))
+	}
+
+	if got[1].RequestedModel != "deepseek (embeddings) 2" {
+		t.Fatalf("autoCorrectAIRouteTableRoutes()[1].RequestedModel = %q, want %q", got[1].RequestedModel, "deepseek (embeddings) 2")
 	}
 }
 
@@ -243,7 +361,7 @@ func TestValidateAIRouteTableRoutesRejectsSameNameDifferentEndpointTypes(t *test
 	}
 }
 
-func TestValidateAIRouteTableRoutesAllowsSameNameSameEndpointType(t *testing.T) {
+func TestValidateAIRouteTableRoutesAllowsUniqueNames(t *testing.T) {
 	routes := []model.AIRouteEntry{
 		{
 			EndpointType:   model.EndpointTypeAll,
@@ -254,7 +372,7 @@ func TestValidateAIRouteTableRoutesAllowsSameNameSameEndpointType(t *testing.T) 
 		},
 		{
 			EndpointType:   model.EndpointTypeAll,
-			RequestedModel: "shared-model",
+			RequestedModel: "shared-model-2",
 			Items: []model.AIRouteItemSpec{
 				{ChannelID: 2, UpstreamModel: "gpt-4.1"},
 			},
@@ -263,5 +381,35 @@ func TestValidateAIRouteTableRoutesAllowsSameNameSameEndpointType(t *testing.T) 
 
 	if err := validateAIRouteTableRoutes(routes); err != nil {
 		t.Fatalf("validateAIRouteTableRoutes() error = %v, want nil", err)
+	}
+}
+
+func TestSummarizeAIRouteBucketFailures(t *testing.T) {
+	err := summarizeAIRouteBucketFailures([]aiRouteBucketFailure{
+		{Index: 2, Total: 3, Err: errors.New("service unavailable")},
+		{Index: 1, Total: 3, Err: errors.New("timeout")},
+	})
+	if err == nil {
+		t.Fatal("summarizeAIRouteBucketFailures() error = nil, want non-nil")
+	}
+	if !strings.Contains(err.Error(), "2 个 AI 分析批次失败") {
+		t.Fatalf("summarizeAIRouteBucketFailures() = %q, want failure count", err.Error())
+	}
+	if !strings.Contains(err.Error(), "第 1/3 批") {
+		t.Fatalf("summarizeAIRouteBucketFailures() = %q, want first batch details", err.Error())
+	}
+}
+
+func TestNewAIRouteTablePartialFailureError(t *testing.T) {
+	cause := errors.New("第 1/2 批 AI 分析失败：timeout")
+	err := newAIRouteTablePartialFailureError(3, cause)
+	if err == nil {
+		t.Fatal("newAIRouteTablePartialFailureError() error = nil, want non-nil")
+	}
+	if !errors.Is(err, cause) {
+		t.Fatal("newAIRouteTablePartialFailureError() should wrap original cause")
+	}
+	if !strings.Contains(err.Error(), "已保留成功写入的 3 个分组") {
+		t.Fatalf("newAIRouteTablePartialFailureError() = %q, want preserved groups message", err.Error())
 	}
 }
