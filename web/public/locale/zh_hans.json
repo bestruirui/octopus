@@ -316,7 +316,8 @@
             "button": "删除全部路由分组",
             "deleting": "删除中...",
             "confirmTitle": "确认删除全部路由分组？",
-    "confirmDescription": "这会永久删除 {count, plural, =0 {全部路由分组} other {# 个路由分组}}及其路由项。\n单分组 AI 路由默认目标分组设置也会被重置。\n此操作不可恢复。\n是否继续？",
+            "confirmDescription": "这会永久删除 {count, plural, =0 {全部路由分组} other {# 个路由分组}}及其路由项。\n单分组 AI 路由默认目标分组设置也会被重置。\n此操作不可恢复。\n是否继续？",
+            "cancel": "取消",
             "confirm": "确认全部删除",
             "success": "已删除 {count} 个路由分组",
             "failed": "删除路由分组失败"
@@ -397,6 +398,10 @@
             "title": "账户设置",
             "save": "保存",
             "saving": "保存中...",
+            "form": {
+                "cancel": "取消",
+                "save": "保存"
+            },
             "username": {
                 "label": "修改用户名",
                 "placeholder": "请输入新用户名",
@@ -480,7 +485,8 @@
   "actions": {
     "autoGroup": "自动分组",
     "aiRoute": "AI路由",
-    "aiRouteGroup": "AI补全当前分组"
+    "aiRouteGroup": "AI补全当前分组",
+    "aiRouteProgress": "查看进度"
   },
         "autoGroup": {
             "confirmTitle": "确认自动分组",
@@ -500,6 +506,76 @@
       "confirmDescription": "系统会把全部模型发送给 AI 分析，并把识别出的路由项追加到当前分组。\n已存在的相同路由项会自动跳过，不会删除当前分组已有项。\n是否继续？",
       "submit": "开始补全当前分组",
       "submitting": "AI路由补全中..."
+    },
+    "progress": {
+      "title": "AI 路由任务进度",
+      "description": {
+        "table": "正在生成整张 AI 路由表，你可以随时关闭弹窗，稍后再回来查看。",
+        "group": "正在补全当前分组的 AI 路由，你可以随时关闭弹窗，稍后再回来查看。"
+      },
+      "loading": "正在读取任务进度...",
+      "close": "关闭",
+      "batchProgress": "已完成 {completed}/{total} 批",
+      "lastUpdated": "状态更新时间：{time}",
+      "lastHeartbeat": "心跳时间：{time}",
+      "heartbeatStale": "后端心跳暂时未更新，可能仍在等待 AI 返回",
+      "currentBatch": "当前批次",
+      "batchLabel": "第 {index}/{total} 批",
+      "batchCapability": "能力类型",
+      "batchModels": "本批模型数",
+      "batchChannels": "涉及渠道数",
+      "channelList": "渠道处理进度",
+      "channelSections": {
+        "running": "当前处理中",
+        "completed": "已完成",
+        "pending": "待处理",
+        "failed": "失败",
+        "empty": {
+          "running": "当前没有正在分析的渠道",
+          "completed": "当前还没有已完成渠道",
+          "pending": "当前没有待处理渠道",
+          "failed": "当前没有失败渠道"
+        }
+      },
+      "channelModels": "已处理 {completed}/{total} 个模型",
+      "result": {
+        "groupSummary": "AI 路由补全完成，共生成 {routes} 条路由，写入 {items} 个路由项。",
+        "tableSummary": "AI 路由表生成完成，共生成 {routes} 条路由，影响 {groups} 个分组，写入 {items} 个路由项。"
+      },
+      "status": {
+        "queued": "排队中",
+        "running": "执行中",
+        "completed": "已完成",
+        "failed": "失败",
+        "timeout": "超时"
+      },
+      "steps": {
+        "queued": "任务已创建",
+        "collecting_models": "收集渠道和模型",
+        "building_batches": "规划分析批次",
+        "analyzing_batches": "等待 AI 分析",
+        "parsing_response": "解析 AI 返回结果",
+        "validating_routes": "校验候选路由",
+        "writing_groups": "写入分组和路由项",
+        "finalizing": "任务收尾中",
+        "completed": "任务完成",
+        "failed": "任务失败",
+        "timeout": "任务超时"
+      },
+      "channelStatus": {
+        "pending": "待处理",
+        "running": "处理中",
+        "completed": "已完成",
+        "failed": "失败"
+      },
+      "summary": {
+        "totalChannels": "总渠道数",
+        "completedChannels": "已完成渠道",
+        "runningChannels": "处理中渠道",
+        "pendingChannels": "待处理渠道",
+        "failedChannels": "失败渠道",
+        "modelsProgress": "模型处理进度"
+      }
     }
   },
         "create": {

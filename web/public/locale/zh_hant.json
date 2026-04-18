@@ -316,7 +316,8 @@
             "button": "刪除全部路由分組",
             "deleting": "刪除中...",
             "confirmTitle": "確認刪除全部路由分組？",
-    "confirmDescription": "這會永久刪除 {count, plural, =0 {全部路由分組} other {# 個路由分組}}及其路由項。\n單分組 AI 路由預設目標分組設定也會被重置。\n此操作無法復原。\n是否繼續？",
+            "confirmDescription": "這會永久刪除 {count, plural, =0 {全部路由分組} other {# 個路由分組}}及其路由項。\n單分組 AI 路由預設目標分組設定也會被重置。\n此操作無法復原。\n是否繼續？",
+            "cancel": "取消",
             "confirm": "確認全部刪除",
             "success": "已刪除 {count} 個路由分組",
             "failed": "刪除路由分組失敗"
@@ -397,6 +398,10 @@
             "title": "帳戶設定",
             "save": "儲存",
             "saving": "儲存中...",
+            "form": {
+                "cancel": "取消",
+                "save": "儲存"
+            },
             "username": {
                 "label": "修改使用者名稱",
                 "placeholder": "請輸入新使用者名稱",
@@ -480,7 +485,8 @@
   "actions": {
     "autoGroup": "自動分組",
     "aiRoute": "AI路由",
-    "aiRouteGroup": "AI補全當前分組"
+    "aiRouteGroup": "AI補全當前分組",
+    "aiRouteProgress": "查看進度"
   },
         "autoGroup": {
             "confirmTitle": "確認自動分組",
@@ -500,6 +506,76 @@
       "confirmDescription": "系統會把全部模型送給 AI 分析，並把識別出的路由項追加到當前分組。\n已存在的相同路由項會自動跳過，不會刪除當前分組已有項。\n是否繼續？",
       "submit": "開始補全當前分組",
       "submitting": "AI路由補全中..."
+    },
+    "progress": {
+      "title": "AI 路由任務進度",
+      "description": {
+        "table": "正在生成整張 AI 路由表，你可以隨時關閉視窗，稍後再回來查看。",
+        "group": "正在補全目前分組的 AI 路由，你可以隨時關閉視窗，稍後再回來查看。"
+      },
+      "loading": "正在讀取任務進度...",
+      "close": "關閉",
+      "batchProgress": "已完成 {completed}/{total} 批",
+      "lastUpdated": "狀態更新時間：{time}",
+      "lastHeartbeat": "心跳時間：{time}",
+      "heartbeatStale": "後端心跳暫時未更新，可能仍在等待 AI 返回",
+      "currentBatch": "目前批次",
+      "batchLabel": "第 {index}/{total} 批",
+      "batchCapability": "能力類型",
+      "batchModels": "本批模型數",
+      "batchChannels": "涉及供應源數",
+        "channelList": "供應源處理進度",
+        "channelSections": {
+          "running": "目前處理中",
+          "completed": "已完成",
+          "pending": "待處理",
+          "failed": "失敗",
+          "empty": {
+            "running": "目前沒有正在分析的供應源",
+            "completed": "目前還沒有已完成供應源",
+            "pending": "目前沒有待處理供應源",
+            "failed": "目前沒有失敗供應源"
+          }
+        },
+        "channelModels": "已處理 {completed}/{total} 個模型",
+      "result": {
+        "groupSummary": "AI 路由補全完成，共生成 {routes} 條路由，寫入 {items} 個路由項。",
+        "tableSummary": "AI 路由表生成完成，共生成 {routes} 條路由，影響 {groups} 個分組，寫入 {items} 個路由項。"
+      },
+      "status": {
+        "queued": "排隊中",
+        "running": "執行中",
+        "completed": "已完成",
+        "failed": "失敗",
+        "timeout": "超時"
+      },
+      "steps": {
+        "queued": "任務已建立",
+        "collecting_models": "收集供應源和模型",
+        "building_batches": "規劃分析批次",
+        "analyzing_batches": "等待 AI 分析",
+        "parsing_response": "解析 AI 返回結果",
+        "validating_routes": "校驗候選路由",
+        "writing_groups": "寫入分組與路由項",
+        "finalizing": "任務收尾中",
+        "completed": "任務完成",
+        "failed": "任務失敗",
+        "timeout": "任務超時"
+      },
+      "channelStatus": {
+        "pending": "待處理",
+        "running": "處理中",
+        "completed": "已完成",
+        "failed": "失敗"
+      },
+      "summary": {
+        "totalChannels": "總供應源數",
+        "completedChannels": "已完成供應源",
+        "runningChannels": "處理中供應源",
+        "pendingChannels": "待處理供應源",
+        "failedChannels": "失敗供應源",
+        "modelsProgress": "模型處理進度"
+      }
     }
   },
         "create": {

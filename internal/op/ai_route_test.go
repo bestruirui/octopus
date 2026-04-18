@@ -201,3 +201,67 @@ func TestIsAIRouteTimeoutErrorDetectsContextDeadlineExceeded(t *testing.T) {
 		t.Fatal("isAIRouteTimeoutError() = false, want true")
 	}
 }
+
+func TestSelectAIRouteForGroupRejectsMismatchedSingleRoute(t *testing.T) {
+	group := model.Group{Name: "gpt-4o"}
+	routes := []model.AIRouteEntry{
+		{
+			RequestedModel: "gpt-4.1",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 1, UpstreamModel: "gpt-4.1"},
+			},
+		},
+	}
+
+	_, err := selectAIRouteForGroup(group, routes)
+	if err == nil {
+		t.Fatal("selectAIRouteForGroup() error = nil, want non-nil")
+	}
+}
+
+func TestValidateAIRouteTableRoutesRejectsSameNameDifferentEndpointTypes(t *testing.T) {
+	routes := []model.AIRouteEntry{
+		{
+			EndpointType:   model.EndpointTypeAll,
+			RequestedModel: "shared-model",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 1, UpstreamModel: "gpt-4o"},
+			},
+		},
+		{
+			EndpointType:   model.EndpointTypeEmbeddings,
+			RequestedModel: "shared-model",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 2, UpstreamModel: "text-embedding-3-large"},
+			},
+		},
+	}
+
+	err := validateAIRouteTableRoutes(routes)
+	if err == nil {
+		t.Fatal("validateAIRouteTableRoutes() error = nil, want non-nil")
+	}
+}
+
+func TestValidateAIRouteTableRoutesAllowsSameNameSameEndpointType(t *testing.T) {
+	routes := []model.AIRouteEntry{
+		{
+			EndpointType:   model.EndpointTypeAll,
+			RequestedModel: "shared-model",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 1, UpstreamModel: "gpt-4o"},
+			},
+		},
+		{
+			EndpointType:   model.EndpointTypeAll,
+			RequestedModel: "shared-model",
+			Items: []model.AIRouteItemSpec{
+				{ChannelID: 2, UpstreamModel: "gpt-4.1"},
+			},
+		},
+	}
+
+	if err := validateAIRouteTableRoutes(routes); err != nil {
+		t.Fatalf("validateAIRouteTableRoutes() error = %v, want nil", err)
+	}
+}

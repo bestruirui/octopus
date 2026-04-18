@@ -316,7 +316,8 @@
             "button": "Delete All Route Groups",
             "deleting": "Deleting...",
             "confirmTitle": "Delete all route groups?",
-    "confirmDescription": "This will permanently delete {count, plural, =0 {all route groups} one {# route group} other {# route groups}} and all route items.\nThe default target group for single-group AI routing will also be reset.\nThis action cannot be undone.\nContinue?",
+            "confirmDescription": "This will permanently delete {count, plural, =0 {all route groups} one {# route group} other {# route groups}} and all route items.\nThe default target group for single-group AI routing will also be reset.\nThis action cannot be undone.\nContinue?",
+            "cancel": "Cancel",
             "confirm": "Delete All",
             "success": "Deleted {count} route groups",
             "failed": "Failed to delete route groups"
@@ -397,6 +398,10 @@
             "title": "Account Settings",
             "save": "Save",
             "saving": "Saving...",
+            "form": {
+                "cancel": "Cancel",
+                "save": "Save"
+            },
             "username": {
                 "label": "Change Username",
                 "placeholder": "Enter new username",
@@ -480,7 +485,8 @@
   "actions": {
     "autoGroup": "Auto Group",
     "aiRoute": "AI Route",
-    "aiRouteGroup": "AI Fill Current Group"
+    "aiRouteGroup": "AI Fill Current Group",
+    "aiRouteProgress": "View Progress"
   },
         "autoGroup": {
             "confirmTitle": "Confirm Auto Grouping",
@@ -500,6 +506,76 @@
       "confirmDescription": "This will send all models to the AI for analysis and append the matched route items to the current group.\nExisting identical route items will be skipped automatically, and existing items in the group will not be removed.\nContinue?",
       "submit": "Fill Current Group",
       "submitting": "Generating..."
+    },
+    "progress": {
+      "title": "AI Route Task Progress",
+      "description": {
+        "table": "The full AI routing table is being generated. You can close this dialog and come back later.",
+        "group": "The current group's AI routes are being generated. You can close this dialog and come back later."
+      },
+      "loading": "Loading task progress...",
+      "close": "Close",
+      "batchProgress": "{completed}/{total} batches completed",
+      "lastUpdated": "State updated: {time}",
+      "lastHeartbeat": "Heartbeat: {time}",
+      "heartbeatStale": "Backend heartbeat is temporarily stale. It may still be waiting for the AI response.",
+      "currentBatch": "Current Batch",
+      "batchLabel": "Batch {index}/{total}",
+      "batchCapability": "Capability",
+      "batchModels": "Models in Batch",
+      "batchChannels": "Channels in Batch",
+        "channelList": "Channel Progress",
+        "channelSections": {
+          "running": "In Progress",
+          "completed": "Completed",
+          "pending": "Pending",
+          "failed": "Failed",
+          "empty": {
+            "running": "No channels are being analyzed right now.",
+            "completed": "No channels have completed yet.",
+            "pending": "No channels are waiting.",
+            "failed": "No channels have failed."
+          }
+        },
+        "channelModels": "{completed}/{total} models processed",
+      "result": {
+        "groupSummary": "AI group completion finished with {routes} routes and {items} route items written.",
+        "tableSummary": "AI routing table generation finished with {routes} routes, {groups} affected groups, and {items} route items written."
+      },
+      "status": {
+        "queued": "Queued",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "timeout": "Timed Out"
+      },
+      "steps": {
+        "queued": "Task Created",
+        "collecting_models": "Collecting Channels and Models",
+        "building_batches": "Planning Analysis Batches",
+        "analyzing_batches": "Waiting for AI Analysis",
+        "parsing_response": "Parsing AI Response",
+        "validating_routes": "Validating Candidate Routes",
+        "writing_groups": "Writing Groups and Route Items",
+        "finalizing": "Finalizing Task",
+        "completed": "Task Completed",
+        "failed": "Task Failed",
+        "timeout": "Task Timed Out"
+      },
+      "channelStatus": {
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed"
+      },
+      "summary": {
+        "totalChannels": "Total Channels",
+        "completedChannels": "Completed Channels",
+        "runningChannels": "Running Channels",
+        "pendingChannels": "Pending Channels",
+        "failedChannels": "Failed Channels",
+        "modelsProgress": "Model Progress"
+      }
     }
   },
         "create": {

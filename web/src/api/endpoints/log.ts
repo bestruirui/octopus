@@ -181,6 +181,33 @@ export function useLogs(options: { pageSize?: number } = {}) {
 
     useEffect(() => {
         let cancelled = false;
+        let retryTimer: number | null = null;
+        let retryAttempt = 0;
+
+        const waitForRetry = (delayMs: number) =>
+            new Promise<void>((resolve) => {
+                retryTimer = window.setTimeout(() => {
+                    retryTimer = null;
+                    resolve();
+                }, delayMs);
+            });
+
+        const mergeIncomingLog = (log: RelayLog) => {
+            queryClient.setQueryData(
+                logsInfiniteQueryKey(pageSize),
+                (old: InfiniteData<RelayLog[], number> | undefined) => {
+                    if (!old) {
+                        return { pages: [[log]], pageParams: [1] };
+                    }
+
+                    const exists = old.pages.some((page) => page?.some((item) => item.id === log.id));
+                    if (exists) return old;
+
+                    const firstPage = old.pages[0] ?? [];
+                    return { ...old, pages: [[log, ...firstPage], ...old.pages.slice(1)] };
+                }
+            );
+        };
 
         const connect = async () => {
             if (!token) {
@@ -189,85 +216,87 @@ export function useLogs(options: { pageSize?: number } = {}) {
                 return;
             }
 
-            try {
-                const controller = new AbortController();
-                abortRef.current = controller;
-                const response = await fetch(`${API_BASE_URL}/api/v1/log/stream`, {
-                    method: 'GET',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    signal: controller.signal,
-                });
-                if (cancelled) return;
-                if (!response.ok) {
-                    throw new Error(`日志流连接失败: ${response.status}`);
-                }
-                if (!response.body) {
-                    throw new Error('日志流响应为空');
-                }
+            while (!cancelled) {
+                try {
+                    const controller = new AbortController();
+                    abortRef.current = controller;
 
-                setIsConnected(true);
-                setError(null);
+                    const response = await fetch(`${API_BASE_URL}/api/v1/log/stream`, {
+                        method: 'GET',
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                        signal: controller.signal,
+                    });
+                    if (cancelled) return;
+                    if (!response.ok) {
+                        throw new Error(`日志流连接失败: ${response.status}`);
+                    }
+                    if (!response.body) {
+                        throw new Error('日志流响应为空');
+                    }
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
+                    retryAttempt = 0;
+                    setIsConnected(true);
+                    setError(null);
 
-                const handleEvent = (chunk: string) => {
-                    const lines = chunk.split('\n');
-                    const dataLines: string[] = [];
-                    for (const line of lines) {
-                        if (line.startsWith('data:')) {
-                            dataLines.push(line.slice(5).trimStart());
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    const handleEvent = (chunk: string) => {
+                        const lines = chunk.split('\n');
+                        const dataLines: string[] = [];
+                        for (const line of lines) {
+                            if (line.startsWith('data:')) {
+                                dataLines.push(line.slice(5).trimStart());
+                            }
+                        }
+                        if (dataLines.length === 0) return;
+
+                        try {
+                            const log: RelayLog = JSON.parse(dataLines.join('\n'));
+                            mergeIncomingLog(log);
+                        } catch (e) {
+                            logger.error('解析日志数据失败:', e);
+                        }
+                    };
+
+                    while (!cancelled) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+
+                        let boundary = buffer.indexOf('\n\n');
+                        while (boundary >= 0) {
+                            const eventChunk = buffer.slice(0, boundary);
+                            buffer = buffer.slice(boundary + 2);
+                            handleEvent(eventChunk);
+                            boundary = buffer.indexOf('\n\n');
                         }
                     }
-                    if (dataLines.length === 0) return;
 
-                    try {
-                        const log: RelayLog = JSON.parse(dataLines.join('\n'));
-                        queryClient.setQueryData(
-                            logsInfiniteQueryKey(pageSize),
-                            (old: InfiniteData<RelayLog[], number> | undefined) => {
-                                if (!old) {
-                                    return { pages: [[log]], pageParams: [1] };
-                                }
+                    if (cancelled) return;
 
-                                const exists = old.pages.some((p) => p?.some((x) => x.id === log.id));
-                                if (exists) return old;
-
-                                const firstPage = old.pages[0] ?? [];
-                                return { ...old, pages: [[log, ...firstPage], ...old.pages.slice(1)] };
-                            }
-                        );
-                    } catch (e) {
-                        logger.error('解析日志数据失败:', e);
+                    setIsConnected(false);
+                    setError(new Error('日志流连接已断开，正在重连...'));
+                    logger.warn('日志流连接已断开，准备重连');
+                } catch (e) {
+                    if (cancelled) return;
+                    if (e instanceof Error && e.name === 'AbortError') {
+                        return;
                     }
-                };
 
-                while (!cancelled) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-
-                    let boundary = buffer.indexOf('\n\n');
-                    while (boundary >= 0) {
-                        const eventChunk = buffer.slice(0, boundary);
-                        buffer = buffer.slice(boundary + 2);
-                        handleEvent(eventChunk);
-                        boundary = buffer.indexOf('\n\n');
-                    }
+                    setIsConnected(false);
+                    setError(e instanceof Error ? e : new Error('日志流连接失败'));
+                    logger.warn('日志流连接失败，准备重连:', e);
+                } finally {
+                    abortRef.current = null;
                 }
 
-                setIsConnected(false);
-                if (!cancelled) {
-                    setError(new Error('SSE 连接断开'));
-                }
-            } catch (e) {
-                if (cancelled) return;
-                setIsConnected(false);
-                setError(e instanceof Error ? e : new Error('日志流连接失败'));
-                logger.error('日志流连接失败:', e);
+                const delayMs = Math.min(1000 * 2 ** retryAttempt, 10000);
+                retryAttempt += 1;
+                await waitForRetry(delayMs);
             }
         };
 
@@ -275,6 +304,9 @@ export function useLogs(options: { pageSize?: number } = {}) {
 
         return () => {
             cancelled = true;
+            if (retryTimer !== null) {
+                window.clearTimeout(retryTimer);
+            }
             abortRef.current?.abort();
             abortRef.current = null;
             setIsConnected(false);

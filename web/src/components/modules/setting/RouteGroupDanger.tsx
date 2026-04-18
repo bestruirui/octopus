@@ -77,7 +77,7 @@ export function SettingRouteGroupDanger() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={deleteAllGroups.isPending}>
-                            {t('account.form.cancel')}
+                            {t('routeGroups.cancel')}
                         </AlertDialogCancel>
                         <AlertDialogAction
                             disabled={deleteAllGroups.isPending}

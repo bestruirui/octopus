@@ -58,7 +58,16 @@ type aiRouteChatCompletionResponse struct {
 	} `json:"choices"`
 }
 
-func GenerateAIRoute(ctx context.Context, req model.GenerateAIRouteRequest) (*model.GenerateAIRouteResult, error) {
+func GenerateAIRoute(
+	ctx context.Context,
+	req model.GenerateAIRouteRequest,
+	report aiRouteProgressReporter,
+) (*model.GenerateAIRouteResult, error) {
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
+	tracker := newAIRouteProgressTracker(req, report)
 	modelInputs, inputModelSet, err := collectAIRouteModelInputs(ctx)
 	if err != nil {
 		return nil, err
@@ -66,12 +75,13 @@ func GenerateAIRoute(ctx context.Context, req model.GenerateAIRouteRequest) (*mo
 	if len(modelInputs) == 0 {
 		return nil, fmt.Errorf("没有可分析的模型")
 	}
+	tracker.SetModelInputs(modelInputs)
 
 	if req.Scope == model.AIRouteScopeTable {
-		return generateAIRouteTable(ctx, modelInputs, inputModelSet)
+		return generateAIRouteTable(ctx, modelInputs, inputModelSet, tracker)
 	}
 
-	return generateAIRouteForGroup(ctx, req.GroupID, modelInputs, inputModelSet)
+	return generateAIRouteForGroup(ctx, req.GroupID, modelInputs, inputModelSet, tracker)
 }
 
 func generateAIRouteForGroup(
@@ -79,6 +89,7 @@ func generateAIRouteForGroup(
 	groupID int,
 	modelInputs []model.AIRouteModelInput,
 	inputModelSet map[int]map[string]struct{},
+	tracker *aiRouteProgressTracker,
 ) (*model.GenerateAIRouteResult, error) {
 	if groupID <= 0 {
 		value, err := SettingGetInt(model.SettingKeyAIRouteGroupID)
@@ -95,11 +106,17 @@ func generateAIRouteForGroup(
 	if err != nil {
 		return nil, fmt.Errorf("目标分组不存在")
 	}
+	if tracker != nil {
+		tracker.SetTargetGroup(group.ID)
+	}
 
 	targetPromptEndpointType := detectAIRoutePromptEndpointTypeForGroup(*group)
-	routes, err := generateAIRoutesFromModelList(ctx, modelInputs, group.Name, targetPromptEndpointType)
+	routes, err := generateAIRoutesFromModelList(ctx, modelInputs, group.Name, targetPromptEndpointType, tracker)
 	if err != nil {
 		return nil, err
+	}
+	if tracker != nil {
+		tracker.SetValidatingRoutes(len(routes))
 	}
 
 	selectedRoute, err := selectAIRouteForGroup(*group, routes)
@@ -114,10 +131,16 @@ func generateAIRouteForGroup(
 	if len(validatedItems) == 0 {
 		return nil, fmt.Errorf("AI 返回结果为空，未写入任何路由")
 	}
+	if tracker != nil {
+		tracker.SetWritingGroup(group.Name)
+	}
 
 	addedCount, err := syncGroupItemsWithAIRoute(ctx, group.ID, selectedRoute.EndpointType, validatedItems)
 	if err != nil {
 		return nil, err
+	}
+	if tracker != nil {
+		tracker.SetFinalizing("已写入当前分组，正在完成任务")
 	}
 
 	log.Infof("ai route generated successfully: group_id=%d routes=%d validated_items=%d added_items=%d",
@@ -136,9 +159,16 @@ func generateAIRouteTable(
 	ctx context.Context,
 	modelInputs []model.AIRouteModelInput,
 	inputModelSet map[int]map[string]struct{},
+	tracker *aiRouteProgressTracker,
 ) (*model.GenerateAIRouteResult, error) {
-	routes, err := generateAIRoutesFromModelList(ctx, modelInputs, "", "")
+	routes, err := generateAIRoutesFromModelList(ctx, modelInputs, "", "", tracker)
 	if err != nil {
+		return nil, err
+	}
+	if tracker != nil {
+		tracker.SetValidatingRoutes(len(routes))
+	}
+	if err := validateAIRouteTableRoutes(routes); err != nil {
 		return nil, err
 	}
 
@@ -158,7 +188,10 @@ func generateAIRouteTable(
 
 	affectedGroups := 0
 	addedItems := 0
-	for _, route := range routes {
+	for i, route := range routes {
+		if tracker != nil {
+			tracker.SetWritingRoute(i+1, len(routes), route.RequestedModel)
+		}
 		validatedItems, err := validateAIRouteItems(route, inputModelSet)
 		if err != nil {
 			log.Warnf("ai route skipped invalid route: requested_model=%q err=%v", route.RequestedModel, err)
@@ -198,6 +231,9 @@ func generateAIRouteTable(
 
 	if affectedGroups == 0 {
 		return nil, fmt.Errorf("AI 返回结果为空，未写入任何路由")
+	}
+	if tracker != nil {
+		tracker.SetFinalizing("路由表写入完成，正在完成任务")
 	}
 
 	log.Infof("ai route table generated successfully: routes=%d groups=%d added_items=%d",
@@ -267,6 +303,7 @@ func generateAIRoutesFromModelList(
 	modelInputs []model.AIRouteModelInput,
 	targetGroupName string,
 	targetPromptEndpointType string,
+	tracker *aiRouteProgressTracker,
 ) ([]model.AIRouteEntry, error) {
 	baseURL, err := SettingGetString(model.SettingKeyAIRouteBaseURL)
 	if err != nil || strings.TrimSpace(baseURL) == "" {
@@ -290,12 +327,30 @@ func generateAIRoutesFromModelList(
 		}
 		return nil, fmt.Errorf("没有可分析的模型")
 	}
+	if tracker != nil {
+		tracker.SetBuckets(buckets)
+	}
 
 	allRoutes := make([]model.AIRouteEntry, 0)
-	for _, bucket := range buckets {
-		routes, bucketErr := generateAIRoutesForBucket(ctx, baseURL, apiKey, modelName, bucket, targetGroupName)
+	for i, bucket := range buckets {
+		if tracker != nil {
+			tracker.StartBatch(i+1, bucket)
+		}
+		routes, bucketErr := generateAIRoutesForBucket(
+			ctx,
+			baseURL,
+			apiKey,
+			modelName,
+			bucket,
+			targetGroupName,
+			i+1,
+			tracker,
+		)
 		if bucketErr != nil {
 			return nil, bucketErr
+		}
+		if tracker != nil {
+			tracker.CompleteBatch(i+1, bucket)
 		}
 		allRoutes = append(allRoutes, routes...)
 	}
@@ -315,6 +370,8 @@ func generateAIRoutesForBucket(
 	modelName string,
 	bucket aiRoutePromptBucket,
 	targetGroupName string,
+	batchIndex int,
+	tracker *aiRouteProgressTracker,
 ) ([]model.AIRouteEntry, error) {
 	payload, err := json.Marshal(bucket.ModelInputs)
 	if err != nil {
@@ -373,6 +430,13 @@ func generateAIRoutesForBucket(
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, buildAIRouteUpstreamStatusError(resp.StatusCode, rawBody)
+	}
+	if tracker != nil {
+		tracker.MarkBatchAIResponseReceived(batchIndex, aiRoutePromptBucket{
+			PromptEndpointType: bucket.PromptEndpointType,
+			GroupEndpointType:  bucket.GroupEndpointType,
+			ModelInputs:        append([]aiRoutePromptModelInput(nil), bucket.ModelInputs...),
+		})
 	}
 
 	var completionResp aiRouteChatCompletionResponse
@@ -728,9 +792,6 @@ func selectAIRouteForGroup(group model.Group, routes []model.AIRouteEntry) (mode
 			return route, nil
 		}
 	}
-	if len(routes) == 1 {
-		return routes[0], nil
-	}
 	return model.AIRouteEntry{}, fmt.Errorf("AI 返回结果未包含目标分组对应路由")
 }
 
@@ -883,6 +944,27 @@ func dedupeAIRouteItems(items []model.AIRouteItemSpec) []model.AIRouteItemSpec {
 	}
 
 	return result
+}
+
+func validateAIRouteTableRoutes(routes []model.AIRouteEntry) error {
+	seen := make(map[string]string, len(routes))
+
+	for _, route := range routes {
+		requestedModel := strings.TrimSpace(route.RequestedModel)
+		if requestedModel == "" {
+			continue
+		}
+
+		nameKey := strings.ToLower(requestedModel)
+		endpointType := normalizeAIRouteGroupEndpointType(route.EndpointType)
+
+		if existingEndpointType, ok := seen[nameKey]; ok && existingEndpointType != endpointType {
+			return fmt.Errorf("AI 返回结果包含同名但不同 API 分类的路由: %q", requestedModel)
+		}
+		seen[nameKey] = endpointType
+	}
+
+	return nil
 }
 
 func syncGroupItemsWithAIRoute(ctx context.Context, groupID int, routeEndpointType string, items []model.GroupItem) (int, error) {

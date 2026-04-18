@@ -36,6 +36,13 @@ var startCmd = &cobra.Command{
 			return
 		}
 		shutdown.Register(db.Close)
+		startupTaskCtx, startupTaskCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if interruptedCount, err := op.AIRouteTaskMarkActiveInterrupted(startupTaskCtx, op.DefaultAIRouteTaskInterruptedMessage); err != nil {
+			log.Warnf("ai route task recovery failed: %v", err)
+		} else if interruptedCount > 0 {
+			log.Warnf("marked %d stale ai route task(s) as interrupted on startup", interruptedCount)
+		}
+		startupTaskCancel()
 
 		if err := op.InitCache(); err != nil {
 			log.Errorf("cache init error: %v", err)
@@ -63,6 +70,19 @@ var startCmd = &cobra.Command{
 			return
 		}
 		shutdown.Register(server.Close)
+		shutdown.Register(func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			interruptedCount, err := op.AIRouteTaskMarkActiveInterrupted(ctx, op.DefaultAIRouteTaskInterruptedMessage)
+			if err != nil {
+				return err
+			}
+			if interruptedCount > 0 {
+				log.Warnf("marked %d active ai route task(s) as interrupted during shutdown", interruptedCount)
+			}
+			return nil
+		})
 
 		task.Init()
 		go task.RUN()

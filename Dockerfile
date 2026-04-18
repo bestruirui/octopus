@@ -1,7 +1,7 @@
 # =============================================================================
 # Build stage for frontend
 # =============================================================================
-FROM node:20-alpine AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
 
 WORKDIR /build
 
@@ -24,7 +24,7 @@ RUN NEXT_PUBLIC_APP_VERSION="${APP_VERSION}" pnpm build
 # =============================================================================
 # Build stage for Go binary
 # =============================================================================
-FROM golang:1.24-alpine AS go-builder
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS go-builder
 
 WORKDIR /build
 
@@ -50,17 +50,27 @@ RUN if [ -d "static/out/_not-found" ] && [ ! -f "static/out/_not-found/.keep" ];
 ARG APP_VERSION=dev
 ARG GIT_COMMIT=unknown
 ARG BUILD_TIME=unknown
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags="-X 'github.com/lingyuins/octopus/internal/conf.Version=${APP_VERSION}' \
-              -X 'github.com/lingyuins/octopus/internal/conf.Commit=${GIT_COMMIT}' \
-              -X 'github.com/lingyuins/octopus/internal/conf.BuildTime=${BUILD_TIME}' \
-              -X 'github.com/lingyuins/octopus/internal/conf.Author=lingyu' \
-              -s -w" \
-    -tags=jsoniter \
-    -o octopus \
-    .
+RUN set -eux; \
+    target_os="${TARGETOS:-linux}"; \
+    target_arch="${TARGETARCH:-amd64}"; \
+    export CGO_ENABLED=0 GOOS="${target_os}" GOARCH="${target_arch}"; \
+    if [ "${target_arch}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
+        export GOARM="${TARGETVARIANT#v}"; \
+    fi; \
+    go build \
+      -ldflags="-X 'github.com/lingyuins/octopus/internal/conf.Version=${APP_VERSION}' \
+                -X 'github.com/lingyuins/octopus/internal/conf.Commit=${GIT_COMMIT}' \
+                -X 'github.com/lingyuins/octopus/internal/conf.BuildTime=${BUILD_TIME}' \
+                -X 'github.com/lingyuins/octopus/internal/conf.Author=lingyu' \
+                -s -w" \
+      -tags=jsoniter \
+      -o octopus \
+      .
 
 # =============================================================================
 # Runtime stage
