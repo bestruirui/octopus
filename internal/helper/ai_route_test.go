@@ -10,12 +10,36 @@ import (
 	"github.com/lingyuins/octopus/internal/op"
 )
 
+func snapshotAIRouteProgressEntries() map[string]aiRouteProgressEntry {
+	snapshot := make(map[string]aiRouteProgressEntry)
+	aiRouteProgress.Range(func(key, value any) bool {
+		id, ok := key.(string)
+		if !ok {
+			return true
+		}
+		entry, ok := value.(aiRouteProgressEntry)
+		if !ok {
+			return true
+		}
+		snapshot[id] = entry
+		return true
+	})
+	return snapshot
+}
+
+func restoreAIRouteProgressEntries(snapshot map[string]aiRouteProgressEntry) {
+	aiRouteProgress = sync.Map{}
+	for id, entry := range snapshot {
+		aiRouteProgress.Store(id, entry)
+	}
+}
+
 func TestGetGenerateAIRouteProgressExpiresDoneEntries(t *testing.T) {
 	originalNow := aiRouteProgressNow
-	originalProgress := aiRouteProgress
+	originalProgress := snapshotAIRouteProgressEntries()
 	defer func() {
 		aiRouteProgressNow = originalNow
-		aiRouteProgress = originalProgress
+		restoreAIRouteProgressEntries(originalProgress)
 	}()
 
 	aiRouteProgress = sync.Map{}

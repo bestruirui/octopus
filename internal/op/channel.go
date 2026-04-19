@@ -368,18 +368,25 @@ func ChannelDel(id int, ctx context.Context) error {
 
 func ChannelLLMList(ctx context.Context) ([]model.LLMChannel, error) {
 	models := []model.LLMChannel{}
+	seen := make(map[string]struct{})
 	for _, channel := range channelCache.GetAll() {
 		modelNames := xstrings.SplitTrimCompact(",", channel.Model, channel.CustomModel)
 		for _, modelName := range modelNames {
 			if modelName == "" {
 				continue
 			}
-			models = append(models, model.LLMChannel{
+			item := model.LLMChannel{
 				Name:        modelName,
 				Enabled:     channel.Enabled,
 				ChannelID:   channel.ID,
 				ChannelName: channel.Name,
-			})
+			}
+			key := fmt.Sprintf("%d|%s", item.ChannelID, item.Name)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			models = append(models, item)
 		}
 	}
 	return models, nil

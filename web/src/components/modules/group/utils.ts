@@ -21,9 +21,7 @@ export const MODE_LABELS: Record<GroupMode, string> = {
 
 export const ENDPOINT_TYPE_OPTIONS = [
     { label: '全部', value: '*' },
-    { label: 'Chat', value: 'chat' },
-    { label: 'Responses', value: 'responses' },
-    { label: 'Messages', value: 'messages' },
+    { label: '对话', value: 'chat' },
     { label: 'Embeddings', value: 'embeddings' },
     { label: 'Rerank', value: 'rerank' },
     { label: 'Moderations', value: 'moderations' },
@@ -37,6 +35,9 @@ export const ENDPOINT_TYPE_OPTIONS = [
 
 export function normalizeEndpointType(value?: string | null) {
     const normalized = value?.trim().toLowerCase();
+    if (normalized === 'responses' || normalized === 'messages') {
+        return 'chat';
+    }
     return normalized || '*';
 }
 

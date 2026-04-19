@@ -27,6 +27,46 @@ type compiledGroupMatcher struct {
 	re    *regexp2.Regexp
 }
 
+func makeGroupItemDedupKey(channelID int, modelName string) string {
+	return fmt.Sprintf("%d%s%s", channelID, groupCacheKeySep, strings.TrimSpace(modelName))
+}
+
+func normalizeGroupItems(items []model.GroupItem) []model.GroupItem {
+	if len(items) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(items))
+	normalized := make([]model.GroupItem, 0, len(items))
+	nextPriority := 1
+
+	for _, item := range items {
+		item.ModelName = strings.TrimSpace(item.ModelName)
+		if item.ChannelID <= 0 || item.ModelName == "" {
+			continue
+		}
+
+		key := makeGroupItemDedupKey(item.ChannelID, item.ModelName)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		item.Priority = nextPriority
+		nextPriority++
+		if item.Weight <= 0 {
+			item.Weight = 1
+		}
+
+		normalized = append(normalized, item)
+	}
+
+	if len(normalized) == 0 {
+		return nil
+	}
+	return normalized
+}
+
 func makeGroupCacheKey(endpointType, name string) string {
 	return model.NormalizeEndpointType(endpointType) + groupCacheKeySep + name
 }
@@ -145,6 +185,7 @@ func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
 
 func GroupCreate(group *model.Group, ctx context.Context) error {
 	group.EndpointType = model.NormalizeEndpointType(group.EndpointType)
+	group.Items = normalizeGroupItems(group.Items)
 	if err := db.GetDB().WithContext(ctx).Create(group).Error; err != nil {
 		return err
 	}

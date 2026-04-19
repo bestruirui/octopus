@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { getModelIcon } from '@/lib/model-icons';
-import type { GroupMode } from '@/api/endpoints/group';
+import { GroupMode } from '@/api/endpoints/group';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
 import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS, ENDPOINT_TYPE_OPTIONS, normalizeEndpointType } from './utils';
@@ -29,6 +29,22 @@ export type GroupEditorValues = {
     session_keep_time: number;
     members: SelectedMember[];
 };
+
+function dedupeSelectedMembers(members: SelectedMember[]) {
+    const seen = new Set<string>();
+    const deduped: SelectedMember[] = [];
+
+    for (const member of members) {
+        const key = memberKey(member);
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        deduped.push({ ...member, id: key, weight: member.weight ?? 1 });
+    }
+
+    return deduped;
+}
 
 function ModelPickerSection({
     modelChannels,
@@ -256,10 +272,10 @@ export function GroupEditor({
     const [groupName, setGroupName] = useState(initial?.name ?? '');
     const [endpointType, setEndpointType] = useState(normalizeEndpointType(initial?.endpoint_type));
     const [matchRegex, setMatchRegex] = useState(initial?.match_regex ?? '');
-    const [mode, setMode] = useState<GroupMode>((initial?.mode ?? 1) as GroupMode);
+    const [mode, setMode] = useState<GroupMode>((initial?.mode ?? GroupMode.Auto) as GroupMode);
     const [firstTokenTimeOut, setFirstTokenTimeOut] = useState<number>(initial?.first_token_time_out ?? 0);
     const [sessionKeepTime, setSessionKeepTime] = useState<number>(initial?.session_keep_time ?? 0);
-    const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>(initial?.members ?? []);
+    const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>(dedupeSelectedMembers(initial?.members ?? []));
     const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
     const groupKey = normalizeKey(groupName);
@@ -310,7 +326,7 @@ export function GroupEditor({
             const toAdd = matchedModelChannels
                 .filter((mc) => !existing.has(memberKey(mc)))
                 .map((mc) => ({ ...mc, id: memberKey(mc), weight: 1 }));
-            return toAdd.length ? [...prev, ...toAdd] : prev;
+            return toAdd.length ? dedupeSelectedMembers([...prev, ...toAdd]) : prev;
         });
     }, [matchedModelChannels]);
 
@@ -343,7 +359,7 @@ export function GroupEditor({
             mode,
             first_token_time_out: firstTokenTimeOut,
             session_keep_time: sessionKeepTime,
-            members: selectedMembers,
+            members: dedupeSelectedMembers(selectedMembers),
         });
     };
 

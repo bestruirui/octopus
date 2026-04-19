@@ -12,6 +12,28 @@ import { useTranslations } from 'next-intl';
 import { GroupEditor } from './Editor';
 import { toast } from '@/components/common/Toast';
 
+function buildCreateItems(members: GroupItem[]) {
+    const seen = new Set<string>();
+    const items: GroupItem[] = [];
+
+    for (const member of members) {
+        const modelName = member.model_name.trim();
+        const key = `${member.channel_id}-${modelName}`;
+        if (!modelName || seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        items.push({
+            ...member,
+            model_name: modelName,
+            priority: items.length + 1,
+            weight: member.weight > 0 ? member.weight : 1,
+        });
+    }
+
+    return items;
+}
+
 export function CreateDialogContent() {
     const { setIsOpen } = useMorphingDialog();
     const createGroup = useCreateGroup();
@@ -40,12 +62,12 @@ export function CreateDialogContent() {
                     submittingText={t('create.submitting')}
                     isSubmitting={createGroup.isPending}
                     onSubmit={({ name, endpoint_type, match_regex, mode, first_token_time_out, session_keep_time, members }) => {
-                        const items: GroupItem[] = members.map((member, index) => ({
+                        const items = buildCreateItems(members.map((member) => ({
                             channel_id: member.channel_id,
                             model_name: member.name,
-                            priority: index + 1,
+                            priority: 0,
                             weight: member.weight ?? 1,
-                        }));
+                        })));
 
                         createGroup.mutate(
                             { name, endpoint_type: endpoint_type ?? '*', mode, match_regex: match_regex ?? '', first_token_time_out: first_token_time_out ?? 0, session_keep_time: session_keep_time ?? 0, items },
