@@ -11,6 +11,45 @@ export type ChannelFilter = 'all' | 'enabled' | 'disabled';
 export type GroupFilter = 'all' | 'with-members' | 'empty' | 'chat' | 'responses' | 'messages' | 'embeddings' | 'rerank' | 'moderations' | 'image_generation' | 'audio_speech' | 'audio_transcription' | 'video_generation' | 'music_generation' | 'search';
 export type ModelFilter = 'all' | 'priced' | 'free';
 
+export function normalizeGroupFilterValue(value?: string | null): GroupFilter {
+    switch (value) {
+        case 'moderation':
+            return 'moderations';
+        case 'responses':
+        case 'messages':
+            return 'chat';
+        case 'all':
+        case 'with-members':
+        case 'empty':
+        case 'chat':
+        case 'embeddings':
+        case 'rerank':
+        case 'moderations':
+        case 'image_generation':
+        case 'audio_speech':
+        case 'audio_transcription':
+        case 'video_generation':
+        case 'music_generation':
+        case 'search':
+            return value;
+        default:
+            return 'all';
+    }
+}
+
+function normalizePersistedToolbarState(
+    state?: Partial<ToolbarViewOptionsState> | null,
+): Partial<ToolbarViewOptionsState> {
+    if (!state) {
+        return {};
+    }
+
+    return {
+        ...state,
+        groupFilter: normalizeGroupFilterValue(state.groupFilter),
+    };
+}
+
 interface ToolbarViewOptionsState {
     layouts: Partial<Record<ToolbarPage, ToolbarLayout>>;
     sortFields: Partial<Record<ToolbarCreatedSortablePage, ToolbarSortField>>;
@@ -66,7 +105,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             },
 
             setChannelFilter: (value) => set({ channelFilter: value }),
-            setGroupFilter: (value) => set({ groupFilter: value }),
+            setGroupFilter: (value) => set({ groupFilter: normalizeGroupFilterValue(value) }),
             setModelFilter: (value) => set({ modelFilter: value }),
         }),
         {
@@ -78,6 +117,10 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
                 channelFilter: state.channelFilter,
                 groupFilter: state.groupFilter,
                 modelFilter: state.modelFilter,
+            }),
+            merge: (persistedState, currentState) => ({
+                ...currentState,
+                ...normalizePersistedToolbarState(persistedState as Partial<ToolbarViewOptionsState> | null),
             }),
         }
     )

@@ -23,6 +23,7 @@ import { useSearchStore } from './search-store';
 import {
     useToolbarViewOptionsStore,
     TOOLBAR_PAGES,
+    normalizeGroupFilterValue,
     type ToolbarPage,
     type ChannelFilter,
     type GroupFilter,
@@ -32,7 +33,7 @@ import {
 } from './view-options-store';
 
 const CHANNEL_FILTER_OPTIONS: ChannelFilter[] = ['all', 'enabled', 'disabled'];
-const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty', 'chat', 'responses', 'messages', 'embeddings', 'rerank', 'moderations', 'image_generation', 'audio_speech', 'audio_transcription', 'video_generation', 'music_generation', 'search'];
+const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty', 'chat', 'embeddings', 'rerank', 'moderations', 'image_generation', 'audio_speech', 'audio_transcription', 'video_generation', 'music_generation', 'search'];
 const MODEL_FILTER_OPTIONS: ModelFilter[] = ['all', 'priced', 'free'];
 type CombinedSortOption = {
     value: `${ToolbarSortField}-${ToolbarSortOrder}`;
@@ -77,7 +78,7 @@ export function Toolbar() {
     const setSortConfig = useToolbarViewOptionsStore((s) => s.setSortConfig);
     const setSortOrder = useToolbarViewOptionsStore((s) => s.setSortOrder);
     const channelFilter = useToolbarViewOptionsStore((s) => s.channelFilter);
-    const groupFilter = useToolbarViewOptionsStore((s) => s.groupFilter);
+    const groupFilter = useToolbarViewOptionsStore((s) => normalizeGroupFilterValue(s.groupFilter));
     const modelFilter = useToolbarViewOptionsStore((s) => s.modelFilter);
     const setChannelFilter = useToolbarViewOptionsStore((s) => s.setChannelFilter);
     const setGroupFilter = useToolbarViewOptionsStore((s) => s.setGroupFilter);
@@ -99,8 +100,8 @@ export function Toolbar() {
         'with-members': 'popover.filter.group.withMembers',
         empty: 'popover.filter.group.empty',
         chat: 'popover.filter.group.chat',
-        responses: 'popover.filter.group.responses',
-        messages: 'popover.filter.group.messages',
+        responses: 'popover.filter.group.chat',
+        messages: 'popover.filter.group.chat',
         embeddings: 'popover.filter.group.embeddings',
         rerank: 'popover.filter.group.rerank',
         moderations: 'popover.filter.group.moderations',
@@ -144,7 +145,7 @@ export function Toolbar() {
                 setChannelFilter(value as ChannelFilter);
                 break;
             case 'group':
-                setGroupFilter(value as GroupFilter);
+                setGroupFilter(normalizeGroupFilterValue(value));
                 break;
             case 'model':
                 setModelFilter(value as ModelFilter);
@@ -360,4 +361,4 @@ export function Toolbar() {
 }
 
 export { useSearchStore } from './search-store';
-export { useToolbarViewOptionsStore } from './view-options-store';
+export { normalizeGroupFilterValue, useToolbarViewOptionsStore } from './view-options-store';

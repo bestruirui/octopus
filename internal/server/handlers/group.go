@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,7 @@ import (
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
+	"github.com/lingyuins/octopus/internal/utils/log"
 )
 
 func init() {
@@ -80,6 +82,11 @@ func createGroup(c *gin.Context) {
 		}
 	}
 	if err := op.GroupCreate(&group, c.Request.Context()); err != nil {
+		if status, message, ok := classifyGroupMutationError(err); ok {
+			resp.Error(c, status, message)
+			return
+		}
+		log.Errorf("create group failed: %v", err)
 		resp.InternalError(c)
 		return
 	}
@@ -105,10 +112,43 @@ func updateGroup(c *gin.Context) {
 	}
 	group, err := op.GroupUpdate(&req, c.Request.Context())
 	if err != nil {
+		if status, message, ok := classifyGroupMutationError(err); ok {
+			resp.Error(c, status, message)
+			return
+		}
+		log.Errorf("update group failed: %v", err)
 		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, group)
+}
+
+func classifyGroupMutationError(err error) (int, string, bool) {
+	if err == nil {
+		return 0, "", false
+	}
+
+	msg := strings.ToLower(err.Error())
+
+	switch {
+	case strings.Contains(msg, "endpoint_type") &&
+		(strings.Contains(msg, "no such column") ||
+			strings.Contains(msg, "has no column named") ||
+			strings.Contains(msg, "unknown column") ||
+			strings.Contains(msg, "does not exist")):
+		return http.StatusServiceUnavailable, "database schema is outdated; restart the service to apply the latest migrations", true
+	case strings.Contains(msg, "unique constraint failed: groups.name") ||
+		(strings.Contains(msg, "duplicate entry") && strings.Contains(msg, "groups.name")) ||
+		(strings.Contains(msg, "duplicate key value violates unique constraint") &&
+			(strings.Contains(msg, "groups_name") || strings.Contains(msg, "groups.name"))):
+		return http.StatusConflict, "group name already exists", true
+	case strings.Contains(msg, "unique constraint failed: group_items.group_id, group_items.channel_id, group_items.model_name") ||
+		(strings.Contains(msg, "duplicate entry") && strings.Contains(msg, "idx_group_channel_model")) ||
+		(strings.Contains(msg, "duplicate key value violates unique constraint") && strings.Contains(msg, "idx_group_channel_model")):
+		return http.StatusConflict, "group contains duplicate channel/model items", true
+	default:
+		return 0, "", false
+	}
 }
 
 func startGroupTest(c *gin.Context) {

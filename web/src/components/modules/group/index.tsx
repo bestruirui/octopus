@@ -6,7 +6,7 @@ import { GroupCard } from './Card';
 import { AutoGroupButton } from './AutoGroupButton';
 import { AIRouteButton } from './AIRouteButton';
 import { useGroupList } from '@/api/endpoints/group';
-import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
+import { normalizeGroupFilterValue, useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
 import {
     MorphingDialog,
@@ -14,29 +14,9 @@ import {
     MorphingDialogContent,
     MorphingDialogTrigger,
 } from '@/components/ui/morphing-dialog';
-import { normalizeEndpointType } from './utils';
+import { matchesGroupEndpointFilter } from './utils';
 import { CreateDialogContent } from './Create';
 import { buttonVariants } from '@/components/ui/button';
-
-const ENDPOINT_TYPE_FILTERS = new Set<string>([
-    'chat',
-    'responses',
-    'messages',
-    'embeddings',
-    'rerank',
-    'moderations',
-    'image_generation',
-    'audio_speech',
-    'audio_transcription',
-    'video_generation',
-    'music_generation',
-    'search',
-]);
-
-function normalizeGroupFilter(value: string) {
-    if (value === 'moderation') return 'moderations';
-    return value;
-}
 
 export function Group() {
     const t = useTranslations('group');
@@ -45,7 +25,7 @@ export function Group() {
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
     const sortField = useToolbarViewOptionsStore((s) => s.getSortField(pageKey));
     const sortOrder = useToolbarViewOptionsStore((s) => s.getSortOrder(pageKey));
-    const filter = useToolbarViewOptionsStore((s) => normalizeGroupFilter(s.groupFilter));
+    const filter = useToolbarViewOptionsStore((s) => normalizeGroupFilterValue(s.groupFilter));
 
     const sortedGroups = useMemo(() => {
         if (!groups) return [];
@@ -63,9 +43,10 @@ export function Group() {
 
         if (filter === 'with-members') return result.filter((g) => (g.items?.length || 0) > 0);
         if (filter === 'empty') return result.filter((g) => (g.items?.length || 0) === 0);
-
-        if (ENDPOINT_TYPE_FILTERS.has(filter)) {
-            return result.filter((g) => normalizeEndpointType(g.endpoint_type) === filter);
+        if (filter !== 'all') {
+            return result.filter((g) =>
+                matchesGroupEndpointFilter(filter, g.endpoint_type, (g.items || []).map((item) => item.model_name)),
+            );
         }
 
         return result;
