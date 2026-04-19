@@ -67,6 +67,126 @@ func normalizeGroupItems(items []model.GroupItem) []model.GroupItem {
 	return normalized
 }
 
+func normalizeGroupItemAddRequests(existingItems []model.GroupItem, itemsToUpdate []model.GroupItemUpdateRequest, itemsToDelete []int, itemsToAdd []model.GroupItemAddRequest) []model.GroupItemAddRequest {
+	if len(itemsToAdd) == 0 {
+		return nil
+	}
+
+	deletedItemIDs := make(map[int]struct{}, len(itemsToDelete))
+	for _, id := range itemsToDelete {
+		if id > 0 {
+			deletedItemIDs[id] = struct{}{}
+		}
+	}
+
+	updatedPriorities := make(map[int]int, len(itemsToUpdate))
+	for _, item := range itemsToUpdate {
+		if item.ID > 0 && item.Priority > 0 {
+			updatedPriorities[item.ID] = item.Priority
+		}
+	}
+
+	seen := make(map[string]struct{}, len(existingItems)+len(itemsToAdd))
+	maxPriority := 0
+	for _, item := range existingItems {
+		if _, deleted := deletedItemIDs[item.ID]; deleted {
+			continue
+		}
+
+		item.ModelName = strings.TrimSpace(item.ModelName)
+		if item.ChannelID <= 0 || item.ModelName == "" {
+			continue
+		}
+
+		if updatedPriority, ok := updatedPriorities[item.ID]; ok {
+			item.Priority = updatedPriority
+		}
+		if item.Priority > maxPriority {
+			maxPriority = item.Priority
+		}
+
+		seen[makeGroupItemDedupKey(item.ChannelID, item.ModelName)] = struct{}{}
+	}
+
+	normalized := make([]model.GroupItemAddRequest, 0, len(itemsToAdd))
+	nextPriority := maxPriority + 1
+	for _, item := range itemsToAdd {
+		item.ModelName = strings.TrimSpace(item.ModelName)
+		if item.ChannelID <= 0 || item.ModelName == "" {
+			continue
+		}
+
+		key := makeGroupItemDedupKey(item.ChannelID, item.ModelName)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		if item.Priority <= 0 {
+			item.Priority = nextPriority
+		}
+		if item.Priority >= nextPriority {
+			nextPriority = item.Priority + 1
+		}
+		if item.Weight <= 0 {
+			item.Weight = 1
+		}
+
+		normalized = append(normalized, item)
+	}
+
+	if len(normalized) == 0 {
+		return nil
+	}
+	return normalized
+}
+
+func normalizeGroupItemUpdateRequests(existingItems []model.GroupItem, itemsToUpdate []model.GroupItemUpdateRequest) []model.GroupItemUpdateRequest {
+	if len(itemsToUpdate) == 0 {
+		return nil
+	}
+
+	existingByID := make(map[int]model.GroupItem, len(existingItems))
+	for _, item := range existingItems {
+		if item.ID > 0 {
+			existingByID[item.ID] = item
+		}
+	}
+
+	seen := make(map[int]struct{}, len(itemsToUpdate))
+	normalized := make([]model.GroupItemUpdateRequest, 0, len(itemsToUpdate))
+	for _, item := range itemsToUpdate {
+		if item.ID <= 0 {
+			continue
+		}
+		if _, ok := seen[item.ID]; ok {
+			continue
+		}
+		existing, ok := existingByID[item.ID]
+		if !ok {
+			continue
+		}
+		seen[item.ID] = struct{}{}
+
+		if item.Priority <= 0 {
+			item.Priority = existing.Priority
+		}
+		if item.Weight <= 0 {
+			item.Weight = existing.Weight
+			if item.Weight <= 0 {
+				item.Weight = 1
+			}
+		}
+
+		normalized = append(normalized, item)
+	}
+
+	if len(normalized) == 0 {
+		return nil
+	}
+	return normalized
+}
+
 func makeGroupCacheKey(endpointType, name string) string {
 	return model.NormalizeEndpointType(endpointType) + groupCacheKeySep + name
 }
@@ -227,10 +347,13 @@ func GroupCreate(group *model.Group, ctx context.Context) error {
 }
 
 func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Group, error) {
-	_, ok := groupCache.Get(req.ID)
+	group, ok := groupCache.Get(req.ID)
 	if !ok {
 		return nil, fmt.Errorf("group not found")
 	}
+
+	normalizedItemsToUpdate := normalizeGroupItemUpdateRequests(group.Items, req.ItemsToUpdate)
+	normalizedItemsToAdd := normalizeGroupItemAddRequests(group.Items, normalizedItemsToUpdate, req.ItemsToDelete, req.ItemsToAdd)
 
 	tx := db.GetDB().WithContext(ctx).Begin()
 	defer func() {
@@ -283,11 +406,11 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	}
 
 	// 批量更新 items
-	if len(req.ItemsToUpdate) > 0 {
-		ids := make([]int, len(req.ItemsToUpdate))
+	if len(normalizedItemsToUpdate) > 0 {
+		ids := make([]int, len(normalizedItemsToUpdate))
 		priorityCase := "CASE id"
 		weightCase := "CASE id"
-		for i, item := range req.ItemsToUpdate {
+		for i, item := range normalizedItemsToUpdate {
 			ids[i] = item.ID
 			priorityCase += fmt.Sprintf(" WHEN %d THEN %d", item.ID, item.Priority)
 			weightCase += fmt.Sprintf(" WHEN %d THEN %d", item.ID, item.Weight)
@@ -307,9 +430,9 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	}
 
 	// 批量新增 items
-	if len(req.ItemsToAdd) > 0 {
-		newItems := make([]model.GroupItem, len(req.ItemsToAdd))
-		for i, item := range req.ItemsToAdd {
+	if len(normalizedItemsToAdd) > 0 {
+		newItems := make([]model.GroupItem, len(normalizedItemsToAdd))
+		for i, item := range normalizedItemsToAdd {
 			newItems[i] = model.GroupItem{
 				GroupID:   req.ID,
 				ChannelID: item.ChannelID,
@@ -333,8 +456,8 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 		return nil, err
 	}
 
-	group, _ := groupCache.Get(req.ID)
-	return &group, nil
+	updatedGroup, _ := groupCache.Get(req.ID)
+	return &updatedGroup, nil
 }
 
 func GroupDel(id int, ctx context.Context) error {
