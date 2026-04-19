@@ -221,6 +221,7 @@ http://localhost:3000
 | `OCTOPUS_SERVER_HOST` | `server.host` |
 | `OCTOPUS_DATABASE_TYPE` | `database.type` |
 | `OCTOPUS_DATABASE_PATH` | `database.path` |
+| `OCTOPUS_DATA_DIR` | 在未显式设置 `database.path` 时，`config.json` 和 SQLite 数据库的默认目录 |
 | `OCTOPUS_LOG_LEVEL` | `log.level` |
 | `OCTOPUS_AUTH_JWT_SECRET` | `auth.jwt_secret` |
 | `OCTOPUS_GITHUB_PAT` | 用于获取最新版本时的速率限制(可选) |

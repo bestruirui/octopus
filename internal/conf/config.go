@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/lingyuins/octopus/internal/utils/log"
@@ -39,12 +40,14 @@ type Config struct {
 var AppConfig Config
 
 func Load(path string) error {
+	configFile := path
 	if path != "" {
 		viper.SetConfigFile(path)
 	} else {
 		viper.SetConfigName("config")
 		viper.SetConfigType("json")
-		viper.AddConfigPath("data")
+		viper.AddConfigPath(defaultDataDir())
+		configFile = defaultConfigPath()
 	}
 
 	viper.AutomaticEnv()
@@ -58,11 +61,11 @@ func Load(path string) error {
 	} else {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Infof("Config file not found, creating default config")
-			if err := os.MkdirAll("data", 0755); err != nil {
-				log.Errorf("Failed to create data directory: %v", err)
+			if err := os.MkdirAll(filepath.Dir(configFile), 0755); err != nil {
+				return fmt.Errorf("failed to create config directory %q: %w", filepath.Dir(configFile), err)
 			}
-			if err := viper.SafeWriteConfigAs("data/config.json"); err != nil {
-				log.Errorf("Failed to create default config: %v", err)
+			if err := viper.SafeWriteConfigAs(configFile); err != nil {
+				return fmt.Errorf("failed to create default config %q: %w", configFile, err)
 			}
 		} else {
 			return fmt.Errorf("error reading config file: %w", err)
@@ -87,9 +90,24 @@ func setDefaults() {
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("database.type", "sqlite")
-	viper.SetDefault("database.path", "data/data.db")
+	viper.SetDefault("database.path", defaultDatabasePath())
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("auth.jwt_secret", "")
+}
+
+func defaultDataDir() string {
+	if path := strings.TrimSpace(os.Getenv(strings.ToUpper(APP_NAME) + "_DATA_DIR")); path != "" {
+		return filepath.Clean(path)
+	}
+	return "data"
+}
+
+func defaultConfigPath() string {
+	return filepath.Join(defaultDataDir(), "config.json")
+}
+
+func defaultDatabasePath() string {
+	return filepath.Join(defaultDataDir(), "data.db")
 }
 
 func generateJWTSecret() (string, error) {

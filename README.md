@@ -221,6 +221,7 @@ All configuration options can be overridden via environment variables using the 
 | `OCTOPUS_SERVER_HOST` | `server.host` |
 | `OCTOPUS_DATABASE_TYPE` | `database.type` |
 | `OCTOPUS_DATABASE_PATH` | `database.path` |
+| `OCTOPUS_DATA_DIR` | Default directory for `config.json` and the SQLite DB when `database.path` is not explicitly set |
 | `OCTOPUS_LOG_LEVEL` | `log.level` |
 | `OCTOPUS_AUTH_JWT_SECRET` | `auth.jwt_secret` |
 | `OCTOPUS_GITHUB_PAT` | For rate limiting when getting the latest version (optional) |

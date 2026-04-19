@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -87,6 +89,10 @@ func InitDB(dbType, dsn string, debug bool) error {
 }
 
 func initSQLite(path string, config *gorm.Config) (*gorm.DB, error) {
+	dsn, err := sqliteDSN(path)
+	if err != nil {
+		return nil, err
+	}
 	params := []string{
 		"_journal_mode=WAL",
 		"_synchronous=NORMAL",
@@ -97,7 +103,7 @@ func initSQLite(path string, config *gorm.Config) (*gorm.DB, error) {
 		"_mmap_size=268435456",
 		"_locking_mode=NORMAL",
 	}
-	return gorm.Open(sqlite.Open(path+"?"+strings.Join(params, "&")), config)
+	return gorm.Open(sqlite.Open(dsn+sqliteDSNSeparator(dsn)+strings.Join(params, "&")), config)
 }
 
 func initMySQL(dsn string, config *gorm.Config) (*gorm.DB, error) {
@@ -123,4 +129,39 @@ func Close() error {
 
 func GetDB() *gorm.DB {
 	return db
+}
+
+func sqliteDSN(path string) (string, error) {
+	dsn := strings.TrimSpace(path)
+	if dsn == "" {
+		return "", fmt.Errorf("sqlite database path is empty")
+	}
+	if err := ensureSQLiteDir(dsn); err != nil {
+		return "", err
+	}
+	return dsn, nil
+}
+
+func sqliteDSNSeparator(dsn string) string {
+	if strings.Contains(dsn, "?") {
+		return "&"
+	}
+	return "?"
+}
+
+func ensureSQLiteDir(dsn string) error {
+	basePath, _, _ := strings.Cut(dsn, "?")
+	lowerBasePath := strings.ToLower(basePath)
+	if basePath == ":memory:" || lowerBasePath == "file::memory:" || strings.HasPrefix(lowerBasePath, "file:") {
+		return nil
+	}
+
+	dir := filepath.Dir(basePath)
+	if dir == "." || dir == "" {
+		return nil
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create sqlite data directory %q: %w", dir, err)
+	}
+	return nil
 }
