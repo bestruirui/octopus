@@ -37,9 +37,21 @@
 
 ```bash
 docker run -d --name octopus \
-  -v /path/to/data:/app/data \
+  --restart unless-stopped \
   -p 8080:8080 \
+  -v octopus-data:/app/data \
   -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
+  lingyuins/octopus:latest
+```
+
+Windows Docker Desktop 推荐直接使用：
+
+```powershell
+docker run -d --name octopus `
+  --restart unless-stopped `
+  -p 8080:8080 `
+  -v octopus-data:/app/data `
+  -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" `
   lingyuins/octopus:latest
 ```
 
@@ -64,6 +76,8 @@ services:
 ```bash
 docker compose up -d
 ```
+
+注意：官方镜像默认以非 root 用户 `octopus` 运行，UID/GID 为 `1000`。上面的 `docker run` 默认使用 Docker named volume，这样能避开大多数宿主机目录权限问题，尤其是 Windows Docker Desktop。如果把宿主机目录绑定挂载到 `/app/data`，这个目录必须对 UID/GID `1000` 可写，否则启动时创建 `config.json` 或 `data.db` 会报 `permission denied`。
 
 官方 Docker 镜像会在构建阶段重新编译前端，并把最新导出的管理界面嵌入 Go 二进制，因此容器内前端和对应发布版本保持一致。
 

@@ -37,9 +37,21 @@ Run directly:
 
 ```bash
 docker run -d --name octopus \
-  -v /path/to/data:/app/data \
+  --restart unless-stopped \
   -p 8080:8080 \
+  -v octopus-data:/app/data \
   -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
+  lingyuins/octopus:latest
+```
+
+Recommended on Windows Docker Desktop:
+
+```powershell
+docker run -d --name octopus `
+  --restart unless-stopped `
+  -p 8080:8080 `
+  -v octopus-data:/app/data `
+  -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" `
   lingyuins/octopus:latest
 ```
 
@@ -64,6 +76,8 @@ Then run:
 ```bash
 docker compose up -d
 ```
+
+Note: The official image runs as the non-root user `octopus` with UID/GID `1000`. The `docker run` example above uses a named volume because it avoids most host-permission issues, especially on Windows Docker Desktop. If you bind-mount a host directory to `/app/data`, make sure that directory is writable by UID/GID `1000`, otherwise startup will fail with `permission denied` when creating `config.json` or `data.db`.
 
 The official Docker image rebuilds the frontend during image build and embeds the latest exported UI into the Go binary, so the container includes the matching management UI for that release.
 
