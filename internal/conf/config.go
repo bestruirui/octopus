@@ -62,10 +62,10 @@ func Load(path string) error {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Infof("Config file not found, creating default config")
 			if err := os.MkdirAll(filepath.Dir(configFile), 0755); err != nil {
-				return fmt.Errorf("failed to create config directory %q: %w", filepath.Dir(configFile), err)
+				return wrapConfigPathError("failed to create config directory", filepath.Dir(configFile), err)
 			}
 			if err := viper.SafeWriteConfigAs(configFile); err != nil {
-				return fmt.Errorf("failed to create default config %q: %w", configFile, err)
+				return wrapConfigPathError("failed to create default config", configFile, err)
 			}
 		} else {
 			return fmt.Errorf("error reading config file: %w", err)
@@ -108,6 +108,16 @@ func defaultConfigPath() string {
 
 func defaultDatabasePath() string {
 	return filepath.Join(defaultDataDir(), "data.db")
+}
+
+func wrapConfigPathError(action, path string, err error) error {
+	if err == nil {
+		return nil
+	}
+	if os.IsPermission(err) {
+		return fmt.Errorf("%s %q: %w; make sure the target directory is writable by the current process (the official Docker image runs as UID/GID 1000 and needs write access to /app/data)", action, path, err)
+	}
+	return fmt.Errorf("%s %q: %w", action, path, err)
 }
 
 func generateJWTSecret() (string, error) {

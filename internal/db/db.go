@@ -103,7 +103,11 @@ func initSQLite(path string, config *gorm.Config) (*gorm.DB, error) {
 		"_mmap_size=268435456",
 		"_locking_mode=NORMAL",
 	}
-	return gorm.Open(sqlite.Open(dsn+sqliteDSNSeparator(dsn)+strings.Join(params, "&")), config)
+	db, err := gorm.Open(sqlite.Open(dsn+sqliteDSNSeparator(dsn)+strings.Join(params, "&")), config)
+	if err != nil {
+		return nil, wrapSQLitePathError("failed to open sqlite database", dsn, err)
+	}
+	return db, nil
 }
 
 func initMySQL(dsn string, config *gorm.Config) (*gorm.DB, error) {
@@ -161,7 +165,17 @@ func ensureSQLiteDir(dsn string) error {
 		return nil
 	}
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create sqlite data directory %q: %w", dir, err)
+		return wrapSQLitePathError("failed to create sqlite data directory", dir, err)
 	}
 	return nil
+}
+
+func wrapSQLitePathError(action, path string, err error) error {
+	if err == nil {
+		return nil
+	}
+	if os.IsPermission(err) || strings.Contains(strings.ToLower(err.Error()), "permission denied") {
+		return fmt.Errorf("%s %q: %w; make sure the sqlite path is writable by the current process (the official Docker image runs as UID/GID 1000 and needs write access to /app/data)", action, path, err)
+	}
+	return fmt.Errorf("%s %q: %w", action, path, err)
 }
