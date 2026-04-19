@@ -71,6 +71,31 @@ func makeGroupCacheKey(endpointType, name string) string {
 	return model.NormalizeEndpointType(endpointType) + groupCacheKeySep + name
 }
 
+func conversationEndpointLookupOrder(endpointType string) []string {
+	switch model.NormalizeEndpointType(endpointType) {
+	case model.EndpointTypeChat:
+		return []string{
+			model.EndpointTypeChat,
+			model.EndpointTypeResponses,
+			model.EndpointTypeMessages,
+		}
+	case model.EndpointTypeResponses:
+		return []string{
+			model.EndpointTypeResponses,
+			model.EndpointTypeChat,
+			model.EndpointTypeMessages,
+		}
+	case model.EndpointTypeMessages:
+		return []string{
+			model.EndpointTypeMessages,
+			model.EndpointTypeChat,
+			model.EndpointTypeResponses,
+		}
+	default:
+		return nil
+	}
+}
+
 func normalizeGroup(group model.Group) model.Group {
 	group.EndpointType = model.NormalizeEndpointType(group.EndpointType)
 	return group
@@ -168,8 +193,15 @@ func GroupGet(id int, ctx context.Context) (*model.Group, error) {
 func GroupGetEnabledMapByEndpoint(endpointType string, name string, ctx context.Context) (model.Group, error) {
 	endpointType = model.NormalizeEndpointType(endpointType)
 
-	if group, ok := findGroupByEndpoint(endpointType, name); ok {
-		return finalizeMatchedGroup(group), nil
+	lookupOrder := conversationEndpointLookupOrder(endpointType)
+	if len(lookupOrder) == 0 {
+		lookupOrder = []string{endpointType}
+	}
+
+	for _, candidateEndpointType := range lookupOrder {
+		if group, ok := findGroupByEndpoint(candidateEndpointType, name); ok {
+			return finalizeMatchedGroup(group), nil
+		}
 	}
 	if endpointType != model.EndpointTypeAll {
 		if group, ok := findGroupByEndpoint(model.EndpointTypeAll, name); ok {
