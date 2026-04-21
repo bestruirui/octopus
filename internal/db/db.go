@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -154,13 +155,12 @@ func sqliteDSNSeparator(dsn string) string {
 }
 
 func ensureSQLiteDir(dsn string) error {
-	basePath, _, _ := strings.Cut(dsn, "?")
-	lowerBasePath := strings.ToLower(basePath)
-	if basePath == ":memory:" || lowerBasePath == "file::memory:" || strings.HasPrefix(lowerBasePath, "file:") {
+	dbPath, ok := sqliteFilePath(dsn)
+	if !ok {
 		return nil
 	}
 
-	dir := filepath.Dir(basePath)
+	dir := filepath.Dir(dbPath)
 	if dir == "." || dir == "" {
 		return nil
 	}
@@ -168,6 +168,43 @@ func ensureSQLiteDir(dsn string) error {
 		return wrapSQLitePathError("failed to create sqlite data directory", dir, err)
 	}
 	return nil
+}
+
+func sqliteFilePath(dsn string) (string, bool) {
+	basePath, rawQuery, _ := strings.Cut(strings.TrimSpace(dsn), "?")
+	lowerBasePath := strings.ToLower(basePath)
+	if basePath == ":memory:" || lowerBasePath == "file::memory:" {
+		return "", false
+	}
+	if rawQuery != "" {
+		if values, err := url.ParseQuery(rawQuery); err == nil && strings.EqualFold(values.Get("mode"), "memory") {
+			return "", false
+		}
+	}
+	if !strings.HasPrefix(lowerBasePath, "file:") {
+		return basePath, true
+	}
+
+	parsed, err := url.Parse(basePath)
+	if err != nil {
+		return filepath.FromSlash(strings.TrimPrefix(basePath, "file:")), true
+	}
+
+	switch {
+	case parsed.Path != "":
+		path := parsed.Path
+		if filepath.Separator == '\\' && len(path) >= 3 && path[0] == '/' && path[2] == ':' {
+			path = path[1:]
+		}
+		if parsed.Host != "" && parsed.Host != "localhost" {
+			path = "//" + parsed.Host + path
+		}
+		return filepath.FromSlash(path), true
+	case parsed.Opaque != "":
+		return filepath.FromSlash(parsed.Opaque), true
+	default:
+		return filepath.FromSlash(strings.TrimPrefix(basePath, "file:")), true
+	}
 }
 
 func wrapSQLitePathError(action, path string, err error) error {
