@@ -183,6 +183,7 @@
             "sortByCount": "次數",
             "sortByTokens": "Tokens",
             "sortByKeyUsage": "Key 使用",
+            "loading": "載入中...",
             "noData": "暫無排行數據",
             "successRate": "成功率"
         }

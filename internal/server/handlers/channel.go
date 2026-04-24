@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/helper"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
@@ -14,7 +15,6 @@ import (
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
 	"github.com/lingyuins/octopus/internal/task"
-	"github.com/gin-gonic/gin"
 )
 
 func init() {
@@ -81,6 +81,10 @@ func createChannel(c *gin.Context) {
 		return
 	}
 	if err := op.ChannelCreate(&channel, c.Request.Context()); err != nil {
+		if status, msg, ok := classifyChannelMutationError(err); ok {
+			resp.Error(c, status, msg)
+			return
+		}
 		resp.InternalError(c)
 		return
 	}
@@ -106,6 +110,10 @@ func updateChannel(c *gin.Context) {
 	}
 	channel, err := op.ChannelUpdate(&req, c.Request.Context())
 	if err != nil {
+		if status, msg, ok := classifyChannelMutationError(err); ok {
+			resp.Error(c, status, msg)
+			return
+		}
 		resp.InternalError(c)
 		return
 	}
@@ -188,4 +196,33 @@ func syncChannel(c *gin.Context) {
 func getLastSyncTime(c *gin.Context) {
 	time := task.GetLastSyncModelsTime()
 	resp.Success(c, time)
+}
+
+func classifyChannelMutationError(err error) (int, string, bool) {
+	if err == nil {
+		return 0, "", false
+	}
+
+	msg := strings.ToLower(err.Error())
+
+	switch {
+	case strings.Contains(msg, "channel not found"):
+		return http.StatusNotFound, "channel not found", true
+	case strings.Contains(msg, "request rewrite profile is required when enabled"),
+		strings.Contains(msg, "unsupported request rewrite profile"),
+		strings.Contains(msg, "unsupported tool role strategy"),
+		strings.Contains(msg, "unsupported system message strategy"),
+		strings.Contains(msg, "request rewrite profile") && strings.Contains(msg, "is not supported for channel type"):
+		return http.StatusBadRequest, err.Error(), true
+	case strings.Contains(msg, "request_rewrite") &&
+		(strings.Contains(msg, "no such column") ||
+			strings.Contains(msg, "has no column named") ||
+			strings.Contains(msg, "unknown column")):
+		return http.StatusServiceUnavailable, "database schema is outdated", true
+	case strings.Contains(msg, "unique constraint failed: channels.name"),
+		strings.Contains(msg, "duplicate entry") && strings.Contains(msg, "channels.name"):
+		return http.StatusConflict, "channel name already exists", true
+	default:
+		return 0, "", false
+	}
 }

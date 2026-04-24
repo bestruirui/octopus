@@ -183,6 +183,7 @@
             "sortByCount": "Count",
             "sortByTokens": "Tokens",
             "sortByKeyUsage": "Key Usage",
+            "loading": "Loading...",
             "noData": "No ranking data",
             "successRate": "Success Rate"
         }

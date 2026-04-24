@@ -58,10 +58,12 @@ export interface StatsHourlyFormatted extends StatsMetricsFormatted {
  */
 export interface StatsAPIKey extends StatsMetrics {
     api_key_id: number;
+    name?: string;
 }
 
 export interface StatsAPIKeyFormatted extends StatsMetricsFormatted {
     api_key_id: number;
+    name?: string;
 }
 /**
  * 获取今日统计数据 Hook
@@ -159,7 +161,9 @@ export function useStatsTotal() {
 /**
  * 获取 API Key 统计数据列表 Hook
  */
-export function useStatsAPIKey() {
+export function useStatsAPIKey(options?: { enabled?: boolean }) {
+    const { enabled = true } = options ?? {};
+
     return useQuery({
         queryKey: ['stats', 'apikey'],
         queryFn: async () => {
@@ -167,6 +171,7 @@ export function useStatsAPIKey() {
         },
         select: (data) => data.map((item): StatsAPIKeyFormatted => ({
             api_key_id: item.api_key_id,
+            name: item.name,
             input_token: formatCount(item.input_token),
             output_token: formatCount(item.output_token),
             total_token: formatCount(item.input_token + item.output_token),
@@ -178,6 +183,7 @@ export function useStatsAPIKey() {
             request_failed: formatCount(item.request_failed),
             request_count: formatCount(item.request_success + item.request_failed),
         })),
+        enabled,
         refetchInterval: 30000,
         refetchOnMount: 'always',
     });

@@ -1,14 +1,21 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
-	"github.com/gin-gonic/gin"
 )
+
+type apiKeyStatsResponse struct {
+	model.StatsAPIKey
+	Name string `json:"name"`
+}
 
 func init() {
 	router.NewGroupRouter("/api/v1/stats").
@@ -57,5 +64,30 @@ func getStatsTotal(c *gin.Context) {
 }
 
 func getStatsAPIKey(c *gin.Context) {
-	resp.Success(c, op.StatsAPIKeyList())
+	stats := op.StatsAPIKeyList()
+
+	apiKeys, err := op.APIKeyList(c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+
+	apiKeyNames := make(map[int]string, len(apiKeys))
+	for _, apiKey := range apiKeys {
+		apiKeyNames[apiKey.ID] = apiKey.Name
+	}
+
+	result := make([]apiKeyStatsResponse, 0, len(stats))
+	for _, item := range stats {
+		name, ok := apiKeyNames[item.APIKeyID]
+		if !ok {
+			name = fmt.Sprintf("Key #%d", item.APIKeyID)
+		}
+		result = append(result, apiKeyStatsResponse{
+			StatsAPIKey: item,
+			Name:        name,
+		})
+	}
+
+	resp.Success(c, result)
 }

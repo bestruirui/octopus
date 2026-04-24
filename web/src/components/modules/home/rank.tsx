@@ -1,26 +1,26 @@
 'use client';
 
-import { useAPIKeyList } from '@/api/endpoints/apikey';
 import { useChannelList } from '@/api/endpoints/channel';
 import { useStatsAPIKey } from '@/api/endpoints/stats';
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { TrendingUp } from 'lucide-react';
+import { Loader2, TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/components/animate-ui/components/animate/tabs';
 import { useHomeViewStore, type RankSortMode } from '@/components/modules/home/store';
 
 type ChannelData = NonNullable<ReturnType<typeof useChannelList>['data']>[number];
-type APIKeyData = NonNullable<ReturnType<typeof useAPIKeyList>['data']>[number];
 type APIKeyStatsData = NonNullable<ReturnType<typeof useStatsAPIKey>['data']>[number];
 type APIKeyRankData = APIKeyStatsData & { name: string };
 
 export function Rank() {
     const { data: channelData } = useChannelList();
-    const { data: apiKeys } = useAPIKeyList();
-    const { data: apiKeyStats } = useStatsAPIKey();
     const t = useTranslations('home.rank');
     const rankSortMode = useHomeViewStore((state) => state.rankSortMode);
     const setRankSortMode = useHomeViewStore((state) => state.setRankSortMode);
+    const {
+        data: apiKeyStats,
+        isLoading: isAPIKeyStatsLoading,
+    } = useStatsAPIKey({ enabled: rankSortMode === 'key-usage' });
 
     const rankedByCost = useMemo<ChannelData[]>(() => {
         if (!channelData) return [];
@@ -38,17 +38,15 @@ export function Rank() {
     }, [channelData]);
 
     const rankedByKeyUsage = useMemo<APIKeyRankData[]>(() => {
-        if (!apiKeys || !apiKeyStats) return [];
-
-        const apiKeyMap = new Map<number, APIKeyData>(apiKeys.map((apiKey) => [apiKey.id, apiKey]));
+        if (!apiKeyStats) return [];
 
         return apiKeyStats
             .map((stats) => ({
                 ...stats,
-                name: apiKeyMap.get(stats.api_key_id)?.name || `Key #${stats.api_key_id}`,
+                name: stats.name || `Key #${stats.api_key_id}`,
             }))
             .sort((a, b) => b.request_count.raw - a.request_count.raw);
-    }, [apiKeys, apiKeyStats]);
+    }, [apiKeyStats]);
 
     const getMedalEmoji = (rank: number): string => {
         switch (rank) {
@@ -140,7 +138,16 @@ export function Rank() {
         );
     };
 
-    const renderAPIKeyList = (apiKeys: APIKeyRankData[]) => {
+    const renderAPIKeyList = (apiKeys: APIKeyRankData[], isLoading: boolean) => {
+        if (isLoading) {
+            return (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <Loader2 className="w-12 h-12 mb-3 opacity-50 animate-spin" />
+                    <p className="text-sm">{t('loading')}</p>
+                </div>
+            );
+        }
+
         if (apiKeys.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
@@ -227,7 +234,7 @@ export function Rank() {
                         {renderChannelList(rankedByTokens, 'tokens')}
                     </TabsContent>
                     <TabsContent value="key-usage">
-                        {renderAPIKeyList(rankedByKeyUsage)}
+                        {renderAPIKeyList(rankedByKeyUsage, isAPIKeyStatsLoading)}
                     </TabsContent>
                 </TabsContents>
             </Tabs>
