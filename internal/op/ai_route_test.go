@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lingyuins/octopus/internal/db"
 	"github.com/lingyuins/octopus/internal/model"
 )
 
@@ -317,6 +318,70 @@ func TestFormatAIRouteTimeout(t *testing.T) {
 func TestIsAIRouteTimeoutErrorDetectsContextDeadlineExceeded(t *testing.T) {
 	if !isAIRouteTimeoutError(context.DeadlineExceeded) {
 		t.Fatal("isAIRouteTimeoutError() = false, want true")
+	}
+}
+
+func TestSyncGroupItemsWithAIRouteReplacesStaleItemsAndUpdatesExisting(t *testing.T) {
+	ctx := context.Background()
+	if err := db.InitDB("sqlite", "file:ai-route-sync-group-items?mode=memory&cache=shared", false); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Close()
+		groupCache.Clear()
+		groupMap.Clear()
+		rebuildGroupIndexesFromCache()
+	})
+
+	groupCache.Clear()
+	groupMap.Clear()
+	rebuildGroupIndexesFromCache()
+
+	group := &model.Group{
+		Name:         "sync-target",
+		EndpointType: model.EndpointTypeAll,
+		Mode:         model.GroupModeRoundRobin,
+		Items: []model.GroupItem{
+			{ChannelID: 1, ModelName: "legacy-a", Priority: 1, Weight: 10},
+			{ChannelID: 2, ModelName: "keep-b", Priority: 2, Weight: 20},
+		},
+	}
+	if err := GroupCreate(group, ctx); err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+
+	writtenCount, err := syncGroupItemsWithAIRoute(ctx, group.ID, model.EndpointTypeChat, []model.GroupItem{
+		{ChannelID: 2, ModelName: "keep-b", Priority: 1, Weight: 99},
+		{ChannelID: 3, ModelName: " new-c ", Priority: 2, Weight: 50},
+	})
+	if err != nil {
+		t.Fatalf("syncGroupItemsWithAIRoute() error = %v", err)
+	}
+	if writtenCount != 2 {
+		t.Fatalf("syncGroupItemsWithAIRoute() writtenCount = %d, want 2", writtenCount)
+	}
+
+	updatedGroup, err := GroupGet(group.ID, ctx)
+	if err != nil {
+		t.Fatalf("get group after sync: %v", err)
+	}
+	if updatedGroup.EndpointType != model.EndpointTypeChat {
+		t.Fatalf("group endpoint_type = %q, want %q", updatedGroup.EndpointType, model.EndpointTypeChat)
+	}
+
+	items, err := GroupItemList(group.ID, ctx)
+	if err != nil {
+		t.Fatalf("list group items after sync: %v", err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("expected 2 persisted items after sync, got %d", len(items))
+	}
+
+	if items[0].ChannelID != 2 || items[0].ModelName != "keep-b" || items[0].Priority != 1 || items[0].Weight != 99 {
+		t.Fatalf("unexpected first item after sync: %+v", items[0])
+	}
+	if items[1].ChannelID != 3 || items[1].ModelName != "new-c" || items[1].Priority != 2 || items[1].Weight != 50 {
+		t.Fatalf("unexpected second item after sync: %+v", items[1])
 	}
 }
 

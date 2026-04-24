@@ -25,6 +25,27 @@ export enum AutoGroupType {
     Regex = 3,  // 正则匹配
 }
 
+export enum RequestRewriteProfile {
+    OpenAIChatCompat = 'openai_chat_compat',
+}
+
+export enum ToolRoleStrategy {
+    Keep = 'keep',
+    StringifyToUser = 'stringify_to_user',
+}
+
+export enum SystemMessageStrategy {
+    Keep = 'keep',
+    Merge = 'merge',
+}
+
+export type RequestRewriteConfig = {
+    enabled: boolean;
+    profile?: RequestRewriteProfile | null;
+    tool_role_strategy?: ToolRoleStrategy | null;
+    system_message_strategy?: SystemMessageStrategy | null;
+};
+
 export type BaseUrl = {
     url: string;
     delay: number;
@@ -64,6 +85,7 @@ export type Channel = {
     custom_header: CustomHeader[];
     param_override?: string | null;
     channel_proxy?: string | null;
+    request_rewrite?: RequestRewriteConfig | null;
     match_regex?: string | null;
     stats: StatsChannel;
 };
@@ -92,6 +114,7 @@ export type CreateChannelRequest = {
     custom_header?: CustomHeader[];
     channel_proxy?: string | null;
     param_override?: string | null;
+    request_rewrite?: RequestRewriteConfig;
     match_regex?: string | null;
 };
 
@@ -112,6 +135,7 @@ export type UpdateChannelRequest = {
     custom_header?: CustomHeader[];
     channel_proxy?: string | null;
     param_override?: string | null;
+    request_rewrite?: RequestRewriteConfig;
     match_regex?: string | null;
     // keys diff
     keys_to_add?: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'remark'>>;

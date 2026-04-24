@@ -3,6 +3,7 @@ package op
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -188,7 +189,7 @@ func normalizeGroupItemUpdateRequests(existingItems []model.GroupItem, itemsToUp
 }
 
 func makeGroupCacheKey(endpointType, name string) string {
-	return model.NormalizeEndpointType(endpointType) + groupCacheKeySep + name
+	return model.NormalizeEndpointType(endpointType) + groupCacheKeySep + strings.TrimSpace(name)
 }
 
 func conversationEndpointLookupOrder(endpointType string) []string {
@@ -217,7 +218,35 @@ func conversationEndpointLookupOrder(endpointType string) []string {
 }
 
 func normalizeGroup(group model.Group) model.Group {
+	group.Name = strings.TrimSpace(group.Name)
 	group.EndpointType = model.NormalizeEndpointType(group.EndpointType)
+	group.MatchRegex = strings.TrimSpace(group.MatchRegex)
+	for i := range group.Items {
+		group.Items[i].ModelName = strings.TrimSpace(group.Items[i].ModelName)
+		if group.Items[i].Weight <= 0 {
+			group.Items[i].Weight = 1
+		}
+	}
+	sort.SliceStable(group.Items, func(i, j int) bool {
+		leftPriority := group.Items[i].Priority
+		if leftPriority <= 0 {
+			leftPriority = int(^uint(0) >> 1)
+		}
+		rightPriority := group.Items[j].Priority
+		if rightPriority <= 0 {
+			rightPriority = int(^uint(0) >> 1)
+		}
+		if leftPriority != rightPriority {
+			return leftPriority < rightPriority
+		}
+		if group.Items[i].ChannelID != group.Items[j].ChannelID {
+			return group.Items[i].ChannelID < group.Items[j].ChannelID
+		}
+		if group.Items[i].ModelName != group.Items[j].ModelName {
+			return group.Items[i].ModelName < group.Items[j].ModelName
+		}
+		return group.Items[i].ID < group.Items[j].ID
+	})
 	return group
 }
 
@@ -264,8 +293,22 @@ func rebuildGroupIndexesFromCache() {
 	groups := groupCache.GetAll()
 	groupMap.Clear()
 
-	matchersByEndpoint := make(map[string][]compiledGroupMatcher)
+	sortedGroups := make([]model.Group, 0, len(groups))
 	for _, group := range groups {
+		sortedGroups = append(sortedGroups, group)
+	}
+	sort.SliceStable(sortedGroups, func(i, j int) bool {
+		if sortedGroups[i].ID != sortedGroups[j].ID {
+			return sortedGroups[i].ID < sortedGroups[j].ID
+		}
+		if sortedGroups[i].Name != sortedGroups[j].Name {
+			return sortedGroups[i].Name < sortedGroups[j].Name
+		}
+		return sortedGroups[i].EndpointType < sortedGroups[j].EndpointType
+	})
+
+	matchersByEndpoint := make(map[string][]compiledGroupMatcher)
+	for _, group := range sortedGroups {
 		group = normalizeGroup(group)
 		groupMap.Set(makeGroupCacheKey(group.EndpointType, group.Name), group)
 		regex := strings.TrimSpace(group.MatchRegex)
@@ -290,14 +333,33 @@ func GroupList(ctx context.Context) ([]model.Group, error) {
 	for _, group := range groupCache.GetAll() {
 		groups = append(groups, normalizeGroup(group))
 	}
+	sort.SliceStable(groups, func(i, j int) bool {
+		if groups[i].ID != groups[j].ID {
+			return groups[i].ID < groups[j].ID
+		}
+		if groups[i].Name != groups[j].Name {
+			return groups[i].Name < groups[j].Name
+		}
+		return groups[i].EndpointType < groups[j].EndpointType
+	})
 	return groups, nil
 }
 
 func GroupListModel(ctx context.Context) ([]string, error) {
 	models := []string{}
+	seen := make(map[string]struct{}, groupCache.Len())
 	for _, group := range groupCache.GetAll() {
-		models = append(models, group.Name)
+		name := strings.TrimSpace(group.Name)
+		if name == "" {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		models = append(models, name)
 	}
+	sort.Strings(models)
 	return models, nil
 }
 
@@ -336,7 +398,12 @@ func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
 }
 
 func GroupCreate(group *model.Group, ctx context.Context) error {
+	group.Name = strings.TrimSpace(group.Name)
+	if group.Name == "" {
+		return fmt.Errorf("group name is required")
+	}
 	group.EndpointType = model.NormalizeEndpointType(group.EndpointType)
+	group.MatchRegex = strings.TrimSpace(group.MatchRegex)
 	group.Items = normalizeGroupItems(group.Items)
 	if err := db.GetDB().WithContext(ctx).Create(group).Error; err != nil {
 		return err
@@ -366,8 +433,12 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	updates := model.Group{ID: req.ID}
 
 	if req.Name != nil {
+		name := strings.TrimSpace(*req.Name)
+		if name == "" {
+			return nil, fmt.Errorf("group name is required")
+		}
 		selectFields = append(selectFields, "name")
-		updates.Name = *req.Name
+		updates.Name = name
 	}
 	if req.EndpointType != nil {
 		selectFields = append(selectFields, "endpoint_type")
@@ -379,7 +450,7 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	}
 	if req.MatchRegex != nil {
 		selectFields = append(selectFields, "match_regex")
-		updates.MatchRegex = *req.MatchRegex
+		updates.MatchRegex = strings.TrimSpace(*req.MatchRegex)
 	}
 	if req.FirstTokenTimeOut != nil {
 		selectFields = append(selectFields, "first_token_time_out")

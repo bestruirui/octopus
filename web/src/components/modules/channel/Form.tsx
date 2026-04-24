@@ -1,4 +1,15 @@
-import { AutoGroupType, ChannelType, type Channel, useFetchModel, useTestChannel, type TestChannelSummary } from '@/api/endpoints/channel';
+import {
+    AutoGroupType,
+    ChannelType,
+    RequestRewriteProfile,
+    SystemMessageStrategy,
+    ToolRoleStrategy,
+    type Channel,
+    type RequestRewriteConfig,
+    useFetchModel,
+    useTestChannel,
+    type TestChannelSummary,
+} from '@/api/endpoints/channel';
 import { channelTemplates } from './templates';
 import {
     Select,
@@ -33,6 +44,7 @@ export interface ChannelFormData {
     custom_header: Channel['custom_header'];
     channel_proxy: string;
     param_override: string;
+    request_rewrite: RequestRewriteConfig;
     keys: ChannelKeyFormItem[];
     model: string;
     custom_model: string;
@@ -41,6 +53,40 @@ export interface ChannelFormData {
     auto_sync: boolean;
     auto_group: AutoGroupType;
     match_regex: string;
+}
+
+export function createDefaultRequestRewriteFormData(): RequestRewriteConfig {
+    return {
+        enabled: false,
+        profile: RequestRewriteProfile.OpenAIChatCompat,
+        tool_role_strategy: ToolRoleStrategy.Keep,
+        system_message_strategy: SystemMessageStrategy.Keep,
+    };
+}
+
+export function normalizeRequestRewriteFormData(config?: RequestRewriteConfig | null): RequestRewriteConfig {
+    return {
+        enabled: config?.enabled ?? false,
+        profile: config?.profile ?? RequestRewriteProfile.OpenAIChatCompat,
+        tool_role_strategy: config?.tool_role_strategy ?? ToolRoleStrategy.Keep,
+        system_message_strategy: config?.system_message_strategy ?? SystemMessageStrategy.Keep,
+    };
+}
+
+export function isRequestRewriteSupportedChannelType(channelType: ChannelType): boolean {
+    return channelType === ChannelType.OpenAIChat;
+}
+
+export function getEffectiveRequestRewriteFormData(channelType: ChannelType, config?: RequestRewriteConfig | null): RequestRewriteConfig {
+    const normalized = normalizeRequestRewriteFormData(config);
+    if (isRequestRewriteSupportedChannelType(channelType)) {
+        return normalized;
+    }
+
+    return {
+        ...normalized,
+        enabled: false,
+    };
 }
 
 export interface ChannelFormProps {
@@ -74,6 +120,7 @@ export function ChannelForm({
     idPrefix = 'channel',
 }: ChannelFormProps) {
     const t = useTranslations('channel.form');
+    const requestRewriteSupported = isRequestRewriteSupportedChannelType(formData.type);
 
     // Ensure the form always shows at least 1 row for base_urls / keys / custom_header.
     // This avoids "empty list" UI and also keeps URL + APIKEY layout consistent.
@@ -722,6 +769,105 @@ export function ChannelForm({
                                 placeholder={t('paramOverridePlaceholder')}
                                 className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
+                        </div>
+
+                        <div className="space-y-4 rounded-xl border border-border/70 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-medium text-card-foreground">{t('requestRewrite')}</p>
+                                    <p className="text-xs text-muted-foreground">{t('requestRewriteHint')}</p>
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <Switch
+                                        checked={requestRewriteSupported && formData.request_rewrite.enabled}
+                                        onCheckedChange={(checked) => onFormDataChange({
+                                            ...formData,
+                                            request_rewrite: {
+                                                ...formData.request_rewrite,
+                                                enabled: checked,
+                                            },
+                                        })}
+                                        disabled={!requestRewriteSupported}
+                                    />
+                                    <span className="text-sm text-card-foreground">{t('requestRewriteEnabled')}</span>
+                                </label>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label htmlFor={`${idPrefix}-request-rewrite-profile`} className="text-sm font-medium text-card-foreground">
+                                        {t('requestRewriteProfile')}
+                                    </label>
+                                    <Select
+                                        value={formData.request_rewrite.profile ?? RequestRewriteProfile.OpenAIChatCompat}
+                                        onValueChange={(value) => onFormDataChange({
+                                            ...formData,
+                                            request_rewrite: {
+                                                ...formData.request_rewrite,
+                                                profile: value as RequestRewriteProfile,
+                                            },
+                                        })}
+                                        disabled={!requestRewriteSupported || !formData.request_rewrite.enabled}
+                                    >
+                                        <SelectTrigger id={`${idPrefix}-request-rewrite-profile`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className='rounded-xl'>
+                                            <SelectItem className='rounded-xl' value={RequestRewriteProfile.OpenAIChatCompat}>{t('requestRewriteProfileOpenAIChatCompat')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor={`${idPrefix}-request-rewrite-tool-role`} className="text-sm font-medium text-card-foreground">
+                                        {t('requestRewriteToolRoleStrategy')}
+                                    </label>
+                                    <Select
+                                        value={formData.request_rewrite.tool_role_strategy ?? ToolRoleStrategy.Keep}
+                                        onValueChange={(value) => onFormDataChange({
+                                            ...formData,
+                                            request_rewrite: {
+                                                ...formData.request_rewrite,
+                                                tool_role_strategy: value as ToolRoleStrategy,
+                                            },
+                                        })}
+                                        disabled={!requestRewriteSupported || !formData.request_rewrite.enabled}
+                                    >
+                                        <SelectTrigger id={`${idPrefix}-request-rewrite-tool-role`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className='rounded-xl'>
+                                            <SelectItem className='rounded-xl' value={ToolRoleStrategy.Keep}>{t('requestRewriteStrategyKeep')}</SelectItem>
+                                            <SelectItem className='rounded-xl' value={ToolRoleStrategy.StringifyToUser}>{t('requestRewriteStrategyStringifyToUser')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor={`${idPrefix}-request-rewrite-system`} className="text-sm font-medium text-card-foreground">
+                                        {t('requestRewriteSystemMessageStrategy')}
+                                    </label>
+                                    <Select
+                                        value={formData.request_rewrite.system_message_strategy ?? SystemMessageStrategy.Keep}
+                                        onValueChange={(value) => onFormDataChange({
+                                            ...formData,
+                                            request_rewrite: {
+                                                ...formData.request_rewrite,
+                                                system_message_strategy: value as SystemMessageStrategy,
+                                            },
+                                        })}
+                                        disabled={!requestRewriteSupported || !formData.request_rewrite.enabled}
+                                    >
+                                        <SelectTrigger id={`${idPrefix}-request-rewrite-system`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className='rounded-xl'>
+                                            <SelectItem className='rounded-xl' value={SystemMessageStrategy.Keep}>{t('requestRewriteStrategyKeep')}</SelectItem>
+                                            <SelectItem className='rounded-xl' value={SystemMessageStrategy.Merge}>{t('requestRewriteStrategyMerge')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                         </div>
                     </AccordionContent>
                 </AccordionItem>

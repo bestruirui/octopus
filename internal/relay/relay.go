@@ -419,10 +419,16 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 func (ra *relayAttempt) forward() (int, error) {
 	ctx := ra.c.Request.Context()
 
+	requestForOutbound, err := prepareInternalRequestForOutbound(ra.channel, ra.internalRequest)
+	if err != nil {
+		log.Warnf("failed to prepare outbound request data: %v", err)
+		return 0, fmt.Errorf("failed to prepare outbound request data: %w", err)
+	}
+
 	// 构建出站请求
 	outboundRequest, err := ra.outAdapter.TransformRequest(
 		ctx,
-		ra.internalRequest,
+		requestForOutbound,
 		ra.channel.GetBaseUrl(),
 		ra.usedKey.ChannelKey,
 	)

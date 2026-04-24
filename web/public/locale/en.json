@@ -481,7 +481,7 @@
             "autoGroupSuccessDescription": "Scanned {models} models, identified {candidates} candidate groups, created {created}, skipped {skippedExisting} existing groups, and skipped {skippedCovered} covered models",
             "autoGroupFailed": "Auto grouping failed",
     "aiRouteTableSuccess": "AI routing completed: generated {routes} routes, affected {groups} groups, and wrote {items} route items",
-    "aiRouteGroupSuccess": "AI group completion completed: generated {routes} routes and wrote {items} route items into the current group",
+    "aiRouteGroupSuccess": "AI group sync completed: generated {routes} routes and updated {items} route items in the current group",
     "aiRouteFailed": "AI routing failed",
     "aiRouteEmptyResult": "AI route result is empty",
     "aiRouteMissingGroup": "Please select the default target group for single-group AI routing in settings first",
@@ -496,7 +496,7 @@
   "actions": {
     "autoGroup": "Auto Group",
     "aiRoute": "AI Route",
-    "aiRouteGroup": "AI Fill Current Group",
+    "aiRouteGroup": "AI Sync Current Group",
     "aiRouteProgress": "View Progress"
   },
         "autoGroup": {
@@ -508,21 +508,21 @@
   "aiRoute": {
     "table": {
       "confirmTitle": "Generate the Full AI Routing Table?",
-      "confirmDescription": "This will send all models to the AI for analysis and generate the full routing table in batch.\nExisting groups with the same name will only receive missing route items; existing groups will not be cleared.\nContinue?",
+      "confirmDescription": "This will send all models to the AI for analysis and generate the full routing table in batch.\nExisting groups with the same name will have their route items synchronized, and stale route items will be removed; other groups will not be deleted.\nContinue?",
       "submit": "Generate Routing Table",
       "submitting": "Generating..."
     },
     "group": {
-      "confirmTitle": "Fill the Current Group with AI Routing?",
-      "confirmDescription": "This will send all models to the AI for analysis and append the matched route items to the current group.\nExisting identical route items will be skipped automatically, and existing items in the group will not be removed.\nContinue?",
-      "submit": "Fill Current Group",
-      "submitting": "Generating..."
+      "confirmTitle": "Sync the Current Group with AI Routing?",
+      "confirmDescription": "This will send all models to the AI for analysis and synchronize the current group's route items with the result.\nStale route items will be removed, and existing matches will be updated to the latest priority and weight.\nContinue?",
+      "submit": "Sync Current Group",
+      "submitting": "Syncing..."
     },
     "progress": {
       "title": "AI Route Task Progress",
       "description": {
         "table": "The full AI routing table is being generated. You can close this dialog and come back later.",
-        "group": "The current group's AI routes are being generated. You can close this dialog and come back later."
+        "group": "The current group's AI routes are being synchronized. You can close this dialog and come back later."
       },
       "loading": "Loading task progress...",
       "close": "Close",
@@ -555,7 +555,7 @@
       },
       "channelModels": "{completed}/{total} models processed",
       "result": {
-        "groupSummary": "AI group completion finished with {routes} routes and {items} route items written.",
+        "groupSummary": "AI group sync finished with {routes} routes and {items} route items updated.",
         "tableSummary": "AI routing table generation finished with {routes} routes, {groups} affected groups, and {items} route items written."
       },
       "status": {
@@ -810,6 +810,16 @@
             "channelProxyPlaceholder": "Optional: proxy for this channel (overrides global proxy)",
             "paramOverride": "Param Override",
             "paramOverridePlaceholder": "Optional: JSON string to override request params",
+            "requestRewrite": "Request Rewrite",
+            "requestRewriteHint": "Optional compatibility rewrite for stricter upstream request formats",
+            "requestRewriteEnabled": "Enable rewrite",
+            "requestRewriteProfile": "Rewrite Profile",
+            "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat Compatibility",
+            "requestRewriteToolRoleStrategy": "Tool Role Strategy",
+            "requestRewriteSystemMessageStrategy": "System Message Strategy",
+            "requestRewriteStrategyKeep": "Keep",
+            "requestRewriteStrategyStringifyToUser": "Stringify to User",
+            "requestRewriteStrategyMerge": "Merge",
             "model": "Model",
             "enabled": "Enabled",
             "proxy": "Use Proxy",

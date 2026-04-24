@@ -119,6 +119,94 @@ func TestGroupGetEnabledMapByEndpoint_PrefersExactConversationEndpointMatch(t *t
 	}
 }
 
+func TestGroupGetEnabledMapByEndpoint_UsesTrimmedNameAndPriorityOrderedItems(t *testing.T) {
+	restore := snapshotGroupLookupState()
+	defer restore()
+
+	seedGroupLookupState(
+		map[int]model.Channel{
+			1: {ID: 1, Enabled: true},
+			2: {ID: 2, Enabled: true},
+		},
+		map[int]model.Group{
+			10: {
+				ID:           10,
+				Name:         " gpt-4.1 ",
+				EndpointType: model.EndpointTypeChat,
+				Items: []model.GroupItem{
+					{ID: 2, ChannelID: 2, ModelName: " model-b ", Priority: 2, Weight: 0},
+					{ID: 1, ChannelID: 1, ModelName: " model-a ", Priority: 1, Weight: 3},
+				},
+			},
+		},
+	)
+
+	got, err := GroupGetEnabledMapByEndpoint(model.EndpointTypeChat, "gpt-4.1", context.Background())
+	if err != nil {
+		t.Fatalf("expected trimmed group name to match: %v", err)
+	}
+
+	if got.Name != "gpt-4.1" {
+		t.Fatalf("expected trimmed group name, got %q", got.Name)
+	}
+	if len(got.Items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(got.Items))
+	}
+	if got.Items[0].ChannelID != 1 || got.Items[0].ModelName != "model-a" || got.Items[0].Priority != 1 {
+		t.Fatalf("unexpected first item: %+v", got.Items[0])
+	}
+	if got.Items[1].ChannelID != 2 || got.Items[1].ModelName != "model-b" || got.Items[1].Priority != 2 {
+		t.Fatalf("unexpected second item: %+v", got.Items[1])
+	}
+	if got.Items[1].Weight != 1 {
+		t.Fatalf("expected invalid weight to default to 1, got %+v", got.Items[1])
+	}
+}
+
+func TestGroupGetEnabledMapByEndpoint_RegexMatchesAreStableByGroupID(t *testing.T) {
+	restore := snapshotGroupLookupState()
+	defer restore()
+
+	seedGroupLookupState(
+		map[int]model.Channel{
+			1: {ID: 1, Enabled: true},
+			2: {ID: 2, Enabled: true},
+		},
+		map[int]model.Group{
+			20: {
+				ID:           20,
+				Name:         "fallback",
+				EndpointType: model.EndpointTypeAll,
+				MatchRegex:   "(?i)^gpt-.*$",
+				Items: []model.GroupItem{
+					{ChannelID: 2, ModelName: "gpt-4.1"},
+				},
+			},
+			10: {
+				ID:           10,
+				Name:         "preferred",
+				EndpointType: model.EndpointTypeAll,
+				MatchRegex:   "(?i)^gpt-4.*$",
+				Items: []model.GroupItem{
+					{ChannelID: 1, ModelName: "gpt-4.1"},
+				},
+			},
+		},
+	)
+
+	got, err := GroupGetEnabledMapByEndpoint(model.EndpointTypeChat, "gpt-4.1", context.Background())
+	if err != nil {
+		t.Fatalf("expected regex group match: %v", err)
+	}
+
+	if got.ID != 10 {
+		t.Fatalf("expected lowest id regex group to win deterministically, got %d", got.ID)
+	}
+	if len(got.Items) != 1 || got.Items[0].ChannelID != 1 {
+		t.Fatalf("unexpected matched group items: %+v", got.Items)
+	}
+}
+
 func snapshotGroupLookupState() func() {
 	oldGroups := groupCache.GetAll()
 	oldChannels := channelCache.GetAll()

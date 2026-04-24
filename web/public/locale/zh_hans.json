@@ -481,7 +481,7 @@
             "autoGroupSuccessDescription": "扫描到 {models} 个模型，识别出 {candidates} 个候选分组，创建 {created} 个，跳过 {skippedExisting} 个已存在分组，跳过 {skippedCovered} 个已覆盖模型",
             "autoGroupFailed": "自动分组失败",
     "aiRouteTableSuccess": "AI路由生成成功，共生成 {routes} 个模型路由，影响 {groups} 个分组，写入 {items} 个路由项",
-    "aiRouteGroupSuccess": "AI路由补全成功，共生成 {routes} 个模型路由，向当前分组写入 {items} 个路由项",
+    "aiRouteGroupSuccess": "AI路由同步成功，共生成 {routes} 个模型路由，更新当前分组中的 {items} 个路由项",
     "aiRouteFailed": "AI路由生成失败",
     "aiRouteEmptyResult": "AI 路由结果为空",
     "aiRouteMissingGroup": "请先在设置中选择单分组 AI 路由默认目标分组",
@@ -496,7 +496,7 @@
   "actions": {
     "autoGroup": "自动分组",
     "aiRoute": "AI路由",
-    "aiRouteGroup": "AI补全当前分组",
+      "aiRouteGroup": "AI同步当前分组",
     "aiRouteProgress": "查看进度"
   },
         "autoGroup": {
@@ -508,21 +508,21 @@
   "aiRoute": {
     "table": {
       "confirmTitle": "确认生成整张 AI 路由表",
-      "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果批量生成整张路由表。\n已存在同名分组会追加缺失路由项，不会清空已有分组。\n是否继续？",
+        "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果批量生成整张路由表。\n已存在同名分组会同步路由项，并移除未命中的旧路由项；其他分组不会被删除。\n是否继续？",
       "submit": "开始生成路由表",
       "submitting": "AI路由生成中..."
     },
     "group": {
-      "confirmTitle": "确认 AI 补全当前分组",
-      "confirmDescription": "系统会把全部模型发送给 AI 分析，并把识别出的路由项追加到当前分组。\n已存在的相同路由项会自动跳过，不会删除当前分组已有项。\n是否继续？",
-      "submit": "开始补全当前分组",
-      "submitting": "AI路由补全中..."
-    },
+        "confirmTitle": "确认 AI 同步当前分组",
+        "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果同步当前分组的路由项。\n未命中的旧路由项会被移除；相同路由项会按最新优先级和权重更新。\n是否继续？",
+        "submit": "开始同步当前分组",
+        "submitting": "AI路由同步中..."
+      },
     "progress": {
       "title": "AI 路由任务进度",
       "description": {
         "table": "正在生成整张 AI 路由表，你可以随时关闭弹窗，稍后再回来查看。",
-        "group": "正在补全当前分组的 AI 路由，你可以随时关闭弹窗，稍后再回来查看。"
+          "group": "正在同步当前分组的 AI 路由，你可以随时关闭弹窗，稍后再回来查看。"
       },
       "loading": "正在读取任务进度...",
       "close": "关闭",
@@ -555,7 +555,7 @@
       },
       "channelModels": "已处理 {completed}/{total} 个模型",
       "result": {
-        "groupSummary": "AI 路由补全完成，共生成 {routes} 条路由，写入 {items} 个路由项。",
+          "groupSummary": "AI 路由同步完成，共生成 {routes} 条路由，更新 {items} 个路由项。",
         "tableSummary": "AI 路由表生成完成，共生成 {routes} 条路由，影响 {groups} 个分组，写入 {items} 个路由项。"
       },
       "status": {
@@ -810,6 +810,16 @@
             "channelProxyPlaceholder": "可选：仅对该渠道生效（覆盖全局代理）",
             "paramOverride": "参数覆盖",
             "paramOverridePlaceholder": "可选：JSON 字符串，用于覆盖请求参数",
+            "requestRewrite": "请求重写",
+            "requestRewriteHint": "可选：为格式更严格的上游开启兼容性请求重写",
+            "requestRewriteEnabled": "启用重写",
+            "requestRewriteProfile": "重写配置",
+            "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat 兼容",
+            "requestRewriteToolRoleStrategy": "Tool 角色策略",
+            "requestRewriteSystemMessageStrategy": "System 消息策略",
+            "requestRewriteStrategyKeep": "保留",
+            "requestRewriteStrategyStringifyToUser": "转成 User 文本",
+            "requestRewriteStrategyMerge": "合并",
             "model": "模型",
             "enabled": "启用",
             "proxy": "使用代理",

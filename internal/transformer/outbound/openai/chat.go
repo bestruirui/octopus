@@ -16,24 +16,27 @@ import (
 type ChatOutbound struct{}
 
 func (o *ChatOutbound) TransformRequest(ctx context.Context, request *model.InternalLLMRequest, baseUrl, key string) (*http.Request, error) {
-	request.ClearHelpFields()
+	compatRequest := cloneRequestForOpenAICompat(request)
+	compatRequest.ClearHelpFields()
 
 	// Convert developer role to system role for compatibility
-	for i := range request.Messages {
-		if request.Messages[i].Role == "developer" {
-			request.Messages[i].Role = "system"
+	for i := range compatRequest.Messages {
+		if compatRequest.Messages[i].Role == "developer" {
+			compatRequest.Messages[i].Role = "system"
 		}
 	}
 
-	if request.Stream != nil && *request.Stream {
-		if request.StreamOptions == nil {
-			request.StreamOptions = &model.StreamOptions{IncludeUsage: true}
-		} else if !request.StreamOptions.IncludeUsage {
-			request.StreamOptions.IncludeUsage = true
+	normalizeMessagesForOpenAICompat(compatRequest.Messages)
+
+	if compatRequest.Stream != nil && *compatRequest.Stream {
+		if compatRequest.StreamOptions == nil {
+			compatRequest.StreamOptions = &model.StreamOptions{IncludeUsage: true}
+		} else if !compatRequest.StreamOptions.IncludeUsage {
+			compatRequest.StreamOptions.IncludeUsage = true
 		}
 	}
 
-	body, err := json.Marshal(request)
+	body, err := json.Marshal(compatRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -55,6 +58,80 @@ func (o *ChatOutbound) TransformRequest(ctx context.Context, request *model.Inte
 	req.URL = parsedUrl
 	req.Method = http.MethodPost
 	return req, nil
+}
+
+func cloneRequestForOpenAICompat(request *model.InternalLLMRequest) *model.InternalLLMRequest {
+	if request == nil {
+		return nil
+	}
+
+	cloned := *request
+	if len(request.Messages) > 0 {
+		cloned.Messages = append([]model.Message(nil), request.Messages...)
+	}
+	if request.StreamOptions != nil {
+		streamOptions := *request.StreamOptions
+		cloned.StreamOptions = &streamOptions
+	}
+
+	return &cloned
+}
+
+func normalizeMessagesForOpenAICompat(messages []model.Message) {
+	for i := range messages {
+		normalizeMessageForOpenAICompat(&messages[i])
+	}
+}
+
+func normalizeMessageForOpenAICompat(msg *model.Message) {
+	if len(msg.Content.MultipleContent) > 0 {
+		if text, ok := flattenTextOnlyContent(msg.Content.MultipleContent); ok {
+			msg.Content = model.MessageContent{
+				Content: &text,
+			}
+		} else if msg.Role == "tool" {
+			text := flattenTextContent(msg.Content.MultipleContent)
+			msg.Content = model.MessageContent{
+				Content: &text,
+			}
+		}
+	}
+
+	if msg.Content.Content == nil && len(msg.Content.MultipleContent) == 0 {
+		empty := ""
+		msg.Content.Content = &empty
+	}
+}
+
+func flattenTextOnlyContent(parts []model.MessageContentPart) (string, bool) {
+	if len(parts) == 0 {
+		return "", false
+	}
+
+	textParts := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part.Type != "text" || part.Text == nil {
+			return "", false
+		}
+		textParts = append(textParts, *part.Text)
+	}
+
+	return strings.Join(textParts, "\n"), true
+}
+
+func flattenTextContent(parts []model.MessageContentPart) string {
+	if len(parts) == 0 {
+		return ""
+	}
+
+	textParts := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part.Type == "text" && part.Text != nil {
+			textParts = append(textParts, *part.Text)
+		}
+	}
+
+	return strings.Join(textParts, "\n")
 }
 
 func (o *ChatOutbound) TransformResponse(ctx context.Context, response *http.Response) (*model.InternalLLMResponse, error) {

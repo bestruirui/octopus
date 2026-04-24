@@ -1437,43 +1437,74 @@ func syncGroupItemsWithAIRoute(ctx context.Context, groupID int, routeEndpointTy
 		return 0, err
 	}
 
-	existing := make(map[string]struct{}, len(group.Items))
-	nextPriority := 1
+	existingByKey := make(map[string]model.GroupItem, len(group.Items))
 	for _, item := range group.Items {
-		existing[fmt.Sprintf("%d\x00%s", item.ChannelID, strings.ToLower(strings.TrimSpace(item.ModelName)))] = struct{}{}
-		if item.Priority >= nextPriority {
-			nextPriority = item.Priority + 1
+		key := fmt.Sprintf("%d\x00%s", item.ChannelID, strings.ToLower(strings.TrimSpace(item.ModelName)))
+		if _, ok := existingByKey[key]; !ok {
+			existingByKey[key] = item
 		}
 	}
 
+	desiredKeys := make(map[string]struct{}, len(items))
+	itemsToUpdate := make([]model.GroupItemUpdateRequest, 0, len(items))
 	itemsToAdd := make([]model.GroupItemAddRequest, 0, len(items))
-	for _, item := range items {
-		key := fmt.Sprintf("%d\x00%s", item.ChannelID, strings.ToLower(strings.TrimSpace(item.ModelName)))
-		if _, ok := existing[key]; ok {
+	for idx, item := range items {
+		modelName := strings.TrimSpace(item.ModelName)
+		if item.ChannelID <= 0 || modelName == "" {
 			continue
 		}
-		existing[key] = struct{}{}
+
+		priority := idx + 1
+		weight := item.Weight
+		if weight <= 0 {
+			weight = 100
+		}
+
+		key := fmt.Sprintf("%d\x00%s", item.ChannelID, strings.ToLower(modelName))
+		desiredKeys[key] = struct{}{}
+		if existing, ok := existingByKey[key]; ok {
+			if existing.Priority != priority || existing.Weight != weight {
+				itemsToUpdate = append(itemsToUpdate, model.GroupItemUpdateRequest{
+					ID:       existing.ID,
+					Priority: priority,
+					Weight:   weight,
+				})
+			}
+			continue
+		}
 
 		itemsToAdd = append(itemsToAdd, model.GroupItemAddRequest{
 			ChannelID: item.ChannelID,
-			ModelName: item.ModelName,
-			Priority:  nextPriority,
-			Weight:    item.Weight,
+			ModelName: modelName,
+			Priority:  priority,
+			Weight:    weight,
 		})
-		nextPriority++
 	}
 
-	if len(itemsToAdd) == 0 {
+	itemsToDelete := make([]int, 0)
+	for _, item := range group.Items {
+		key := fmt.Sprintf("%d\x00%s", item.ChannelID, strings.ToLower(strings.TrimSpace(item.ModelName)))
+		if _, ok := desiredKeys[key]; ok {
+			continue
+		}
+		if item.ID > 0 {
+			itemsToDelete = append(itemsToDelete, item.ID)
+		}
+	}
+
+	if len(itemsToAdd) == 0 && len(itemsToUpdate) == 0 && len(itemsToDelete) == 0 {
 		return 0, nil
 	}
 
 	if _, err := GroupUpdate(&model.GroupUpdateRequest{
-		ID:         groupID,
-		ItemsToAdd: itemsToAdd,
+		ID:            groupID,
+		ItemsToAdd:    itemsToAdd,
+		ItemsToUpdate: itemsToUpdate,
+		ItemsToDelete: itemsToDelete,
 	}, ctx); err != nil {
 		return 0, fmt.Errorf("写入路由表失败")
 	}
-	return len(itemsToAdd), nil
+	return len(itemsToAdd) + len(itemsToUpdate), nil
 }
 
 func createAIRouteGroup(ctx context.Context, groupName string, endpointType string, matchRegex string, items []model.GroupItem) (*model.Group, int, error) {

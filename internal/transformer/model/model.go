@@ -321,7 +321,6 @@ func (r *InternalLLMRequest) fillMissingToolCallIDs() {
 	}
 }
 
-
 func (r *InternalLLMRequest) fillMissingToolCallIDsFromToolMessages() {
 	for msgIndex := 0; msgIndex < len(r.Messages); msgIndex++ {
 		msg := &r.Messages[msgIndex]
@@ -541,6 +540,12 @@ func (c MessageContent) MarshalJSON() ([]byte, error) {
 }
 
 func (c *MessageContent) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		c.Content = nil
+		c.MultipleContent = nil
+		return nil
+	}
+
 	var str string
 
 	err := json.Unmarshal(data, &str)

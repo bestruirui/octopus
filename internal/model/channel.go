@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/lingyuins/octopus/internal/transformer/outbound"
@@ -15,23 +16,51 @@ const (
 	AutoGroupTypeRegex AutoGroupType = 3 //正则匹配
 )
 
+type RequestRewriteProfile string
+
+const (
+	RequestRewriteProfileOpenAIChatCompat RequestRewriteProfile = "openai_chat_compat"
+)
+
+type ToolRoleStrategy string
+
+const (
+	ToolRoleStrategyKeep            ToolRoleStrategy = "keep"
+	ToolRoleStrategyStringifyToUser ToolRoleStrategy = "stringify_to_user"
+)
+
+type SystemMessageStrategy string
+
+const (
+	SystemMessageStrategyKeep  SystemMessageStrategy = "keep"
+	SystemMessageStrategyMerge SystemMessageStrategy = "merge"
+)
+
+type RequestRewriteConfig struct {
+	Enabled               bool                  `json:"enabled"`
+	Profile               RequestRewriteProfile `json:"profile,omitempty"`
+	ToolRoleStrategy      ToolRoleStrategy      `json:"tool_role_strategy,omitempty"`
+	SystemMessageStrategy SystemMessageStrategy `json:"system_message_strategy,omitempty"`
+}
+
 type Channel struct {
-	ID            int                   `json:"id" gorm:"primaryKey"`
-	Name          string                `json:"name" gorm:"unique;not null"`
-	Type          outbound.OutboundType `json:"type"`
-	Enabled       bool                  `json:"enabled" gorm:"default:true"`
-	BaseUrls      []BaseUrl             `json:"base_urls" gorm:"serializer:json"`
-	Keys          []ChannelKey          `json:"keys" gorm:"foreignKey:ChannelID"`
-	Model         string                `json:"model"`
-	CustomModel   string                `json:"custom_model"`
-	Proxy         bool                  `json:"proxy" gorm:"default:false"`
-	AutoSync      bool                  `json:"auto_sync" gorm:"default:false"`
-	AutoGroup     AutoGroupType         `json:"auto_group" gorm:"default:0"`
-	CustomHeader  []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
-	ParamOverride *string               `json:"param_override"`
-	ChannelProxy  *string               `json:"channel_proxy"`
-	Stats         *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
-	MatchRegex    *string               `json:"match_regex"`
+	ID             int                   `json:"id" gorm:"primaryKey"`
+	Name           string                `json:"name" gorm:"unique;not null"`
+	Type           outbound.OutboundType `json:"type"`
+	Enabled        bool                  `json:"enabled" gorm:"default:true"`
+	BaseUrls       []BaseUrl             `json:"base_urls" gorm:"serializer:json"`
+	Keys           []ChannelKey          `json:"keys" gorm:"foreignKey:ChannelID"`
+	Model          string                `json:"model"`
+	CustomModel    string                `json:"custom_model"`
+	Proxy          bool                  `json:"proxy" gorm:"default:false"`
+	AutoSync       bool                  `json:"auto_sync" gorm:"default:false"`
+	AutoGroup      AutoGroupType         `json:"auto_group" gorm:"default:0"`
+	CustomHeader   []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
+	ParamOverride  *string               `json:"param_override"`
+	ChannelProxy   *string               `json:"channel_proxy"`
+	RequestRewrite *RequestRewriteConfig `json:"request_rewrite" gorm:"serializer:json"`
+	Stats          *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
+	MatchRegex     *string               `json:"match_regex"`
 }
 
 type BaseUrl struct {
@@ -57,20 +86,21 @@ type ChannelKey struct {
 
 // ChannelUpdateRequest 渠道更新请求 - 仅包含变更的数据
 type ChannelUpdateRequest struct {
-	ID            int                    `json:"id" binding:"required"`
-	Name          *string                `json:"name,omitempty"`
-	Type          *outbound.OutboundType `json:"type,omitempty"`
-	Enabled       *bool                  `json:"enabled,omitempty"`
-	BaseUrls      *[]BaseUrl             `json:"base_urls,omitempty"`
-	Model         *string                `json:"model,omitempty"`
-	CustomModel   *string                `json:"custom_model,omitempty"`
-	Proxy         *bool                  `json:"proxy,omitempty"`
-	AutoSync      *bool                  `json:"auto_sync,omitempty"`
-	AutoGroup     *AutoGroupType         `json:"auto_group,omitempty"`
-	CustomHeader  *[]CustomHeader        `json:"custom_header,omitempty"`
-	ChannelProxy  *string                `json:"channel_proxy,omitempty"`
-	ParamOverride *string                `json:"param_override,omitempty"`
-	MatchRegex    *string                `json:"match_regex,omitempty"`
+	ID             int                    `json:"id" binding:"required"`
+	Name           *string                `json:"name,omitempty"`
+	Type           *outbound.OutboundType `json:"type,omitempty"`
+	Enabled        *bool                  `json:"enabled,omitempty"`
+	BaseUrls       *[]BaseUrl             `json:"base_urls,omitempty"`
+	Model          *string                `json:"model,omitempty"`
+	CustomModel    *string                `json:"custom_model,omitempty"`
+	Proxy          *bool                  `json:"proxy,omitempty"`
+	AutoSync       *bool                  `json:"auto_sync,omitempty"`
+	AutoGroup      *AutoGroupType         `json:"auto_group,omitempty"`
+	CustomHeader   *[]CustomHeader        `json:"custom_header,omitempty"`
+	ChannelProxy   *string                `json:"channel_proxy,omitempty"`
+	ParamOverride  *string                `json:"param_override,omitempty"`
+	RequestRewrite *RequestRewriteConfig  `json:"request_rewrite,omitempty"`
+	MatchRegex     *string                `json:"match_regex,omitempty"`
 
 	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
 	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`
@@ -99,10 +129,43 @@ type ChannelFetchModelRequest struct {
 }
 
 // TableName explicitly returns "-" for DTO structs to prevent GORM auto-mapping.
-func (ChannelUpdateRequest) TableName() string    { return "-" }
-func (ChannelKeyAddRequest) TableName() string    { return "-" }
-func (ChannelKeyUpdateRequest) TableName() string { return "-" }
+func (ChannelUpdateRequest) TableName() string     { return "-" }
+func (ChannelKeyAddRequest) TableName() string     { return "-" }
+func (ChannelKeyUpdateRequest) TableName() string  { return "-" }
 func (ChannelFetchModelRequest) TableName() string { return "-" }
+
+func (c *RequestRewriteConfig) Validate(channelType outbound.OutboundType) error {
+	if c == nil || !c.Enabled {
+		return nil
+	}
+
+	if c.Profile == "" {
+		return fmt.Errorf("request rewrite profile is required when enabled")
+	}
+
+	switch c.Profile {
+	case RequestRewriteProfileOpenAIChatCompat:
+		if channelType != outbound.OutboundTypeOpenAIChat {
+			return fmt.Errorf("request rewrite profile %s is not supported for channel type %d", c.Profile, channelType)
+		}
+	default:
+		return fmt.Errorf("unsupported request rewrite profile: %s", c.Profile)
+	}
+
+	switch c.ToolRoleStrategy {
+	case "", ToolRoleStrategyKeep, ToolRoleStrategyStringifyToUser:
+	default:
+		return fmt.Errorf("unsupported tool role strategy: %s", c.ToolRoleStrategy)
+	}
+
+	switch c.SystemMessageStrategy {
+	case "", SystemMessageStrategyKeep, SystemMessageStrategyMerge:
+	default:
+		return fmt.Errorf("unsupported system message strategy: %s", c.SystemMessageStrategy)
+	}
+
+	return nil
+}
 
 func (c *Channel) GetBaseUrl() string {
 	if c == nil || len(c.BaseUrls) == 0 {

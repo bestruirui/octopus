@@ -28,6 +28,11 @@ func ChannelList(ctx context.Context) ([]model.Channel, error) {
 }
 
 func ChannelCreate(channel *model.Channel, ctx context.Context) error {
+	if channel != nil {
+		if err := channel.RequestRewrite.Validate(channel.Type); err != nil {
+			return err
+		}
+	}
 	if err := db.GetDB().WithContext(ctx).Create(channel).Error; err != nil {
 		return err
 	}
@@ -133,9 +138,22 @@ func ChannelKeySaveDB(ctx context.Context) error {
 }
 
 func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channel, error) {
-	_, ok := channelCache.Get(req.ID)
+	current, ok := channelCache.Get(req.ID)
 	if !ok {
 		return nil, fmt.Errorf("channel not found")
+	}
+
+	effectiveType := current.Type
+	if req.Type != nil {
+		effectiveType = *req.Type
+	}
+
+	effectiveRewrite := current.RequestRewrite
+	if req.RequestRewrite != nil {
+		effectiveRewrite = req.RequestRewrite
+	}
+	if err := effectiveRewrite.Validate(effectiveType); err != nil {
+		return nil, err
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
@@ -195,6 +213,10 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 	if req.ParamOverride != nil {
 		selectFields = append(selectFields, "param_override")
 		updates.ParamOverride = req.ParamOverride
+	}
+	if req.RequestRewrite != nil {
+		selectFields = append(selectFields, "request_rewrite")
+		updates.RequestRewrite = req.RequestRewrite
 	}
 	if req.MatchRegex != nil {
 		selectFields = append(selectFields, "match_regex")

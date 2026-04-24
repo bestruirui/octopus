@@ -5,9 +5,18 @@ import {
     MorphingDialogDescription,
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
-import { useCreateChannel, ChannelType, AutoGroupType } from '@/api/endpoints/channel';
+import {
+    AutoGroupType,
+    ChannelType,
+    useCreateChannel,
+} from '@/api/endpoints/channel';
 import { useTranslations } from 'next-intl';
-import { ChannelForm, type ChannelFormData } from './Form';
+import {
+    ChannelForm,
+    createDefaultRequestRewriteFormData,
+    getEffectiveRequestRewriteFormData,
+    type ChannelFormData,
+} from './Form';
 
 export function CreateDialogContent() {
     const { setIsOpen } = useMorphingDialog();
@@ -19,6 +28,7 @@ export function CreateDialogContent() {
         custom_header: [],
         channel_proxy: '',
         param_override: '',
+        request_rewrite: createDefaultRequestRewriteFormData(),
         keys: [{ enabled: true, channel_key: '', remark: '' }],
         model: '',
         custom_model: '',
@@ -45,6 +55,7 @@ export function CreateDialogContent() {
 
         const channelProxy = formData.channel_proxy.trim();
         const paramOverride = formData.param_override.trim();
+        const requestRewrite = getEffectiveRequestRewriteFormData(formData.type, formData.request_rewrite);
         createChannel.mutate(
             {
                 name: formData.name,
@@ -60,6 +71,7 @@ export function CreateDialogContent() {
                 custom_header: normalizedHeaders,
                 channel_proxy: channelProxy,
                 param_override: paramOverride,
+                request_rewrite: requestRewrite.enabled ? requestRewrite : undefined,
                 match_regex: formData.match_regex.trim(),
             },
             {
@@ -71,6 +83,7 @@ export function CreateDialogContent() {
                         custom_header: [],
                         channel_proxy: '',
                         param_override: '',
+                        request_rewrite: createDefaultRequestRewriteFormData(),
                         keys: [{ enabled: true, channel_key: '', remark: '' }],
                         model: '',
                         custom_model: '',

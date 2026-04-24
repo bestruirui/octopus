@@ -12,7 +12,12 @@ import {
     Key,
     Link2
 } from 'lucide-react';
-import { useUpdateChannel, useDeleteChannel, type Channel, type UpdateChannelRequest } from '@/api/endpoints/channel';
+import {
+    useUpdateChannel,
+    useDeleteChannel,
+    type Channel,
+    type UpdateChannelRequest,
+} from '@/api/endpoints/channel';
 import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import {
     MorphingDialogTitle,
@@ -24,7 +29,12 @@ import { Tabs, TabsContents, TabsContent } from '@/components/animate-ui/primiti
 import { type StatsMetricsFormatted } from '@/api/endpoints/stats';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { ChannelForm, type ChannelFormData } from './Form';
+import {
+    ChannelForm,
+    getEffectiveRequestRewriteFormData,
+    normalizeRequestRewriteFormData,
+    type ChannelFormData,
+} from './Form';
 import { formatMoney } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -45,6 +55,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         custom_header: channel.custom_header ?? [],
         channel_proxy: channel.channel_proxy ?? '',
         param_override: channel.param_override ?? '',
+        request_rewrite: normalizeRequestRewriteFormData(channel.request_rewrite),
         keys: channel.keys.length > 0
             ? channel.keys.map((k) => ({
                 id: k.id,
@@ -79,10 +90,13 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
     const headersEqual = (a: Channel['custom_header'] | undefined, b: Channel['custom_header'] | undefined) =>
         JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
+    const requestRewriteEqual = (a: ChannelFormData['request_rewrite'], b?: Channel['request_rewrite']) =>
+        JSON.stringify(a) === JSON.stringify(normalizeRequestRewriteFormData(b));
 
     const handleUpdate = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const req: UpdateChannelRequest = { id: channel.id };
+        const effectiveRequestRewrite = getEffectiveRequestRewriteFormData(formData.type, formData.request_rewrite);
 
         // only send changed fields to avoid accidental clears
         if (formData.name !== channel.name) req.name = formData.name;
@@ -118,6 +132,10 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         if (nextParamOverride !== curParamOverride) {
             // Empty string means "clear" for patch semantics; backend maps it to NULL.
             req.param_override = nextParamOverride;
+        }
+
+        if (!requestRewriteEqual(effectiveRequestRewrite, channel.request_rewrite)) {
+            req.request_rewrite = effectiveRequestRewrite;
         }
 
         const nextMatchRegex = formData.match_regex.trim();

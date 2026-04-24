@@ -131,6 +131,8 @@ func classifyGroupMutationError(err error) (int, string, bool) {
 	msg := strings.ToLower(err.Error())
 
 	switch {
+	case strings.Contains(msg, "group name is required"):
+		return http.StatusBadRequest, "group name is required", true
 	case strings.Contains(msg, "endpoint_type") &&
 		(strings.Contains(msg, "no such column") ||
 			strings.Contains(msg, "has no column named") ||
