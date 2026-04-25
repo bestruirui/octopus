@@ -17,7 +17,7 @@ type ChatOutbound struct{}
 
 func (o *ChatOutbound) TransformRequest(ctx context.Context, request *model.InternalLLMRequest, baseUrl, key string) (*http.Request, error) {
 	compatRequest := cloneRequestForOpenAICompat(request)
-	compatRequest.ClearHelpFields()
+	sanitizeRequestForOpenAICompat(compatRequest, shouldPreserveOpenAICompatReasoning(baseUrl, compatRequest.Model))
 
 	// Convert developer role to system role for compatibility
 	for i := range compatRequest.Messages {
@@ -75,6 +75,42 @@ func cloneRequestForOpenAICompat(request *model.InternalLLMRequest) *model.Inter
 	}
 
 	return &cloned
+}
+
+func sanitizeRequestForOpenAICompat(request *model.InternalLLMRequest, preserveReasoning bool) {
+	if request == nil {
+		return
+	}
+
+	for i := range request.Messages {
+		sanitizeMessageForOpenAICompat(&request.Messages[i], preserveReasoning)
+	}
+
+	request.ExtraBody = nil
+	request.Include = nil
+}
+
+func sanitizeMessageForOpenAICompat(msg *model.Message, preserveReasoning bool) {
+	if msg == nil {
+		return
+	}
+
+	reasoningContent := msg.ReasoningContent
+	reasoning := msg.Reasoning
+
+	msg.ClearHelpFields()
+
+	if preserveReasoning {
+		msg.ReasoningContent = reasoningContent
+		msg.Reasoning = reasoning
+	}
+}
+
+func shouldPreserveOpenAICompatReasoning(baseURL, modelName string) bool {
+	lowerBaseURL := strings.ToLower(strings.TrimSpace(baseURL))
+	lowerModelName := strings.ToLower(strings.TrimSpace(modelName))
+
+	return strings.Contains(lowerBaseURL, "deepseek") || strings.Contains(lowerModelName, "deepseek")
 }
 
 func normalizeMessagesForOpenAICompat(messages []model.Message) {

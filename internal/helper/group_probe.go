@@ -146,8 +146,14 @@ func runGroupModelTest(ctx context.Context, group *appmodel.Group, channels map[
 			continue
 		}
 
+		if err := validateGroupProbeChannelType(group.EndpointType, channel.Type); err != nil {
+			result.Message = err.Error()
+			appendGroupTestResult(summary, progress, result)
+			continue
+		}
+
 		for attempt := 1; attempt <= 3; attempt++ {
-			statusCode, responseText, err := sendHiTestRequest(ctx, outAdapter, &channel, usedKey.ChannelKey, item.ModelName)
+			statusCode, responseText, err := sendGroupProbeRequest(ctx, outAdapter, &channel, usedKey.ChannelKey, group.EndpointType, item.ModelName)
 			result.StatusCode = statusCode
 			result.ResponseText = responseText
 			if err == nil {
@@ -211,7 +217,7 @@ func cloneGroupModelProgress(progress *GroupModelTestProgress) GroupModelTestPro
 	return cloned
 }
 
-func sendHiTestRequest(ctx context.Context, outAdapter transmodel.Outbound, channel *appmodel.Channel, key, modelName string) (int, string, error) {
+func sendGroupProbeRequest(ctx context.Context, outAdapter transmodel.Outbound, channel *appmodel.Channel, key, endpointType, modelName string) (int, string, error) {
 	if channel == nil {
 		return 0, "", fmt.Errorf("channel is nil")
 	}
@@ -221,17 +227,12 @@ func sendHiTestRequest(ctx context.Context, outAdapter transmodel.Outbound, chan
 		return 0, "", err
 	}
 
-	stream := false
-	req, err := outAdapter.TransformRequest(ctx, &transmodel.InternalLLMRequest{
-		Model: modelName,
-		Messages: []transmodel.Message{{
-			Role: "user",
-			Content: transmodel.MessageContent{
-				Content: stringPtr("hi"),
-			},
-		}},
-		Stream: &stream,
-	}, channel.GetBaseUrl(), key)
+	probeRequest, err := buildGroupProbeRequest(endpointType, modelName)
+	if err != nil {
+		return 0, "", err
+	}
+
+	req, err := outAdapter.TransformRequest(ctx, probeRequest, channel.GetBaseUrl(), key)
 	if err != nil {
 		return 0, "", err
 	}
@@ -268,6 +269,54 @@ func sendHiTestRequest(ctx context.Context, outAdapter transmodel.Outbound, chan
 	}
 
 	return resp.StatusCode, bodyText, nil
+}
+
+func buildGroupProbeRequest(endpointType, modelName string) (*transmodel.InternalLLMRequest, error) {
+	stream := false
+
+	switch normalizeGroupProbeEndpointType(endpointType) {
+	case appmodel.EndpointTypeAll, appmodel.EndpointTypeChat, appmodel.EndpointTypeResponses, appmodel.EndpointTypeMessages:
+		return &transmodel.InternalLLMRequest{
+			Model: modelName,
+			Messages: []transmodel.Message{{
+				Role: "user",
+				Content: transmodel.MessageContent{
+					Content: stringPtr("hi"),
+				},
+			}},
+			Stream: &stream,
+		}, nil
+	case appmodel.EndpointTypeEmbeddings:
+		return &transmodel.InternalLLMRequest{
+			Model:          modelName,
+			EmbeddingInput: &transmodel.EmbeddingInput{Single: stringPtr("hi")},
+		}, nil
+	default:
+		return nil, fmt.Errorf("group probe does not support endpoint type: %s", normalizeGroupProbeEndpointType(endpointType))
+	}
+}
+
+func validateGroupProbeChannelType(endpointType string, channelType outbound.OutboundType) error {
+	normalizedEndpointType := normalizeGroupProbeEndpointType(endpointType)
+
+	switch normalizedEndpointType {
+	case appmodel.EndpointTypeEmbeddings:
+		if !outbound.IsEmbeddingChannelType(channelType) {
+			return fmt.Errorf("channel type %d does not support endpoint type %s", channelType, appmodel.EndpointTypeEmbeddings)
+		}
+	case appmodel.EndpointTypeAll, appmodel.EndpointTypeChat, appmodel.EndpointTypeResponses, appmodel.EndpointTypeMessages:
+		if !outbound.IsChatChannelType(channelType) {
+			return fmt.Errorf("channel type %d does not support endpoint type %s", channelType, normalizedEndpointType)
+		}
+	default:
+		return fmt.Errorf("group probe does not support endpoint type: %s", normalizedEndpointType)
+	}
+
+	return nil
+}
+
+func normalizeGroupProbeEndpointType(endpointType string) string {
+	return appmodel.NormalizeEndpointType(endpointType)
 }
 
 func stringPtr(value string) *string {
