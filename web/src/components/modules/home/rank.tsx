@@ -13,7 +13,10 @@ type APIKeyStatsData = NonNullable<ReturnType<typeof useStatsAPIKey>['data']>[nu
 type APIKeyRankData = APIKeyStatsData & { name: string };
 
 export function Rank() {
-    const { data: channelData } = useChannelList();
+    const {
+        data: channelData,
+        isLoading: isChannelListLoading,
+    } = useChannelList();
     const t = useTranslations('home.rank');
     const rankSortMode = useHomeViewStore((state) => state.rankSortMode);
     const setRankSortMode = useHomeViewStore((state) => state.setRankSortMode);
@@ -22,25 +25,28 @@ export function Rank() {
         isLoading: isAPIKeyStatsLoading,
     } = useStatsAPIKey({ enabled: rankSortMode === 'key-usage' });
 
-    const rankedByCost = useMemo<ChannelData[]>(() => {
+    const channelsWithUsage = useMemo<ChannelData[]>(() => {
         if (!channelData) return [];
-        return [...channelData].sort((a, b) => b.formatted.total_cost.raw - a.formatted.total_cost.raw);
+        return channelData.filter((channel) => channel.formatted.request_count.raw > 0);
     }, [channelData]);
+
+    const rankedByCost = useMemo<ChannelData[]>(() => {
+        return [...channelsWithUsage].sort((a, b) => b.formatted.total_cost.raw - a.formatted.total_cost.raw);
+    }, [channelsWithUsage]);
 
     const rankedByCount = useMemo<ChannelData[]>(() => {
-        if (!channelData) return [];
-        return [...channelData].sort((a, b) => b.formatted.request_count.raw - a.formatted.request_count.raw);
-    }, [channelData]);
+        return [...channelsWithUsage].sort((a, b) => b.formatted.request_count.raw - a.formatted.request_count.raw);
+    }, [channelsWithUsage]);
 
     const rankedByTokens = useMemo<ChannelData[]>(() => {
-        if (!channelData) return [];
-        return [...channelData].sort((a, b) => b.formatted.total_token.raw - a.formatted.total_token.raw);
-    }, [channelData]);
+        return [...channelsWithUsage].sort((a, b) => b.formatted.total_token.raw - a.formatted.total_token.raw);
+    }, [channelsWithUsage]);
 
     const rankedByKeyUsage = useMemo<APIKeyRankData[]>(() => {
         if (!apiKeyStats) return [];
 
         return apiKeyStats
+            .filter((stats) => stats.request_count.raw > 0)
             .map((stats) => ({
                 ...stats,
                 name: stats.name || `Key #${stats.api_key_id}`,
@@ -57,7 +63,16 @@ export function Rank() {
         }
     };
 
-    const renderChannelList = (channels: ChannelData[], mode: Exclude<RankSortMode, 'key-usage'>) => {
+    const renderChannelList = (channels: ChannelData[], mode: Exclude<RankSortMode, 'key-usage'>, isLoading: boolean) => {
+        if (isLoading) {
+            return (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <Loader2 className="w-12 h-12 mb-3 opacity-50 animate-spin" />
+                    <p className="text-sm">{t('loading')}</p>
+                </div>
+            );
+        }
+
         if (channels.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
@@ -225,13 +240,13 @@ export function Rank() {
                 </div>
                 <TabsContents>
                     <TabsContent value="cost">
-                        {renderChannelList(rankedByCost, 'cost')}
+                        {renderChannelList(rankedByCost, 'cost', isChannelListLoading)}
                     </TabsContent>
                     <TabsContent value="count">
-                        {renderChannelList(rankedByCount, 'count')}
+                        {renderChannelList(rankedByCount, 'count', isChannelListLoading)}
                     </TabsContent>
                     <TabsContent value="tokens">
-                        {renderChannelList(rankedByTokens, 'tokens')}
+                        {renderChannelList(rankedByTokens, 'tokens', isChannelListLoading)}
                     </TabsContent>
                     <TabsContent value="key-usage">
                         {renderAPIKeyList(rankedByKeyUsage, isAPIKeyStatsLoading)}

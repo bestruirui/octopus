@@ -44,6 +44,10 @@ func getMaxRetryPerCandidate() int {
 	return v
 }
 
+func getMaxAttemptsPerCandidate() int {
+	return getMaxRetryPerCandidate() + 1
+}
+
 func getRatelimitCooldown() int {
 	v, err := op.SettingGetInt(dbmodel.SettingKeyRatelimitCooldown)
 	if err != nil || v < 0 {
@@ -111,9 +115,9 @@ type relayAttempt struct {
 
 // attemptResult 封装单次尝试的结果
 type attemptResult struct {
-	Success  bool         // 是否成功
-	Written  bool         // 流式响应是否已开始写入（不可重试）
-	Err      error        // 失败时的错误
+	Success  bool          // 是否成功
+	Written  bool          // 流式响应是否已开始写入（不可重试）
+	Err      error         // 失败时的错误
 	Decision RetryDecision // 重试决策（新增）
 }
 
@@ -121,10 +125,10 @@ type attemptResult struct {
 type RetryScope int
 
 const (
-	ScopeNone       RetryScope = iota // 不重试，请求结束（成功或直接失败）
-	ScopeSameChannel                  // 同候选换 Key 重试
-	ScopeNextChannel                  // 换下一个候选重试
-	ScopeAbortAll                     // 停止所有重试（已写入流式响应）
+	ScopeNone        RetryScope = iota // 不重试，请求结束（成功或直接失败）
+	ScopeSameChannel                   // 同候选换 Key 重试
+	ScopeNextChannel                   // 换下一个候选重试
+	ScopeAbortAll                      // 停止所有重试（已写入流式响应）
 )
 
 func (s RetryScope) String() string {

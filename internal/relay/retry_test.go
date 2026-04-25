@@ -282,6 +282,14 @@ func TestRelayAttemptForward_ReturnsUpstreamStatusCodeOnError(t *testing.T) {
 	}
 }
 
+func TestGetMaxAttemptsPerCandidate_Default(t *testing.T) {
+	got := getMaxAttemptsPerCandidate()
+	want := defaultMaxRetryPerCandidate + 1
+	if got != want {
+		t.Fatalf("getMaxAttemptsPerCandidate() = %d, want %d", got, want)
+	}
+}
+
 func TestRetryScope_String(t *testing.T) {
 	tests := []struct {
 		scope RetryScope
@@ -305,32 +313,32 @@ func TestRetryScope_String(t *testing.T) {
 
 func TestIsRetryAllowed(t *testing.T) {
 	tests := []struct {
-		name            string
-		decision        RetryDecision
-		wantContinue    bool
-		wantSwitch      bool
+		name         string
+		decision     RetryDecision
+		wantContinue bool
+		wantSwitch   bool
 	}{
 		{
-			name: "ScopeNone - no retry",
-			decision: RetryDecision{Scope: ScopeNone},
+			name:         "ScopeNone - no retry",
+			decision:     RetryDecision{Scope: ScopeNone},
 			wantContinue: false,
 			wantSwitch:   false,
 		},
 		{
-			name: "ScopeSameChannel - retry same channel",
-			decision: RetryDecision{Scope: ScopeSameChannel},
+			name:         "ScopeSameChannel - retry same channel",
+			decision:     RetryDecision{Scope: ScopeSameChannel},
 			wantContinue: true,
 			wantSwitch:   false,
 		},
 		{
-			name: "ScopeNextChannel - switch channel",
-			decision: RetryDecision{Scope: ScopeNextChannel},
+			name:         "ScopeNextChannel - switch channel",
+			decision:     RetryDecision{Scope: ScopeNextChannel},
 			wantContinue: true,
 			wantSwitch:   true,
 		},
 		{
-			name: "ScopeAbortAll - stop all",
-			decision: RetryDecision{Scope: ScopeAbortAll},
+			name:         "ScopeAbortAll - stop all",
+			decision:     RetryDecision{Scope: ScopeAbortAll},
 			wantContinue: false,
 			wantSwitch:   false,
 		},

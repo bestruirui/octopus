@@ -140,6 +140,18 @@ func (it *Iterator) Attempts() []model.ChannelAttempt {
 	return it.attempts
 }
 
+// ForwardedAttempts 返回真实发往上游的尝试次数，不包含跳过和熔断拒绝。
+func (it *Iterator) ForwardedAttempts() int {
+	count := 0
+	for _, attempt := range it.attempts {
+		if attempt.Status == model.AttemptSkipped || attempt.Status == model.AttemptCircuitBreak {
+			continue
+		}
+		count++
+	}
+	return count
+}
+
 // AttemptSpan 管理单次通道尝试的生命周期（计时、状态、结果）
 type AttemptSpan struct {
 	attempt   model.ChannelAttempt

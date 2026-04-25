@@ -142,13 +142,13 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	}
 
 	var lastErr error
-	retryCount := getMaxRetryPerCandidate()
+	maxAttemptsPerCandidate := getMaxAttemptsPerCandidate()
 	ratelimitCooldown := getRatelimitCooldown()
 	maxTotalAttempts := getMaxTotalAttempts()
 
 outer:
 	for iter.Next() {
-		if maxTotalAttempts > 0 && len(iter.Attempts()) >= maxTotalAttempts {
+		if maxTotalAttempts > 0 && iter.ForwardedAttempts() >= maxTotalAttempts {
 			lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 			break
 		}
@@ -218,8 +218,8 @@ outer:
 
 		var failedKeyIDs []int
 	innerRetry:
-		for tryIndex := 1; tryIndex <= retryCount; tryIndex++ {
-			if maxTotalAttempts > 0 && len(iter.Attempts()) >= maxTotalAttempts {
+		for tryIndex := 1; tryIndex <= maxAttemptsPerCandidate; tryIndex++ {
+			if maxTotalAttempts > 0 && iter.ForwardedAttempts() >= maxTotalAttempts {
 				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 				break outer
 			}
@@ -244,9 +244,9 @@ outer:
 				}
 			}
 
-			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s key_id: %d (candidate %d/%d, retry %d/%d, sticky=%t)",
+			log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s key_id: %d (candidate %d/%d, attempt %d/%d, sticky=%t)",
 				requestModel, group.Mode, channel.Name, resolvedModelName, usedKey.ID,
-				iter.Index()+1, iter.Len(), tryIndex, retryCount, iter.IsSticky())
+				iter.Index()+1, iter.Len(), tryIndex, maxAttemptsPerCandidate, iter.IsSticky())
 
 			ra := &relayAttempt{
 				relayRequest:         req,
@@ -255,7 +255,7 @@ outer:
 				usedKey:              usedKey,
 				firstTokenTimeOutSec: group.FirstTokenTimeOut,
 				tryIndex:             tryIndex,
-				tryTotal:             retryCount,
+				tryTotal:             maxAttemptsPerCandidate,
 			}
 
 			result := ra.attempt()
@@ -333,10 +333,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 		span.End(dbmodel.AttemptSuccess, statusCode, "")
 
 		// Channel 维度统计
-		op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
-			WaitTime:       span.Duration().Milliseconds(),
-			RequestSuccess: 1,
-		})
+		updateChannelSuccessStats(ra.channel.ID, span.Duration().Milliseconds(), ra.metrics.Stats)
 
 		// 熔断器：记录成功
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
@@ -354,7 +351,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 	// 构造日志消息
 	msg := decision.String()
 	if ra.tryTotal > 1 {
-		msg = fmt.Sprintf("retry %d/%d: %s", ra.tryIndex, ra.tryTotal, msg)
+		msg = fmt.Sprintf("attempt %d/%d: %s", ra.tryIndex, ra.tryTotal, msg)
 	}
 	span.End(dbmodel.AttemptFailed, statusCode, msg)
 
@@ -377,14 +374,14 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 	// 记录决策日志
 	if decision.IsError {
-		log.Warnf("channel %s failed on retry %d/%d: %s (decision: %s)",
+		log.Warnf("channel %s failed on attempt %d/%d: %s (decision: %s)",
 			ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr, decision.Scope.String())
 	}
 
 	return attemptResult{
 		Success:  false,
 		Written:  written,
-		Err:      fmt.Errorf("channel %s failed on retry %d/%d: %v", ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr),
+		Err:      fmt.Errorf("channel %s failed on attempt %d/%d: %v", ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr),
 		Decision: decision,
 	}
 }

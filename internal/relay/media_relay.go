@@ -78,14 +78,14 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 	}
 
 	ratelimitCooldown := getRatelimitCooldown()
-	retryCount := getMaxRetryPerCandidate()
+	maxAttemptsPerCandidate := getMaxAttemptsPerCandidate()
 	maxTotalAttempts := getMaxTotalAttempts()
 
 	var lastErr error
 
 outer:
 	for iter.Next() {
-		if maxTotalAttempts > 0 && len(iter.Attempts()) >= maxTotalAttempts {
+		if maxTotalAttempts > 0 && iter.ForwardedAttempts() >= maxTotalAttempts {
 			lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 			break
 		}
@@ -100,17 +100,7 @@ outer:
 
 		prepare := PrepareCandidate(c.Request.Context(), item, iter, ratelimitCooldown, requestModel, nil)
 		if prepare.SkipReason != "" {
-			channelID := item.ChannelID
-			channelName := fmt.Sprintf("channel_%d", item.ChannelID)
-			keyID := 0
-			if prepare.Channel != nil {
-				channelID = prepare.Channel.ID
-				channelName = prepare.Channel.Name
-			}
-			if prepare.UsedKey.ID != 0 {
-				keyID = prepare.UsedKey.ID
-			}
-			iter.Skip(channelID, keyID, channelName, prepare.SkipReason)
+			recordPreparedCandidateSkip(iter, item, prepare)
 			continue
 		}
 
@@ -120,8 +110,8 @@ outer:
 
 		var failedKeyIDs []int
 	innerRetry:
-		for tryIndex := 1; tryIndex <= retryCount; tryIndex++ {
-			if maxTotalAttempts > 0 && len(iter.Attempts()) >= maxTotalAttempts {
+		for tryIndex := 1; tryIndex <= maxAttemptsPerCandidate; tryIndex++ {
+			if maxTotalAttempts > 0 && iter.ForwardedAttempts() >= maxTotalAttempts {
 				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 				break outer
 			}
@@ -145,9 +135,9 @@ outer:
 				}
 			}
 
-			log.Infof("media relay: endpoint=%d, model=%s, forwarding to channel: %s model: %s key_id: %d (candidate %d/%d, retry %d/%d)",
+			log.Infof("media relay: endpoint=%d, model=%s, forwarding to channel: %s model: %s key_id: %d (candidate %d/%d, attempt %d/%d)",
 				endpointType, requestModel, channel.Name, resolvedModel, usedKey.ID,
-				iter.Index()+1, iter.Len(), tryIndex, retryCount)
+				iter.Index()+1, iter.Len(), tryIndex, maxAttemptsPerCandidate)
 
 			span := iter.StartAttempt(channel.ID, usedKey.ID, channel.Name, resolvedModel)
 
@@ -183,8 +173,8 @@ outer:
 
 			// 构造日志消息
 			msg := decision.String()
-			if retryCount > 1 {
-				msg = fmt.Sprintf("retry %d/%d: %s", tryIndex, retryCount, msg)
+			if maxAttemptsPerCandidate > 1 {
+				msg = fmt.Sprintf("attempt %d/%d: %s", tryIndex, maxAttemptsPerCandidate, msg)
 			}
 			span.End(dbmodel.AttemptFailed, statusCode, msg)
 			op.StatsChannelUpdate(channel.ID, dbmodel.StatsMetrics{
@@ -199,8 +189,8 @@ outer:
 			}
 
 			if decision.IsError {
-				log.Warnf("media relay: channel %s failed on retry %d/%d: %v (decision: %s)",
-					channel.Name, tryIndex, retryCount, fwdErr, decision.Scope.String())
+				log.Warnf("media relay: channel %s failed on attempt %d/%d: %v (decision: %s)",
+					channel.Name, tryIndex, maxAttemptsPerCandidate, fwdErr, decision.Scope.String())
 			}
 
 			// 根据错误分类决策进行重试控制
@@ -238,6 +228,28 @@ outer:
 
 	// All channels failed
 	resp.Error(c, http.StatusBadGateway, fmt.Sprintf("all channels failed: %v", lastErr))
+}
+
+func recordPreparedCandidateSkip(iter *balancer.Iterator, item dbmodel.GroupItem, prepare PrepareCandidateResult) {
+	if prepare.SkipReason == "" {
+		return
+	}
+	// PrepareCandidate already records circuit-break rejections with cooldown details.
+	if prepare.SkipStatus == dbmodel.AttemptCircuitBreak {
+		return
+	}
+
+	channelID := item.ChannelID
+	channelName := fmt.Sprintf("channel_%d", item.ChannelID)
+	keyID := 0
+	if prepare.Channel != nil {
+		channelID = prepare.Channel.ID
+		channelName = prepare.Channel.Name
+	}
+	if prepare.UsedKey.ID != 0 {
+		keyID = prepare.UsedKey.ID
+	}
+	iter.Skip(channelID, keyID, channelName, prepare.SkipReason)
 }
 
 // extractModelFromRequest extracts the model name from the request body.

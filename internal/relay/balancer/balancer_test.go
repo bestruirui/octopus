@@ -102,3 +102,18 @@ func TestAutoCandidatesUseWeightPriorityAsTieBreaker(t *testing.T) {
 		t.Fatalf("Candidates()[0].ChannelID = %d, want 2", got[0].ChannelID)
 	}
 }
+
+func TestIteratorForwardedAttemptsExcludesSkippedAndCircuitBreak(t *testing.T) {
+	it := &Iterator{
+		attempts: []model.ChannelAttempt{
+			{Status: model.AttemptSkipped},
+			{Status: model.AttemptCircuitBreak},
+			{Status: model.AttemptFailed},
+			{Status: model.AttemptSuccess},
+		},
+	}
+
+	if got := it.ForwardedAttempts(); got != 2 {
+		t.Fatalf("ForwardedAttempts() = %d, want 2", got)
+	}
+}
