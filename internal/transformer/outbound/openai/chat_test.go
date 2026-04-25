@@ -151,10 +151,11 @@ func TestChatOutboundTransformRequest_PreservesMixedMultiPartContent(t *testing.
 	}
 }
 
-func TestChatOutboundTransformRequest_PreservesReasoningContentForDeepSeekCompat(t *testing.T) {
+func TestChatOutboundTransformRequest_PreservesReasoningContentForDeepSeekToolContinuation(t *testing.T) {
 	outbound := &ChatOutbound{}
 	reasoning := "need one more tool round"
 	content := ""
+	toolCallID := "call_1"
 
 	request := &model.InternalLLMRequest{
 		Model: "deepseek-v4-pro",
@@ -165,11 +166,21 @@ func TestChatOutboundTransformRequest_PreservesReasoningContentForDeepSeekCompat
 					Content: &content,
 				},
 				ReasoningContent: &reasoning,
+				ToolCalls: []model.ToolCall{
+					{
+						ID:   toolCallID,
+						Type: "function",
+						Function: model.FunctionCall{
+							Name:      "lookup_weather",
+							Arguments: `{"city":"Shanghai"}`,
+						},
+					},
+				},
 			},
 		},
 	}
 
-	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://openrouter.ai/api/v1", "sk-test")
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://api.deepseek.com/v1", "sk-test")
 	if err != nil {
 		t.Fatalf("TransformRequest() error = %v", err)
 	}
@@ -196,6 +207,51 @@ func TestChatOutboundTransformRequest_PreservesReasoningContentForDeepSeekCompat
 	}
 	if request.Messages[0].ReasoningContent == nil || *request.Messages[0].ReasoningContent != reasoning {
 		t.Fatalf("expected original request reasoning_content to stay intact")
+	}
+}
+
+func TestChatOutboundTransformRequest_ClearsReasoningContentForDeepSeekFollowUpTurn(t *testing.T) {
+	outbound := &ChatOutbound{}
+	reasoning := "finished reasoning from the prior turn"
+	content := "final answer"
+
+	request := &model.InternalLLMRequest{
+		Model: "deepseek-v4-pro",
+		Messages: []model.Message{
+			{
+				Role: "assistant",
+				Content: model.MessageContent{
+					Content: &content,
+				},
+				ReasoningContent: &reasoning,
+			},
+		},
+	}
+
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://api.deepseek.com/v1", "sk-test")
+	if err != nil {
+		t.Fatalf("TransformRequest() error = %v", err)
+	}
+
+	body, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		t.Fatalf("failed to read request body: %v", err)
+	}
+
+	var got struct {
+		Messages []struct {
+			ReasoningContent *string `json:"reasoning_content,omitempty"`
+		} `json:"messages"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal outbound body: %v", err)
+	}
+
+	if len(got.Messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(got.Messages))
+	}
+	if got.Messages[0].ReasoningContent != nil {
+		t.Fatalf("expected reasoning_content to be cleared for DeepSeek follow-up turns, got %q", *got.Messages[0].ReasoningContent)
 	}
 }
 
@@ -244,10 +300,11 @@ func TestChatOutboundTransformRequest_ClearsReasoningContentForGenericOpenAIComp
 	}
 }
 
-func TestChatOutboundTransformRequest_PreservesReasoningAliasForDeepSeekCompat(t *testing.T) {
+func TestChatOutboundTransformRequest_NormalizesReasoningAliasForDeepSeekToolContinuation(t *testing.T) {
 	outbound := &ChatOutbound{}
 	reasoning := "provider-specific reasoning alias"
 	content := ""
+	toolCallID := "call_2"
 
 	request := &model.InternalLLMRequest{
 		Model: "deepseek-chat",
@@ -258,6 +315,16 @@ func TestChatOutboundTransformRequest_PreservesReasoningAliasForDeepSeekCompat(t
 					Content: &content,
 				},
 				Reasoning: &reasoning,
+				ToolCalls: []model.ToolCall{
+					{
+						ID:   toolCallID,
+						Type: "function",
+						Function: model.FunctionCall{
+							Name:      "lookup_weather",
+							Arguments: `{"city":"Shanghai"}`,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -274,7 +341,8 @@ func TestChatOutboundTransformRequest_PreservesReasoningAliasForDeepSeekCompat(t
 
 	var got struct {
 		Messages []struct {
-			Reasoning *string `json:"reasoning,omitempty"`
+			ReasoningContent *string `json:"reasoning_content,omitempty"`
+			Reasoning        *string `json:"reasoning,omitempty"`
 		} `json:"messages"`
 	}
 	if err := json.Unmarshal(body, &got); err != nil {
@@ -284,8 +352,11 @@ func TestChatOutboundTransformRequest_PreservesReasoningAliasForDeepSeekCompat(t
 	if len(got.Messages) != 1 {
 		t.Fatalf("expected 1 message, got %d", len(got.Messages))
 	}
-	if got.Messages[0].Reasoning == nil || *got.Messages[0].Reasoning != reasoning {
-		t.Fatalf("expected reasoning %q, got %#v", reasoning, got.Messages[0].Reasoning)
+	if got.Messages[0].ReasoningContent == nil || *got.Messages[0].ReasoningContent != reasoning {
+		t.Fatalf("expected reasoning_content %q, got %#v", reasoning, got.Messages[0].ReasoningContent)
+	}
+	if got.Messages[0].Reasoning != nil {
+		t.Fatalf("expected reasoning alias to be normalized away for DeepSeek, got %q", *got.Messages[0].Reasoning)
 	}
 	if request.Messages[0].Reasoning == nil || *request.Messages[0].Reasoning != reasoning {
 		t.Fatalf("expected original request reasoning to stay intact")
