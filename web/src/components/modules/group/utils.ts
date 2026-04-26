@@ -22,6 +22,7 @@ export const MODE_LABELS: Record<GroupMode, string> = {
 export const ENDPOINT_TYPE_OPTIONS = [
     { label: '全部', value: '*' },
     { label: '对话', value: 'chat' },
+    { label: 'DeepSeek', value: 'deepseek' },
     { label: 'Embeddings', value: 'embeddings' },
     { label: 'Rerank', value: 'rerank' },
     { label: 'Moderations', value: 'moderations' },

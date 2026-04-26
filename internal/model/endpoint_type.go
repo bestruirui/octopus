@@ -5,6 +5,7 @@ import "strings"
 const (
 	EndpointTypeAll                = "*"
 	EndpointTypeChat               = "chat"
+	EndpointTypeDeepSeek           = "deepseek"
 	EndpointTypeResponses          = "responses"
 	EndpointTypeMessages           = "messages"
 	EndpointTypeEmbeddings         = "embeddings"
@@ -24,4 +25,13 @@ func NormalizeEndpointType(endpointType string) string {
 		return EndpointTypeAll
 	}
 	return strings.ToLower(endpointType)
+}
+
+func IsConversationEndpointType(endpointType string) bool {
+	switch NormalizeEndpointType(endpointType) {
+	case EndpointTypeChat, EndpointTypeDeepSeek, EndpointTypeResponses, EndpointTypeMessages:
+		return true
+	default:
+		return false
+	}
 }

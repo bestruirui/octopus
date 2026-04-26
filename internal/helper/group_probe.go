@@ -273,9 +273,15 @@ func sendGroupProbeRequest(ctx context.Context, outAdapter transmodel.Outbound, 
 
 func buildGroupProbeRequest(endpointType, modelName string) (*transmodel.InternalLLMRequest, error) {
 	stream := false
+	normalizedEndpointType := normalizeGroupProbeEndpointType(endpointType)
 
-	switch normalizeGroupProbeEndpointType(endpointType) {
-	case appmodel.EndpointTypeAll, appmodel.EndpointTypeChat, appmodel.EndpointTypeResponses, appmodel.EndpointTypeMessages:
+	switch {
+	case normalizedEndpointType == appmodel.EndpointTypeEmbeddings:
+		return &transmodel.InternalLLMRequest{
+			Model:          modelName,
+			EmbeddingInput: &transmodel.EmbeddingInput{Single: stringPtr("hi")},
+		}, nil
+	case normalizedEndpointType == appmodel.EndpointTypeAll || appmodel.IsConversationEndpointType(normalizedEndpointType):
 		return &transmodel.InternalLLMRequest{
 			Model: modelName,
 			Messages: []transmodel.Message{{
@@ -286,13 +292,8 @@ func buildGroupProbeRequest(endpointType, modelName string) (*transmodel.Interna
 			}},
 			Stream: &stream,
 		}, nil
-	case appmodel.EndpointTypeEmbeddings:
-		return &transmodel.InternalLLMRequest{
-			Model:          modelName,
-			EmbeddingInput: &transmodel.EmbeddingInput{Single: stringPtr("hi")},
-		}, nil
 	default:
-		return nil, fmt.Errorf("group probe does not support endpoint type: %s", normalizeGroupProbeEndpointType(endpointType))
+		return nil, fmt.Errorf("group probe does not support endpoint type: %s", normalizedEndpointType)
 	}
 }
 
@@ -304,11 +305,15 @@ func validateGroupProbeChannelType(endpointType string, channelType outbound.Out
 		if !outbound.IsEmbeddingChannelType(channelType) {
 			return fmt.Errorf("channel type %d does not support endpoint type %s", channelType, appmodel.EndpointTypeEmbeddings)
 		}
-	case appmodel.EndpointTypeAll, appmodel.EndpointTypeChat, appmodel.EndpointTypeResponses, appmodel.EndpointTypeMessages:
-		if !outbound.IsChatChannelType(channelType) {
-			return fmt.Errorf("channel type %d does not support endpoint type %s", channelType, normalizedEndpointType)
-		}
+	case appmodel.EndpointTypeAll:
+		fallthrough
 	default:
+		if appmodel.IsConversationEndpointType(normalizedEndpointType) {
+			if !outbound.IsChatChannelType(channelType) {
+				return fmt.Errorf("channel type %d does not support endpoint type %s", channelType, normalizedEndpointType)
+			}
+			return nil
+		}
 		return fmt.Errorf("group probe does not support endpoint type: %s", normalizedEndpointType)
 	}
 

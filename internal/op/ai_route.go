@@ -770,6 +770,7 @@ func buildAIRouteUserPrompt(promptEndpointType string, targetGroupName string, p
 }
 
 func buildAIRoutePromptBuckets(modelInputs []model.AIRouteModelInput, targetPromptEndpointType string) []aiRoutePromptBucket {
+	targetGroupEndpointType := model.NormalizeEndpointType(targetPromptEndpointType)
 	if strings.TrimSpace(targetPromptEndpointType) != "" {
 		targetPromptEndpointType = normalizeAIRoutePromptEndpointType(targetPromptEndpointType)
 	}
@@ -789,6 +790,9 @@ func buildAIRoutePromptBuckets(modelInputs []model.AIRouteModelInput, targetProm
 			},
 			seen: make(map[string]struct{}),
 		}
+	}
+	if targetGroupEndpointType == model.EndpointTypeDeepSeek {
+		states[model.EndpointTypeChat].bucket.GroupEndpointType = model.EndpointTypeDeepSeek
 	}
 
 	for _, input := range modelInputs {
@@ -896,7 +900,7 @@ func inferAIRoutePromptEndpointType(modelName string) string {
 
 func normalizeAIRoutePromptEndpointType(endpointType string) string {
 	switch model.NormalizeEndpointType(endpointType) {
-	case "", model.EndpointTypeAll, model.EndpointTypeChat, model.EndpointTypeResponses, model.EndpointTypeMessages:
+	case "", model.EndpointTypeAll, model.EndpointTypeChat, model.EndpointTypeDeepSeek, model.EndpointTypeResponses, model.EndpointTypeMessages:
 		return model.EndpointTypeChat
 	default:
 		return model.NormalizeEndpointType(endpointType)
@@ -964,7 +968,8 @@ func airoutePromptEndpointLabel(endpointType string) string {
 func detectAIRoutePromptEndpointTypeForGroup(group model.Group) string {
 	current := model.NormalizeEndpointType(group.EndpointType)
 	switch current {
-	case model.EndpointTypeEmbeddings,
+	case model.EndpointTypeDeepSeek,
+		model.EndpointTypeEmbeddings,
 		model.EndpointTypeRerank,
 		model.EndpointTypeModerations,
 		model.EndpointTypeImageGeneration,

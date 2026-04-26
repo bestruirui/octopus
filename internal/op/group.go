@@ -192,29 +192,48 @@ func makeGroupCacheKey(endpointType, name string) string {
 	return model.NormalizeEndpointType(endpointType) + groupCacheKeySep + strings.TrimSpace(name)
 }
 
-func conversationEndpointLookupOrder(endpointType string) []string {
+func looksLikeDeepSeekConversationModel(requestModel string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(requestModel))
+	return normalized != "" && strings.Contains(normalized, model.EndpointTypeDeepSeek)
+}
+
+func conversationEndpointLookupOrder(endpointType string, requestModel string) []string {
+	var order []string
 	switch model.NormalizeEndpointType(endpointType) {
 	case model.EndpointTypeChat:
-		return []string{
+		order = []string{
 			model.EndpointTypeChat,
 			model.EndpointTypeResponses,
 			model.EndpointTypeMessages,
 		}
 	case model.EndpointTypeResponses:
-		return []string{
+		order = []string{
 			model.EndpointTypeResponses,
 			model.EndpointTypeChat,
 			model.EndpointTypeMessages,
 		}
 	case model.EndpointTypeMessages:
-		return []string{
+		order = []string{
 			model.EndpointTypeMessages,
 			model.EndpointTypeChat,
 			model.EndpointTypeResponses,
 		}
+	case model.EndpointTypeDeepSeek:
+		order = []string{
+			model.EndpointTypeDeepSeek,
+			model.EndpointTypeChat,
+			model.EndpointTypeResponses,
+			model.EndpointTypeMessages,
+		}
 	default:
 		return nil
 	}
+
+	if looksLikeDeepSeekConversationModel(requestModel) && model.NormalizeEndpointType(endpointType) != model.EndpointTypeDeepSeek {
+		return append([]string{model.EndpointTypeDeepSeek}, order...)
+	}
+
+	return order
 }
 
 func normalizeGroup(group model.Group) model.Group {
@@ -375,7 +394,7 @@ func GroupGet(id int, ctx context.Context) (*model.Group, error) {
 func GroupGetEnabledMapByEndpoint(endpointType string, name string, ctx context.Context) (model.Group, error) {
 	endpointType = model.NormalizeEndpointType(endpointType)
 
-	lookupOrder := conversationEndpointLookupOrder(endpointType)
+	lookupOrder := conversationEndpointLookupOrder(endpointType, name)
 	if len(lookupOrder) == 0 {
 		lookupOrder = []string{endpointType}
 	}

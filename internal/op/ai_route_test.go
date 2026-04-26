@@ -279,6 +279,20 @@ func TestDetectAIRoutePromptEndpointTypeForGroupPrefersNonChatWhenStable(t *test
 	}
 }
 
+func TestDetectAIRoutePromptEndpointTypeForGroup_PreservesDeepSeekEndpointType(t *testing.T) {
+	group := model.Group{
+		EndpointType: model.EndpointTypeDeepSeek,
+		Items: []model.GroupItem{
+			{ModelName: "deepseek-chat"},
+		},
+	}
+
+	got := detectAIRoutePromptEndpointTypeForGroup(group)
+	if got != model.EndpointTypeDeepSeek {
+		t.Fatalf("detectAIRoutePromptEndpointTypeForGroup() = %q, want %q", got, model.EndpointTypeDeepSeek)
+	}
+}
+
 func TestBuildAIRoutePromptBucketsSplitsLargeBucket(t *testing.T) {
 	inputs := make([]model.AIRouteModelInput, 0, aiRouteMaxModelsPerRequest+5)
 	for i := 0; i < aiRouteMaxModelsPerRequest+5; i++ {
@@ -305,6 +319,23 @@ func TestBuildAIRoutePromptBucketsSplitsLargeBucket(t *testing.T) {
 
 	if total != len(inputs) {
 		t.Fatalf("buildAIRoutePromptBuckets() total = %d, want %d", total, len(inputs))
+	}
+}
+
+func TestBuildAIRoutePromptBuckets_PreservesDeepSeekGroupEndpointTypeForChatPrompts(t *testing.T) {
+	inputs := []model.AIRouteModelInput{
+		{ChannelID: 1, ChannelName: "chat", Provider: "openai", Model: "deepseek-chat"},
+	}
+
+	got := buildAIRoutePromptBuckets(inputs, model.EndpointTypeDeepSeek)
+	if len(got) != 1 {
+		t.Fatalf("buildAIRoutePromptBuckets() len = %d, want 1", len(got))
+	}
+	if got[0].PromptEndpointType != model.EndpointTypeChat {
+		t.Fatalf("prompt endpoint type = %q, want %q", got[0].PromptEndpointType, model.EndpointTypeChat)
+	}
+	if got[0].GroupEndpointType != model.EndpointTypeDeepSeek {
+		t.Fatalf("group endpoint type = %q, want %q", got[0].GroupEndpointType, model.EndpointTypeDeepSeek)
 	}
 }
 

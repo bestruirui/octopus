@@ -132,13 +132,14 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 
 	// 请求级上下文
 	req := &relayRequest{
-		c:               c,
-		inAdapter:       inAdapter,
-		internalRequest: internalRequest,
-		metrics:         metrics,
-		apiKeyID:        apiKeyID,
-		requestModel:    requestModel,
-		iter:            iter,
+		c:                 c,
+		inAdapter:         inAdapter,
+		internalRequest:   internalRequest,
+		metrics:           metrics,
+		apiKeyID:          apiKeyID,
+		requestModel:      requestModel,
+		groupEndpointType: group.EndpointType,
+		iter:              iter,
 	}
 
 	var lastErr error
@@ -416,7 +417,7 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 func (ra *relayAttempt) forward() (int, error) {
 	ctx := ra.c.Request.Context()
 
-	requestForOutbound, err := prepareInternalRequestForOutbound(ra.channel, ra.internalRequest)
+	requestForOutbound, err := prepareInternalRequestForOutbound(ra.channel, ra.internalRequest, ra.groupEndpointType)
 	if err != nil {
 		log.Warnf("failed to prepare outbound request data: %v", err)
 		return 0, fmt.Errorf("failed to prepare outbound request data: %w", err)

@@ -251,7 +251,116 @@ func TestChatOutboundTransformRequest_ClearsReasoningContentForDeepSeekFollowUpT
 		t.Fatalf("expected 1 message, got %d", len(got.Messages))
 	}
 	if got.Messages[0].ReasoningContent != nil {
-		t.Fatalf("expected reasoning_content to be cleared for DeepSeek follow-up turns, got %q", *got.Messages[0].ReasoningContent)
+		t.Fatalf("expected reasoning_content to be cleared for DeepSeek follow-up turns, got %#v", got.Messages[0].ReasoningContent)
+	}
+	if request.Messages[0].ReasoningContent == nil || *request.Messages[0].ReasoningContent != reasoning {
+		t.Fatalf("expected original request reasoning_content to stay intact")
+	}
+}
+
+func TestChatOutboundTransformRequest_PreservesReasoningContentForDeepSeekEndpointCategory(t *testing.T) {
+	outbound := &ChatOutbound{}
+	reasoning := "preserve via deepseek endpoint category"
+	content := "final answer"
+	toolCallID := "call_123"
+	toolCallName := "search"
+	toolCallArgs := "{}"
+
+	request := &model.InternalLLMRequest{
+		Model: "custom-chat-model",
+		Messages: []model.Message{
+			{
+				Role: "assistant",
+				Content: model.MessageContent{
+					Content: &content,
+				},
+				ReasoningContent: &reasoning,
+				ToolCalls: []model.ToolCall{
+					{
+						ID:   toolCallID,
+						Type: "function",
+						Function: model.FunctionCall{
+							Name:      toolCallName,
+							Arguments: toolCallArgs,
+						},
+					},
+				},
+			},
+		},
+		TransformerMetadata: map[string]string{
+			model.TransformerMetadataGroupEndpointType: "deepseek",
+		},
+	}
+
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://proxy.example.com/v1", "sk-test")
+	if err != nil {
+		t.Fatalf("TransformRequest() error = %v", err)
+	}
+
+	body, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		t.Fatalf("failed to read request body: %v", err)
+	}
+
+	var got struct {
+		Messages []struct {
+			ReasoningContent *string `json:"reasoning_content,omitempty"`
+		} `json:"messages"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal outbound body: %v", err)
+	}
+
+	if len(got.Messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(got.Messages))
+	}
+	if got.Messages[0].ReasoningContent == nil || *got.Messages[0].ReasoningContent != reasoning {
+		t.Fatalf("expected reasoning_content %q to be preserved for deepseek endpoint category, got %#v", reasoning, got.Messages[0].ReasoningContent)
+	}
+}
+
+func TestChatOutboundTransformRequest_ClearsReasoningContentForDeepSeekReasonerFollowUpTurn(t *testing.T) {
+	outbound := &ChatOutbound{}
+	reasoning := "reasoner chain of thought"
+	content := "final answer"
+
+	request := &model.InternalLLMRequest{
+		Model: "deepseek-reasoner",
+		Messages: []model.Message{
+			{
+				Role: "assistant",
+				Content: model.MessageContent{
+					Content: &content,
+				},
+				ReasoningContent: &reasoning,
+			},
+		},
+	}
+
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://api.deepseek.com/v1", "sk-test")
+	if err != nil {
+		t.Fatalf("TransformRequest() error = %v", err)
+	}
+
+	body, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		t.Fatalf("failed to read request body: %v", err)
+	}
+
+	var got struct {
+		Messages []struct {
+			ReasoningContent *string `json:"reasoning_content,omitempty"`
+		} `json:"messages"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal outbound body: %v", err)
+	}
+
+	if len(got.Messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(got.Messages))
+	}
+	if got.Messages[0].ReasoningContent != nil {
+		t.Fatalf("expected reasoning_content to be cleared for deepseek-reasoner follow-up turns, got %q", *got.Messages[0].ReasoningContent)
 	}
 }
 

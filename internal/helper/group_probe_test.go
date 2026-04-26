@@ -16,6 +16,7 @@ func TestBuildGroupProbeRequest_ConversationEndpointsUseMessages(t *testing.T) {
 	for _, endpointType := range []string{
 		appmodel.EndpointTypeAll,
 		appmodel.EndpointTypeChat,
+		appmodel.EndpointTypeDeepSeek,
 		appmodel.EndpointTypeResponses,
 		appmodel.EndpointTypeMessages,
 	} {

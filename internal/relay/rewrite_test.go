@@ -37,11 +37,11 @@ func TestPrepareInternalRequestForOutbound_IsScopedPerChannelAttempt(t *testing.
 		Type: outbound.OutboundTypeOpenAIChat,
 	}
 
-	rewritten, err := prepareInternalRequestForOutbound(rewriteChannel, baseRequest)
+	rewritten, err := prepareInternalRequestForOutbound(rewriteChannel, baseRequest, appmodel.EndpointTypeDeepSeek)
 	if err != nil {
 		t.Fatalf("prepareInternalRequestForOutbound() rewrite channel error = %v", err)
 	}
-	plain, err := prepareInternalRequestForOutbound(plainChannel, baseRequest)
+	plain, err := prepareInternalRequestForOutbound(plainChannel, baseRequest, appmodel.EndpointTypeChat)
 	if err != nil {
 		t.Fatalf("prepareInternalRequestForOutbound() plain channel error = %v", err)
 	}
@@ -57,5 +57,11 @@ func TestPrepareInternalRequestForOutbound_IsScopedPerChannelAttempt(t *testing.
 	}
 	if baseRequest.Messages[0].Content.Content != nil {
 		t.Fatal("base request was mutated across channel attempts")
+	}
+	if rewritten.TransformerMetadata[transmodel.TransformerMetadataGroupEndpointType] != appmodel.EndpointTypeDeepSeek {
+		t.Fatalf("rewritten transformer metadata = %#v, want deepseek endpoint type", rewritten.TransformerMetadata)
+	}
+	if plain.TransformerMetadata[transmodel.TransformerMetadataGroupEndpointType] != appmodel.EndpointTypeChat {
+		t.Fatalf("plain transformer metadata = %#v, want chat endpoint type", plain.TransformerMetadata)
 	}
 }

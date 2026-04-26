@@ -119,6 +119,50 @@ func TestGroupGetEnabledMapByEndpoint_PrefersExactConversationEndpointMatch(t *t
 	}
 }
 
+func TestGroupGetEnabledMapByEndpoint_PrefersDeepSeekConversationGroupForDeepSeekModels(t *testing.T) {
+	restore := snapshotGroupLookupState()
+	defer restore()
+
+	seedGroupLookupState(
+		map[int]model.Channel{
+			1: {ID: 1, Enabled: true},
+			2: {ID: 2, Enabled: true},
+		},
+		map[int]model.Group{
+			10: {
+				ID:           10,
+				Name:         "deepseek-chat",
+				EndpointType: model.EndpointTypeChat,
+				Items: []model.GroupItem{
+					{ChannelID: 1, ModelName: "deepseek-chat"},
+				},
+			},
+			11: {
+				ID:           11,
+				Name:         "deepseek-chat",
+				EndpointType: model.EndpointTypeDeepSeek,
+				Items: []model.GroupItem{
+					{ChannelID: 2, ModelName: "deepseek-chat"},
+				},
+			},
+		},
+	)
+
+	got, err := GroupGetEnabledMapByEndpoint(model.EndpointTypeChat, "deepseek-chat", context.Background())
+	if err != nil {
+		t.Fatalf("expected deepseek group match: %v", err)
+	}
+	if got.ID != 11 {
+		t.Fatalf("expected deepseek endpoint group id 11, got %d", got.ID)
+	}
+	if got.EndpointType != model.EndpointTypeDeepSeek {
+		t.Fatalf("expected deepseek endpoint group, got %q", got.EndpointType)
+	}
+	if len(got.Items) != 1 || got.Items[0].ChannelID != 2 {
+		t.Fatalf("expected deepseek group items, got %+v", got.Items)
+	}
+}
+
 func TestGroupGetEnabledMapByEndpoint_UsesTrimmedNameAndPriorityOrderedItems(t *testing.T) {
 	restore := snapshotGroupLookupState()
 	defer restore()

@@ -17,7 +17,7 @@ type ChatOutbound struct{}
 
 func (o *ChatOutbound) TransformRequest(ctx context.Context, request *model.InternalLLMRequest, baseUrl, key string) (*http.Request, error) {
 	compatRequest := cloneRequestForOpenAICompat(request)
-	sanitizeRequestForOpenAICompat(compatRequest, shouldPreserveDeepSeekReasoning(baseUrl, compatRequest.Model))
+	sanitizeRequestForOpenAICompat(compatRequest, baseUrl)
 
 	// Convert developer role to system role for compatibility
 	for i := range compatRequest.Messages {
@@ -77,10 +77,12 @@ func cloneRequestForOpenAICompat(request *model.InternalLLMRequest) *model.Inter
 	return &cloned
 }
 
-func sanitizeRequestForOpenAICompat(request *model.InternalLLMRequest, preserveDeepSeekReasoning bool) {
+func sanitizeRequestForOpenAICompat(request *model.InternalLLMRequest, baseURL string) {
 	if request == nil {
 		return
 	}
+
+	preserveDeepSeekReasoning := shouldPreserveDeepSeekReasoning(baseURL, request)
 
 	for i := range request.Messages {
 		sanitizeMessageForOpenAICompat(&request.Messages[i], preserveDeepSeekReasoning)
@@ -105,21 +107,34 @@ func sanitizeMessageForOpenAICompat(msg *model.Message, preserveDeepSeekReasonin
 	}
 }
 
-func shouldPreserveDeepSeekReasoning(baseURL, modelName string) bool {
+func shouldPreserveDeepSeekReasoning(baseURL string, request *model.InternalLLMRequest) bool {
 	lowerBaseURL := strings.ToLower(strings.TrimSpace(baseURL))
-	lowerModelName := strings.ToLower(strings.TrimSpace(modelName))
-
-	return strings.Contains(lowerBaseURL, "deepseek") || strings.Contains(lowerModelName, "deepseek")
-}
-
-func shouldKeepDeepSeekReasoningContent(msg *model.Message, preserveDeepSeekReasoning bool, reasoningContent string) bool {
-	if !preserveDeepSeekReasoning || msg == nil || reasoningContent == "" {
+	if lowerBaseURL != "" && strings.Contains(lowerBaseURL, "deepseek") {
+		return true
+	}
+	if request == nil {
 		return false
 	}
 
-	// DeepSeek requires reasoning_content to be passed back for tool-call continuation
-	// within the same turn, but it should be omitted for ordinary follow-up turns.
-	return msg.Role == "assistant" && len(msg.ToolCalls) > 0
+	if strings.EqualFold(
+		strings.TrimSpace(request.TransformerMetadata[model.TransformerMetadataGroupEndpointType]),
+		"deepseek",
+	) {
+		return true
+	}
+
+	lowerModelName := strings.ToLower(strings.TrimSpace(request.Model))
+
+	return strings.Contains(lowerModelName, "deepseek")
+}
+
+func shouldKeepDeepSeekReasoningContent(msg *model.Message, preserveDeepSeekReasoning bool, reasoningContent string) bool {
+	if !preserveDeepSeekReasoning || msg == nil || reasoningContent == "" || msg.Role != "assistant" {
+		return false
+	}
+
+	// Only replay reasoning_content for same-turn tool-call continuation.
+	return len(msg.ToolCalls) > 0
 }
 
 func normalizeMessagesForOpenAICompat(messages []model.Message) {

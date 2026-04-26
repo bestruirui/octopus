@@ -92,13 +92,14 @@ var hopByHopHeaders = map[string]bool{
 }
 
 type relayRequest struct {
-	c               *gin.Context
-	inAdapter       model.Inbound
-	internalRequest *model.InternalLLMRequest
-	metrics         *RelayMetrics
-	apiKeyID        int
-	requestModel    string
-	iter            *balancer.Iterator
+	c                 *gin.Context
+	inAdapter         model.Inbound
+	internalRequest   *model.InternalLLMRequest
+	metrics           *RelayMetrics
+	apiKeyID          int
+	requestModel      string
+	groupEndpointType string
+	iter              *balancer.Iterator
 }
 
 // relayAttempt 尝试级上下文
