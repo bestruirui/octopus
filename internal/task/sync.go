@@ -42,7 +42,36 @@ func SyncModelsTask() {
 		}
 		oldModels := xstrings.SplitTrimCompact(",", channel.Model)
 		newModels := xstrings.TrimCompact(fetchModels)
+
+		// 合并 custom_model 中的模型，避免覆盖用户手动添加的模型
+		customModels := xstrings.SplitTrimCompact(",", channel.CustomModel)
+		customModelSet := make(map[string]struct{}, len(customModels))
+		for _, cm := range customModels {
+			if cm != "" {
+				customModelSet[cm] = struct{}{}
+			}
+		}
+
+		// mergedModels 只包含 fetch 来的模型，排除已在 custom_model 中的（避免重复写入 Model 字段）
+		newModelSet := make(map[string]struct{}, len(newModels))
 		for _, m := range newModels {
+			if m != "" && m != " " {
+				if _, isCustom := customModelSet[m]; !isCustom {
+					newModelSet[m] = struct{}{}
+				}
+			}
+		}
+
+		mergedModels := make([]string, 0, len(newModelSet))
+		for m := range newModelSet {
+			mergedModels = append(mergedModels, m)
+		}
+
+		// totalNewModels 统计时同时包含 fetch 模型和 custom_model
+		allModels := make([]string, 0, len(mergedModels)+len(customModels))
+		allModels = append(allModels, mergedModels...)
+		allModels = append(allModels, customModels...)
+		for _, m := range allModels {
 			m = strings.TrimSpace(m)
 			if m == "" {
 				continue
@@ -54,9 +83,9 @@ func SyncModelsTask() {
 			seenTotalNewModels[m] = struct{}{}
 			totalNewModels = append(totalNewModels, m)
 		}
-		deletedModels, addedModels := diff.Diff(oldModels, newModels)
+		deletedModels, addedModels := diff.Diff(oldModels, mergedModels)
 		if len(deletedModels) > 0 || len(addedModels) > 0 {
-			fetchModelStr := strings.Join(newModels, ",")
+			fetchModelStr := strings.Join(mergedModels, ",")
 			if _, err := op.ChannelUpdate(&model.ChannelUpdateRequest{
 				ID:    channel.ID,
 				Model: &fetchModelStr,
@@ -65,20 +94,30 @@ func SyncModelsTask() {
 				continue
 			}
 		}
-		// 批量删除消失的模型对应的 GroupItem
+		// 批量删除消失的模型对应的 GroupItem（但不删除 custom_model 中的模型关联）
 		if len(deletedModels) > 0 {
-			log.Infof("deleted channel %s models: %v", channel.Name, deletedModels)
-			keys := make([]model.GroupIDAndLLMName, len(deletedModels))
-			for i, m := range deletedModels {
-				keys[i] = model.GroupIDAndLLMName{ChannelID: channel.ID, ModelName: m}
+			// 过滤掉 custom_model 中的模型，避免误删用户手动配置的分组关联
+			actualDeletedModels := make([]string, 0, len(deletedModels))
+			for _, m := range deletedModels {
+				if _, isCustom := customModelSet[m]; !isCustom {
+					actualDeletedModels = append(actualDeletedModels, m)
+				}
 			}
-			if err := op.GroupItemBatchDelByChannelAndModels(keys, ctx); err != nil {
-				log.Errorf("failed to batch delete group items for channel %s: %v", channel.Name, err)
+
+			if len(actualDeletedModels) > 0 {
+				log.Infof("deleted channel %s models: %v", channel.Name, actualDeletedModels)
+				keys := make([]model.GroupIDAndLLMName, len(actualDeletedModels))
+				for i, m := range actualDeletedModels {
+					keys[i] = model.GroupIDAndLLMName{ChannelID: channel.ID, ModelName: m}
+				}
+				if err := op.GroupItemBatchDelByChannelAndModels(keys, ctx); err != nil {
+					log.Errorf("failed to batch delete group items for channel %s: %v", channel.Name, err)
+				}
 			}
 		}
 
 		// 自动分组
-		if len(newModels) > 0 {
+		if len(mergedModels) > 0 {
 			helper.ChannelAutoGroup(&channel, ctx)
 		}
 	}

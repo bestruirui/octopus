@@ -1,6 +1,8 @@
 package model
 
 import (
+	"math/rand/v2"
+	"sort"
 	"time"
 
 	"github.com/bestruirui/octopus/internal/transformer/outbound"
@@ -16,22 +18,26 @@ const (
 )
 
 type Channel struct {
-	ID            int                   `json:"id" gorm:"primaryKey"`
-	Name          string                `json:"name" gorm:"unique;not null"`
-	Type          outbound.OutboundType `json:"type"`
-	Enabled       bool                  `json:"enabled" gorm:"default:true"`
-	BaseUrls      []BaseUrl             `json:"base_urls" gorm:"serializer:json"`
-	Keys          []ChannelKey          `json:"keys" gorm:"foreignKey:ChannelID"`
-	Model         string                `json:"model"`
-	CustomModel   string                `json:"custom_model"`
-	Proxy         bool                  `json:"proxy" gorm:"default:false"`
-	AutoSync      bool                  `json:"auto_sync" gorm:"default:false"`
-	AutoGroup     AutoGroupType         `json:"auto_group" gorm:"default:0"`
-	CustomHeader  []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
-	ParamOverride *string               `json:"param_override"`
-	ChannelProxy  *string               `json:"channel_proxy"`
-	Stats         *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
-	MatchRegex    *string               `json:"match_regex"`
+	ID                  int                   `json:"id" gorm:"primaryKey"`
+	Name                string                `json:"name" gorm:"unique;not null"`
+	Type                outbound.OutboundType `json:"type"`
+	Enabled             bool                  `json:"enabled" gorm:"default:true"`
+	BaseUrls            []BaseUrl             `json:"base_urls" gorm:"serializer:json"`
+	Keys                []ChannelKey          `json:"keys" gorm:"foreignKey:ChannelID"`
+	Model               string                `json:"model"`
+	CustomModel         string                `json:"custom_model"`
+	Proxy               bool                  `json:"proxy" gorm:"default:false"`
+	AutoSync            bool                  `json:"auto_sync" gorm:"default:false"`
+	AutoGroup           AutoGroupType         `json:"auto_group" gorm:"default:0"`
+	CustomHeader        []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
+	ParamOverride       *string               `json:"param_override"`
+	ChannelProxy        *string               `json:"channel_proxy"`
+	Stats               *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
+	MatchRegex          *string               `json:"match_regex"`
+	EnableMultiKeyRetry bool                  `json:"enable_multi_key_retry" gorm:"default:false"`
+	RetryCount          int                   `json:"retry_count" gorm:"default:3"`
+	KeyLoadBalanceMode  string                `json:"key_load_balance_mode" gorm:"default:'round_robin'"`
+	AutoBanKeyFailures  int                   `json:"auto_ban_key_failures" gorm:"default:0"` // 0 means disabled
 }
 
 type BaseUrl struct {
@@ -71,6 +77,11 @@ type ChannelUpdateRequest struct {
 	ChannelProxy  *string                `json:"channel_proxy,omitempty"`
 	ParamOverride *string                `json:"param_override,omitempty"`
 	MatchRegex    *string                `json:"match_regex,omitempty"`
+
+	EnableMultiKeyRetry *bool   `json:"enable_multi_key_retry,omitempty"`
+	RetryCount          *int    `json:"retry_count,omitempty"`
+	KeyLoadBalanceMode  *string `json:"key_load_balance_mode,omitempty"`
+	AutoBanKeyFailures  *int    `json:"auto_ban_key_failures,omitempty"`
 
 	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
 	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`
@@ -152,4 +163,42 @@ func (c *Channel) GetChannelKey() ChannelKey {
 		return ChannelKey{}
 	}
 	return best
+}
+
+func (c *Channel) GetCandidateKeys() []ChannelKey {
+	if c == nil || len(c.Keys) == 0 {
+		return nil
+	}
+
+	nowSec := time.Now().Unix()
+	var candidates []ChannelKey
+
+	for _, k := range c.Keys {
+		if !k.Enabled || k.ChannelKey == "" {
+			continue
+		}
+		if k.StatusCode == 429 && k.LastUseTimeStamp > 0 {
+			if nowSec-k.LastUseTimeStamp < int64(5*time.Minute/time.Second) {
+				continue
+			}
+		}
+		candidates = append(candidates, k)
+	}
+
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	if c.KeyLoadBalanceMode == "random" {
+		rand.Shuffle(len(candidates), func(i, j int) {
+			candidates[i], candidates[j] = candidates[j], candidates[i]
+		})
+	} else {
+		// Default: Round Robin (based on LastUseTimeStamp ASC)
+		sort.Slice(candidates, func(i, j int) bool {
+			return candidates[i].LastUseTimeStamp < candidates[j].LastUseTimeStamp
+		})
+	}
+
+	return candidates
 }

@@ -26,9 +26,30 @@ func ChannelList(ctx context.Context) ([]model.Channel, error) {
 }
 
 func ChannelCreate(channel *model.Channel, ctx context.Context) error {
-	if err := db.GetDB().WithContext(ctx).Create(channel).Error; err != nil {
+	keys := channel.Keys
+	channel.Keys = nil
+
+	tx := db.GetDB().WithContext(ctx).Begin()
+	if err := tx.Create(channel).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	if len(keys) > 0 {
+		for i := range keys {
+			keys[i].ChannelID = channel.ID
+		}
+		if err := tx.CreateInBatches(keys, 50).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+
+	channel.Keys = keys
 	channelCache.Set(channel.ID, *channel)
 	for _, k := range channel.Keys {
 		if k.ID != 0 {
@@ -177,6 +198,22 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		selectFields = append(selectFields, "match_regex")
 		updates.MatchRegex = req.MatchRegex
 	}
+	if req.EnableMultiKeyRetry != nil {
+		selectFields = append(selectFields, "enable_multi_key_retry")
+		updates.EnableMultiKeyRetry = *req.EnableMultiKeyRetry
+	}
+	if req.RetryCount != nil {
+		selectFields = append(selectFields, "retry_count")
+		updates.RetryCount = *req.RetryCount
+	}
+	if req.KeyLoadBalanceMode != nil {
+		selectFields = append(selectFields, "key_load_balance_mode")
+		updates.KeyLoadBalanceMode = *req.KeyLoadBalanceMode
+	}
+	if req.AutoBanKeyFailures != nil {
+		selectFields = append(selectFields, "auto_ban_key_failures")
+		updates.AutoBanKeyFailures = *req.AutoBanKeyFailures
+	}
 
 	// 只有当有字段需要更新时才执行 UPDATE
 	if len(selectFields) > 0 {
@@ -188,9 +225,17 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 
 	// 删除 keys
 	if len(req.KeysToDelete) > 0 {
-		if err := tx.Where("id IN ? AND channel_id = ?", req.KeysToDelete, req.ID).Delete(&model.ChannelKey{}).Error; err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to delete channel keys: %w", err)
+		batchSize := 50
+		for i := 0; i < len(req.KeysToDelete); i += batchSize {
+			end := i + batchSize
+			if end > len(req.KeysToDelete) {
+				end = len(req.KeysToDelete)
+			}
+			batch := req.KeysToDelete[i:end]
+			if err := tx.Where("id IN ? AND channel_id = ?", batch, req.ID).Delete(&model.ChannelKey{}).Error; err != nil {
+				tx.Rollback()
+				return nil, fmt.Errorf("failed to delete channel keys: %w", err)
+			}
 		}
 	}
 

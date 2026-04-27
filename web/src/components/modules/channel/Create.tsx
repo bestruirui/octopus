@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/morphing-dialog';
 import { useCreateChannel, ChannelType, AutoGroupType } from '@/api/endpoints/channel';
 import { useTranslations } from 'next-intl';
-import { ChannelForm, type ChannelFormData } from './Form';
+import { ChannelForm, type ChannelFormData, DEFAULT_BASE_URLS } from './Form';
 
 export function CreateDialogContent() {
     const { setIsOpen } = useMorphingDialog();
@@ -15,7 +15,7 @@ export function CreateDialogContent() {
     const [formData, setFormData] = useState<ChannelFormData>({
         name: '',
         type: ChannelType.OpenAIChat,
-        base_urls: [{ url: '', delay: 0 }],
+        base_urls: [{ url: DEFAULT_BASE_URLS[ChannelType.OpenAIChat] || '', delay: 0 }],
         custom_header: [],
         channel_proxy: '',
         param_override: '',
@@ -27,6 +27,10 @@ export function CreateDialogContent() {
         enabled: true,
         proxy: false,
         match_regex: '',
+        enable_multi_key_retry: false,
+        retry_count: 3,
+        key_load_balance_mode: 'round_robin',
+        auto_ban_key_failures: 0,
     });
     const t = useTranslations('channel.create');
 
@@ -61,13 +65,17 @@ export function CreateDialogContent() {
                 channel_proxy: channelProxy,
                 param_override: paramOverride,
                 match_regex: formData.match_regex.trim(),
+                enable_multi_key_retry: formData.enable_multi_key_retry,
+                retry_count: formData.retry_count,
+                key_load_balance_mode: formData.key_load_balance_mode,
+                auto_ban_key_failures: formData.auto_ban_key_failures,
             },
             {
                 onSuccess: () => {
                     setFormData({
                         name: '',
                         type: ChannelType.OpenAIChat,
-                        base_urls: [{ url: '', delay: 0 }],
+                        base_urls: [{ url: DEFAULT_BASE_URLS[ChannelType.OpenAIChat] || '', delay: 0 }],
                         custom_header: [],
                         channel_proxy: '',
                         param_override: '',
@@ -79,6 +87,10 @@ export function CreateDialogContent() {
                         enabled: true,
                         proxy: false,
                         match_regex: '',
+                        enable_multi_key_retry: false,
+                        retry_count: 3,
+                        key_load_balance_mode: 'round_robin',
+                        auto_ban_key_failures: 0,
                     });
                     setIsOpen(false);
                 }
