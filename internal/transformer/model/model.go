@@ -248,6 +248,14 @@ type InternalLLMRequest struct {
 	// Query stores the original query parameters from the inbound request.
 	// This is a help field and will not be sent to the llm service.
 	Query url.Values `json:"-"`
+
+	// ConversationID is an Octopus relay-side stream session key used to resume
+	// the same streaming generation after a client reconnect.
+	ConversationID string `json:"-"`
+
+	// ResumeFromEventID tells the relay to replay SSE events after the given
+	// sequence when reconnecting to an existing ConversationID stream.
+	ResumeFromEventID int64 `json:"-"`
 }
 
 func (r *InternalLLMRequest) Validate() error {

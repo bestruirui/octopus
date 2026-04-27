@@ -2,6 +2,7 @@ package relay
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -112,10 +113,52 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 
 	requestModel := internalRequest.Model
 	apiKeyID := c.GetInt("api_key_id")
+	var streamSession *relayStreamSession
+	var streamSessionOwned bool
+	var lastErr error
+	if shouldUseRelayStreamSession(internalRequest) {
+		sessionHash := buildRelayStreamSessionHash(endpointType, int(inboundType), apiKeyID, internalRequest.RawRequest)
+		session, created, err := acquireRelayStreamSession(internalRequest.ConversationID, apiKeyID, sessionHash)
+		if err != nil {
+			statusCode := http.StatusConflict
+			if !errors.Is(err, errRelayConversationBusy) {
+				statusCode = http.StatusInternalServerError
+			}
+			resp.Error(c, statusCode, err.Error())
+			return
+		}
+		streamSession = session
+		streamSessionOwned = created
+		if !created {
+			req := &relayRequest{
+				c:               c,
+				clientCtx:       c.Request.Context(),
+				internalRequest: internalRequest,
+				apiKeyID:        apiKeyID,
+				requestModel:    requestModel,
+				streamSession:   streamSession,
+			}
+			serveRelayStreamSession(c, req)
+			return
+		}
+		defer func() {
+			if streamSession == nil || !streamSessionOwned || streamSession.IsDone() {
+				return
+			}
+			if lastErr == nil {
+				lastErr = errors.New("relay stream ended without a terminal result")
+			}
+			streamSession.Finish(lastErr)
+		}()
+	}
+
+	operationCtx, cancel := newRelayOperationContext()
+	defer cancel()
 
 	// 获取通道分组
-	group, err := op.GroupGetEnabledMapByEndpoint(endpointType, requestModel, c.Request.Context())
+	group, err := op.GroupGetEnabledMapByEndpoint(endpointType, requestModel, operationCtx)
 	if err != nil {
+		lastErr = err
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
 	}
@@ -123,6 +166,7 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	// 创建迭代器（策略排序 + 粘性优先）
 	iter := balancer.NewIterator(group, apiKeyID, requestModel)
 	if iter.Len() == 0 {
+		lastErr = errors.New("no available channel")
 		resp.Error(c, http.StatusServiceUnavailable, "no available channel")
 		return
 	}
@@ -133,6 +177,8 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	// 请求级上下文
 	req := &relayRequest{
 		c:                 c,
+		clientCtx:         c.Request.Context(),
+		operationCtx:      operationCtx,
 		inAdapter:         inAdapter,
 		internalRequest:   internalRequest,
 		metrics:           metrics,
@@ -140,9 +186,9 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 		requestModel:      requestModel,
 		groupEndpointType: group.EndpointType,
 		iter:              iter,
+		streamSession:     streamSession,
 	}
 
-	var lastErr error
 	maxAttemptsPerCandidate := getMaxAttemptsPerCandidate()
 	ratelimitCooldown := getRatelimitCooldown()
 	maxTotalAttempts := getMaxTotalAttempts()
@@ -153,18 +199,17 @@ outer:
 			lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 			break
 		}
-		select {
-		case <-c.Request.Context().Done():
-			log.Infof("request context canceled, stopping retry")
-			metrics.Save(c.Request.Context(), false, context.Canceled, iter.Attempts())
+		if err := req.operationCtx.Err(); err != nil {
+			lastErr = err
+			logRelayErrorfByContext(err, "relay operation ended before request completed: %v", err)
+			metrics.Save(false, err, iter.Attempts())
 			return
-		default:
 		}
 
 		item := iter.Item()
 
 		// 获取通道
-		channel, err := op.ChannelGet(item.ChannelID, c.Request.Context())
+		channel, err := op.ChannelGet(item.ChannelID, req.operationCtx)
 		if err != nil {
 			log.Warnf("failed to get channel %d: %v", item.ChannelID, err)
 			iter.Skip(item.ChannelID, 0, fmt.Sprintf("channel_%d", item.ChannelID), fmt.Sprintf("channel not found: %v", err))
@@ -224,12 +269,11 @@ outer:
 				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 				break outer
 			}
-			select {
-			case <-c.Request.Context().Done():
-				log.Infof("request context canceled, stopping retry")
-				metrics.Save(c.Request.Context(), false, context.Canceled, iter.Attempts())
+			if err := req.operationCtx.Err(); err != nil {
+				lastErr = err
+				logRelayErrorfByContext(err, "relay operation ended before request completed: %v", err)
+				metrics.Save(false, err, iter.Attempts())
 				return
-			default:
 			}
 
 			if tryIndex > 1 {
@@ -261,7 +305,7 @@ outer:
 
 			result := ra.attempt()
 			if result.Success {
-				metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
+				metrics.Save(true, nil, iter.Attempts())
 				return
 			}
 
@@ -270,13 +314,14 @@ outer:
 			case ScopeNone:
 				// 不重试，直接失败
 				lastErr = result.Err
-				metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
+				metrics.Save(false, lastErr, iter.Attempts())
 				resp.BadGateway(c)
 				return
 
 			case ScopeAbortAll:
 				// 停止所有重试（流式响应已写入）
-				metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
+				lastErr = result.Err
+				metrics.Save(false, result.Err, iter.Attempts())
 				return
 
 			case ScopeSameChannel:
@@ -296,7 +341,7 @@ outer:
 			default:
 				// 未知决策，保守停止
 				lastErr = result.Err
-				metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
+				metrics.Save(false, lastErr, iter.Attempts())
 				resp.BadGateway(c)
 				return
 			}
@@ -304,7 +349,7 @@ outer:
 	}
 
 	// 所有通道都失败
-	metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
+	metrics.Save(false, lastErr, iter.Attempts())
 	resp.Error(c, http.StatusBadGateway, "all channels failed")
 }
 
@@ -375,7 +420,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 	// 记录决策日志
 	if decision.IsError {
-		log.Warnf("channel %s failed on attempt %d/%d: %s (decision: %s)",
+		logRelayErrorfByContext(fwdErr, "channel %s failed on attempt %d/%d: %s (decision: %s)",
 			ra.channel.Name, ra.tryIndex, ra.tryTotal, fwdErr, decision.Scope.String())
 	}
 
@@ -410,12 +455,14 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.Inter
 		return nil, nil, err
 	}
 
+	populateRelayRequestSessionFields(c, internalRequest, body)
+
 	return internalRequest, inAdapter, nil
 }
 
 // forward 转发请求到上游服务
 func (ra *relayAttempt) forward() (int, error) {
-	ctx := ra.c.Request.Context()
+	ctx := ra.operationCtx
 
 	requestForOutbound, err := prepareInternalRequestForOutbound(ra.channel, ra.internalRequest, ra.groupEndpointType)
 	if err != nil {
@@ -503,7 +550,7 @@ func (ra *relayAttempt) sendRequest(req *http.Request) (*http.Response, error) {
 
 	response, err := httpClient.Do(req)
 	if err != nil {
-		log.Warnf("failed to send request: %v", err)
+		logRelayErrorfByContext(err, "failed to send request: %v", err)
 		return nil, err
 	}
 
@@ -525,8 +572,28 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 	ra.c.Header("Cache-Control", "no-cache")
 	ra.c.Header("Connection", "keep-alive")
 	ra.c.Header("X-Accel-Buffering", "no")
+	if ra.internalRequest.ConversationID != "" {
+		ra.c.Header("X-Conversation-ID", ra.internalRequest.ConversationID)
+	}
 
 	firstToken := true
+	clientDone := ra.clientCtx.Done()
+	clientDisconnected := false
+	clientDisconnectLogged := false
+	markClientDisconnected := func() {
+		if clientDisconnected {
+			return
+		}
+		clientDisconnected = true
+		clientDone = nil
+	}
+	logClientDisconnected := func() {
+		if !clientDisconnected || clientDisconnectLogged {
+			return
+		}
+		clientDisconnectLogged = true
+		log.Warnf(clientDisconnectedLogMessage)
+	}
 
 	type sseReadResult struct {
 		data string
@@ -571,20 +638,29 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 
 	for {
 		select {
-		case <-ctx.Done():
-			log.Infof("client disconnected, stopping stream")
-			return nil
+		case <-clientDone:
+			if ra.streamSession == nil {
+				log.Infof("client disconnected, stopping stream")
+				return nil
+			}
+			markClientDisconnected()
 		case <-firstTokenC:
+			logClientDisconnected()
 			log.Warnf("first token timeout (%ds), switching channel", ra.firstTokenTimeOutSec)
 			_ = response.Body.Close()
 			return fmt.Errorf("first token timeout (%ds)", ra.firstTokenTimeOutSec)
 		case r, ok := <-results:
 			if !ok {
+				logClientDisconnected()
+				if ra.streamSession != nil {
+					ra.streamSession.Finish(nil)
+				}
 				log.Infof("stream end")
 				return nil
 			}
 			if r.err != nil {
-				log.Warnf("failed to read event: %v", r.err)
+				logClientDisconnected()
+				logRelayErrorfByContext(r.err, "failed to read event: %v", r.err)
 				return fmt.Errorf("failed to read stream event: %w", r.err)
 			}
 
@@ -607,7 +683,32 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 				}
 			}
 
-			ra.c.Writer.Write(data)
+			if ra.streamSession != nil {
+				sessionEvents := ra.streamSession.AddPayload(data)
+				if clientDisconnected {
+					logClientDisconnected()
+					continue
+				}
+				for _, event := range sessionEvents {
+					if _, err := ra.c.Writer.Write(formatRelaySSEEvent(event.Sequence, event.Payload)); err != nil {
+						markClientDisconnected()
+						logClientDisconnected()
+						break
+					}
+					ra.c.Writer.Flush()
+				}
+				continue
+			}
+
+			if clientDisconnected {
+				logClientDisconnected()
+				continue
+			}
+			if _, err := ra.c.Writer.Write(data); err != nil {
+				markClientDisconnected()
+				logClientDisconnected()
+				continue
+			}
 			ra.c.Writer.Flush()
 		}
 	}
@@ -617,7 +718,7 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([]byte, error) {
 	internalStream, err := ra.outAdapter.TransformStream(ctx, []byte(data))
 	if err != nil {
-		log.Warnf("failed to transform stream: %v", err)
+		logRelayErrorfByContext(err, "failed to transform stream: %v", err)
 		return nil, err
 	}
 	if internalStream == nil {
@@ -626,7 +727,7 @@ func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([
 
 	inStream, err := ra.inAdapter.TransformStream(ctx, internalStream)
 	if err != nil {
-		log.Warnf("failed to transform stream: %v", err)
+		logRelayErrorfByContext(err, "failed to transform stream: %v", err)
 		return nil, err
 	}
 
@@ -637,13 +738,13 @@ func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([
 func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Response) error {
 	internalResponse, err := ra.outAdapter.TransformResponse(ctx, response)
 	if err != nil {
-		log.Warnf("failed to transform response: %v", err)
+		logRelayErrorfByContext(err, "failed to transform response: %v", err)
 		return fmt.Errorf("failed to transform outbound response: %w", err)
 	}
 
 	inResponse, err := ra.inAdapter.TransformResponse(ctx, internalResponse)
 	if err != nil {
-		log.Warnf("failed to transform response: %v", err)
+		logRelayErrorfByContext(err, "failed to transform response: %v", err)
 		return fmt.Errorf("failed to transform inbound response: %w", err)
 	}
 
@@ -653,7 +754,7 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 
 // collectResponse 收集响应信息
 func (ra *relayAttempt) collectResponse() {
-	internalResponse, err := ra.inAdapter.GetInternalResponse(ra.c.Request.Context())
+	internalResponse, err := ra.inAdapter.GetInternalResponse(ra.operationCtx)
 	if err != nil || internalResponse == nil {
 		return
 	}

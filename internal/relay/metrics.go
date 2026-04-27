@@ -76,7 +76,10 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
 }
 
-func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attempts []model.ChannelAttempt) {
+func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAttempt) {
+	ctx, cancel := newRelayPersistenceContext()
+	defer cancel()
+
 	duration := time.Since(m.StartTime)
 
 	globalStats := model.StatsMetrics{
@@ -95,7 +98,9 @@ func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attemp
 	channelID, channelName := finalChannel(attempts)
 	op.StatsTotalUpdate(globalStats)
 	op.StatsHourlyUpdate(globalStats)
-	op.StatsDailyUpdate(context.Background(), globalStats)
+	if statsErr := op.StatsDailyUpdate(ctx, globalStats); statsErr != nil {
+		log.Warnf("failed to update daily stats: %v", statsErr)
+	}
 	op.StatsAPIKeyUpdate(m.APIKeyID, globalStats)
 
 	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d",

@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -93,6 +94,8 @@ var hopByHopHeaders = map[string]bool{
 
 type relayRequest struct {
 	c                 *gin.Context
+	clientCtx         context.Context
+	operationCtx      context.Context
 	inAdapter         model.Inbound
 	internalRequest   *model.InternalLLMRequest
 	metrics           *RelayMetrics
@@ -100,6 +103,7 @@ type relayRequest struct {
 	requestModel      string
 	groupEndpointType string
 	iter              *balancer.Iterator
+	streamSession     *relayStreamSession
 }
 
 // relayAttempt 尝试级上下文
