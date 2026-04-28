@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
@@ -20,6 +21,7 @@ type apiKeyStatsResponse struct {
 func init() {
 	router.NewGroupRouter("/api/v1/stats").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermStatsRead)).
 		AddRoute(
 			router.NewRoute("/today", http.MethodGet).
 				Handle(getStatsToday),

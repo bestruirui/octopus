@@ -18,9 +18,13 @@
 - ⚡ **Smart Selection** - Multiple endpoints per channel, smart selection of the endpoint with the shortest delay
 - ⚖️ **Load Balancing** - Support round robin, random, failover, weighted, and auto strategies
 - 🤖 **Auto Strategy** - Explore candidates first, then prefer higher in-window success rate automatically
-- 🧠 **AI Routing & Auto Grouping** - Generate the full routing table from the route page, or fill a single group from the edit dialog
+- 🧠 **AI Routing, Auto Grouping & Conditional Groups** - Generate the full routing table from the route page, fill a single group from the edit dialog, and gate groups with JSON conditions
 - 🔄 **Protocol Conversion** - Seamless conversion between OpenAI Chat / OpenAI Responses / OpenAI Embeddings / Anthropic API formats
 - 🌐 **Multi-Provider Support** - Built-in support for OpenAI-compatible, Anthropic, Gemini, and Volcengine channels
+- 🛰️ **Media & Utility Relay** - Relay OpenAI Images, audio, video, search, rerank, and moderation endpoints through the same group / retry / circuit-breaker infrastructure
+- 🧾 **API Key Governance** - Supported-model allowlists, expiry, max-cost caps, RPM / TPM limits, and optional per-model quotas
+- 🔐 **Role-Based Admin Access** - Built-in `admin`, `editor`, and `viewer` roles with server-side permission enforcement
+- 🚨 **Webhook Alerts** - Alert rules for error rate, cost threshold, quota exceeded, and channel down with webhook notifications and history
 - 💰 **Price Sync** - Automatic model pricing updates
 - 🔃 **Model Sync** - Automatic synchronization of available model lists with channels
 - 📊 **Analytics** - Comprehensive request statistics, token consumption, cost tracking, and relay logs
@@ -153,6 +157,16 @@ On first launch, you can initialize the admin account in either of these ways:
 >
 > ⚠️ **Security Notice**: If `OCTOPUS_AUTH_JWT_SECRET` or `auth.jwt_secret` is not configured, Octopus will generate an in-memory JWT secret at startup. Existing login tokens will become invalid after a restart.
 
+### 👥 Admin Roles
+
+The management API and embedded Web UI use three built-in roles:
+
+- `admin`: full access, including user management
+- `editor`: operational write access for channels, groups, settings, API keys, logs, alerts, and AI routing
+- `viewer`: read-only access to operational data
+
+Role checks are enforced on the server side, using the currently stored role rather than trusting only the JWT claim.
+
 ### 📝 Configuration File
 
 The configuration file is located at `data/config.json` by default and is automatically generated on first startup.
@@ -177,6 +191,8 @@ The configuration file is located at `data/config.json` by default and is automa
   }
 }
 ```
+
+Most operational knobs are not stored in `config.json`. Retry policy, circuit breaker thresholds, auto-strategy tuning, relay log retention, public API base URL, AI-route service settings, and semantic-cache switches are managed at runtime from the Settings page / management API and stored in the database.
 
 **Configuration Options:**
 
@@ -238,6 +254,8 @@ All configuration options can be overridden via environment variables using the 
 | `OCTOPUS_DATA_DIR` | Default directory for `config.json` and the SQLite DB when `database.path` is not explicitly set |
 | `OCTOPUS_LOG_LEVEL` | `log.level` |
 | `OCTOPUS_AUTH_JWT_SECRET` | `auth.jwt_secret` |
+| `OCTOPUS_INITIAL_ADMIN_USERNAME` | Bootstrap the initial admin username at startup |
+| `OCTOPUS_INITIAL_ADMIN_PASSWORD` | Bootstrap the initial admin password at startup |
 | `OCTOPUS_GITHUB_PAT` | For rate limiting when getting the latest version (optional) |
 | `OCTOPUS_RELAY_MAX_SSE_EVENT_SIZE` | Maximum SSE event size (optional) |
 
@@ -258,12 +276,12 @@ All configuration options can be overridden via environment variables using the 
 <td><img src="web/public/screenshot/desktop-group.png" alt="Group" width="400"></td>
 </tr>
 <tr>
-<td align="center"><b>Price Management</b></td>
+<td align="center"><b>Model</b></td>
 <td align="center"><b>Logs</b></td>
 <td align="center"><b>Settings</b></td>
 </tr>
 <tr>
-<td><img src="web/public/screenshot/desktop-price.png" alt="Price Management" width="400"></td>
+<td><img src="web/public/screenshot/desktop-price.png" alt="Model" width="400"></td>
 <td><img src="web/public/screenshot/desktop-log.png" alt="Logs" width="400"></td>
 <td><img src="web/public/screenshot/desktop-setting.png" alt="Settings" width="400"></td>
 </tr>
@@ -278,7 +296,7 @@ All configuration options can be overridden via environment variables using the 
 <td align="center"><b>Home</b></td>
 <td align="center"><b>Channel</b></td>
 <td align="center"><b>Group</b></td>
-<td align="center"><b>Price</b></td>
+<td align="center"><b>Model</b></td>
 <td align="center"><b>Logs</b></td>
 <td align="center"><b>Settings</b></td>
 </tr>
@@ -286,7 +304,7 @@ All configuration options can be overridden via environment variables using the 
 <td><img src="web/public/screenshot/mobile-home.png" alt="Mobile Home" width="140"></td>
 <td><img src="web/public/screenshot/mobile-channel.png" alt="Mobile Channel" width="140"></td>
 <td><img src="web/public/screenshot/mobile-group.png" alt="Mobile Group" width="140"></td>
-<td><img src="web/public/screenshot/mobile-price.png" alt="Mobile Price" width="140"></td>
+<td><img src="web/public/screenshot/mobile-price.png" alt="Mobile Model" width="140"></td>
 <td><img src="web/public/screenshot/mobile-log.png" alt="Mobile Logs" width="140"></td>
 <td><img src="web/public/screenshot/mobile-setting.png" alt="Mobile Settings" width="140"></td>
 </tr>
@@ -309,11 +327,28 @@ The program automatically appends API paths based on channel type. You only need
 | OpenAI Chat | `/chat/completions` | `https://api.openai.com/v1` | `https://api.openai.com/v1/chat/completions` |
 | OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
 | OpenAI Embeddings | `/embeddings` | `https://api.openai.com/v1` | `https://api.openai.com/v1/embeddings` |
+| OpenAI Images | `/images/generations`, `/images/edits`, `/images/variations` | `https://api.openai.com/v1` | `https://api.openai.com/v1/images/generations` |
 | Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
 | Gemini | `/models/:model:generateContent` | `https://generativelanguage.googleapis.com/v1beta` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
 | Volcengine | `/responses` | `https://ark.cn-beijing.volces.com/api/v3` | `https://ark.cn-beijing.volces.com/api/v3/responses` |
 
 > 💡 **Tip**: No need to include specific API endpoint paths in the Base URL - the program handles this automatically.
+
+### 🌐 Public Relay Endpoints
+
+The public relay API supports both OpenAI-style and Anthropic-style clients:
+
+- OpenAI-style clients: `Authorization: Bearer sk-octopus-...`
+- Anthropic-style clients: `x-api-key: sk-octopus-...`
+
+| Category | Paths | Notes |
+|----------|-------|-------|
+| OpenAI-compatible LLM | `/v1/chat/completions`, `/v1/responses`, `/v1/embeddings`, `/v1/models` | JSON request / response |
+| Anthropic-compatible LLM | `/v1/messages` | Anthropic-style request / response |
+| JSON media / utility | `/v1/images/generations`, `/v1/audio/speech`, `/v1/videos/generations`, `/v1/music/generations`, `/v1/search`, `/v1/rerank`, `/v1/moderations` | Uses the same group / retry / circuit-breaker pipeline |
+| Multipart media | `/v1/images/edits`, `/v1/images/variations`, `/v1/audio/transcriptions` | Multipart upload forwarding |
+
+JSON media endpoints can also proxy upstream SSE streams when the provider supports `stream=true`.
 
 ---
 
@@ -327,6 +362,7 @@ Groups aggregate multiple channels into a unified external model name.
 - When calling the API, set the `model` parameter to the group name
 - **First Token Timeout**: unit in seconds, only effective for streaming responses, `0` means no limit
 - **Session Keep Time**: unit in seconds, keeps using the same channel for the same API key + model within the configured session window, `0` means disabled
+- **Condition (JSON)**: optional AND rules currently evaluated in the main LLM relay path; the built-in request context currently includes `model`, `api_key_id`, and `hour`
 
 **Load Balancing Modes:**
 
@@ -343,8 +379,9 @@ Groups aggregate multiple channels into a unified external model name.
 - **Minimum samples**: `10`
 - **Time window**: `300` seconds
 - **Sliding window size**: `100` records per channel-model pair
+- **Latency weight**: `30`
 - Before a candidate reaches the minimum sample count, Octopus prioritizes exploration
-- After candidates are explored, Octopus sorts by success rate, then uses sample count, weight, and priority as tie-breakers
+- After candidates are explored, Octopus sorts by success rate, then uses sample count, weight, priority, and latency tuning as tie-breakers
 - Auto-strategy windows are restored from the database at startup and saved periodically plus on graceful shutdown
 
 **AI Routing Behavior:**
@@ -358,9 +395,9 @@ Groups aggregate multiple channels into a unified external model name.
 
 ---
 
-### 💰 Price Management
+### 💰 Model Management
 
-Manage model pricing information in the system.
+Manage the model catalog and pricing information in the system.
 
 **Data Sources:**
 
@@ -372,10 +409,10 @@ Manage model pricing information in the system.
 
 | Priority | Source | Description |
 |:--------:|--------|-------------|
-| 🥇 High | This Page | Prices set by user in price management page |
+| 🥇 High | This Page | Prices set by user in the model management page |
 | 🥈 Low | models.dev | Auto-synced default prices |
 
-> 💡 **Tip**: To override a model's default price, simply set a custom price for it in the price management page.
+> 💡 **Tip**: To override a model's default price, simply set a custom price for it in the model management page.
 
 ---
 

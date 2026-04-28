@@ -47,6 +47,14 @@ func init() {
 	router.NewGroupRouter("/v1").
 		Use(middleware.APIKeyAuth()).
 		AddRoute(
+			router.NewRoute("/images/edits", http.MethodPost).
+				Handle(imageEdit),
+		).
+		AddRoute(
+			router.NewRoute("/images/variations", http.MethodPost).
+				Handle(imageVariation),
+		).
+		AddRoute(
 			router.NewRoute("/audio/transcriptions", http.MethodPost).
 				Handle(audioTranscription),
 		)
@@ -54,6 +62,14 @@ func init() {
 
 func imageGeneration(c *gin.Context) {
 	relay.MediaHandler(relay.MediaEndpointImageGeneration, c)
+}
+
+func imageEdit(c *gin.Context) {
+	relay.MediaHandler(relay.MediaEndpointImageEdit, c)
+}
+
+func imageVariation(c *gin.Context) {
+	relay.MediaHandler(relay.MediaEndpointImageVariation, c)
 }
 
 func audioSpeech(c *gin.Context) {

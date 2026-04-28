@@ -21,11 +21,17 @@ const (
 	SettingKeyCircuitBreakerCooldown      SettingKey = "circuit_breaker_cooldown"       // 熔断基础冷却时间（秒）
 	SettingKeyCircuitBreakerMaxCooldown   SettingKey = "circuit_breaker_max_cooldown"   // 熔断最大冷却时间（秒），指数退避上限
 	SettingKeyPublicAPIBaseURL            SettingKey = "public_api_base_url"            // 对外可访问的 API 基础地址，用于生成示例
+	SettingKeyAlertNotifyLanguage         SettingKey = "alert_notify_language"          // 告警通知发送语言
 	SettingKeyRatelimitCooldown           SettingKey = "ratelimit_cooldown"             // 429 限流冷却时间（秒）
 	SettingKeyRelayMaxTotalAttempts       SettingKey = "relay_max_total_attempts"       // 所有候选渠道的最大总尝试次数，0 表示不限制
 	SettingKeyAutoStrategyMinSamples      SettingKey = "auto_strategy_min_samples"      // Auto策略最小样本数阈值
 	SettingKeyAutoStrategyTimeWindow      SettingKey = "auto_strategy_time_window"      // Auto策略时间窗口（秒）
 	SettingKeyAutoStrategySampleThreshold SettingKey = "auto_strategy_sample_threshold" // Auto策略滑动窗口大小
+	SettingKeyAutoStrategyLatencyWeight   SettingKey = "auto_strategy_latency_weight"   // Auto策略延迟权重（0-100）
+	SettingKeySemanticCacheEnabled        SettingKey = "semantic_cache_enabled"         // 语义缓存开关
+	SettingKeySemanticCacheTTL            SettingKey = "semantic_cache_ttl"             // 语义缓存 TTL（秒）
+	SettingKeySemanticCacheThreshold      SettingKey = "semantic_cache_threshold"       // 语义缓存相似度阈值（0-1）
+	SettingKeySemanticCacheMaxEntries     SettingKey = "semantic_cache_max_entries"     // 语义缓存最大条目数
 	SettingKeyAIRouteGroupID              SettingKey = "ai_route_group_id"              // AI路由目标分组 ID
 	SettingKeyAIRouteBaseURL              SettingKey = "ai_route_base_url"              // AI路由分析服务 Base URL
 	SettingKeyAIRouteAPIKey               SettingKey = "ai_route_api_key"               // AI路由分析服务 API Key
@@ -56,9 +62,15 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyRatelimitCooldown, Value: "300"},         // 默认429冷却300秒（5分钟）
 		{Key: SettingKeyRelayMaxTotalAttempts, Value: "0"},       // 默认不限制所有候选渠道的总尝试次数
 		{Key: SettingKeyPublicAPIBaseURL, Value: ""},
+		{Key: SettingKeyAlertNotifyLanguage, Value: "en"},
 		{Key: SettingKeyAutoStrategyMinSamples, Value: "10"},       // 默认最小样本数10次
 		{Key: SettingKeyAutoStrategyTimeWindow, Value: "300"},      // 默认时间窗口300秒（5分钟）
 		{Key: SettingKeyAutoStrategySampleThreshold, Value: "100"}, // 默认滑动窗口大小100条
+		{Key: SettingKeyAutoStrategyLatencyWeight, Value: "30"},    // 默认延迟权重30%
+		{Key: SettingKeySemanticCacheEnabled, Value: "false"},      // 默认关闭语义缓存
+		{Key: SettingKeySemanticCacheTTL, Value: "3600"},           // 默认TTL 1小时
+		{Key: SettingKeySemanticCacheThreshold, Value: "98"},       // 默认相似度阈值 0.98（0-100）
+		{Key: SettingKeySemanticCacheMaxEntries, Value: "1000"},    // 默认最大1000条
 		{Key: SettingKeyAIRouteGroupID, Value: "0"},
 		{Key: SettingKeyAIRouteBaseURL, Value: ""},
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},
@@ -75,6 +87,7 @@ func (s *Setting) Validate() error {
 		SettingKeyRelayRetryCount, SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown,
 		SettingKeyCircuitBreakerMaxCooldown, SettingKeyRatelimitCooldown, SettingKeyRelayMaxTotalAttempts,
 		SettingKeyAutoStrategyMinSamples, SettingKeyAutoStrategyTimeWindow, SettingKeyAutoStrategySampleThreshold,
+		SettingKeyAutoStrategyLatencyWeight,
 		SettingKeyAIRouteGroupID, SettingKeyAIRouteTimeoutSeconds, SettingKeyAIRouteParallelism:
 		v, err := strconv.Atoi(s.Value)
 		if err != nil {
@@ -89,6 +102,18 @@ func (s *Setting) Validate() error {
 		if (s.Key == SettingKeyAutoStrategyMinSamples || s.Key == SettingKeyAutoStrategyTimeWindow || s.Key == SettingKeyAutoStrategySampleThreshold) && v < 1 {
 			return fmt.Errorf("auto strategy setting must be greater than 0")
 		}
+		if s.Key == SettingKeyAutoStrategyLatencyWeight && (v < 0 || v > 100) {
+			return fmt.Errorf("auto strategy latency weight must be between 0 and 100")
+		}
+		if s.Key == SettingKeySemanticCacheTTL && v < 1 {
+			return fmt.Errorf("semantic cache TTL must be greater than 0")
+		}
+		if s.Key == SettingKeySemanticCacheThreshold && (v < 0 || v > 100) {
+			return fmt.Errorf("semantic cache threshold must be between 0 and 100")
+		}
+		if s.Key == SettingKeySemanticCacheMaxEntries && v < 1 {
+			return fmt.Errorf("semantic cache max entries must be greater than 0")
+		}
 		if s.Key == SettingKeyAIRouteGroupID && v < 0 {
 			return fmt.Errorf("ai route group id must be greater than or equal to 0")
 		}
@@ -99,9 +124,9 @@ func (s *Setting) Validate() error {
 			return fmt.Errorf("ai route parallelism must be greater than 0")
 		}
 		return nil
-	case SettingKeyRelayLogKeepEnabled:
+	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled:
 		if s.Value != "true" && s.Value != "false" {
-			return fmt.Errorf("relay log keep enabled must be true or false")
+			return fmt.Errorf("setting value must be true or false")
 		}
 		return nil
 	case SettingKeyProxyURL, SettingKeyAIRouteBaseURL:
@@ -152,6 +177,13 @@ func (s *Setting) Validate() error {
 			return fmt.Errorf("public API base URL must have a host")
 		}
 		return nil
+	case SettingKeyAlertNotifyLanguage:
+		switch s.Value {
+		case "zh-Hans", "zh-Hant", "en":
+			return nil
+		default:
+			return fmt.Errorf("alert notify language must be zh-Hans, zh-Hant, or en")
+		}
 	case SettingKeyAIRouteServices:
 		return ValidateAIRouteServiceConfigs(s.Value)
 	}

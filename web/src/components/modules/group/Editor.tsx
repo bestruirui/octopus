@@ -24,6 +24,7 @@ export type GroupEditorValues = {
     name: string;
     endpoint_type: string;
     match_regex: string;
+    condition: string;
     mode: GroupMode;
     first_token_time_out: number;
     session_keep_time: number;
@@ -275,6 +276,7 @@ export function GroupEditor({
     const [mode, setMode] = useState<GroupMode>((initial?.mode ?? GroupMode.Auto) as GroupMode);
     const [firstTokenTimeOut, setFirstTokenTimeOut] = useState<number>(initial?.first_token_time_out ?? 0);
     const [sessionKeepTime, setSessionKeepTime] = useState<number>(initial?.session_keep_time ?? 0);
+    const [condition, setCondition] = useState(initial?.condition ?? '');
     const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>(dedupeSelectedMembers(initial?.members ?? []));
     const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
@@ -359,6 +361,7 @@ export function GroupEditor({
             mode,
             first_token_time_out: firstTokenTimeOut,
             session_keep_time: sessionKeepTime,
+            condition,
             members: dedupeSelectedMembers(selectedMembers),
         });
     };
@@ -474,6 +477,30 @@ export function GroupEditor({
                                     setSessionKeepTime(Number.isFinite(n) && n > 0 ? n : 0);
                                 }}
                                 className="rounded-xl"
+                            />
+                        </Field>
+
+                        <Field className="col-span-full">
+                            <FieldLabel htmlFor="group-condition">
+                                Condition (JSON)
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <HelpCircle className="size-4 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            JSON array of rules. Empty means always match.<br />
+                                            Example: [{`{"key":"model","op":"contains","value":"gpt-4"}`}]
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </FieldLabel>
+                            <Input
+                                id="group-condition"
+                                value={condition}
+                                onChange={(e) => setCondition(e.target.value)}
+                                className="rounded-xl font-mono text-xs"
+                                placeholder={'[{"key":"model","op":"contains","value":"gpt-4"}]'}
                             />
                         </Field>
                     </div>

@@ -81,6 +81,8 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 	defer cancel()
 
 	duration := time.Since(m.StartTime)
+	totalAttempts := len(attempts)
+	forwardedAttempts := countForwardedAttempts(attempts)
 
 	globalStats := model.StatsMetrics{
 		WaitTime:    duration.Milliseconds(),
@@ -103,20 +105,26 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 	}
 	op.StatsAPIKeyUpdate(m.APIKeyID, globalStats)
 
-	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d",
+	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d, forwarded_attempts=%d",
 		m.RequestModel, channelID, channelName, success, duration.Milliseconds(),
 		m.Stats.InputToken, m.Stats.OutputToken,
 		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost,
-		len(attempts))
+		totalAttempts, forwardedAttempts)
 
 	m.saveLog(ctx, err, duration, attempts, channelID, channelName)
 }
 
 func finalChannel(attempts []model.ChannelAttempt) (int, string) {
+	var fallbackID int
+	var fallbackName string
 	var lastID int
 	var lastName string
 	for i := len(attempts) - 1; i >= 0; i-- {
 		a := attempts[i]
+		if fallbackID == 0 && a.ChannelID != 0 {
+			fallbackID = a.ChannelID
+			fallbackName = a.ChannelName
+		}
 		if a.Status == model.AttemptSuccess {
 			return a.ChannelID, a.ChannelName
 		}
@@ -125,7 +133,21 @@ func finalChannel(attempts []model.ChannelAttempt) (int, string) {
 			lastName = a.ChannelName
 		}
 	}
-	return lastID, lastName
+	if lastID != 0 {
+		return lastID, lastName
+	}
+	return fallbackID, fallbackName
+}
+
+func countForwardedAttempts(attempts []model.ChannelAttempt) int {
+	count := 0
+	for _, attempt := range attempts {
+		if attempt.Status == model.AttemptSkipped || attempt.Status == model.AttemptCircuitBreak {
+			continue
+		}
+		count++
+	}
+	return count
 }
 
 func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration, attempts []model.ChannelAttempt, channelID int, channelName string) {

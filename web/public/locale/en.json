@@ -78,7 +78,102 @@
         "key": "Key",
         "model": "Price",
         "log": "Log",
+        "alert": "Alert",
+        "user": "User",
         "setting": "Setting"
+    },
+    "user": {
+        "title": "User Management",
+        "changeRole": "Change Role",
+        "cancel": "Cancel",
+        "deleteUser": "Delete user",
+        "cannotDeletePrimaryAdmin": "Cannot delete primary admin",
+        "confirmDelete": "Delete this user? This cannot be undone.",
+        "roles": {
+            "admin": "Admin",
+            "editor": "Editor",
+            "viewer": "Viewer"
+        },
+        "create": {
+            "open": "Add User",
+            "title": "Create User",
+            "username": "Username",
+            "usernamePlaceholder": "Enter username",
+            "password": "Password",
+            "passwordPlaceholder": "Enter password",
+            "passwordHint": "Password must be at least 12 characters long.",
+            "role": "Role",
+            "submit": "Create User",
+            "submitting": "Creating..."
+        },
+        "toast": {
+            "created": "User created",
+            "createFailed": "Failed to create user",
+            "deleted": "User deleted",
+            "roleUpdated": "Role updated",
+            "actionFailed": "Action failed"
+        }
+    },
+    "alert": {
+        "tabs": {
+            "rules": "Rules",
+            "channels": "Channels",
+            "history": "History"
+        },
+        "actions": {
+            "edit": "Edit",
+            "save": "Save",
+            "create": "Create",
+            "cancel": "Cancel"
+        },
+        "conditions": {
+            "cost_threshold": "Cost Threshold",
+            "error_rate": "Error Rate %",
+            "quota_exceeded": "Quota Exceeded",
+            "channel_down": "Channel Down"
+        },
+        "channelTypes": {
+            "webhook": "Webhook"
+        },
+        "rules": {
+            "title": "Alert Rules",
+            "new": "New Rule",
+            "confirmDelete": "Delete this rule? This cannot be undone.",
+            "cooldown": "cooldown {seconds}s",
+            "form": {
+                "namePlaceholder": "Rule name",
+                "thresholdPlaceholder": "Threshold",
+                "cooldownPlaceholder": "Cooldown seconds",
+                "noChannel": "No Channel"
+            }
+        },
+        "channels": {
+            "title": "Notification Channels",
+            "new": "New Channel",
+            "confirmDelete": "Delete this notification channel? This cannot be undone.",
+            "form": {
+                "namePlaceholder": "Channel name",
+                "urlPlaceholder": "Webhook URL",
+                "secretPlaceholder": "Secret (optional)"
+            }
+        },
+        "history": {
+            "title": "Alert History",
+            "empty": "No alert history yet",
+            "messages": {
+                "triggered": "Alert triggered",
+                "resolved": "Alert resolved"
+            }
+        },
+        "toast": {
+            "ruleCreated": "Rule created",
+            "ruleUpdated": "Rule updated",
+            "ruleEnabled": "Rule enabled",
+            "ruleDisabled": "Rule disabled",
+            "channelCreated": "Channel created",
+            "channelUpdated": "Channel updated",
+            "actionFailed": "Action failed"
+        }
     },
     "toolbar": {
         "popover": {
@@ -203,6 +298,12 @@
             "zh_hant": "Chinese (Traditional)",
             "en": "English"
         },
+        "alertLanguage": {
+            "label": "Alert Send Language",
+            "zh_hans": "Chinese (Simplified)",
+            "zh_hant": "Chinese (Traditional)",
+            "en": "English"
+        },
         "proxyUrl": {
             "label": "Proxy URL",
             "placeholder": "Enter proxy URL"
@@ -242,6 +343,16 @@
             "count": {
                 "label": "Max retries per channel",
                 "placeholder": "Enter retry count"
+            },
+            "ratelimitCooldown": {
+                "label": "429 cooldown (seconds)",
+                "hint": "After an upstream rate limit response, the channel is skipped for this cooldown period.",
+                "placeholder": "Enter cooldown seconds"
+            },
+            "maxTotalAttempts": {
+                "label": "Max total attempts",
+                "hint": "Limits total forwarded attempts across all candidate channels for one request. 0 means unlimited.",
+                "placeholder": "Enter max total attempts"
             }
         },
         "autoStrategy": {
@@ -261,6 +372,11 @@
                 "label": "Sample Threshold",
                 "hint": "Maximum number of samples to keep in sliding window",
                 "placeholder": "100"
+            },
+            "latencyWeight": {
+                "label": "Latency Weight (0-100)",
+                "hint": "Higher values prefer lower-latency channels more strongly; lower values lean more on success rate.",
+                "placeholder": "30"
             }
         },
   "aiRoute": {
@@ -300,6 +416,7 @@
     }
   },
   "saved": "Saved",
+        "saveFailed": "Save failed",
         "backup": {
             "title": "Backup / Restore",
             "export": {
@@ -433,6 +550,10 @@
                 "change": "Change Password",
                 "success": "Password changed successfully",
                 "failed": "Failed to change password"
+            },
+            "logout": {
+                "label": "Sign out current session",
+                "button": "Logout"
             }
         },
         "info": {

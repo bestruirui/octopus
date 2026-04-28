@@ -11,6 +11,7 @@ import (
 	"github.com/lingyuins/octopus/internal/helper"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
@@ -20,6 +21,7 @@ import (
 func init() {
 	router.NewGroupRouter("/api/v1/channel").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermChannelsRead)).
 		Use(middleware.RequireJSON()).
 		AddRoute(
 			router.NewRoute("/list", http.MethodGet).
@@ -27,32 +29,40 @@ func init() {
 		).
 		AddRoute(
 			router.NewRoute("/create", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(createChannel),
 		).
 		AddRoute(
 			router.NewRoute("/update", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(updateChannel),
 		).
 		AddRoute(
 			router.NewRoute("/enable", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(enableChannel),
 		).
 		AddRoute(
 			router.NewRoute("/delete/:id", http.MethodDelete).
+				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(deleteChannel),
 		).
 		AddRoute(
 			router.NewRoute("/fetch-model", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(fetchModel),
 		).
 		AddRoute(
 			router.NewRoute("/test", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(testChannel),
 		)
 	router.NewGroupRouter("/api/v1/channel").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermChannelsRead)).
 		AddRoute(
 			router.NewRoute("/sync", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(syncChannel),
 		).
 		AddRoute(

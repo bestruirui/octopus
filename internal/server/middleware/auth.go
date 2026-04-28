@@ -5,11 +5,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/conf"
+	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/resp"
-	"github.com/gin-gonic/gin"
 )
 
 func Auth() gin.HandlerFunc {
@@ -20,11 +21,35 @@ func Auth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if !auth.VerifyJWTToken(strings.TrimPrefix(token, "Bearer ")) {
+		valid, userID, role := auth.VerifyJWTToken(strings.TrimPrefix(token, "Bearer "))
+		if !valid {
 			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 			c.Abort()
 			return
 		}
+
+		if userID == 0 {
+			currentUser := op.UserGet()
+			if currentUser.ID == 0 {
+				resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+				c.Abort()
+				return
+			}
+			userID = currentUser.ID
+		}
+
+		currentUser, err := op.UserGetByID(userID, c.Request.Context())
+		if err != nil {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			c.Abort()
+			return
+		}
+		role = currentUser.Role
+		if role == "" {
+			role = model.UserRoleAdmin
+		}
+		c.Set("user_id", int(currentUser.ID))
+		c.Set("user_role", role)
 		c.Next()
 	}
 }
@@ -78,6 +103,9 @@ func APIKeyAuth() gin.HandlerFunc {
 		c.Set("request_type", requestType)
 		c.Set("supported_models", apiKeyObj.SupportedModels)
 		c.Set("api_key_id", apiKeyObj.ID)
+		c.Set("rate_limit_rpm", apiKeyObj.RateLimitRPM)
+		c.Set("rate_limit_tpm", apiKeyObj.RateLimitTPM)
+		c.Set("per_model_quota_json", apiKeyObj.PerModelQuotaJSON)
 		c.Next()
 	}
 }

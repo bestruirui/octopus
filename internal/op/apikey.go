@@ -67,6 +67,7 @@ func APIKeyDelete(id int, ctx context.Context) error {
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 

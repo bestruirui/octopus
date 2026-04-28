@@ -10,6 +10,7 @@ import (
 	"github.com/lingyuins/octopus/internal/helper"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
@@ -19,6 +20,7 @@ import (
 func init() {
 	router.NewGroupRouter("/api/v1/group").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermGroupsRead)).
 		Use(middleware.RequireJSON()).
 		AddRoute(
 			router.NewRoute("/list", http.MethodGet).
@@ -26,18 +28,22 @@ func init() {
 		).
 		AddRoute(
 			router.NewRoute("/create", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(createGroup),
 		).
 		AddRoute(
 			router.NewRoute("/update", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(updateGroup),
 		).
 		AddRoute(
 			router.NewRoute("/auto-group", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(autoGroupModels),
 		).
 		AddRoute(
 			router.NewRoute("/test", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(startGroupTest),
 		).
 		AddRoute(
@@ -46,10 +52,12 @@ func init() {
 		).
 		AddRoute(
 			router.NewRoute("/delete-all", http.MethodDelete).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(deleteAllGroups),
 		).
 		AddRoute(
 			router.NewRoute("/delete/:id", http.MethodDelete).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(deleteGroup),
 		)
 	// AddRoute(

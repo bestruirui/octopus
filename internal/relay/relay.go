@@ -2,18 +2,22 @@ package relay
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/helper"
 	dbmodel "github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/relay/condition"
 	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
 	"github.com/lingyuins/octopus/internal/relay/balancer"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/transformer/inbound"
@@ -83,6 +87,57 @@ func isZenCandidateChannelAllowed(requestModel string, channelType outbound.Outb
 	return ok
 }
 
+type perModelQuota struct {
+	RPM int `json:"rpm"`
+	TPM int `json:"tpm"`
+}
+
+func resolveAPIRateLimit(modelName string, c *gin.Context) (rpm int, tpm int) {
+	rpm = c.GetInt("rate_limit_rpm")
+	tpm = c.GetInt("rate_limit_tpm")
+
+	perModelJSON := c.GetString("per_model_quota_json")
+	if perModelJSON == "" {
+		return
+	}
+
+	var quotas map[string]perModelQuota
+	if err := json.Unmarshal([]byte(perModelJSON), &quotas); err != nil {
+		return
+	}
+
+	if q, ok := quotas[modelName]; ok {
+		if q.RPM > 0 {
+			rpm = q.RPM
+		}
+		if q.TPM > 0 {
+			tpm = q.TPM
+		}
+	}
+	return
+}
+
+func initSemanticCacheFromSettings() {
+	enabled, _ := op.SettingGetBool(dbmodel.SettingKeySemanticCacheEnabled)
+	if !enabled {
+		semantic_cache.Clear()
+		return
+	}
+	ttl, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheTTL)
+	thresholdRaw, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheThreshold)
+	maxEntries, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheMaxEntries)
+	if ttl <= 0 {
+		ttl = 3600
+	}
+	if thresholdRaw < 0 || thresholdRaw > 100 {
+		thresholdRaw = 98
+	}
+	if maxEntries <= 0 {
+		maxEntries = 1000
+	}
+	semantic_cache.Init(maxEntries, float64(thresholdRaw)/100.0, ttl)
+}
+
 func resolveCandidateModelName(requestModel string, item dbmodel.GroupItem) string {
 	if upstreamModel, ok := resolveRequestedUpstreamModel(requestModel); ok {
 		if strings.TrimSpace(item.ModelName) == "" || strings.EqualFold(strings.TrimSpace(item.ModelName), "zen") {
@@ -113,9 +168,29 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 
 	requestModel := internalRequest.Model
 	apiKeyID := c.GetInt("api_key_id")
+
+	// Rate limiting: check RPM/TPM before forwarding
+	if rpm := c.GetInt("rate_limit_rpm"); rpm > 0 || c.GetInt("rate_limit_tpm") > 0 {
+		effectiveRPM, effectiveTPM := resolveAPIRateLimit(requestModel, c)
+		if effectiveRPM > 0 || effectiveTPM > 0 {
+			allowed, remaining, retryAfter := op.CheckRateLimit(apiKeyID, requestModel, effectiveRPM, effectiveTPM, 0)
+			if !allowed {
+				c.Header("X-RateLimit-Remaining", "0")
+				c.Header("Retry-After", strconv.Itoa(retryAfter))
+				resp.Error(c, http.StatusTooManyRequests, "rate limit exceeded")
+				return
+			}
+			if effectiveRPM > 0 {
+				c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
+			}
+		}
+	}
 	var streamSession *relayStreamSession
 	var streamSessionOwned bool
 	var lastErr error
+	// Initialize semantic cache from settings
+	initSemanticCacheFromSettings()
+
 	if shouldUseRelayStreamSession(internalRequest) {
 		sessionHash := buildRelayStreamSessionHash(endpointType, int(inboundType), apiKeyID, internalRequest.RawRequest)
 		session, created, err := acquireRelayStreamSession(internalRequest.ConversationID, apiKeyID, sessionHash)
@@ -161,6 +236,20 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 		lastErr = err
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return
+	}
+
+	// 检查条件路由：条件不匹配则跳过
+	if group.Condition != "" {
+		condCtx := condition.RequestContext{
+			Model:    requestModel,
+			APIKeyID: apiKeyID,
+			Hour:     time.Now().UTC().Hour(),
+		}
+		if match, condErr := condition.Evaluate(group.Condition, condCtx); condErr != nil || !match {
+			lastErr = fmt.Errorf("condition not met for group %s", group.Name)
+			resp.Error(c, http.StatusNotFound, "model not found")
+			return
+		}
 	}
 
 	// 创建迭代器（策略排序 + 粘性优先）
@@ -305,6 +394,7 @@ outer:
 
 			result := ra.attempt()
 			if result.Success {
+				lastErr = nil
 				metrics.Save(true, nil, iter.Attempts())
 				return
 			}
@@ -385,6 +475,8 @@ func (ra *relayAttempt) attempt() attemptResult {
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
 		// Auto策略：记录成功
 		balancer.RecordAutoSuccess(ra.channel.ID, ra.internalRequest.Model)
+		// Auto策略：记录延迟（毫秒）
+		balancer.RecordAutoLatency(ra.channel.ID, ra.internalRequest.Model, span.Duration().Milliseconds())
 		// 会话保持：更新粘性记录
 		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
 
@@ -434,9 +526,9 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 // parseRequest 解析并验证入站请求
 func parseRequest(inboundType inbound.InboundType, c *gin.Context) (*model.InternalLLMRequest, model.Inbound, error) {
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := readLimitedRequestBody(c, maxRelayJSONBodyBytes)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		resp.Error(c, relayRequestBodyErrorStatus(err), err.Error())
 		return nil, nil, err
 	}
 

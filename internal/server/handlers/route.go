@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/helper"
 	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
@@ -17,9 +18,11 @@ import (
 func init() {
 	router.NewGroupRouter("/api/v1/route").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermGroupsRead)).
 		Use(middleware.RequireJSON()).
 		AddRoute(
 			router.NewRoute("/ai-generate", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(generateAIRoute),
 		).
 		AddRoute(

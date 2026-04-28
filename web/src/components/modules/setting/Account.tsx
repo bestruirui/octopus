@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { User, KeyRound, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, KeyRound, Lock, Eye, EyeOff, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useChangeUsername, useChangePassword, useAuth } from '@/api/endpoints/user';
@@ -170,6 +170,23 @@ export function SettingAccount() {
                         {changePassword.isPending ? t('account.saving') : t('account.password.change')}
                     </Button>
                 </div>
+            </div>
+
+            <div className="border-t border-border" />
+
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <LogOut className="size-4" />
+                    {t('account.logout.label')}
+                </div>
+                <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={logout}
+                    className="rounded-xl"
+                >
+                    {t('account.logout.button')}
+                </Button>
             </div>
         </div>
     );

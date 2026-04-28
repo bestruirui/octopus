@@ -48,7 +48,14 @@ type GroupModelTestProgress struct {
 	Message   string                 `json:"message,omitempty"`
 }
 
+type groupModelTestProgressEntry struct {
+	progress  GroupModelTestProgress
+	expiresAt time.Time
+}
+
 var groupProbeProgress sync.Map
+
+var groupProbeProgressTTL = 10 * time.Minute
 
 func TestGroupModels(ctx context.Context, group *appmodel.Group, channels map[int]appmodel.Channel) (*GroupModelTestSummary, error) {
 	progress := &GroupModelTestProgress{Total: len(group.Items)}
@@ -72,6 +79,15 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 	storeGroupModelProgress(progress)
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				failed := cloneGroupModelProgress(progress)
+				failed.Done = true
+				failed.Passed = false
+				failed.Message = fmt.Sprintf("internal error: %v", r)
+				storeGroupModelProgress(&failed)
+			}
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
@@ -88,17 +104,19 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 }
 
 func GetGroupModelTestProgress(id string) (*GroupModelTestProgress, bool) {
+	cleanupExpiredGroupModelProgress(time.Now())
+
 	value, ok := groupProbeProgress.Load(id)
 	if !ok {
 		return nil, false
 	}
 
-	progress, ok := value.(GroupModelTestProgress)
+	entry, ok := value.(groupModelTestProgressEntry)
 	if !ok {
 		return nil, false
 	}
 
-	cloned := cloneGroupModelProgress(&progress)
+	cloned := cloneGroupModelProgress(&entry.progress)
 	return &cloned, true
 }
 
@@ -153,6 +171,10 @@ func runGroupModelTest(ctx context.Context, group *appmodel.Group, channels map[
 		}
 
 		for attempt := 1; attempt <= 3; attempt++ {
+			if attempt > 1 && ctx.Err() != nil {
+				result.Message = ctx.Err().Error()
+				break
+			}
 			statusCode, responseText, err := sendGroupProbeRequest(ctx, outAdapter, &channel, usedKey.ChannelKey, group.EndpointType, item.ModelName)
 			result.StatusCode = statusCode
 			result.ResponseText = responseText
@@ -199,10 +221,29 @@ func appendGroupTestResult(summary *GroupModelTestSummary, progress *GroupModelT
 }
 
 func storeGroupModelProgress(progress *GroupModelTestProgress) {
+	storeGroupModelProgressAt(progress, time.Now())
+}
+
+func storeGroupModelProgressAt(progress *GroupModelTestProgress, now time.Time) {
 	if progress == nil || progress.ID == "" {
 		return
 	}
-	groupProbeProgress.Store(progress.ID, cloneGroupModelProgress(progress))
+
+	cleanupExpiredGroupModelProgress(now)
+	groupProbeProgress.Store(progress.ID, groupModelTestProgressEntry{
+		progress:  cloneGroupModelProgress(progress),
+		expiresAt: now.Add(groupProbeProgressTTL),
+	})
+}
+
+func cleanupExpiredGroupModelProgress(now time.Time) {
+	groupProbeProgress.Range(func(key, value any) bool {
+		entry, ok := value.(groupModelTestProgressEntry)
+		if !ok || (!entry.expiresAt.IsZero() && !now.Before(entry.expiresAt)) {
+			groupProbeProgress.Delete(key)
+		}
+		return true
+	})
 }
 
 func cloneGroupModelProgress(progress *GroupModelTestProgress) GroupModelTestProgress {

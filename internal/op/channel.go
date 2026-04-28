@@ -123,7 +123,7 @@ func ChannelKeySaveDB(ctx context.Context) error {
 		return nil
 	}
 
-	return db.GetDB().WithContext(ctx).Clauses(clause.OnConflict{
+	if err := db.GetDB().WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "id"}},
 		DoUpdates: clause.AssignmentColumns([]string{
 			"channel_id",
@@ -134,7 +134,15 @@ func ChannelKeySaveDB(ctx context.Context) error {
 			"total_cost",
 			"remark",
 		}),
-	}).Create(&keys).Error
+	}).Create(&keys).Error; err != nil {
+		channelKeyCacheNeedUpdateLock.Lock()
+		for _, id := range keyIDs {
+			channelKeyCacheNeedUpdate[id] = struct{}{}
+		}
+		channelKeyCacheNeedUpdateLock.Unlock()
+		return err
+	}
+	return nil
 }
 
 func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channel, error) {
@@ -160,6 +168,7 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 
@@ -321,6 +330,7 @@ func ChannelDel(id int, ctx context.Context) error {
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 

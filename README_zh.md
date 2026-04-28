@@ -18,9 +18,13 @@
 - ⚡ **智能优选** - 单渠道多端点，智能选择延迟最小的端点请求
 - ⚖️ **负载均衡** - 支持轮询、随机、故障转移、加权分配、智能选择五种策略
 - 🤖 **Auto 智能策略** - 先探索样本不足的候选，再优先选择窗口内成功率更高的渠道
-- 🧠 **AI 路由与自动分组** - 支持在路由页生成整张路由表，或在分组编辑弹窗中补全单个分组
+- 🧠 **AI 路由、自动分组与条件分组** - 支持在路由页生成整张路由表，在分组编辑弹窗中补全单个分组，并用 JSON 条件控制分组命中
 - 🔄 **协议互转** - 支持 OpenAI Chat / OpenAI Responses / OpenAI Embeddings / Anthropic 四种 API 格式互相转换
 - 🌐 **多供应商支持** - 内置支持 OpenAI 兼容、Anthropic、Gemini、Volcengine 渠道
+- 🛰️ **媒体与工具类中继** - 支持通过同一套分组 / 重试 / 熔断基础设施转发 OpenAI Images、音频、视频、搜索、重排和审核类端点
+- 🧾 **API Key 治理** - 支持模型白名单、过期时间、费用上限、RPM / TPM 限额，以及可选的按模型配额
+- 🔐 **角色化管理权限** - 内置 `admin`、`editor`、`viewer` 三种角色，并由服务端强制执行权限控制
+- 🚨 **Webhook 告警** - 支持错误率、费用阈值、额度超限、渠道下线等告警规则，并记录通知历史
 - 💰 **价格同步** - 自动更新模型价格
 - 🔃 **模型同步** - 自动与渠道同步可用模型列表，省心省力
 - 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪和中继日志
@@ -153,6 +157,16 @@ http://localhost:3000
 >
 > ⚠️ **安全提示**：如果未配置 `OCTOPUS_AUTH_JWT_SECRET` 或 `auth.jwt_secret`，Octopus 会在启动时生成仅当前进程有效的 JWT 密钥。服务重启后，已有登录 token 会失效。
 
+### 👥 管理员角色
+
+管理 API 和内嵌 Web 管理界面内置三种角色：
+
+- `admin`：完整权限，包括用户管理
+- `editor`：可写的运维权限，包括渠道、分组、设置、API Key、日志、告警和 AI 路由
+- `viewer`：只读权限
+
+权限校验由服务端执行，服务端会按当前存储的角色判权，而不是只信任 JWT 中的角色声明。
+
 ### 📝 配置文件
 
 配置文件默认位于 `data/config.json`，首次启动时自动生成。
@@ -177,6 +191,8 @@ http://localhost:3000
   }
 }
 ```
+
+大多数运行时调优项不存放在 `config.json` 中。重试策略、熔断阈值、Auto 策略调优、日志保留周期、对外 API 基础地址、AI 路由服务配置、语义缓存开关等，都通过设置页 / 管理 API 动态写入数据库。
 
 **配置项说明：**
 
@@ -238,6 +254,8 @@ http://localhost:3000
 | `OCTOPUS_DATA_DIR` | 在未显式设置 `database.path` 时，`config.json` 和 SQLite 数据库的默认目录 |
 | `OCTOPUS_LOG_LEVEL` | `log.level` |
 | `OCTOPUS_AUTH_JWT_SECRET` | `auth.jwt_secret` |
+| `OCTOPUS_INITIAL_ADMIN_USERNAME` | 启动时自动创建初始管理员用户名 |
+| `OCTOPUS_INITIAL_ADMIN_PASSWORD` | 启动时自动创建初始管理员密码 |
 | `OCTOPUS_GITHUB_PAT` | 用于获取最新版本时的速率限制(可选) |
 | `OCTOPUS_RELAY_MAX_SSE_EVENT_SIZE` | 最大 SSE 事件大小(可选) |
 
@@ -259,12 +277,12 @@ http://localhost:3000
 <td><img src="web/public/screenshot/desktop-group.png" alt="分组" width="400"></td>
 </tr>
 <tr>
-<td align="center"><b>价格</b></td>
+<td align="center"><b>模型</b></td>
 <td align="center"><b>日志</b></td>
 <td align="center"><b>设置</b></td>
 </tr>
 <tr>
-<td><img src="web/public/screenshot/desktop-price.png" alt="价格" width="400"></td>
+<td><img src="web/public/screenshot/desktop-price.png" alt="模型" width="400"></td>
 <td><img src="web/public/screenshot/desktop-log.png" alt="日志" width="400"></td>
 <td><img src="web/public/screenshot/desktop-setting.png" alt="设置" width="400"></td>
 </tr>
@@ -279,7 +297,7 @@ http://localhost:3000
 <td align="center"><b>首页</b></td>
 <td align="center"><b>渠道</b></td>
 <td align="center"><b>分组</b></td>
-<td align="center"><b>价格</b></td>
+<td align="center"><b>模型</b></td>
 <td align="center"><b>日志</b></td>
 <td align="center"><b>设置</b></td>
 </tr>
@@ -287,7 +305,7 @@ http://localhost:3000
 <td><img src="web/public/screenshot/mobile-home.png" alt="移动端首页" width="140"></td>
 <td><img src="web/public/screenshot/mobile-channel.png" alt="移动端渠道" width="140"></td>
 <td><img src="web/public/screenshot/mobile-group.png" alt="移动端分组" width="140"></td>
-<td><img src="web/public/screenshot/mobile-price.png" alt="移动端价格" width="140"></td>
+<td><img src="web/public/screenshot/mobile-price.png" alt="移动端模型" width="140"></td>
 <td><img src="web/public/screenshot/mobile-log.png" alt="移动端日志" width="140"></td>
 <td><img src="web/public/screenshot/mobile-setting.png" alt="移动端设置" width="140"></td>
 </tr>
@@ -310,11 +328,28 @@ http://localhost:3000
 | OpenAI Chat | `/chat/completions` | `https://api.openai.com/v1` | `https://api.openai.com/v1/chat/completions` |
 | OpenAI Responses | `/responses` | `https://api.openai.com/v1` | `https://api.openai.com/v1/responses` |
 | OpenAI Embeddings | `/embeddings` | `https://api.openai.com/v1` | `https://api.openai.com/v1/embeddings` |
+| OpenAI Images | `/images/generations`、`/images/edits`、`/images/variations` | `https://api.openai.com/v1` | `https://api.openai.com/v1/images/generations` |
 | Anthropic | `/messages` | `https://api.anthropic.com/v1` | `https://api.anthropic.com/v1/messages` |
 | Gemini | `/models/:model:generateContent` | `https://generativelanguage.googleapis.com/v1beta` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` |
 | Volcengine | `/responses` | `https://ark.cn-beijing.volces.com/api/v3` | `https://ark.cn-beijing.volces.com/api/v3/responses` |
 
 > 💡 **提示**：填写 Base URL 时无需包含具体的 API 端点路径，程序会自动处理。
+
+### 🌐 公共 Relay 端点
+
+公共 relay API 同时支持 OpenAI 风格和 Anthropic 风格客户端：
+
+- OpenAI 风格客户端：`Authorization: Bearer sk-octopus-...`
+- Anthropic 风格客户端：`x-api-key: sk-octopus-...`
+
+| 类别 | 路径 | 说明 |
+|------|------|------|
+| OpenAI 兼容 LLM | `/v1/chat/completions`、`/v1/responses`、`/v1/embeddings`、`/v1/models` | JSON 请求 / 响应 |
+| Anthropic 兼容 LLM | `/v1/messages` | Anthropic 风格请求 / 响应 |
+| JSON 媒体 / 工具类 | `/v1/images/generations`、`/v1/audio/speech`、`/v1/videos/generations`、`/v1/music/generations`、`/v1/search`、`/v1/rerank`、`/v1/moderations` | 复用同一套分组 / 重试 / 熔断逻辑 |
+| Multipart 媒体类 | `/v1/images/edits`、`/v1/images/variations`、`/v1/audio/transcriptions` | 透传 multipart 上传 |
+
+当上游支持 `stream=true` 时，JSON 媒体类端点也可以直接透传 SSE 流。
 
 ---
 
@@ -328,6 +363,7 @@ http://localhost:3000
 - 调用 API 时，将请求中的 `model` 参数设置为分组名称即可
 - **首字超时**：单位秒，仅对流式响应生效，`0` 表示不限制
 - **会话保持**：单位秒，在设定时间窗口内，同一 API Key + 模型会优先复用上次成功的渠道，`0` 表示禁用
+- **Condition (JSON)**：可选的 AND 条件规则，当前只在主 LLM relay 路径里生效；内置请求上下文目前包含 `model`、`api_key_id`、`hour`
 
 **负载均衡模式：**
 
@@ -344,8 +380,9 @@ http://localhost:3000
 - **最小样本数**：`10`
 - **时间窗口**：`300` 秒
 - **滑动窗口大小**：每个渠道-模型对保留 `100` 条记录
+- **延迟权重**：`30`
 - 当候选未达到最小样本数时，系统优先进行探索
-- 候选都完成探索后，系统按成功率排序；成功率相同时，再按样本量、权重、优先级兜底
+- 候选都完成探索后，系统按成功率排序；成功率相同时，再按样本量、权重、优先级和延迟调优兜底
 - Auto 策略窗口会在启动时从数据库恢复，并在定时任务和优雅退出时持久化
 
 **AI 路由行为：**
@@ -359,9 +396,9 @@ http://localhost:3000
 
 ---
 
-### 💰 价格管理
+### 💰 模型管理
 
-管理系统中的模型价格信息。
+管理系统中的模型目录和价格信息。
 
 **数据来源：**
 
@@ -373,10 +410,10 @@ http://localhost:3000
 
 | 优先级 | 来源 | 说明 |
 |:------:|------|------|
-| 🥇 高 | 本页面 | 用户在价格管理页面设置的价格 |
+| 🥇 高 | 本页面 | 用户在模型管理页面设置的价格 |
 | 🥈 低 | models.dev | 自动同步的默认价格 |
 
-> 💡 **提示**：如需覆盖某个模型的默认价格，只需在价格管理页面为其设置自定义价格即可。
+> 💡 **提示**：如需覆盖某个模型的默认价格，只需在模型管理页面为其设置自定义价格即可。
 
 ---
 

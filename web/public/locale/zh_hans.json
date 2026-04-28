@@ -78,7 +78,102 @@
         "key": "密钥",
         "model": "价格",
         "log": "日志",
+        "alert": "告警",
+        "user": "用户",
         "setting": "设置"
+    },
+    "user": {
+        "title": "用户管理",
+        "changeRole": "修改角色",
+        "cancel": "取消",
+        "deleteUser": "删除用户",
+        "cannotDeletePrimaryAdmin": "不能删除主管理员",
+        "confirmDelete": "确认删除该用户吗？此操作不可撤销。",
+        "roles": {
+            "admin": "管理员",
+            "editor": "编辑者",
+            "viewer": "只读者"
+        },
+        "create": {
+            "open": "新增用户",
+            "title": "创建用户",
+            "username": "用户名",
+            "usernamePlaceholder": "请输入用户名",
+            "password": "密码",
+            "passwordPlaceholder": "请输入密码",
+            "passwordHint": "密码长度至少 12 个字符。",
+            "role": "角色",
+            "submit": "创建用户",
+            "submitting": "创建中..."
+        },
+        "toast": {
+            "created": "用户已创建",
+            "createFailed": "创建用户失败",
+            "deleted": "用户已删除",
+            "roleUpdated": "角色已更新",
+            "actionFailed": "操作失败"
+        }
+    },
+    "alert": {
+        "tabs": {
+            "rules": "规则",
+            "channels": "渠道",
+            "history": "历史"
+        },
+        "actions": {
+            "edit": "编辑",
+            "save": "保存",
+            "create": "创建",
+            "cancel": "取消"
+        },
+        "conditions": {
+            "cost_threshold": "成本阈值",
+            "error_rate": "错误率",
+            "quota_exceeded": "额度耗尽",
+            "channel_down": "渠道离线"
+        },
+        "channelTypes": {
+            "webhook": "Webhook"
+        },
+        "rules": {
+            "title": "告警规则",
+            "new": "新建规则",
+            "confirmDelete": "确认删除该规则吗？此操作不可撤销。",
+            "cooldown": "冷却 {seconds} 秒",
+            "form": {
+                "namePlaceholder": "规则名称",
+                "thresholdPlaceholder": "阈值",
+                "cooldownPlaceholder": "冷却秒数",
+                "noChannel": "不绑定渠道"
+            }
+        },
+        "channels": {
+            "title": "通知渠道",
+            "new": "新建渠道",
+            "confirmDelete": "确认删除该通知渠道吗？此操作不可撤销。",
+            "form": {
+                "namePlaceholder": "渠道名称",
+                "urlPlaceholder": "Webhook 地址",
+                "secretPlaceholder": "密钥（可选）"
+            }
+        },
+        "history": {
+            "title": "告警历史",
+            "empty": "暂无告警历史",
+            "messages": {
+                "triggered": "告警已触发",
+                "resolved": "告警已恢复"
+            }
+        },
+        "toast": {
+            "ruleCreated": "规则已创建",
+            "ruleUpdated": "规则已更新",
+            "ruleEnabled": "规则已启用",
+            "ruleDisabled": "规则已停用",
+            "channelCreated": "渠道已创建",
+            "channelUpdated": "渠道已更新",
+            "actionFailed": "操作失败"
+        }
     },
     "toolbar": {
         "popover": {
@@ -203,6 +298,12 @@
             "zh_hant": "繁体中文",
             "en": "English"
         },
+        "alertLanguage": {
+            "label": "告警发送语言",
+            "zh_hans": "简体中文",
+            "zh_hant": "繁体中文",
+            "en": "English"
+        },
         "proxyUrl": {
             "label": "代理地址",
             "placeholder": "请输入代理地址"
@@ -242,6 +343,16 @@
             "count": {
                 "label": "单个渠道最大重试次数",
                 "placeholder": "请输入重试次数"
+            },
+            "ratelimitCooldown": {
+                "label": "429 冷却时间（秒）",
+                "hint": "渠道触发上游限流后，会在该冷却时间内跳过再次尝试。",
+                "placeholder": "请输入冷却时间"
+            },
+            "maxTotalAttempts": {
+                "label": "最大总尝试次数",
+                "hint": "限制一次请求在所有候选渠道上的总转发次数，0 表示不限制。",
+                "placeholder": "请输入总尝试次数"
             }
         },
         "autoStrategy": {
@@ -261,6 +372,11 @@
                 "label": "样本阈值",
                 "hint": "滑动窗口保留的最大样本数",
                 "placeholder": "100"
+            },
+            "latencyWeight": {
+                "label": "延迟权重（0-100）",
+                "hint": "值越大，自动策略越偏向低延迟渠道；值越小，越偏向成功率。",
+                "placeholder": "30"
             }
         },
   "aiRoute": {
@@ -300,6 +416,7 @@
     }
   },
   "saved": "已保存",
+        "saveFailed": "保存失败",
         "backup": {
             "title": "备份 / 恢复",
             "export": {
@@ -433,6 +550,10 @@
                 "change": "修改密码",
                 "success": "密码修改成功",
                 "failed": "密码修改失败"
+            },
+            "logout": {
+                "label": "退出当前登录",
+                "button": "退出登录"
             }
         },
         "info": {

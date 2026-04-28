@@ -12,6 +12,8 @@ const (
 	MediaEndpointSearch
 	MediaEndpointRerank
 	MediaEndpointModeration
+	MediaEndpointImageEdit
+	MediaEndpointImageVariation
 )
 
 // mediaEndpointConfig holds per-endpoint routing configuration.
@@ -29,8 +31,16 @@ var mediaEndpointConfigs = map[MediaEndpointType]mediaEndpointConfig{
 	MediaEndpointImageGeneration: {
 		UpstreamPath: "/v1/images/generations",
 	},
+	MediaEndpointImageEdit: {
+		UpstreamPath:   "/v1/images/edits",
+		MultipartInput: true,
+	},
+	MediaEndpointImageVariation: {
+		UpstreamPath:   "/v1/images/variations",
+		MultipartInput: true,
+	},
 	MediaEndpointAudioSpeech: {
-		UpstreamPath:  "/v1/audio/speech",
+		UpstreamPath:   "/v1/audio/speech",
 		BinaryResponse: true,
 	},
 	MediaEndpointAudioTranscription: {

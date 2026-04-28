@@ -31,6 +31,9 @@ type ChannelStats struct {
 	cachedTotalSamples int
 	lastCacheUpdate    time.Time
 	cacheValidDuration time.Duration
+
+	// EMA-smoothed latency in milliseconds
+	avgLatencyMs float64
 }
 
 // Global storage for channel statistics.
@@ -156,6 +159,32 @@ func RecordAutoSuccess(channelID int, modelName string) {
 func RecordAutoFailure(channelID int, modelName string) {
 	stats := getOrCreateStats(channelID, modelName)
 	stats.Record(false)
+}
+
+// RecordAutoLatency records the observed latency (in milliseconds) for the Auto strategy.
+// Latency is smoothed via EMA with alpha=0.3 to dampen short-term spikes.
+func RecordAutoLatency(channelID int, modelName string, latencyMs int64) {
+	stats := getOrCreateStats(channelID, modelName)
+	stats.recordLatency(float64(latencyMs))
+}
+
+func (cs *ChannelStats) recordLatency(latencyMs float64) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	const alpha = 0.3
+	if cs.avgLatencyMs == 0 {
+		cs.avgLatencyMs = latencyMs
+	} else {
+		cs.avgLatencyMs = alpha*latencyMs + (1-alpha)*cs.avgLatencyMs
+	}
+}
+
+// GetLatency returns the EMA-smoothed latency in milliseconds.
+// Returns 0 when no latency data has been recorded yet.
+func (cs *ChannelStats) GetLatency() float64 {
+	cs.mu.RLock()
+	defer cs.mu.RUnlock()
+	return cs.avgLatencyMs
 }
 
 // GetAutoStats returns the success rate and total samples for a channel+model.

@@ -58,4 +58,6 @@ func Init() {
 			log.Warnf("relay log save db task failed: %v", err)
 		}
 	})
+
+	Register(TaskAlertEvaluate, 60*time.Second, false, EvaluateAlertRules)
 }

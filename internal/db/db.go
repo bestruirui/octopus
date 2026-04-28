@@ -73,6 +73,10 @@ func InitDB(dbType, dsn string, debug bool) error {
 		&model.RelayLog{},
 		&model.AutoStrategyState{},
 		&model.CircuitBreakerState{},
+		&model.AlertRule{},
+		&model.AlertNotifChannel{},
+		&model.AlertStateRecord{},
+		&model.AlertHistory{},
 		&migrate.MigrationRecord{},
 	); err != nil {
 		return err

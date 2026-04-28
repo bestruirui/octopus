@@ -1522,6 +1522,7 @@ func createAIRouteGroup(ctx context.Context, groupName string, endpointType stri
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 

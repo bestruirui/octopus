@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
@@ -17,6 +18,7 @@ import (
 func init() {
 	router.NewGroupRouter("/api/v1/log").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermLogsRead)).
 		AddRoute(
 			router.NewRoute("/list", http.MethodGet).
 				Handle(listLog),
@@ -27,6 +29,7 @@ func init() {
 		).
 		AddRoute(
 			router.NewRoute("/clear", http.MethodDelete).
+				Use(middleware.RequirePermission(auth.PermLogsWrite)).
 				Handle(clearLog),
 		).
 		AddRoute(

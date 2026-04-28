@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	appmodel "github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/transformer/outbound"
@@ -122,4 +123,52 @@ func TestSendGroupProbeRequest_EmbeddingsUseEmbeddingPayload(t *testing.T) {
 	if responseText == "" {
 		t.Fatal("sendGroupProbeRequest() responseText = empty, want upstream payload")
 	}
+}
+
+func TestGetGroupModelTestProgress_RemovesExpiredEntry(t *testing.T) {
+	restoreTTL := groupProbeProgressTTL
+	groupProbeProgressTTL = time.Minute
+	defer func() {
+		groupProbeProgressTTL = restoreTTL
+		clearGroupProbeProgressStore()
+	}()
+	clearGroupProbeProgressStore()
+
+	storeGroupModelProgressAt(&GroupModelTestProgress{ID: "expired"}, time.Now().Add(-2*time.Minute))
+
+	got, ok := GetGroupModelTestProgress("expired")
+	if ok || got != nil {
+		t.Fatalf("GetGroupModelTestProgress() = (%#v, %t), want (nil, false)", got, ok)
+	}
+	if _, stillExists := groupProbeProgress.Load("expired"); stillExists {
+		t.Fatal("expired progress entry still exists after lookup cleanup")
+	}
+}
+
+func TestStoreGroupModelProgress_CleansExpiredEntries(t *testing.T) {
+	restoreTTL := groupProbeProgressTTL
+	groupProbeProgressTTL = time.Minute
+	defer func() {
+		groupProbeProgressTTL = restoreTTL
+		clearGroupProbeProgressStore()
+	}()
+	clearGroupProbeProgressStore()
+
+	storeGroupModelProgressAt(&GroupModelTestProgress{ID: "expired"}, time.Now().Add(-2*time.Minute))
+	storeGroupModelProgressAt(&GroupModelTestProgress{ID: "active", Total: 1}, time.Now())
+
+	if _, stillExists := groupProbeProgress.Load("expired"); stillExists {
+		t.Fatal("expired progress entry still exists after store cleanup")
+	}
+	got, ok := GetGroupModelTestProgress("active")
+	if !ok || got == nil || got.ID != "active" {
+		t.Fatalf("GetGroupModelTestProgress(active) = (%#v, %t), want active entry", got, ok)
+	}
+}
+
+func clearGroupProbeProgressStore() {
+	groupProbeProgress.Range(func(key, _ any) bool {
+		groupProbeProgress.Delete(key)
+		return true
+	})
 }

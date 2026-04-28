@@ -1,11 +1,13 @@
 package balancer
 
 import (
+	"math"
 	"math/rand"
 	"sort"
 	"sync/atomic"
 
 	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op"
 )
 
 var roundRobinCounter uint64
@@ -87,10 +89,10 @@ func (b *Weighted) Candidates(items []model.GroupItem) []model.GroupItem {
 	return sortByWeight(items)
 }
 
-// Auto 自动策略：探索优先，基于成功率动态选择
+// Auto 自动策略：探索优先，基于成功率和延迟动态选择
 // - 探索阶段：优先选择未达到最小样本数的渠道
-// - 利用阶段：选择成功率最高的渠道
-// - 相同成功率时：按权重/优先级兜底
+// - 利用阶段：综合成功率和延迟计算评分
+// - 相同评分时：按权重/优先级兜底
 type Auto struct{}
 
 type autoScoredItem struct {
@@ -107,6 +109,7 @@ func (b *Auto) Candidates(items []model.GroupItem) []model.GroupItem {
 
 	minSamples := getMinSamples()
 	timeWindow := getTimeWindow()
+	latencyWeight := getLatencyWeight()
 
 	// Calculate scores for each item
 	scored := make([]autoScoredItem, len(items))
@@ -122,12 +125,17 @@ func (b *Auto) Candidates(items []model.GroupItem) []model.GroupItem {
 			// Exploration phase: items with fewer samples are tried first.
 			scored[i].score = 0
 		} else {
-			// Exploitation phase: use success rate
+			// Exploitation phase: blend success rate with latency
 			scored[i].score = successRate
+			if latencyWeight > 0 {
+				latencyMs := stats.GetLatency()
+				latencyScore := normalizeLatency(latencyMs)
+				scored[i].score = successRate*(1-latencyWeight) + latencyScore*latencyWeight
+			}
 		}
 	}
 
-	// Sort: unexplored first, then by success rate descending
+	// Sort: unexplored first, then by score descending
 	sort.SliceStable(scored, func(i, j int) bool {
 		// Exploration priority: unexplored channels come first
 		if scored[i].explored != scored[j].explored {
@@ -143,18 +151,18 @@ func (b *Auto) Candidates(items []model.GroupItem) []model.GroupItem {
 			return compareByWeightPriority(scored[i].item, scored[j].item)
 		}
 
-		// Both explored: sort by success rate descending
+		// Both explored: sort by score descending
 		if scored[i].score != scored[j].score {
 			return scored[i].score > scored[j].score
 		}
 
-		// Same success rate: prefer the candidate backed by more in-window
+		// Same score: prefer the candidate backed by more in-window
 		// samples before falling back to weight/priority.
 		if scored[i].totalSamples != scored[j].totalSamples {
 			return scored[i].totalSamples > scored[j].totalSamples
 		}
 
-		// Same success rate: fall back to weight/priority
+		// Same score: fall back to weight/priority
 		return compareByWeightPriority(scored[i].item, scored[j].item)
 	})
 
@@ -201,6 +209,26 @@ func sortByPriority(items []model.GroupItem) []model.GroupItem {
 		return sorted[i].Priority < sorted[j].Priority
 	})
 	return sorted
+}
+
+// getLatencyWeight returns the latency influence weight (0.0–1.0) for Auto strategy scoring.
+// A value of 0 means latency is ignored; 1.0 means only latency matters.
+func getLatencyWeight() float64 {
+	v, err := op.SettingGetInt(model.SettingKeyAutoStrategyLatencyWeight)
+	if err != nil || v < 0 || v > 100 {
+		return 0.3 // default 30% latency weight
+	}
+	return float64(v) / 100.0
+}
+
+// normalizeLatency maps latency in milliseconds to a 0–1 score where 1.0 = fast, 0.0 = slow.
+// Uses a simple linear normalization capped at maxLatency (5000ms).
+func normalizeLatency(latencyMs float64) float64 {
+	if latencyMs <= 0 {
+		return 1.0 // no data yet: assume fast
+	}
+	const maxLatency = 5000.0
+	return math.Max(0, 1-latencyMs/maxLatency)
 }
 
 func sortByWeight(items []model.GroupItem) []model.GroupItem {

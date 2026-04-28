@@ -373,6 +373,7 @@ func createAutoGroupCandidate(candidate model.CandidateGroup, ctx context.Contex
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 

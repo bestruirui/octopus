@@ -16,6 +16,9 @@ export interface APIKey {
     expire_at?: number; // Unix 时间戳（秒），不传表示永不过期
     max_cost?: number; // 不传表示无限制
     supported_models?: string; // 不传表示支持所有模型
+    rate_limit_rpm?: number; // 每分钟请求数限制，0 表示无限制
+    rate_limit_tpm?: number; // 每分钟 token 数限制，0 表示无限制
+    per_model_quota_json?: string; // 按模型的配额 JSON: {"gpt-4o":{"rpm":5,"tpm":50000}}
 }
 
 /**

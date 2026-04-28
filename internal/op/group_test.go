@@ -251,6 +251,39 @@ func TestGroupGetEnabledMapByEndpoint_RegexMatchesAreStableByGroupID(t *testing.
 	}
 }
 
+func TestRebuildGroupIndexesFromCache_SetsRegexMatchTimeout(t *testing.T) {
+	restore := snapshotGroupLookupState()
+	defer restore()
+
+	seedGroupLookupState(
+		map[int]model.Channel{
+			1: {ID: 1, Enabled: true},
+		},
+		map[int]model.Group{
+			10: {
+				ID:           10,
+				Name:         "preferred",
+				EndpointType: model.EndpointTypeAll,
+				MatchRegex:   "(?i)^gpt-4.*$",
+				Items: []model.GroupItem{
+					{ChannelID: 1, ModelName: "gpt-4.1"},
+				},
+			},
+		},
+	)
+
+	groupRegexMatchersLock.RLock()
+	matchers := append([]compiledGroupMatcher(nil), groupRegexMatchersByEndpoint[model.EndpointTypeAll]...)
+	groupRegexMatchersLock.RUnlock()
+
+	if len(matchers) != 1 {
+		t.Fatalf("regex matcher count = %d, want 1", len(matchers))
+	}
+	if matchers[0].re.MatchTimeout != groupRegexMatchTimeout {
+		t.Fatalf("regex match timeout = %s, want %s", matchers[0].re.MatchTimeout, groupRegexMatchTimeout)
+	}
+}
+
 func snapshotGroupLookupState() func() {
 	oldGroups := groupCache.GetAll()
 	oldChannels := channelCache.GetAll()

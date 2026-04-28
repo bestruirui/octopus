@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/dlclark/regexp2"
 	"github.com/lingyuins/octopus/internal/db"
@@ -22,6 +23,8 @@ const groupCacheKeySep = "\x00"
 
 var groupRegexMatchersByEndpoint = make(map[string][]compiledGroupMatcher)
 var groupRegexMatchersLock sync.RWMutex
+
+const groupRegexMatchTimeout = 250 * time.Millisecond
 
 type compiledGroupMatcher struct {
 	group model.Group
@@ -338,6 +341,7 @@ func rebuildGroupIndexesFromCache() {
 		if err != nil {
 			continue
 		}
+		re.MatchTimeout = groupRegexMatchTimeout
 		endpointType := model.NormalizeEndpointType(group.EndpointType)
 		matchersByEndpoint[endpointType] = append(matchersByEndpoint[endpointType], compiledGroupMatcher{group: group, re: re})
 	}
@@ -445,6 +449,7 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 
@@ -478,6 +483,10 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	if req.SessionKeepTime != nil {
 		selectFields = append(selectFields, "session_keep_time")
 		updates.SessionKeepTime = *req.SessionKeepTime
+	}
+	if req.Condition != nil {
+		selectFields = append(selectFields, "condition")
+		updates.Condition = strings.TrimSpace(*req.Condition)
 	}
 
 	if len(selectFields) > 0 {
@@ -560,6 +569,7 @@ func GroupDel(id int, ctx context.Context) error {
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 
@@ -587,6 +597,7 @@ func GroupDelAll(ctx context.Context) (int64, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 	}()
 

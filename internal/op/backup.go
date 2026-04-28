@@ -93,36 +93,43 @@ func DBImportIncremental(ctx context.Context, dump *model.DBDump) (*model.DBImpo
 			return fmt.Errorf("import channels: %w", err)
 		} else {
 			res.RowsAffected["channels"] = n
+			dump.Channels = nil
 		}
 		if n, err := createDoNothing(tx, dump.ChannelKeys); err != nil {
 			return fmt.Errorf("import channel_keys: %w", err)
 		} else {
 			res.RowsAffected["channel_keys"] = n
+			dump.ChannelKeys = nil
 		}
 		if n, err := createDoNothing(tx, dump.Groups); err != nil {
 			return fmt.Errorf("import groups: %w", err)
 		} else {
 			res.RowsAffected["groups"] = n
+			dump.Groups = nil
 		}
 		if n, err := createDoNothing(tx, dump.GroupItems); err != nil {
 			return fmt.Errorf("import group_items: %w", err)
 		} else {
 			res.RowsAffected["group_items"] = n
+			dump.GroupItems = nil
 		}
 		if n, err := createUpsertAll(tx, dump.LLMInfos, []clause.Column{{Name: "name"}}); err != nil {
 			return fmt.Errorf("import llm_infos: %w", err)
 		} else {
 			res.RowsAffected["llm_infos"] = n
+			dump.LLMInfos = nil
 		}
 		if n, err := createDoNothing(tx, dump.APIKeys); err != nil {
 			return fmt.Errorf("import api_keys: %w", err)
 		} else {
 			res.RowsAffected["api_keys"] = n
+			dump.APIKeys = nil
 		}
 		if n, err := createUpsertSettings(tx, dump.Settings); err != nil {
 			return fmt.Errorf("import settings: %w", err)
 		} else {
 			res.RowsAffected["settings"] = n
+			dump.Settings = nil
 		}
 
 		if dump.IncludeStats {
@@ -130,31 +137,37 @@ func DBImportIncremental(ctx context.Context, dump *model.DBDump) (*model.DBImpo
 				return fmt.Errorf("import stats_total: %w", err)
 			} else {
 				res.RowsAffected["stats_total"] = n
+				dump.StatsTotal = nil
 			}
 			if n, err := createUpsertAll(tx, dump.StatsDaily, []clause.Column{{Name: "date"}}); err != nil {
 				return fmt.Errorf("import stats_daily: %w", err)
 			} else {
 				res.RowsAffected["stats_daily"] = n
+				dump.StatsDaily = nil
 			}
 			if n, err := createUpsertAll(tx, dump.StatsHourly, []clause.Column{{Name: "hour"}}); err != nil {
 				return fmt.Errorf("import stats_hourly: %w", err)
 			} else {
 				res.RowsAffected["stats_hourly"] = n
+				dump.StatsHourly = nil
 			}
 			if n, err := createUpsertAll(tx, dump.StatsModel, []clause.Column{{Name: "id"}}); err != nil {
 				return fmt.Errorf("import stats_model: %w", err)
 			} else {
 				res.RowsAffected["stats_model"] = n
+				dump.StatsModel = nil
 			}
 			if n, err := createUpsertAll(tx, dump.StatsChannel, []clause.Column{{Name: "channel_id"}}); err != nil {
 				return fmt.Errorf("import stats_channel: %w", err)
 			} else {
 				res.RowsAffected["stats_channel"] = n
+				dump.StatsChannel = nil
 			}
 			if n, err := createUpsertAll(tx, dump.StatsAPIKey, []clause.Column{{Name: "api_key_id"}}); err != nil {
 				return fmt.Errorf("import stats_api_key: %w", err)
 			} else {
 				res.RowsAffected["stats_api_key"] = n
+				dump.StatsAPIKey = nil
 			}
 		}
 
@@ -163,6 +176,7 @@ func DBImportIncremental(ctx context.Context, dump *model.DBDump) (*model.DBImpo
 				return fmt.Errorf("import relay_logs: %w", err)
 			} else {
 				res.RowsAffected["relay_logs"] = n
+				dump.RelayLogs = nil
 			}
 		}
 

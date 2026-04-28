@@ -53,6 +53,14 @@ func StatsSaveDBTask() {
 	}
 }
 
+// StatsSaveDB persists cached statistics to the database.
+//
+// Design note: stats caches are read under RLock to produce snapshots, then
+// the lock is released before DB writes. In-flight updates (by concurrent
+// relay goroutines) between snapshot and persist are NOT captured in this
+// cycle but will be persisted in the next StatsSaveDB call. This is an
+// intentional eventually-consistent design that avoids holding locks across
+// I/O operations.
 func StatsSaveDB(ctx context.Context) error {
 	statsTotalCacheLock.RLock()
 	totalSnap := statsTotalCache
@@ -93,7 +101,11 @@ func StatsSaveDB(ctx context.Context) error {
 	statsAPIKeyCacheNeedUpdate = make(map[int]struct{})
 	statsAPIKeyCacheNeedUpdateLock.Unlock()
 
-	return persistStatsSnapshots(ctx, totalSnap, dailySnap, hourlyAll, channelIDs, modelIDs, apiKeyIDs)
+	if err := persistStatsSnapshots(ctx, totalSnap, dailySnap, hourlyAll, channelIDs, modelIDs, apiKeyIDs); err != nil {
+		requeueStatsDirtyIDs(channelIDs, modelIDs, apiKeyIDs)
+		return err
+	}
+	return nil
 }
 
 func persistStatsSnapshots(
@@ -261,7 +273,31 @@ func statsSaveDBWithDailyOverride(ctx context.Context, dailyOverride model.Stats
 	statsAPIKeyCacheNeedUpdate = make(map[int]struct{})
 	statsAPIKeyCacheNeedUpdateLock.Unlock()
 
-	return persistStatsSnapshots(ctx, totalSnap, dailyOverride, hourlyAll, channelIDs, modelIDs, apiKeyIDs)
+	if err := persistStatsSnapshots(ctx, totalSnap, dailyOverride, hourlyAll, channelIDs, modelIDs, apiKeyIDs); err != nil {
+		requeueStatsDirtyIDs(channelIDs, modelIDs, apiKeyIDs)
+		return err
+	}
+	return nil
+}
+
+func requeueStatsDirtyIDs(channelIDs []int, modelIDs []int, apiKeyIDs []int) {
+	statsChannelCacheNeedUpdateLock.Lock()
+	for _, id := range channelIDs {
+		statsChannelCacheNeedUpdate[id] = struct{}{}
+	}
+	statsChannelCacheNeedUpdateLock.Unlock()
+
+	statsModelCacheNeedUpdateLock.Lock()
+	for _, id := range modelIDs {
+		statsModelCacheNeedUpdate[id] = struct{}{}
+	}
+	statsModelCacheNeedUpdateLock.Unlock()
+
+	statsAPIKeyCacheNeedUpdateLock.Lock()
+	for _, id := range apiKeyIDs {
+		statsAPIKeyCacheNeedUpdate[id] = struct{}{}
+	}
+	statsAPIKeyCacheNeedUpdateLock.Unlock()
 }
 
 func StatsDailyUpdate(ctx context.Context, metrics model.StatsMetrics) error {

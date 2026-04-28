@@ -27,7 +27,7 @@ function timeout(ms: number) {
     return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-function HeaderActions({ activeItem }: { activeItem: 'home' | 'channel' | 'group' | 'model' | 'log' | 'setting' }) {
+function HeaderActions({ activeItem }: { activeItem: 'home' | 'channel' | 'group' | 'model' | 'log' | 'setting' | 'user' | 'alert' }) {
     const t = useTranslations('log');
     const { isRefreshing, refresh } = useLogRefresh(DEFAULT_LOG_PAGE_SIZE);
 
@@ -65,7 +65,6 @@ export function AppContainer() {
     const {
         data: bootstrapStatus,
         isLoading: bootstrapStatusLoading,
-        error: bootstrapStatusError,
     } = useQuery({
         queryKey: ['bootstrap', 'status'],
         queryFn: async () => apiClient.get<BootstrapStatusResponse>('/api/v1/bootstrap/status', undefined, false),
@@ -232,7 +231,7 @@ export function AppContainer() {
     const shouldShowFirstRunSetup =
         !isAuthenticated &&
         !bootstrapStatusLoading &&
-        (bootstrapStatus?.initialized === false || Boolean(bootstrapStatusError));
+        bootstrapStatus?.initialized === false;
 
     // 加载状态
     const isLoading =

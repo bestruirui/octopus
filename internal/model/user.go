@@ -6,10 +6,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	UserRoleAdmin  = "admin"
+	UserRoleEditor = "editor"
+	UserRoleViewer = "viewer"
+)
+
 type User struct {
-	ID       uint   `gorm:"primaryKey"`
-	Username string `gorm:"unique"`
-	Password string `gorm:"not null"`
+	ID       uint   `gorm:"primaryKey" json:"id"`
+	Username string `gorm:"unique" json:"username"`
+	Password string `gorm:"not null" json:"-"`
+	Role     string `gorm:"default:'admin'" json:"role"`
 }
 
 type UserLogin struct {
@@ -32,6 +39,12 @@ type UserBootstrapCreate struct {
 	Password string `json:"password"`
 }
 
+type UserCreateRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+}
+
 type UserLoginResponse struct {
 	Token    string `json:"token"`
 	ExpireAt string `json:"expire_at"`
@@ -42,6 +55,7 @@ func (UserLogin) TableName() string            { return "-" }
 func (UserChangePassword) TableName() string   { return "-" }
 func (UserChangeUsername) TableName() string   { return "-" }
 func (UserBootstrapCreate) TableName() string  { return "-" }
+func (UserCreateRequest) TableName() string    { return "-" }
 func (UserLoginResponse) TableName() string    { return "-" }
 
 func (u *User) HashPassword() error {

@@ -5,22 +5,24 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
 	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/server/router"
-	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 )
 
 func init() {
 	router.NewGroupRouter("/api/v1/apikey").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermAPIKeysRead)).
 		Use(middleware.RequireJSON()).
 		AddRoute(
 			router.NewRoute("/create", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermAPIKeysWrite)).
 				Handle(createAPIKey),
 		).
 		AddRoute(
@@ -29,10 +31,12 @@ func init() {
 		).
 		AddRoute(
 			router.NewRoute("/update", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermAPIKeysWrite)).
 				Handle(updateAPIKey),
 		).
 		AddRoute(
 			router.NewRoute("/delete/:id", http.MethodDelete).
+				Use(middleware.RequirePermission(auth.PermAPIKeysWrite)).
 				Handle(deleteAPIKey),
 		)
 	router.NewGroupRouter("/api/v1/apikey").

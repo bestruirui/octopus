@@ -1,8 +1,10 @@
 package relay
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -23,6 +25,10 @@ import (
 func mediaEndpointTypeToGroupEndpointType(endpointType MediaEndpointType) string {
 	switch endpointType {
 	case MediaEndpointImageGeneration:
+		return dbmodel.EndpointTypeImageGeneration
+	case MediaEndpointImageEdit:
+		return dbmodel.EndpointTypeImageGeneration
+	case MediaEndpointImageVariation:
 		return dbmodel.EndpointTypeImageGeneration
 	case MediaEndpointAudioSpeech:
 		return dbmodel.EndpointTypeAudioSpeech
@@ -50,10 +56,13 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 	cfg := getMediaEndpointConfig(endpointType)
 
 	// 1. Extract model name from the request
-	requestModel, bodyBytes, err := extractModelFromRequest(c, cfg)
+	requestModel, bodyBytes, streamRequested, err := extractModelFromRequest(c, cfg)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		resp.Error(c, relayRequestBodyErrorStatus(err), err.Error())
 		return
+	}
+	if cfg.MultipartInput && c.Request.MultipartForm != nil {
+		defer c.Request.MultipartForm.RemoveAll()
 	}
 	if requestModel == "" {
 		resp.Error(c, http.StatusBadRequest, "model is required")
@@ -142,7 +151,7 @@ outer:
 			span := iter.StartAttempt(channel.ID, usedKey.ID, channel.Name, resolvedModel)
 
 			// Build and send upstream request
-			statusCode, fwdErr := forwardMediaRequest(c, cfg, channel, usedKey.ChannelKey, bodyBytes, requestModel, resolvedModel)
+			statusCode, fwdErr := forwardMediaRequest(c, cfg, channel, usedKey.ChannelKey, bodyBytes, requestModel, resolvedModel, streamRequested)
 
 			// 检查是否已写入响应（媒体端点可能是流式）
 			written := c.Writer.Written()
@@ -155,7 +164,7 @@ outer:
 
 			if decision.Scope == ScopeNone && !decision.IsError {
 				// Success
-				usedKey.TotalCost += 0 // Media endpoints don't have token-based cost
+				// Media endpoints don't have token-based cost, so TotalCost is left unchanged.
 				op.ChannelKeyUpdate(usedKey)
 				span.End(dbmodel.AttemptSuccess, statusCode, "")
 				op.StatsChannelUpdate(channel.ID, dbmodel.StatsMetrics{
@@ -255,7 +264,7 @@ func recordPreparedCandidateSkip(iter *balancer.Iterator, item dbmodel.GroupItem
 // extractModelFromRequest extracts the model name from the request body.
 // For JSON endpoints, it parses the body into a generic map.
 // For multipart endpoints, it reads the form field.
-func extractModelFromRequest(c *gin.Context, cfg mediaEndpointConfig) (string, []byte, error) {
+func extractModelFromRequest(c *gin.Context, cfg mediaEndpointConfig) (string, []byte, bool, error) {
 	if cfg.MultipartInput {
 		return extractModelFromMultipart(c)
 	}
@@ -263,31 +272,35 @@ func extractModelFromRequest(c *gin.Context, cfg mediaEndpointConfig) (string, [
 }
 
 // extractModelFromJSON reads the JSON body and extracts the "model" field.
-func extractModelFromJSON(c *gin.Context) (string, []byte, error) {
-	body, err := io.ReadAll(c.Request.Body)
+func extractModelFromJSON(c *gin.Context) (string, []byte, bool, error) {
+	body, err := readLimitedRequestBody(c, maxRelayJSONBodyBytes)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to read request body: %w", err)
+		return "", nil, false, err
 	}
 
 	var raw map[string]any
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return "", nil, fmt.Errorf("invalid JSON body: %w", err)
+		return "", nil, false, fmt.Errorf("invalid JSON body: %w", err)
 	}
 
 	model, _ := raw["model"].(string)
-	return model, body, nil
+	streamRequested := parseMediaStreamFlag(raw["stream"])
+	return model, body, streamRequested, nil
 }
 
 // extractModelFromMultipart extracts the model from a multipart/form-data request.
-func extractModelFromMultipart(c *gin.Context) (string, []byte, error) {
+func extractModelFromMultipart(c *gin.Context) (string, []byte, bool, error) {
+	limitRequestBody(c, maxRelayMultipartBodyBytes)
+
 	// Parse the multipart form
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
-		return "", nil, fmt.Errorf("failed to parse multipart form: %w", err)
+		return "", nil, false, normalizeRelayRequestBodyError(err)
 	}
 
 	model := c.Request.FormValue("model")
+	streamRequested := strings.EqualFold(strings.TrimSpace(c.Request.FormValue("stream")), "true")
 	// We'll re-read the full multipart body in forwardMediaRequestMultipart
-	return model, nil, nil
+	return model, nil, streamRequested, nil
 }
 
 // forwardMediaRequest builds and sends the upstream request, then streams the response back.
@@ -299,11 +312,12 @@ func forwardMediaRequest(
 	bodyBytes []byte,
 	requestModel string,
 	resolvedModel string,
+	streamRequested bool,
 ) (int, error) {
 	if cfg.MultipartInput {
-		return forwardMediaRequestMultipart(c, cfg, channel, key, requestModel, resolvedModel)
+		return forwardMediaRequestMultipart(c, cfg, channel, key, requestModel, resolvedModel, streamRequested)
 	}
-	return forwardMediaRequestJSON(c, cfg, channel, key, bodyBytes, requestModel, resolvedModel)
+	return forwardMediaRequestJSON(c, cfg, channel, key, bodyBytes, requestModel, resolvedModel, streamRequested)
 }
 
 // forwardMediaRequestJSON handles JSON-based media endpoint forwarding.
@@ -315,6 +329,7 @@ func forwardMediaRequestJSON(
 	bodyBytes []byte,
 	requestModel string,
 	resolvedModel string,
+	streamRequested bool,
 ) (int, error) {
 	ctx := c.Request.Context()
 
@@ -336,11 +351,7 @@ func forwardMediaRequestJSON(
 		return 0, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+key)
-
-	// Apply channel custom headers
-	applyChannelHeaders(req, channel)
+	copyMediaForwardHeaders(req, c, channel, key, "application/json", streamRequested)
 
 	// Send request
 	httpClient, err := helper.ChannelHttpClient(channel)
@@ -363,6 +374,9 @@ func forwardMediaRequestJSON(
 	if cfg.BinaryResponse {
 		return handleBinaryResponse(c, response)
 	}
+	if isMediaSSEResponse(response) {
+		return handleSSEResponse(c, response)
+	}
 	return handleJSONResponse(c, response)
 }
 
@@ -374,6 +388,7 @@ func forwardMediaRequestMultipart(
 	key string,
 	requestModel string,
 	resolvedModel string,
+	streamRequested bool,
 ) (int, error) {
 	ctx := c.Request.Context()
 
@@ -383,60 +398,15 @@ func forwardMediaRequestMultipart(
 		return 0, fmt.Errorf("failed to build upstream URL: %w", err)
 	}
 
-	// Reconstruct the multipart request for upstream
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	// Copy form fields (replacing model if needed)
-	if c.Request.MultipartForm != nil {
-		for fieldName, values := range c.Request.MultipartForm.Value {
-			for _, value := range values {
-				fieldValue := value
-				if fieldName == "model" && resolvedModel != "" {
-					fieldValue = resolvedModel
-				}
-				if err := writer.WriteField(fieldName, fieldValue); err != nil {
-					return 0, fmt.Errorf("failed to write field %s: %w", fieldName, err)
-				}
-			}
-		}
-
-		// Copy file fields
-		for fieldName, fileHeaders := range c.Request.MultipartForm.File {
-			for _, fileHeader := range fileHeaders {
-				file, err := fileHeader.Open()
-				if err != nil {
-					return 0, fmt.Errorf("failed to open uploaded file: %w", err)
-				}
-				part, err := writer.CreateFormFile(fieldName, fileHeader.Filename)
-				if err != nil {
-					file.Close()
-					return 0, fmt.Errorf("failed to create form file: %w", err)
-				}
-				if _, err := io.Copy(part, file); err != nil {
-					file.Close()
-					return 0, fmt.Errorf("failed to copy file content: %w", err)
-				}
-				file.Close()
-			}
-		}
-	}
-
-	if err := writer.Close(); err != nil {
-		return 0, fmt.Errorf("failed to close multipart writer: %w", err)
-	}
+	bodyReader, contentType := buildMultipartForwardBody(c.Request.MultipartForm, resolvedModel)
 
 	// Create upstream request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, &buf)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, upstreamURL, bodyReader)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+key)
-
-	// Apply channel custom headers
-	applyChannelHeaders(req, channel)
+	copyMediaForwardHeaders(req, c, channel, key, contentType, streamRequested)
 
 	// Send request
 	httpClient, err := helper.ChannelHttpClient(channel)
@@ -455,7 +425,79 @@ func forwardMediaRequestMultipart(
 		return response.StatusCode, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(respBody))
 	}
 
+	if isMediaSSEResponse(response) {
+		return handleSSEResponse(c, response)
+	}
 	return handleJSONResponse(c, response)
+}
+
+func parseMediaStreamFlag(raw any) bool {
+	switch value := raw.(type) {
+	case bool:
+		return value
+	case string:
+		return strings.EqualFold(strings.TrimSpace(value), "true")
+	default:
+		return false
+	}
+}
+
+func buildMultipartForwardBody(form *multipart.Form, resolvedModel string) (io.ReadCloser, string) {
+	reader, writer := io.Pipe()
+	mpWriter := multipart.NewWriter(writer)
+	contentType := mpWriter.FormDataContentType()
+
+	go func() {
+		defer writer.Close()
+		defer mpWriter.Close()
+		defer func() {
+			if r := recover(); r != nil {
+				_ = writer.CloseWithError(fmt.Errorf("panic in multipart builder: %v", r))
+			}
+		}()
+
+		if form == nil {
+			return
+		}
+
+		for fieldName, values := range form.Value {
+			for _, value := range values {
+				fieldValue := value
+				if fieldName == "model" && resolvedModel != "" {
+					fieldValue = resolvedModel
+				}
+				if err := mpWriter.WriteField(fieldName, fieldValue); err != nil {
+					_ = writer.CloseWithError(fmt.Errorf("failed to write field %s: %w", fieldName, err))
+					return
+				}
+			}
+		}
+
+		for fieldName, fileHeaders := range form.File {
+			for _, fileHeader := range fileHeaders {
+				file, err := fileHeader.Open()
+				if err != nil {
+					_ = writer.CloseWithError(fmt.Errorf("failed to open uploaded file: %w", err))
+					return
+				}
+
+				part, err := mpWriter.CreateFormFile(fieldName, fileHeader.Filename)
+				if err != nil {
+					file.Close()
+					_ = writer.CloseWithError(fmt.Errorf("failed to create form file: %w", err))
+					return
+				}
+				if _, err := io.Copy(part, file); err != nil {
+					file.Close()
+					_ = writer.CloseWithError(fmt.Errorf("failed to copy file content: %w", err))
+					return
+				}
+				file.Close()
+			}
+		}
+	}()
+
+	return reader, contentType
 }
 
 // replaceModelInJSON replaces the model field value in a JSON body.
@@ -466,7 +508,8 @@ func replaceModelInJSON(body []byte, originalModel, resolvedModel string) ([]byt
 
 	var raw map[string]any
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return body, nil // best-effort: return original if parse fails
+		log.Debugf("replaceModelInJSON: failed to parse JSON body, returning original: %v", err)
+		return body, nil
 	}
 
 	raw["model"] = resolvedModel
@@ -492,6 +535,29 @@ func applyChannelHeaders(req *http.Request, channel *dbmodel.Channel) {
 	}
 }
 
+func copyMediaForwardHeaders(req *http.Request, c *gin.Context, channel *dbmodel.Channel, key string, contentType string, streamRequested bool) {
+	for headerKey, values := range c.Request.Header {
+		if hopByHopHeaders[strings.ToLower(headerKey)] {
+			continue
+		}
+		if strings.EqualFold(headerKey, "Authorization") || strings.EqualFold(headerKey, "Content-Type") || strings.EqualFold(headerKey, "Content-Length") {
+			continue
+		}
+		for _, value := range values {
+			req.Header.Add(headerKey, value)
+		}
+	}
+
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	if streamRequested {
+		req.Header.Set("Accept", "text/event-stream")
+	}
+	req.Header.Set("Authorization", "Bearer "+key)
+	applyChannelHeaders(req, channel)
+}
+
 // handleBinaryResponse streams a binary response (e.g. audio) back to the client.
 func handleBinaryResponse(c *gin.Context, response *http.Response) (int, error) {
 	// Copy relevant headers
@@ -506,6 +572,37 @@ func handleBinaryResponse(c *gin.Context, response *http.Response) (int, error) 
 	}
 
 	return response.StatusCode, nil
+}
+
+func isMediaSSEResponse(response *http.Response) bool {
+	if response == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream")
+}
+
+func handleSSEResponse(c *gin.Context, response *http.Response) (int, error) {
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
+
+	reader := bufio.NewReader(response.Body)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if len(line) > 0 {
+			if _, writeErr := c.Writer.Write(line); writeErr != nil {
+				return 0, fmt.Errorf("failed to stream sse response: %w", writeErr)
+			}
+			c.Writer.Flush()
+		}
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return response.StatusCode, nil
+			}
+			return 0, fmt.Errorf("failed to read sse response: %w", err)
+		}
+	}
 }
 
 // handleJSONResponse streams a JSON response back to the client.

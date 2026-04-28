@@ -1,7 +1,7 @@
 import { lazyWithPreload } from './lazy-with-preload';
 import { lazy, ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Home, Radio, Sparkles, FolderTree, Settings, Logs } from 'lucide-react';
+import { Home, Radio, Sparkles, FolderTree, Settings, Logs, Users, Bell } from 'lucide-react';
 
 export type LazyComponent = ReturnType<typeof lazy> & {
     preload: () => Promise<{ default: ComponentType<Record<string, never>> }>
@@ -20,6 +20,8 @@ const Model_Module = lazyWithPreload(() => import('@/components/modules/model').
 const Group_Module = lazyWithPreload(() => import('@/components/modules/group').then(m => ({ default: m.Group })));
 const Log_Module = lazyWithPreload(() => import('@/components/modules/log').then(m => ({ default: m.Log })));
 const Setting_Module = lazyWithPreload(() => import('@/components/modules/setting').then(m => ({ default: m.Setting })));
+const User_Module = lazyWithPreload(() => import('@/components/modules/user').then(m => ({ default: m.User })));
+const Alert_Module = lazyWithPreload(() => import('@/components/modules/alert').then(m => ({ default: m.Alert })));
 
 export const ROUTES: RouteConfig[] = [
     { id: 'home', label: 'Home', icon: Home, component: Home_Module },
@@ -27,7 +29,9 @@ export const ROUTES: RouteConfig[] = [
     { id: 'group', label: 'Group', icon: FolderTree, component: Group_Module },
     { id: 'model', label: 'Model', icon: Sparkles, component: Model_Module },
     { id: 'log', label: 'Log', icon: Logs, component: Log_Module },
+    { id: 'alert', label: 'Alerts', icon: Bell, component: Alert_Module },
     { id: 'setting', label: 'Setting', icon: Settings, component: Setting_Module },
+    { id: 'user', label: 'Users', icon: Users, component: User_Module },
 ];
 
 export const CONTENT_MAP = ROUTES.reduce((acc, route) => {

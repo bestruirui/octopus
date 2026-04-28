@@ -4,51 +4,43 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useSettingList, useSetSetting, SettingKey } from '@/api/endpoints/setting';
+import { useSettingList, useSetSetting } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
+import { AUTO_STRATEGY_FIELDS } from './runtime-settings';
 
 export function SettingAutoStrategy() {
     const t = useTranslations('setting');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
 
-    const [minSamples, setMinSamples] = useState('');
-    const [timeWindow, setTimeWindow] = useState('');
-    const [sampleThreshold, setSampleThreshold] = useState('');
-
-    const initialMinSamples = useRef('');
-    const initialTimeWindow = useRef('');
-    const initialSampleThreshold = useRef('');
+    const [values, setValues] = useState<Record<string, string>>({});
+    const initialValues = useRef<Record<string, string>>({});
 
     useEffect(() => {
-        if (settings) {
-            const ms = settings.find(s => s.key === SettingKey.AutoStrategyMinSamples);
-            const tw = settings.find(s => s.key === SettingKey.AutoStrategyTimeWindow);
-            const st = settings.find(s => s.key === SettingKey.AutoStrategySampleThreshold);
+        if (!settings) return;
 
-            if (ms) {
-                queueMicrotask(() => setMinSamples(ms.value));
-                initialMinSamples.current = ms.value;
-            }
-            if (tw) {
-                queueMicrotask(() => setTimeWindow(tw.value));
-                initialTimeWindow.current = tw.value;
-            }
-            if (st) {
-                queueMicrotask(() => setSampleThreshold(st.value));
-                initialSampleThreshold.current = st.value;
-            }
-        }
+        const nextValues = AUTO_STRATEGY_FIELDS.reduce<Record<string, string>>((acc, field) => {
+            acc[field.key] = settings.find((item) => item.key === field.key)?.value ?? '';
+            return acc;
+        }, {});
+
+        queueMicrotask(() => setValues(nextValues));
+        initialValues.current = nextValues;
     }, [settings]);
 
-    const handleSave = (key: string, value: string, initialValue: string) => {
-        if (value === initialValue) return;
+    const handleSave = (key: string) => {
+        const value = values[key] ?? '';
+        if (value === initialValues.current[key]) return;
 
         setSetting.mutate(
             { key, value },
             {
                 onSuccess: () => {
                     toast.success(t('saved'));
+                    initialValues.current = {
+                        ...initialValues.current,
+                        [key]: value,
+                    };
                 }
             }
         );
@@ -66,53 +58,26 @@ export function SettingAutoStrategy() {
             </p>
 
             <div className="space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium">{t('autoStrategy.minSamples.label')}</span>
-                        <span className="text-xs text-muted-foreground">{t('autoStrategy.minSamples.hint')}</span>
+                {AUTO_STRATEGY_FIELDS.map((field) => (
+                    <div key={field.key} className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm font-medium">{t(field.labelKey)}</span>
+                            {field.hintKey ? (
+                                <span className="text-xs text-muted-foreground">{t(field.hintKey)}</span>
+                            ) : null}
+                        </div>
+                        <Input
+                            type="number"
+                            min={field.min}
+                            max={field.max}
+                            value={values[field.key] ?? ''}
+                            onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                            onBlur={() => handleSave(field.key)}
+                            placeholder={t(field.placeholderKey)}
+                            className="w-32 rounded-xl"
+                        />
                     </div>
-                    <Input
-                        type="number"
-                        min="1"
-                        value={minSamples}
-                        onChange={(e) => setMinSamples(e.target.value)}
-                        onBlur={() => handleSave(SettingKey.AutoStrategyMinSamples, minSamples, initialMinSamples.current)}
-                        placeholder={t('autoStrategy.minSamples.placeholder')}
-                        className="w-32 rounded-xl"
-                    />
-                </div>
-
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium">{t('autoStrategy.timeWindow.label')}</span>
-                        <span className="text-xs text-muted-foreground">{t('autoStrategy.timeWindow.hint')}</span>
-                    </div>
-                    <Input
-                        type="number"
-                        min="1"
-                        value={timeWindow}
-                        onChange={(e) => setTimeWindow(e.target.value)}
-                        onBlur={() => handleSave(SettingKey.AutoStrategyTimeWindow, timeWindow, initialTimeWindow.current)}
-                        placeholder={t('autoStrategy.timeWindow.placeholder')}
-                        className="w-32 rounded-xl"
-                    />
-                </div>
-
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium">{t('autoStrategy.sampleThreshold.label')}</span>
-                        <span className="text-xs text-muted-foreground">{t('autoStrategy.sampleThreshold.hint')}</span>
-                    </div>
-                    <Input
-                        type="number"
-                        min="1"
-                        value={sampleThreshold}
-                        onChange={(e) => setSampleThreshold(e.target.value)}
-                        onBlur={() => handleSave(SettingKey.AutoStrategySampleThreshold, sampleThreshold, initialSampleThreshold.current)}
-                        placeholder={t('autoStrategy.sampleThreshold.placeholder')}
-                        className="w-32 rounded-xl"
-                    />
-                </div>
+                ))}
             </div>
         </div>
     );

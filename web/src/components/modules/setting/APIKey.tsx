@@ -89,6 +89,9 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         expire_at: apiKey?.expire_at,
         max_cost: apiKey?.max_cost,
         supported_models: apiKey?.supported_models,
+        rate_limit_rpm: apiKey?.rate_limit_rpm ?? 0,
+        rate_limit_tpm: apiKey?.rate_limit_tpm ?? 0,
+        per_model_quota_json: apiKey?.per_model_quota_json ?? '',
     }));
     const [maxCostInput, setMaxCostInput] = useState(() =>
         apiKey?.max_cost != null ? String(apiKey.max_cost) : ''
@@ -211,6 +214,46 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                         {t('apiKey.form.unlimited')}
                     </button>
                 </div>
+            </div>
+
+            <div className="grid gap-1 text-xs text-muted-foreground">
+                Rate Limit (RPM)
+                <div className="flex items-center gap-2">
+                    <Input
+                        type="number"
+                        placeholder="Requests per minute, 0 = unlimited"
+                        value={form.rate_limit_rpm ?? 0}
+                        onChange={(e) => updateForm({ rate_limit_rpm: Number(e.target.value) })}
+                        className="h-9 text-sm rounded-xl"
+                        disabled={isPending}
+                    />
+                </div>
+            </div>
+
+            <div className="grid gap-1 text-xs text-muted-foreground">
+                Rate Limit (TPM)
+                <div className="flex items-center gap-2">
+                    <Input
+                        type="number"
+                        placeholder="Tokens per minute, 0 = unlimited"
+                        value={form.rate_limit_tpm ?? 0}
+                        onChange={(e) => updateForm({ rate_limit_tpm: Number(e.target.value) })}
+                        className="h-9 text-sm rounded-xl"
+                        disabled={isPending}
+                    />
+                </div>
+            </div>
+
+            <div className="grid gap-1 text-xs text-muted-foreground">
+                Per-Model Quota (JSON)
+                <Input
+                    type="text"
+                    placeholder={'{"gpt-4o":{"rpm":5,"tpm":50000}}'}
+                    value={form.per_model_quota_json ?? ''}
+                    onChange={(e) => updateForm({ per_model_quota_json: e.target.value })}
+                    className="h-9 text-sm rounded-xl font-mono"
+                    disabled={isPending}
+                />
             </div>
 
             <div className="grid gap-1 text-xs text-muted-foreground">

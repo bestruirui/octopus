@@ -35,7 +35,7 @@ export function PageWrapper({ children, className = 'space-y-6' }: PageWrapperPr
 
           return (
             <motion.div
-              key={key}
+              key={key ?? index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{

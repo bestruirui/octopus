@@ -6,15 +6,26 @@ import (
 	"time"
 
 	"github.com/lingyuins/octopus/internal/conf"
+	"github.com/lingyuins/octopus/internal/model"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateJWTToken(expiresMin int) (string, string, error) {
+type jwtClaims struct {
+	jwt.RegisteredClaims
+	UserID uint   `json:"user_id,omitempty"`
+	Role string `json:"role,omitempty"`
+}
+
+func GenerateJWTToken(expiresMin int, userID uint, role string) (string, string, error) {
 	now := time.Now()
-	claims := &jwt.RegisteredClaims{
-		IssuedAt:  jwt.NewNumericDate(now),
-		NotBefore: jwt.NewNumericDate(now),
-		Issuer:    conf.APP_NAME,
+	claims := &jwtClaims{
+		UserID: userID,
+		Role: role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    conf.APP_NAME,
+		},
 	}
 	if expiresMin == 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(now.Add(time.Duration(15) * time.Minute))
@@ -30,14 +41,19 @@ func GenerateJWTToken(expiresMin int) (string, string, error) {
 	return token, claims.ExpiresAt.Format(time.RFC3339), nil
 }
 
-func VerifyJWTToken(token string) bool {
-	jwtToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+// VerifyJWTToken validates the JWT and returns the user identity in claims.
+func VerifyJWTToken(token string) (bool, uint, string) {
+	claims := &jwtClaims{}
+	jwtToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(conf.AppConfig.Auth.JWTSecret), nil
 	})
 	if err != nil || !jwtToken.Valid {
-		return false
+		return false, 0, ""
 	}
-	return true
+	if claims.Role == "" {
+		claims.Role = model.UserRoleAdmin
+	}
+	return true, claims.UserID, claims.Role
 }
 
 func GenerateAPIKey() string {

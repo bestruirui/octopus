@@ -4,36 +4,43 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { RotateCcw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useSettingList, useSetSetting, SettingKey } from '@/api/endpoints/setting';
+import { useSettingList, useSetSetting } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
+import { RETRY_FIELDS } from './runtime-settings';
 
 export function SettingRetry() {
     const t = useTranslations('setting');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
 
-    const [retryCount, setRetryCount] = useState('');
-    const initialRetryCount = useRef('');
+    const [values, setValues] = useState<Record<string, string>>({});
+    const initialValues = useRef<Record<string, string>>({});
 
     useEffect(() => {
-        if (settings) {
-            const retry = settings.find(s => s.key === SettingKey.RelayRetryCount);
-            if (retry) {
-                queueMicrotask(() => setRetryCount(retry.value));
-                initialRetryCount.current = retry.value;
-            }
-        }
+        if (!settings) return;
+
+        const nextValues = RETRY_FIELDS.reduce<Record<string, string>>((acc, field) => {
+            acc[field.key] = settings.find((item) => item.key === field.key)?.value ?? '';
+            return acc;
+        }, {});
+
+        queueMicrotask(() => setValues(nextValues));
+        initialValues.current = nextValues;
     }, [settings]);
 
-    const handleSave = () => {
-        if (retryCount === initialRetryCount.current) return;
+    const handleSave = (key: string) => {
+        const value = values[key] ?? '';
+        if (value === initialValues.current[key]) return;
 
         setSetting.mutate(
-            { key: SettingKey.RelayRetryCount, value: retryCount },
+            { key, value },
             {
                 onSuccess: () => {
                     toast.success(t('saved'));
-                    initialRetryCount.current = retryCount;
+                    initialValues.current = {
+                        ...initialValues.current,
+                        [key]: value,
+                    };
                 }
             }
         );
@@ -46,20 +53,27 @@ export function SettingRetry() {
                 {t('retry.title')}
             </h2>
 
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <RotateCcw className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">{t('retry.count.label')}</span>
-                </div>
-                <Input
-                    type="number"
-                    min="1"
-                    value={retryCount}
-                    onChange={(e) => setRetryCount(e.target.value)}
-                    onBlur={handleSave}
-                    placeholder={t('retry.count.placeholder')}
-                    className="w-48 rounded-xl"
-                />
+            <div className="space-y-4">
+                {RETRY_FIELDS.map((field) => (
+                    <div key={field.key} className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm font-medium">{t(field.labelKey)}</span>
+                            {field.hintKey ? (
+                                <span className="text-xs text-muted-foreground">{t(field.hintKey)}</span>
+                            ) : null}
+                        </div>
+                        <Input
+                            type="number"
+                            min={field.min}
+                            max={field.max}
+                            value={values[field.key] ?? ''}
+                            onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                            onBlur={() => handleSave(field.key)}
+                            placeholder={t(field.placeholderKey)}
+                            className="w-48 rounded-xl"
+                        />
+                    </div>
+                ))}
             </div>
         </div>
     );

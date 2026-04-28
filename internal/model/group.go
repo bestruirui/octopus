@@ -18,6 +18,7 @@ type Group struct {
 	MatchRegex        string      `json:"match_regex"`
 	FirstTokenTimeOut int         `json:"first_token_time_out"` // 单个渠道首个Token响应超时时间(秒)
 	SessionKeepTime   int         `json:"session_keep_time"`    // 会话保持时间(秒) 0 为禁用
+	Condition         string      `json:"condition,omitempty"`  // 条件路由 JSON：[{"key":"model","op":"contains","value":"gpt-4"}]
 	Items             []GroupItem `json:"items,omitempty" gorm:"foreignKey:GroupID"`
 }
 
@@ -37,6 +38,7 @@ type GroupUpdateRequest struct {
 	EndpointType      *string                  `json:"endpoint_type,omitempty"`        // 仅在 API 分类变更时发送
 	Mode              *GroupMode               `json:"mode,omitempty"`                 // 仅在模式变更时发送
 	MatchRegex        *string                  `json:"match_regex,omitempty"`          // 仅在匹配正则变更时发送
+	Condition         *string                  `json:"condition,omitempty"`            // 仅在条件变更时发送
 	FirstTokenTimeOut *int                     `json:"first_token_time_out,omitempty"` // 仅在超时变更时发送(秒)
 	SessionKeepTime   *int                     `json:"session_keep_time,omitempty"`    // 仅在会话保持时间变更时发送(秒)
 	ItemsToAdd        []GroupItemAddRequest    `json:"items_to_add,omitempty"`         // 新增的 items
