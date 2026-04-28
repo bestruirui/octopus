@@ -123,6 +123,12 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			continue
 		}
 
+		// Kimi K2.5 系列模型默认启用 thinking 模式，提前标记以便 outbound 处理
+		if strings.Contains(requestModel, "kimi-k2") && (internalRequest.EnableThinking == nil || !*internalRequest.EnableThinking) {
+			enableThinking := true
+			internalRequest.EnableThinking = &enableThinking
+		}
+
 		// 设置实际模型
 		internalRequest.Model = item.ModelName
 
