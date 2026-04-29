@@ -15,10 +15,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/helper"
 	dbmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/relay/condition"
 	"github.com/lingyuins/octopus/internal/op"
-	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
 	"github.com/lingyuins/octopus/internal/relay/balancer"
+	"github.com/lingyuins/octopus/internal/relay/condition"
 	"github.com/lingyuins/octopus/internal/server/resp"
 	"github.com/lingyuins/octopus/internal/transformer/inbound"
 	"github.com/lingyuins/octopus/internal/transformer/model"
@@ -117,27 +116,6 @@ func resolveAPIRateLimit(modelName string, c *gin.Context) (rpm int, tpm int) {
 	return
 }
 
-func initSemanticCacheFromSettings() {
-	enabled, _ := op.SettingGetBool(dbmodel.SettingKeySemanticCacheEnabled)
-	if !enabled {
-		semantic_cache.Clear()
-		return
-	}
-	ttl, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheTTL)
-	thresholdRaw, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheThreshold)
-	maxEntries, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheMaxEntries)
-	if ttl <= 0 {
-		ttl = 3600
-	}
-	if thresholdRaw < 0 || thresholdRaw > 100 {
-		thresholdRaw = 98
-	}
-	if maxEntries <= 0 {
-		maxEntries = 1000
-	}
-	semantic_cache.Init(maxEntries, float64(thresholdRaw)/100.0, ttl)
-}
-
 func resolveCandidateModelName(requestModel string, item dbmodel.GroupItem) string {
 	if upstreamModel, ok := resolveRequestedUpstreamModel(requestModel); ok {
 		if strings.TrimSpace(item.ModelName) == "" || strings.EqualFold(strings.TrimSpace(item.ModelName), "zen") {
@@ -188,8 +166,6 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	var streamSession *relayStreamSession
 	var streamSessionOwned bool
 	var lastErr error
-	// Initialize semantic cache from settings
-	initSemanticCacheFromSettings()
 
 	if shouldUseRelayStreamSession(internalRequest) {
 		sessionHash := buildRelayStreamSessionHash(endpointType, int(inboundType), apiKeyID, internalRequest.RawRequest)
@@ -276,6 +252,19 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 		groupEndpointType: group.EndpointType,
 		iter:              iter,
 		streamSession:     streamSession,
+	}
+
+	if endpointFamily := semanticCacheEndpointFamily(internalRequest); endpointFamily != "" {
+		served, err := maybeServeSemanticCacheHit(c, req, endpointFamily)
+		if err != nil {
+			lastErr = err
+			resp.BadGateway(c)
+			return
+		}
+		if served {
+			metrics.Save(true, nil, iter.Attempts())
+			return
+		}
 	}
 
 	maxAttemptsPerCandidate := getMaxAttemptsPerCandidate()
@@ -841,6 +830,7 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 	}
 
 	ra.c.Data(http.StatusOK, "application/json", inResponse)
+	storeSemanticCacheResponse(ctx, ra.internalRequest, inResponse)
 	return nil
 }
 
