@@ -205,6 +205,46 @@ func TestExtractModelFromJSONReturnsStreamFlag(t *testing.T) {
 	}
 }
 
+func TestBuildMediaUpstreamURLKeepsSingleV1Prefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL string
+		path    string
+		want    string
+	}{
+		{
+			name:    "base url already includes v1",
+			baseURL: "https://api.example.com/v1",
+			path:    "/v1/rerank",
+			want:    "https://api.example.com/v1/rerank",
+		},
+		{
+			name:    "nested base path already includes v1",
+			baseURL: "https://api.example.com/openai/v1/",
+			path:    "/v1/images/generations",
+			want:    "https://api.example.com/openai/v1/images/generations",
+		},
+		{
+			name:    "base url without path keeps endpoint prefix",
+			baseURL: "https://api.example.com",
+			path:    "/v1/search",
+			want:    "https://api.example.com/v1/search",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := buildMediaUpstreamURL(tt.baseURL, tt.path)
+			if err != nil {
+				t.Fatalf("buildMediaUpstreamURL() error = %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("buildMediaUpstreamURL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestHandleSSEResponseFlushesLines(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

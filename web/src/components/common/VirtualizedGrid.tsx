@@ -151,7 +151,7 @@ export function VirtualizedGrid<T>({
         <div className="relative h-full min-h-0 w-full">
             <div
                 ref={containerRef}
-                className="relative h-full w-full overflow-y-auto overscroll-contain rounded-t-3xl"
+                className="relative h-full w-full overflow-y-auto overscroll-contain rounded-t-3xl touch-pan-y pb-24 md:pb-4"
             >
                 {rowCount === 0 ? null : (
                     <div className="relative w-full" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>

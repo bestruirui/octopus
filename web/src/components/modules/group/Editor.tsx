@@ -94,7 +94,7 @@ function ModelPickerSection({
     }, [channels, normalizedSearch]);
 
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/30 flex flex-col min-h-0">
+        <div className="rounded-xl border border-border/50 bg-muted/30 flex min-h-[18rem] flex-col lg:min-h-0">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-2 border-b border-border/30 bg-muted/50">
                 <span className="min-w-0 justify-self-start text-sm font-medium text-foreground">
                     {t('form.addItem')}
@@ -106,7 +106,7 @@ function ModelPickerSection({
                         value={searchKeyword}
                         onChange={(event) => setSearchKeyword(event.target.value)}
                         className="h-6 rounded-lg border-border/60 bg-background/70 pl-7 pr-2 text-xs shadow-none focus-visible:border-border/60 focus-visible:ring-0"
-                        aria-label={t('form.searchAriaLabel')}
+                        aria-label="search"
                     />
                 </div>
 
@@ -210,7 +210,7 @@ function SortSection({
     const t = useTranslations('group');
 
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/30 flex flex-col min-h-0">
+        <div className="rounded-xl border border-border/50 bg-muted/30 flex min-h-[18rem] flex-col lg:min-h-0">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-muted/50">
                 <span className="text-sm font-medium text-foreground">
                     {t('form.items')}
@@ -369,10 +369,10 @@ export function GroupEditor({
 
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 ">
-            <div className="flex-1 min-h-0 overflow-hidden pr-1">
-                <FieldGroup className="gap-4 flex flex-col min-h-0 h-full">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 lg:overflow-hidden">
+                <FieldGroup className="flex min-h-full flex-col gap-4 lg:h-full">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <Field>
                             <FieldLabel htmlFor="group-name">{t('form.name')}</FieldLabel>
                             <Input
@@ -383,7 +383,7 @@ export function GroupEditor({
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="group-endpoint-type">{t('endpointType.label')}</FieldLabel>
+                            <FieldLabel htmlFor="group-endpoint-type">API 分类</FieldLabel>
                             <select
                                 id="group-endpoint-type"
                                 value={endpointType}
@@ -483,15 +483,15 @@ export function GroupEditor({
 
                         <Field className="col-span-full">
                             <FieldLabel htmlFor="group-condition">
-                                {t('form.condition.label')}
+                                Condition (JSON)
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <HelpCircle className="size-4 text-muted-foreground cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            {t('form.condition.hint')}<br />
-                                            {t('form.condition.example')}
+                                            JSON array of rules. Empty means always match.<br />
+                                            Example: [{`{"key":"model","op":"contains","value":"gpt-4"}`}]
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -501,13 +501,13 @@ export function GroupEditor({
                                 value={condition}
                                 onChange={(e) => setCondition(e.target.value)}
                                 className="rounded-xl font-mono text-xs"
-                                placeholder={t('form.condition.placeholder')}
+                                placeholder={'[{"key":"model","op":"contains","value":"gpt-4"}]'}
                             />
                         </Field>
                     </div>
 
                     {/* Mode */}
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                         {([1, 2, 3, 4, 5] as const).map((m) => (
                             <button
                                 key={m}
@@ -523,8 +523,8 @@ export function GroupEditor({
                         ))}
                     </div>
 
-                    <div className="flex-1 min-h-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-0">
+                    <div className="min-h-[36rem] lg:flex-1 lg:min-h-0">
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:h-full lg:min-h-0">
                             <ModelPickerSection
                                 modelChannels={modelChannels}
                                 selectedMembers={selectedMembers}

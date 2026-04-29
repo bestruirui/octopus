@@ -522,7 +522,14 @@ func buildMediaUpstreamURL(baseURL, path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to parse base url: %w", err)
 	}
-	parsed.Path = parsed.Path + path
+
+	basePath := strings.TrimSuffix(parsed.Path, "/")
+	normalizedPath := path
+	if strings.HasSuffix(basePath, "/v1") && strings.HasPrefix(normalizedPath, "/v1/") {
+		normalizedPath = strings.TrimPrefix(normalizedPath, "/v1")
+	}
+
+	parsed.Path = basePath + normalizedPath
 	return parsed.String(), nil
 }
 

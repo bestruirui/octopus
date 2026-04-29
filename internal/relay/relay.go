@@ -117,6 +117,27 @@ func resolveAPIRateLimit(modelName string, c *gin.Context) (rpm int, tpm int) {
 	return
 }
 
+func initSemanticCacheFromSettings() {
+	enabled, _ := op.SettingGetBool(dbmodel.SettingKeySemanticCacheEnabled)
+	if !enabled {
+		semantic_cache.Clear()
+		return
+	}
+	ttl, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheTTL)
+	thresholdRaw, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheThreshold)
+	maxEntries, _ := op.SettingGetInt(dbmodel.SettingKeySemanticCacheMaxEntries)
+	if ttl <= 0 {
+		ttl = 3600
+	}
+	if thresholdRaw < 0 || thresholdRaw > 100 {
+		thresholdRaw = 98
+	}
+	if maxEntries <= 0 {
+		maxEntries = 1000
+	}
+	semantic_cache.Init(maxEntries, float64(thresholdRaw)/100.0, ttl)
+}
+
 func resolveCandidateModelName(requestModel string, item dbmodel.GroupItem) string {
 	if upstreamModel, ok := resolveRequestedUpstreamModel(requestModel); ok {
 		if strings.TrimSpace(item.ModelName) == "" || strings.EqualFold(strings.TrimSpace(item.ModelName), "zen") {
@@ -167,6 +188,8 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	var streamSession *relayStreamSession
 	var streamSessionOwned bool
 	var lastErr error
+	// Initialize semantic cache from settings
+	initSemanticCacheFromSettings()
 
 	if shouldUseRelayStreamSession(internalRequest) {
 		sessionHash := buildRelayStreamSessionHash(endpointType, int(inboundType), apiKeyID, internalRequest.RawRequest)
@@ -253,21 +276,6 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 		groupEndpointType: group.EndpointType,
 		iter:              iter,
 		streamSession:     streamSession,
-	}
-
-	if endpointFamily := semanticCacheEndpointFamily(endpointType, inboundType); endpointFamily != "" {
-		served, err := maybeServeSemanticCacheHit(c, req, endpointFamily)
-		if err != nil {
-			lastErr = err
-			resp.BadGateway(c)
-			return
-		}
-		if served {
-			metrics.Save(true, nil, iter.Attempts())
-			return
-		}
-	} else {
-		semantic_cache.RecordBypass()
 	}
 
 	maxAttemptsPerCandidate := getMaxAttemptsPerCandidate()
@@ -462,6 +470,14 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 		// Channel 维度统计
 		updateChannelSuccessStats(ra.channel.ID, span.Duration().Milliseconds(), ra.metrics.Stats)
+		op.StatsModelRecord(ra.channel.ID, ra.internalRequest.Model, dbmodel.StatsMetrics{
+			WaitTime:       span.Duration().Milliseconds(),
+			InputToken:     ra.metrics.Stats.InputToken,
+			OutputToken:    ra.metrics.Stats.OutputToken,
+			InputCost:      ra.metrics.Stats.InputCost,
+			OutputCost:     ra.metrics.Stats.OutputCost,
+			RequestSuccess: 1,
+		})
 
 		// 熔断器：记录成功
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
@@ -487,6 +503,10 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 	// Channel 维度统计
 	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
+		WaitTime:      span.Duration().Milliseconds(),
+		RequestFailed: 1,
+	})
+	op.StatsModelRecord(ra.channel.ID, ra.internalRequest.Model, dbmodel.StatsMetrics{
 		WaitTime:      span.Duration().Milliseconds(),
 		RequestFailed: 1,
 	})
@@ -833,7 +853,6 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 	}
 
 	ra.c.Data(http.StatusOK, "application/json", inResponse)
-	storeSemanticCacheResponse(ctx, ra.internalRequest, inResponse)
 	return nil
 }
 

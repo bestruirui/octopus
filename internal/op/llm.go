@@ -3,6 +3,7 @@ package op
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/lingyuins/octopus/internal/db"
@@ -20,7 +21,51 @@ func LLMList(ctx context.Context) ([]model.LLMInfo, error) {
 			LLMPrice: cost,
 		})
 	}
+
+	statsByName := make(map[string]model.StatsMetrics, statsModelCache.Len())
+	for _, stats := range statsModelCache.GetAll() {
+		name := strings.TrimSpace(stats.Name)
+		if name == "" {
+			continue
+		}
+		aggregated := statsByName[name]
+		aggregated.Add(stats.StatsMetrics)
+		statsByName[name] = aggregated
+	}
+
+	sort.Slice(models, func(i, j int) bool {
+		return compareLLMRank(models[i].Name, models[j].Name, statsByName)
+	})
 	return models, nil
+}
+
+func compareLLMRank(leftName string, rightName string, statsByName map[string]model.StatsMetrics) bool {
+	leftStats := statsByName[leftName]
+	rightStats := statsByName[rightName]
+
+	leftTotal := leftStats.RequestSuccess + leftStats.RequestFailed
+	rightTotal := rightStats.RequestSuccess + rightStats.RequestFailed
+
+	switch {
+	case leftTotal == 0 && rightTotal > 0:
+		return false
+	case leftTotal > 0 && rightTotal == 0:
+		return true
+	case leftTotal > 0 && rightTotal > 0:
+		leftRatio := leftStats.RequestSuccess * rightTotal
+		rightRatio := rightStats.RequestSuccess * leftTotal
+		if leftRatio != rightRatio {
+			return leftRatio > rightRatio
+		}
+	}
+
+	if leftStats.RequestSuccess != rightStats.RequestSuccess {
+		return leftStats.RequestSuccess > rightStats.RequestSuccess
+	}
+	if leftTotal != rightTotal {
+		return leftTotal > rightTotal
+	}
+	return leftName < rightName
 }
 
 func LLMUpdate(model model.LLMInfo, ctx context.Context) error {

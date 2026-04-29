@@ -1,26 +1,34 @@
 "use client"
 
+import { useMemo } from "react"
 import { motion } from "motion/react"
-import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
-import { useNavStore } from "@/components/modules/navbar"
+import { useNavStore, type NavItem } from "@/components/modules/navbar"
 import { ROUTES } from "@/route/config"
 import { usePreload } from "@/route/use-preload"
 import { ENTRANCE_VARIANTS } from "@/lib/animations/fluid-transitions"
 
 export function NavBar() {
-    const t = useTranslations("navbar")
-    const { activeItem, navOrder, setActiveItem } = useNavStore()
+    const { activeItem, orderedItems, visibleItems, setActiveItem } = useNavStore()
     const { preload } = usePreload()
-    const routesById = new Map(ROUTES.map((route) => [route.id, route]))
-    const orderedRoutes = navOrder
-        .map((id) => routesById.get(id))
-        .filter((route): route is (typeof ROUTES)[number] => Boolean(route))
+    const visibleRouteSet = useMemo(() => new Set(visibleItems), [visibleItems])
+    const routeById = useMemo(
+        () => new Map(ROUTES.map((route) => [route.id as NavItem, route])),
+        []
+    )
+    const orderedRoutes = useMemo(
+        () =>
+            orderedItems
+                .filter((item) => visibleRouteSet.has(item))
+                .map((item) => routeById.get(item))
+                .filter((route) => route !== undefined),
+        [orderedItems, routeById, visibleRouteSet]
+    )
 
     return (
         <div className="relative z-50 md:min-h-screen">
             <motion.nav
-                aria-label={t("ariaLabel")}
+                aria-label="Main Navigation"
                 className={cn(
                     "fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1 p-3",
                     "md:sticky md:top-30 md:left-auto md:bottom-auto md:translate-x-0 md:flex-col md:gap-3",
@@ -37,7 +45,7 @@ export function NavBar() {
                         <motion.button
                             key={route.id}
                             type="button"
-                            onClick={() => setActiveItem(route.id)}
+                            onClick={() => setActiveItem(route.id as NavItem)}
                             onMouseEnter={() => preload(route.id)}
                             className={cn(
                                 "relative p-2 md:p-3 rounded-2xl z-20",

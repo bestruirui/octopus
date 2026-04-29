@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"strings"
 	"sync"
 	"time"
 
@@ -372,8 +374,16 @@ func StatsModelUpdate(stats model.StatsModel) error {
 	modelCache, ok := statsModelCache.Get(stats.ID)
 	if !ok {
 		modelCache = model.StatsModel{
-			ID: stats.ID,
+			ID:        stats.ID,
+			Name:      stats.Name,
+			ChannelID: stats.ChannelID,
 		}
+	}
+	if stats.Name != "" {
+		modelCache.Name = stats.Name
+	}
+	if stats.ChannelID != 0 {
+		modelCache.ChannelID = stats.ChannelID
 	}
 	modelCache.StatsMetrics.Add(stats.StatsMetrics)
 	statsModelCache.Set(stats.ID, modelCache)
@@ -381,6 +391,25 @@ func StatsModelUpdate(stats model.StatsModel) error {
 	statsModelCacheNeedUpdate[stats.ID] = struct{}{}
 	statsModelCacheNeedUpdateLock.Unlock()
 	return nil
+}
+
+func StatsModelRecord(channelID int, modelName string, metrics model.StatsMetrics) error {
+	normalizedName := strings.TrimSpace(modelName)
+	if normalizedName == "" {
+		return nil
+	}
+	return StatsModelUpdate(model.StatsModel{
+		ID:           buildStatsModelID(channelID, normalizedName),
+		Name:         normalizedName,
+		ChannelID:    channelID,
+		StatsMetrics: metrics,
+	})
+}
+
+func buildStatsModelID(channelID int, modelName string) int {
+	hash := fnv.New64a()
+	_, _ = hash.Write([]byte(fmt.Sprintf("%d:%s", channelID, strings.ToLower(strings.TrimSpace(modelName)))))
+	return int(hash.Sum64() & 0x7fffffffffffffff)
 }
 
 func StatsAPIKeyUpdate(apiKeyID int, metrics model.StatsMetrics) error {
@@ -483,17 +512,6 @@ func StatsAPIKeyList() []model.StatsAPIKey {
 		apiKeys = append(apiKeys, v)
 	}
 	return apiKeys
-}
-
-func StatsModelList() []model.StatsModel {
-	statsModelMutationLock.Lock()
-	defer statsModelMutationLock.Unlock()
-
-	models := make([]model.StatsModel, 0, statsModelCache.Len())
-	for _, v := range statsModelCache.GetAll() {
-		models = append(models, v)
-	}
-	return models
 }
 
 func StatsHourlyGet() []model.StatsHourly {
