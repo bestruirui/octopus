@@ -361,7 +361,7 @@ export function ChannelForm({
                             className="h-auto min-h-20 flex-col items-start gap-1 rounded-2xl px-4 py-3 text-left whitespace-normal"
                         >
                             <span className="text-sm font-semibold">{template.name}</span>
-                            <span className="text-xs text-muted-foreground">{template.description}</span>
+                            <span className="text-xs text-muted-foreground">{t(template.descriptionKey)}</span>
                         </Button>
                     ))}
                 </div>
@@ -440,7 +440,7 @@ export function ChannelForm({
                                 onClick={() => handleRemoveBaseUrl(idx)}
                                 disabled={(formData.base_urls ?? []).length <= 1}
                                 className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-destructive disabled:opacity-40 hover:bg-transparent"
-                                title="Remove"
+                                title={t('remove')}
                             >
                                 <X className="h-4 w-4" />
                             </Button>
@@ -494,7 +494,7 @@ export function ChannelForm({
                                 onClick={() => handleRemoveKey(idx)}
                                 disabled={(formData.keys ?? []).length <= 1}
                                 className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-destructive hover:bg-transparent disabled:opacity-40"
-                                title="Remove"
+                                title={t('remove')}
                             >
                                 <X className="h-4 w-4" />
                             </Button>
@@ -735,7 +735,7 @@ export function ChannelForm({
                                             onClick={() => handleRemoveHeader(idx)}
                                             disabled={(formData.custom_header ?? []).length <= 1}
                                             className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-destructive hover:bg-transparent disabled:opacity-40"
-                                            title="Remove"
+                                            title={t('remove')}
                                         >
                                             <X className="h-4 w-4" />
                                         </Button>

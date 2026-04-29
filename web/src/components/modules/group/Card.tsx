@@ -27,6 +27,12 @@ import {
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
 import { Progress } from '@/components/ui/progress';
+import {
+    clearStoredGroupTestTask,
+    matchesStoredGroupTestTask,
+    readStoredGroupTestTask,
+    writeStoredGroupTestTask,
+} from './task-storage';
 
 interface EditDialogContentProps {
     group: Group;
@@ -116,11 +122,15 @@ export function GroupCard({ group }: { group: Group }) {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [members, setMembers] = useState<SelectedMember[]>(displayMembers);
     const [isDragging, setIsDragging] = useState(false);
-    const [currentTestId, setCurrentTestId] = useState<string | null>(null);
+    const [currentTestId, setCurrentTestId] = useState<string | null>(() => {
+        const storedTask = readStoredGroupTestTask();
+        return matchesStoredGroupTestTask(storedTask, group.id) ? storedTask?.id ?? null : null;
+    });
     const weightTimerRef = useRef<NodeJS.Timeout | null>(null);
     const membersRef = useRef<SelectedMember[]>([]);
     const lastDisplayMembersRef = useRef(displayMembers);
     const handledTestCompletionRef = useRef<string | null>(null);
+    const restoredTestIdRef = useRef<string | null>(currentTestId);
     const testProgressQuery = useGroupTestProgress(currentTestId);
     const testProgress = testProgressQuery.data;
 
@@ -157,6 +167,9 @@ export function GroupCard({ group }: { group: Group }) {
         }
 
         handledTestCompletionRef.current = testProgress.id;
+        if (testProgress.id === restoredTestIdRef.current) {
+            return;
+        }
 
         if (testProgress.message) {
             toast.error(t('toast.testRequestFailed'), { description: testProgress.message });
@@ -178,19 +191,50 @@ export function GroupCard({ group }: { group: Group }) {
         });
     }, [getRemovableSuggestion, t, testProgress]);
 
+    useEffect(() => {
+        if (!testProgress?.id || testProgress.id !== restoredTestIdRef.current || testProgress.done) {
+            return;
+        }
+
+        restoredTestIdRef.current = null;
+    }, [testProgress]);
+
+    useEffect(() => {
+        if (!currentTestId || !testProgressQuery.error) {
+            return;
+        }
+
+        const error = testProgressQuery.error;
+        const statusCode = error && typeof error === 'object' && 'code' in error && typeof error.code === 'number'
+            ? error.code
+            : undefined;
+        if (statusCode !== 404) {
+            return;
+        }
+
+        clearStoredGroupTestTask(currentTestId);
+        restoredTestIdRef.current = null;
+        handledTestCompletionRef.current = null;
+        queueMicrotask(() => setCurrentTestId((prev) => (prev === currentTestId ? null : prev)));
+    }, [currentTestId, testProgressQuery.error]);
+
     const handleTestGroup = useCallback(() => {
-        if (!group.id) return;
+        const groupId = group.id;
+        if (!groupId) return;
+        clearStoredGroupTestTask(currentTestId ?? undefined);
         setCurrentTestId(null);
         handledTestCompletionRef.current = null;
-        testGroup.mutate(group.id, {
+        restoredTestIdRef.current = null;
+        testGroup.mutate(groupId, {
             onSuccess: (progress) => {
+                writeStoredGroupTestTask({ id: progress.id, groupId });
                 setCurrentTestId(progress.id);
             },
             onError: (error: Error) => {
                 toast.error(t('toast.testRequestFailed'), { description: error.message });
             },
         });
-    }, [group.id, t, testGroup]);
+    }, [currentTestId, group.id, t, testGroup]);
 
     // Avoid UI flicker: drag-reorder also uses the same mutation, so only "mode switch" should lock mode buttons.
     const isUpdatingMode = (() => {
@@ -246,15 +290,17 @@ export function GroupCard({ group }: { group: Group }) {
             { id: group.id, items_to_delete: failedIds },
             {
                 onSuccess: () => {
+                    clearStoredGroupTestTask(currentTestId ?? undefined);
                     setCurrentTestId(null);
                     handledTestCompletionRef.current = null;
+                    restoredTestIdRef.current = null;
                     onSuccess();
                     toast.success(t('toast.removedFailedModels'));
                 },
                 onError,
             }
         );
-    }, [group.id, onError, onSuccess, t, testProgress?.results, updateGroup]);
+    }, [currentTestId, group.id, onError, onSuccess, t, testProgress?.results, updateGroup]);
 
     const handleWeightChange = useCallback((id: string, weight: number) => {
         setMembers((prev) => prev.map((m) => m.id === id ? { ...m, weight } : m));
@@ -481,7 +527,7 @@ export function GroupCard({ group }: { group: Group }) {
                 return (
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-500/15 text-slate-700 dark:text-slate-300">
-                            API 分类：{endpointTypeLabel(group.endpoint_type)}
+                            {t('endpointType.label')}：{endpointTypeLabel(t, group.endpoint_type)}
                         </span>
                         {capabilities.map((cap) => (
                             <span

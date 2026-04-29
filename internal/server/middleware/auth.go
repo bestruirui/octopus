@@ -49,6 +49,7 @@ func Auth() gin.HandlerFunc {
 			role = model.UserRoleAdmin
 		}
 		c.Set("user_id", int(currentUser.ID))
+		c.Set("username", currentUser.Username)
 		c.Set("user_role", role)
 		c.Next()
 	}

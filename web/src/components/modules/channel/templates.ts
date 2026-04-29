@@ -4,7 +4,7 @@ import type { ChannelFormData } from './Form';
 export type ChannelTemplate = {
     key: string;
     name: string;
-    description: string;
+    descriptionKey: string;
     apply: (current: ChannelFormData) => ChannelFormData;
 };
 
@@ -30,7 +30,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'openai',
         name: 'OpenAI',
-        description: 'OpenAI Chat 官方接口',
+        descriptionKey: 'template.options.openai.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenAI',
             type: ChannelType.OpenAIChat,
@@ -47,7 +47,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'openai-responses',
         name: 'OpenAI Responses',
-        description: 'OpenAI Responses API',
+        descriptionKey: 'template.options.openaiResponses.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenAI Responses',
             type: ChannelType.OpenAIResponse,
@@ -64,7 +64,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'anthropic',
         name: 'Anthropic',
-        description: 'Claude 官方接口',
+        descriptionKey: 'template.options.anthropic.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Anthropic',
             type: ChannelType.Anthropic,
@@ -81,7 +81,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'gemini',
         name: 'Gemini',
-        description: 'Google Gemini 官方接口',
+        descriptionKey: 'template.options.gemini.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Gemini',
             type: ChannelType.Gemini,
@@ -98,7 +98,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'deepseek',
         name: 'DeepSeek',
-        description: 'DeepSeek OpenAI 兼容接口',
+        descriptionKey: 'template.options.deepseek.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'DeepSeek',
             type: ChannelType.OpenAIChat,
@@ -115,7 +115,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'openrouter',
         name: 'OpenRouter',
-        description: 'OpenRouter 聚合接口',
+        descriptionKey: 'template.options.openrouter.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenRouter',
             type: ChannelType.OpenAIChat,
@@ -132,7 +132,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'siliconflow',
         name: 'SiliconFlow',
-        description: '硅基流动 OpenAI 兼容接口',
+        descriptionKey: 'template.options.siliconflow.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'SiliconFlow',
             type: ChannelType.OpenAIChat,
@@ -149,7 +149,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'volcengine',
         name: 'Volcengine',
-        description: '火山引擎 Ark 接口',
+        descriptionKey: 'template.options.volcengine.description',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Volcengine',
             type: ChannelType.Volcengine,

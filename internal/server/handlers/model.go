@@ -34,6 +34,10 @@ func init() {
 				Handle(listLLMByChannel),
 		).
 		AddRoute(
+			router.NewRoute("/market", http.MethodGet).
+				Handle(getModelMarket),
+		).
+		AddRoute(
 			router.NewRoute("/update", http.MethodPost).
 				Use(middleware.RequirePermission(auth.PermSettingsWrite)).
 				Handle(updateLLM),
@@ -134,6 +138,15 @@ func listLLMByChannel(c *gin.Context) {
 		return
 	}
 	resp.Success(c, channels)
+}
+
+func getModelMarket(c *gin.Context) {
+	market, err := op.ModelMarketGet(c.Request.Context(), price.GetLastUpdateTime())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, market)
 }
 
 func createLLM(c *gin.Context) {

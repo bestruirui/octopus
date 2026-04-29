@@ -14,7 +14,7 @@ import { getModelIcon } from '@/lib/model-icons';
 import { GroupMode } from '@/api/endpoints/group';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
-import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS, ENDPOINT_TYPE_OPTIONS, normalizeEndpointType } from './utils';
+import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS, getEndpointTypeOptions, normalizeEndpointType } from './utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
 import { HelpCircle } from 'lucide-react';
 
@@ -106,7 +106,7 @@ function ModelPickerSection({
                         value={searchKeyword}
                         onChange={(event) => setSearchKeyword(event.target.value)}
                         className="h-6 rounded-lg border-border/60 bg-background/70 pl-7 pr-2 text-xs shadow-none focus-visible:border-border/60 focus-visible:ring-0"
-                        aria-label="search"
+                        aria-label={t('form.searchAriaLabel')}
                     />
                 </div>
 
@@ -269,6 +269,7 @@ export function GroupEditor({
 }) {
     const t = useTranslations('group');
     const { data: modelChannels = [] } = useModelChannelList();
+    const endpointTypeOptions = useMemo(() => getEndpointTypeOptions(t), [t]);
 
     const [groupName, setGroupName] = useState(initial?.name ?? '');
     const [endpointType, setEndpointType] = useState(normalizeEndpointType(initial?.endpoint_type));
@@ -382,14 +383,14 @@ export function GroupEditor({
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="group-endpoint-type">API 分类</FieldLabel>
+                            <FieldLabel htmlFor="group-endpoint-type">{t('endpointType.label')}</FieldLabel>
                             <select
                                 id="group-endpoint-type"
                                 value={endpointType}
                                 onChange={(e) => setEndpointType(normalizeEndpointType(e.target.value))}
                                 className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
                             >
-                                {ENDPOINT_TYPE_OPTIONS.map((option) => (
+                                {endpointTypeOptions.map((option) => (
                                     <option key={option.value} value={option.value}>
                                         {option.label}
                                     </option>
@@ -482,15 +483,15 @@ export function GroupEditor({
 
                         <Field className="col-span-full">
                             <FieldLabel htmlFor="group-condition">
-                                Condition (JSON)
+                                {t('form.condition.label')}
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <HelpCircle className="size-4 text-muted-foreground cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            JSON array of rules. Empty means always match.<br />
-                                            Example: [{`{"key":"model","op":"contains","value":"gpt-4"}`}]
+                                            {t('form.condition.hint')}<br />
+                                            {t('form.condition.example')}
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -500,7 +501,7 @@ export function GroupEditor({
                                 value={condition}
                                 onChange={(e) => setCondition(e.target.value)}
                                 className="rounded-xl font-mono text-xs"
-                                placeholder={'[{"key":"model","op":"contains","value":"gpt-4"}]'}
+                                placeholder={t('form.condition.placeholder')}
                             />
                         </Field>
                     </div>

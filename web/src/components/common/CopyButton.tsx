@@ -60,7 +60,7 @@ export function CopyIconButton({
         <button
             type="button"
             onClick={handleClick}
-            aria-label="Copy"
+            aria-label={t('button')}
             className={cn(className)}
         >
             <AnimatePresence mode="wait" initial={false}>

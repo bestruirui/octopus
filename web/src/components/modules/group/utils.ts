@@ -19,20 +19,44 @@ export const MODE_LABELS: Record<GroupMode, string> = {
     [GroupMode.Auto]: 'auto',
 } as const;
 
-export const ENDPOINT_TYPE_OPTIONS = [
-    { label: '全部', value: '*' },
-    { label: '对话', value: 'chat' },
-    { label: 'DeepSeek', value: 'deepseek' },
-    { label: 'Embeddings', value: 'embeddings' },
-    { label: 'Rerank', value: 'rerank' },
-    { label: 'Moderations', value: 'moderations' },
-    { label: '图片生成', value: 'image_generation' },
-    { label: '语音合成', value: 'audio_speech' },
-    { label: '音频转写', value: 'audio_transcription' },
-    { label: '视频生成', value: 'video_generation' },
-    { label: '音乐生成', value: 'music_generation' },
-    { label: '搜索', value: 'search' },
+const ENDPOINT_TYPE_VALUES = [
+    '*',
+    'chat',
+    'deepseek',
+    'embeddings',
+    'rerank',
+    'moderations',
+    'image_generation',
+    'audio_speech',
+    'audio_transcription',
+    'video_generation',
+    'music_generation',
+    'search',
 ] as const;
+
+const ENDPOINT_TYPE_LABEL_KEYS: Record<(typeof ENDPOINT_TYPE_VALUES)[number], string> = {
+    '*': 'endpointType.all',
+    chat: 'endpointType.chat',
+    deepseek: 'endpointType.deepseek',
+    embeddings: 'endpointType.embeddings',
+    rerank: 'endpointType.rerank',
+    moderations: 'endpointType.moderations',
+    image_generation: 'endpointType.imageGeneration',
+    audio_speech: 'endpointType.audioSpeech',
+    audio_transcription: 'endpointType.audioTranscription',
+    video_generation: 'endpointType.videoGeneration',
+    music_generation: 'endpointType.musicGeneration',
+    search: 'endpointType.search',
+};
+
+type GroupTranslation = (key: string) => string;
+
+export function getEndpointTypeOptions(t: GroupTranslation) {
+    return ENDPOINT_TYPE_VALUES.map((value) => ({
+        label: t(ENDPOINT_TYPE_LABEL_KEYS[value]),
+        value,
+    }));
+}
 
 export function normalizeEndpointType(value?: string | null) {
     const normalized = value?.trim().toLowerCase();
@@ -42,9 +66,10 @@ export function normalizeEndpointType(value?: string | null) {
     return normalized || '*';
 }
 
-export function endpointTypeLabel(value?: string | null) {
+export function endpointTypeLabel(t: GroupTranslation, value?: string | null) {
     const endpointType = normalizeEndpointType(value);
-    return ENDPOINT_TYPE_OPTIONS.find((option) => option.value === endpointType)?.label ?? endpointType;
+    const labelKey = ENDPOINT_TYPE_LABEL_KEYS[endpointType as keyof typeof ENDPOINT_TYPE_LABEL_KEYS];
+    return labelKey ? t(labelKey) : endpointType;
 }
 
 export function normalizeKey(value: string) {

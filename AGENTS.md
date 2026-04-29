@@ -61,11 +61,11 @@ There are three distinct HTTP surfaces:
 - `/v1/...` is the public relay API. It accepts OpenAI-compatible and Anthropic-compatible requests, plus direct media/utility endpoints such as images, audio, video, search, rerank, and moderation, all authenticated with Octopus API keys.
 
 ### Server composition
-- `internal/server/server.go` creates the Gin engine, installs recovery/CORS/static middleware, and registers routes.
+- `internal/server/server.go` creates the Gin engine, installs recovery/CORS/static/audit middleware, and registers routes.
 - Route registration is side-effect driven: `server.Start()` blank-imports `internal/server/handlers`, and each handler file registers its own routes in `init()` using the custom router registry in `internal/server/router/router.go`.
 - Static UI serving is middleware-based. If `static.StaticFS` is nil, the API still runs but the management UI is unavailable.
 - Group management includes `DELETE /api/v1/group/delete-all`, which clears all groups and group items and resets the default target group for single-group AI routing to `0`.
-- Management API coverage is split by concern: channels, groups, models, settings, stats, logs, AI route generation, user management, and alerting each live in their own handler file under `internal/server/handlers/`.
+- Management API coverage is split by concern: channels, groups, models, settings, stats, logs, analytics, ops, audit, AI route generation, user management, and alerting each live in their own handler file under `internal/server/handlers/`.
 - Public relay coverage is split between LLM-style protocol adapters (`relay.go`) and direct media/utility forwarding (`media_relay.go`).
 
 ### Core domain model
@@ -103,6 +103,7 @@ Important relay details:
 - `internal/relay/type.go` reads runtime retry/cooldown limits from settings.
 - The special `zen/...` model prefix is interpreted in relay code to steer candidate provider types and upstream model resolution.
 - Group regex matching is precompiled from cache rebuilds in `internal/op/group.go`.
+- Semantic cache currently applies only to non-streaming OpenAI Chat / OpenAI Responses text requests; bypasses do not block normal relay forwarding.
 
 ### Media and utility relay
 Not every `/v1/...` endpoint goes through the LLM transformer pipeline:
@@ -135,7 +136,8 @@ Channel creation/update also kicks off async helper work such as model discovery
 - API access is centralized in `web/src/api/client.ts`; by default it uses relative base URL `.` unless `NEXT_PUBLIC_API_BASE_URL` is set.
 - Production frontend output is a static export (`next.config.ts` uses `output: "export"`) that gets copied into `static/out/` for Go embedding.
 - Dangerous settings actions live under `web/src/components/modules/setting/`; bulk route-group deletion uses a confirmation dialog in `RouteGroupDanger.tsx`.
-- Current primary modules are Home, Channel, Group, Model, Log, Setting, User, and Alert.
+- Current primary modules are Home, Channel, Group, Model (Model Market), Analytics, Log, Alert, Ops, Setting, and User.
+- The settings module now includes dedicated Semantic Cache and Page Order cards in addition to the older runtime-tuning cards.
 
 ## Files to inspect first for common tasks
 - Startup / wiring: `main.go`, `cmd/start.go`
@@ -145,7 +147,8 @@ Channel creation/update also kicks off async helper work such as model discovery
 - Relay behavior: `internal/relay/relay.go`, `internal/relay/media_relay.go`, `internal/relay/type.go`, `internal/relay/balancer/`
 - RBAC / auth: `internal/server/auth/permissions.go`, `internal/server/middleware/auth.go`, `internal/server/middleware/rbac.go`, `internal/server/handlers/user.go`
 - Alerting: `internal/server/handlers/alert.go`, `internal/task/alert.go`, `internal/op/alert.go`
+- Analytics / Ops / Audit: `internal/server/handlers/analytics.go`, `internal/server/handlers/ops.go`, `internal/server/handlers/audit.go`, `internal/op/analytics.go`, `internal/op/ops.go`, `internal/op/audit_log.go`
 - Protocol adapters: `internal/transformer/inbound/`, `internal/transformer/outbound/`
 - Cache-backed operations: `internal/op/`
-- Frontend entry: `web/src/components/app.tsx`, `web/src/route/config.tsx`
+- Frontend entry: `web/src/components/app.tsx`, `web/src/route/config.tsx`, `web/src/components/modules/navbar/nav-order.ts`
 - Embedded static serving: `static/static.go`

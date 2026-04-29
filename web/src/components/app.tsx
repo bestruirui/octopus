@@ -13,21 +13,36 @@ import { useTranslations } from 'next-intl'
 import Logo, { LOGO_DRAW_END_MS } from '@/components/modules/logo';
 import { Toolbar } from '@/components/modules/toolbar';
 import { DEFAULT_LOG_PAGE_SIZE, useLogRefresh } from '@/api/endpoints/log';
+import { SettingKey, type Setting } from '@/api/endpoints/setting';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
 import { ENTRANCE_VARIANTS } from '@/lib/animations/fluid-transitions';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { CONTENT_MAP } from '@/route';
+import { parseNavOrder } from '@/components/modules/navbar/nav-order';
 import { apiClient } from '@/api/client';
 import { logger } from '@/lib/logger';
 import { FirstRunSetup } from '@/components/modules/first-run-setup';
 import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
+import type { NavItem } from '@/components/modules/navbar';
 
 function timeout(ms: number) {
     return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-function HeaderActions({ activeItem }: { activeItem: 'home' | 'channel' | 'group' | 'model' | 'log' | 'setting' | 'user' | 'alert' }) {
+function getSettingsListQueryOptions() {
+    return {
+        queryKey: ['settings', 'list'] as const,
+        queryFn: async () => apiClient.get<Setting[]>('/api/v1/setting/list'),
+    };
+}
+
+function getNavOrderFromSettings(settings: Setting[] | undefined): NavItem[] {
+    const navOrderValue = settings?.find((item) => item.key === SettingKey.NavOrder)?.value;
+    return parseNavOrder(navOrderValue) as NavItem[];
+}
+
+function HeaderActions({ activeItem }: { activeItem: NavItem }) {
     const t = useTranslations('log');
     const { isRefreshing, refresh } = useLogRefresh(DEFAULT_LOG_PAGE_SIZE);
 
@@ -58,7 +73,7 @@ function HeaderActions({ activeItem }: { activeItem: 'home' | 'channel' | 'group
 
 export function AppContainer() {
     const { isAuthenticated, isAPIKeyAuth, isLoading: authLoading } = useAuth();
-    const { activeItem, direction } = useNavStore();
+    const { activeItem, direction, setNavOrder, resetNavOrder } = useNavStore();
     const t = useTranslations('navbar');
     const queryClient = useQueryClient();
 
@@ -71,6 +86,12 @@ export function AppContainer() {
         retry: false,
         staleTime: 0,
         refetchOnWindowFocus: false,
+    });
+    const { data: settings } = useQuery({
+        ...getSettingsListQueryOptions(),
+        enabled: isAuthenticated && !isAPIKeyAuth,
+        refetchInterval: 30000,
+        refetchOnMount: 'always',
     });
 
     // Logo 动画完成状态
@@ -94,14 +115,26 @@ export function AppContainer() {
     }, []);
 
     useEffect(() => {
+        if (!isAuthenticated || isAPIKeyAuth) {
+            resetNavOrder();
+            return;
+        }
+
+        if (!settings) return;
+        setNavOrder(getNavOrderFromSettings(settings));
+    }, [isAPIKeyAuth, isAuthenticated, resetNavOrder, setNavOrder, settings]);
+
+    useEffect(() => {
         if (authLoading) return;
         if (!isAuthenticated) {
+            bootstrapStartedRef.current = false;
             setBootstrapComplete(true);
             return;
         }
 
         if (bootstrapStartedRef.current) return;
         bootstrapStartedRef.current = true;
+        setBootstrapComplete(false);
 
         let cancelled = false;
 
@@ -118,6 +151,16 @@ export function AppContainer() {
                         })
                     );
                 } else {
+                    const settingsPromise = queryClient.fetchQuery(getSettingsListQueryOptions());
+                    prefetches.push(
+                        settingsPromise.then((nextSettings) => {
+                            if (cancelled) {
+                                return;
+                            }
+                            useNavStore.getState().setNavOrder(getNavOrderFromSettings(nextSettings));
+                        })
+                    );
+
                     // 普通用户认证模式：预取对应页面数据
                     const component = CONTENT_MAP[activeItem];
                     if (component?.preload) {
@@ -191,8 +234,8 @@ export function AppContainer() {
                         case 'model': {
                             prefetches.push(
                                 queryClient.prefetchQuery({
-                                    queryKey: ['models', 'list'],
-                                    queryFn: async () => apiClient.get('/api/v1/model/list'),
+                                    queryKey: ['models', 'market'],
+                                    queryFn: async () => apiClient.get('/api/v1/model/market'),
                                 })
                             );
                             break;
@@ -202,6 +245,15 @@ export function AppContainer() {
                                 queryClient.prefetchQuery({
                                     queryKey: ['apikeys', 'list'],
                                     queryFn: async () => apiClient.get('/api/v1/apikey/list'),
+                                })
+                            );
+                            break;
+                        }
+                        case 'ops': {
+                            prefetches.push(
+                                queryClient.prefetchQuery({
+                                    queryKey: ['ops', 'health'],
+                                    queryFn: async () => apiClient.get('/api/v1/ops/health'),
                                 })
                             );
                             break;
@@ -226,7 +278,7 @@ export function AppContainer() {
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [authLoading, isAuthenticated]);
+    }, [authLoading, isAPIKeyAuth, isAuthenticated]);
 
     const shouldShowFirstRunSetup =
         !isAuthenticated &&

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { KeyRound, Plus, Loader, Trash2, Check, X, Info, CalendarDays, Pencil, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -217,11 +217,11 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
             </div>
 
             <div className="grid gap-1 text-xs text-muted-foreground">
-                Rate Limit (RPM)
+                {t('apiKey.form.rateLimitRpm.label')}
                 <div className="flex items-center gap-2">
                     <Input
                         type="number"
-                        placeholder="Requests per minute, 0 = unlimited"
+                        placeholder={t('apiKey.form.rateLimitRpm.placeholder')}
                         value={form.rate_limit_rpm ?? 0}
                         onChange={(e) => updateForm({ rate_limit_rpm: Number(e.target.value) })}
                         className="h-9 text-sm rounded-xl"
@@ -231,11 +231,11 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
             </div>
 
             <div className="grid gap-1 text-xs text-muted-foreground">
-                Rate Limit (TPM)
+                {t('apiKey.form.rateLimitTpm.label')}
                 <div className="flex items-center gap-2">
                     <Input
                         type="number"
-                        placeholder="Tokens per minute, 0 = unlimited"
+                        placeholder={t('apiKey.form.rateLimitTpm.placeholder')}
                         value={form.rate_limit_tpm ?? 0}
                         onChange={(e) => updateForm({ rate_limit_tpm: Number(e.target.value) })}
                         className="h-9 text-sm rounded-xl"
@@ -245,10 +245,10 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
             </div>
 
             <div className="grid gap-1 text-xs text-muted-foreground">
-                Per-Model Quota (JSON)
+                {t('apiKey.form.perModelQuota.label')}
                 <Input
                     type="text"
-                    placeholder={'{"gpt-4o":{"rpm":5,"tpm":50000}}'}
+                    placeholder={t('apiKey.form.perModelQuota.placeholder')}
                     value={form.per_model_quota_json ?? ''}
                     onChange={(e) => updateForm({ per_model_quota_json: e.target.value })}
                     className="h-9 text-sm rounded-xl font-mono"
@@ -297,7 +297,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                         className="h-9 w-[92px] text-sm rounded-xl"
                         disabled={isPending || neverExpire || !expireDate}
                         inputMode="numeric"
-                        placeholder="HH:mm"
+                        placeholder={t('apiKey.form.expireTimePlaceholder')}
                     />
 
                     <button
@@ -542,7 +542,7 @@ function APIKeyKeyItem({
                     layoutId={statsLayoutId}
                     onClick={onViewStats}
                     className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
-                    title="Stats"
+                    title={t('apiKey.actions.viewStats')}
                 >
                     <Info className="size-4" />
                 </motion.button>
@@ -551,7 +551,7 @@ function APIKeyKeyItem({
                     layoutId={editLayoutId}
                     onClick={onEdit}
                     className="flex size-8 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95"
-                    title="Edit"
+                    title={t('apiKey.actions.edit')}
                 >
                     <Pencil className="size-4" />
                 </motion.button>
@@ -789,6 +789,7 @@ function APIKeyPanelBase({
 }
 
 function APIKeyDialogPanel() {
+    const t = useTranslations('setting');
     const { setIsOpen } = useMorphingDialog();
     return (
         <APIKeyPanelBase
@@ -800,7 +801,7 @@ function APIKeyDialogPanel() {
                     type="button"
                     onClick={() => setIsOpen(false)}
                     className="h-9 w-9 flex items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted"
-                    title="Close"
+                    title={t('apiKey.actions.close')}
                 >
                     <X className="size-4" />
                 </button>

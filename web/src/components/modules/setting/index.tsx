@@ -14,6 +14,8 @@ import { SettingCircuitBreaker } from './CircuitBreaker';
 import { SettingRetry } from './Retry';
 import { SettingAutoStrategy } from './AutoStrategy';
 import { SettingAIRoute } from './AIRoute';
+import { SettingSemanticCache } from './SemanticCache';
+import { SettingPageOrder } from './PageOrder';
 import { SettingRouteGroupDanger } from './RouteGroupDanger';
 
 export function Setting() {
@@ -23,7 +25,9 @@ export function Setting() {
                 <SettingInfo key="setting-info" />
                 <SettingAppearance key="setting-appearance" />
                 <SettingAccount key="setting-account" />
+                <SettingPageOrder key="setting-page-order" />
                 <SettingSystem key="setting-system" />
+                <SettingSemanticCache key="setting-semantic-cache" />
                 <SettingAIRoute key="setting-ai-route" />
                 <SettingRetry key="setting-retry" />
                 <SettingAutoStrategy key="setting-auto-strategy" />

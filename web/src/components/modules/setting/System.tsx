@@ -239,7 +239,7 @@ export function SettingSystem() {
                                             type="button"
                                             onClick={() => handleRemoveCorsOrigin(origin)}
                                             className="text-muted-foreground transition-colors hover:text-destructive"
-                                            aria-label={`remove ${origin}`}
+                                            aria-label={t('corsAllowOrigins.removeAriaLabel', { origin })}
                                         >
                                             <X className="size-4" />
                                         </button>

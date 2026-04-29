@@ -25,9 +25,12 @@
 - 🧾 **API Key Governance** - Supported-model allowlists, expiry, max-cost caps, RPM / TPM limits, and optional per-model quotas
 - 🔐 **Role-Based Admin Access** - Built-in `admin`, `editor`, and `viewer` roles with server-side permission enforcement
 - 🚨 **Webhook Alerts** - Alert rules for error rate, cost threshold, quota exceeded, and channel down with webhook notifications and history
-- 💰 **Price Sync** - Automatic model pricing updates
+- 💎 **Model Market & Price Sync** - The model page now surfaces pricing, channel coverage, enabled key counts, latency, and success metrics while preserving create / edit / delete / refresh price workflows
 - 🔃 **Model Sync** - Automatic synchronization of available model lists with channels
-- 📊 **Analytics** - Comprehensive request statistics, token consumption, cost tracking, and relay logs
+- 📊 **Analytics & Evaluation** - Overview, provider / model / API key utilization, route health, semantic-cache evaluation, and live entry points for group testing / AI routing
+- 🛠️ **Ops & Audit** - Cache, quota, health, system, and audit dashboards for daily operations, plus a management-write audit trail
+- 🧠 **Semantic Cache** - Embedding-backed semantic cache for non-streaming OpenAI Chat / OpenAI Responses text requests, with runtime status and effectiveness metrics
+- 🧭 **Configurable Navigation Order** - Persist top-level console page order in settings and reuse it across browsers
 - 💾 **Runtime State Persistence** - Persist auto strategy windows and circuit breaker state to the database
 - 🎨 **Elegant UI** - Clean and beautiful web management panel
 - 🗄️ **Multi-Database Support** - Support for SQLite, MySQL, PostgreSQL
@@ -261,6 +264,8 @@ All configuration options can be overridden via environment variables using the 
 
 ## 📸 Screenshots
 
+> Note: The screenshots below show the core console surfaces. Current builds keep the same visual system and navigation, with `Model` presented as `Model Market` and additional `Analytics` / `Ops` entries in the sidebar.
+
 ### 🖥️ Desktop
 
 <div align="center">
@@ -276,12 +281,12 @@ All configuration options can be overridden via environment variables using the 
 <td><img src="web/public/screenshot/desktop-group.png" alt="Group" width="400"></td>
 </tr>
 <tr>
-<td align="center"><b>Model</b></td>
+<td align="center"><b>Model Market</b></td>
 <td align="center"><b>Logs</b></td>
 <td align="center"><b>Settings</b></td>
 </tr>
 <tr>
-<td><img src="web/public/screenshot/desktop-price.png" alt="Model" width="400"></td>
+<td><img src="web/public/screenshot/desktop-price.png" alt="Model Market" width="400"></td>
 <td><img src="web/public/screenshot/desktop-log.png" alt="Logs" width="400"></td>
 <td><img src="web/public/screenshot/desktop-setting.png" alt="Settings" width="400"></td>
 </tr>
@@ -296,7 +301,7 @@ All configuration options can be overridden via environment variables using the 
 <td align="center"><b>Home</b></td>
 <td align="center"><b>Channel</b></td>
 <td align="center"><b>Group</b></td>
-<td align="center"><b>Model</b></td>
+<td align="center"><b>Model Market</b></td>
 <td align="center"><b>Logs</b></td>
 <td align="center"><b>Settings</b></td>
 </tr>
@@ -304,7 +309,7 @@ All configuration options can be overridden via environment variables using the 
 <td><img src="web/public/screenshot/mobile-home.png" alt="Mobile Home" width="140"></td>
 <td><img src="web/public/screenshot/mobile-channel.png" alt="Mobile Channel" width="140"></td>
 <td><img src="web/public/screenshot/mobile-group.png" alt="Mobile Group" width="140"></td>
-<td><img src="web/public/screenshot/mobile-price.png" alt="Mobile Model" width="140"></td>
+<td><img src="web/public/screenshot/mobile-price.png" alt="Mobile Model Market" width="140"></td>
 <td><img src="web/public/screenshot/mobile-log.png" alt="Mobile Logs" width="140"></td>
 <td><img src="web/public/screenshot/mobile-setting.png" alt="Mobile Settings" width="140"></td>
 </tr>
@@ -313,6 +318,23 @@ All configuration options can be overridden via environment variables using the 
 
 
 ## 📖 Documentation
+
+### 🧭 Management Console Modules
+
+The embedded management UI currently ships with these top-level modules:
+
+| Module | What it covers |
+|--------|----------------|
+| Home | Version, runtime status, and high-level summaries |
+| Channel | Upstream provider configuration, keys, headers, sync, and latency probing |
+| Group | Model routing, load-balancing strategies, sticky sessions, group test, and AI route generation |
+| Model Market | Model catalog, custom pricing, channel coverage, enabled key counts, latency, and success summaries |
+| Analytics | Overview, utilization, route health, and evaluation |
+| Log | Relay request history, error details, token usage, and cost records |
+| Alert | Alert rules, notification channels, state, and history |
+| Ops | Semantic cache, API key quota posture, system health, runtime summary, and audit trail |
+| Setting | Runtime tuning, semantic cache, page order, AI route services, retry, circuit breaker, backup, and dangerous operations |
+| User | Admin user management and roles |
 
 ### 📡 Channel Management
 
@@ -349,6 +371,8 @@ The public relay API supports both OpenAI-style and Anthropic-style clients:
 | Multipart media | `/v1/images/edits`, `/v1/images/variations`, `/v1/audio/transcriptions` | Multipart upload forwarding |
 
 JSON media endpoints can also proxy upstream SSE streams when the provider supports `stream=true`.
+
+Semantic cache is currently evaluated only for non-streaming OpenAI Chat and OpenAI Responses text requests. Anthropic, embeddings, streaming, and media / utility requests bypass the cache and continue through the normal relay flow.
 
 ---
 
@@ -395,24 +419,83 @@ Groups aggregate multiple channels into a unified external model name.
 
 ---
 
-### 💰 Model Management
+### 💎 Model Market & Pricing
 
-Manage the model catalog and pricing information in the system.
+The `Model` route is now a model market view instead of a plain price list. It combines model pricing, channel coverage, enabled key counts, average latency, and success metrics into a single page while keeping the original pricing workflows.
+
+**Data merged on each card:**
+
+- Custom or synced pricing from the LLM price catalog
+- Channel coverage and enabled key counts from channel-model relationships
+- Average latency and success / failure counts from recorded model stats
+
+**Summary metrics:**
+
+| Metric | Meaning |
+|--------|---------|
+| Models | Number of currently visible model cards |
+| Coverage | Total channel-to-model coverage count in the current result set |
+| Unique Channels | Distinct channels represented by the visible cards |
+| Average Latency | Weighted average latency derived from model request stats |
 
 **Data Sources:**
 
 - The system periodically syncs model pricing data from [models.dev](https://github.com/sst/models.dev)
-- When creating a channel, if the channel contains models not in models.dev, the system automatically creates pricing information for those models on this page, so this page displays models that haven't had their prices fetched from upstream, allowing users to set prices manually
+- When creating or syncing channels, if a model is not yet in the local catalog, Octopus automatically creates a local model-price record so the price can still be maintained manually
 - Manual creation of models that exist in models.dev is also supported for custom pricing
 
 **Price Priority:**
 
 | Priority | Source | Description |
 |:--------:|--------|-------------|
-| 🥇 High | This Page | Prices set by user in the model management page |
+| 🥇 High | This Page | Prices set by user in the model market page |
 | 🥈 Low | models.dev | Auto-synced default prices |
 
-> 💡 **Tip**: To override a model's default price, simply set a custom price for it in the model management page.
+> 💡 **Tip**: To override a model's default price, simply set a custom price for it in the model market page.
+
+**Operational actions preserved on the page:**
+
+- Create a custom model price record
+- Edit input / output / cache prices for an existing model
+- Delete a custom model entry
+- Refresh upstream pricing from the page header
+- Keep the scheduled price refresh policy in the Settings `LLM Price` card
+
+---
+
+### 📈 Analytics
+
+The Analytics module is a read-oriented operations view with four tabs:
+
+| Tab | What it shows |
+|-----|---------------|
+| Overview | Request count, success rate, token volume, cost, provider count, API key count, model count, and fallback rate |
+| Utilization | Provider, model, and API key breakdowns for the selected time range |
+| Route Health | Health score, enabled / disabled item counts, and recent failure pressure for each group |
+| Evaluation | Group readiness, AI route progress, group test progress, and semantic-cache effectiveness |
+
+**Time ranges:** `1d`, `7d`, `30d`, `90d`, `ytd`, and `all`
+
+The Evaluation tab is intentionally lightweight: it acts as an entry point into group testing, AI routing, and semantic-cache tuning instead of duplicating those full workflows.
+
+---
+
+### 🛠️ Ops
+
+The Ops module focuses on runtime posture and operational diagnostics:
+
+| Tab | What it shows |
+|-----|---------------|
+| Cache | Semantic-cache configured state, runtime-enabled state, TTL, threshold, hit / miss counts, and usage rate |
+| Quota | API key limit posture across RPM, TPM, max-cost, and per-model quota settings |
+| Health | Database reachability, cache readiness, task-runtime sanity, recent error count, and failing groups |
+| System | Build metadata, database type, public API base URL, proxy, retention intervals, AI route mode, and AI route services |
+| Audit | Paginated audit history for management-side write operations |
+
+**Audit scope:**
+
+- Covers selected management write routes such as channel / group / model / setting / API key / alert / user mutations, AI route generation, log clearing, price refresh, import, and self-update
+- Does not record public `/v1/...` relay traffic
 
 ---
 
@@ -434,6 +517,26 @@ Since the program handles numerous statistics, writing to the database on every 
 - Circuit breaker state is loaded from the database on startup
 - Both are saved periodically using the same interval as statistics persistence
 - Both are also saved during graceful shutdown
+
+**Key settings cards in the current UI:**
+
+| Card | Purpose |
+|------|---------|
+| System | Public API base URL, proxy URL, and general runtime settings |
+| Semantic Cache | Enablement, TTL, similarity threshold, max entries, embedding base URL / API key / model / timeout |
+| Page Order | Drag-and-drop ordering for top-level console pages, persisted globally in settings |
+| AI Route | Default compatibility group, timeout, parallelism, and service-pool configuration |
+| Retry / Auto Strategy / Circuit Breaker | Relay retry and candidate-selection tuning |
+| Log / LLM Price / LLM Sync | Retention, price refresh cadence, and upstream model synchronization |
+| Backup | Database export and import |
+| Route Group Danger | Delete all route groups with explicit confirmation |
+
+**Semantic Cache Scope:**
+
+- Applies only to non-streaming OpenAI Chat and OpenAI Responses text requests
+- Namespaces cache entries by `api_key_id + endpoint_family + requested_model`
+- If the embedding client is not fully configured, or embedding lookup / store fails, Octopus bypasses the cache and relays the request normally
+- Runtime state and effectiveness are visible in both `Analytics -> Evaluation` and `Ops -> Cache`
 
 **Dangerous Operation in Settings:**
 

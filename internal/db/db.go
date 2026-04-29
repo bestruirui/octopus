@@ -63,6 +63,7 @@ func InitDB(dbType, dsn string, debug bool) error {
 		&model.AIRouteTask{},
 		&model.LLMInfo{},
 		&model.APIKey{},
+		&model.AuditLog{},
 		&model.Setting{},
 		&model.StatsTotal{},
 		&model.StatsDaily{},

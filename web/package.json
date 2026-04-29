@@ -7,7 +7,8 @@
     "devs": "next dev --experimental-https --experimental-https-key /workplace/code/octopus/build/localhost-key.pem --experimental-https-cert /workplace/code/octopus/build/localhost.pem",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:i18n": "node --test tests/i18n.test.cjs"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",

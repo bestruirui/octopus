@@ -25,6 +25,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { AIRouteProgressDialog } from './AIRouteProgressDialog';
+import {
+    clearStoredAIRouteTask,
+    matchesStoredAIRouteTask,
+    readStoredAIRouteTask,
+    writeStoredAIRouteTask,
+} from './task-storage';
 
 type AIRouteButtonProps = {
     variant?: 'ghost' | 'default';
@@ -33,69 +39,6 @@ type AIRouteButtonProps = {
     groupId?: number;
     onSuccess?: () => void;
 };
-
-type StoredAIRouteTask = {
-    id: string;
-    scope: AIRouteScope;
-    groupId?: number;
-};
-
-const AI_ROUTE_PROGRESS_STORAGE_KEY = 'octopus.ai-route-progress';
-
-function readStoredAIRouteTask(): StoredAIRouteTask | null {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    const raw = window.sessionStorage.getItem(AI_ROUTE_PROGRESS_STORAGE_KEY);
-    if (!raw) {
-        return null;
-    }
-
-    try {
-        const parsed = JSON.parse(raw) as StoredAIRouteTask;
-        if (!parsed?.id || (parsed.scope !== 'group' && parsed.scope !== 'table')) {
-            return null;
-        }
-        return parsed;
-    } catch {
-        return null;
-    }
-}
-
-function writeStoredAIRouteTask(task: StoredAIRouteTask) {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    window.sessionStorage.setItem(AI_ROUTE_PROGRESS_STORAGE_KEY, JSON.stringify(task));
-}
-
-function clearStoredAIRouteTask(id?: string) {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    const current = readStoredAIRouteTask();
-    if (!current) {
-        return;
-    }
-    if (id && current.id !== id) {
-        return;
-    }
-
-    window.sessionStorage.removeItem(AI_ROUTE_PROGRESS_STORAGE_KEY);
-}
-
-function matchesStoredAIRouteTask(task: StoredAIRouteTask | null, scope: AIRouteScope, groupId: number) {
-    if (!task || task.scope !== scope) {
-        return false;
-    }
-    if (scope === 'group') {
-        return task.groupId === groupId && groupId > 0;
-    }
-    return true;
-}
 
 export function AIRouteButton({
     variant = 'ghost',
@@ -124,6 +67,7 @@ export function AIRouteButton({
     });
     const aiRouteProgress = useGenerateAIRouteProgress(currentProgressId);
     const handledProgressRef = useRef<string | null>(null);
+    const restoredProgressRef = useRef<string | null>(currentProgressId);
     const loadingToastRef = useRef<string | number | null>(null);
 
     const actionLabel = isGroupScope ? t('actions.aiRouteGroup') : t('actions.aiRoute');
@@ -132,12 +76,22 @@ export function AIRouteButton({
     const isRunning = Boolean(currentProgressId) && !isGenerateAIRouteTerminal(progress) && !(aiRouteProgress.error && !progress);
 
     useEffect(() => {
+        if (!progress?.id || progress.id !== restoredProgressRef.current || isGenerateAIRouteTerminal(progress)) {
+            return;
+        }
+
+        restoredProgressRef.current = null;
+    }, [progress]);
+
+    useEffect(() => {
         if (!progress?.id || handledProgressRef.current === progress.id || !isGenerateAIRouteTerminal(progress)) {
             return;
         }
 
         handledProgressRef.current = progress.id;
-        clearStoredAIRouteTask(progress.id);
+        if (progress.id === restoredProgressRef.current) {
+            return;
+        }
 
         if (loadingToastRef.current !== null) {
             toast.dismiss(loadingToastRef.current);
@@ -195,6 +149,7 @@ export function AIRouteButton({
 
         if (statusCode === 404) {
             clearStoredAIRouteTask(currentProgressId);
+            restoredProgressRef.current = null;
             queueMicrotask(() => setCurrentProgressId(null));
             if (loadingToastRef.current !== null) {
                 toast.dismiss(loadingToastRef.current);
@@ -239,6 +194,7 @@ export function AIRouteButton({
                 onSuccess: (nextProgress) => {
                     const nextProgressId = nextProgress.id;
                     handledProgressRef.current = null;
+                    restoredProgressRef.current = null;
                     setConfirmOpen(false);
                     setProgressOpen(true);
                     setCurrentProgressId(nextProgressId);

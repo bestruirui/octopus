@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type LLMPrice struct {
 	Input      float64 `json:"input" gorm:"column:input"`
 	Output     float64 `json:"output" gorm:"column:output"`
@@ -17,6 +19,41 @@ type LLMChannel struct {
 	Enabled     bool   `json:"enabled"`
 	ChannelID   int    `json:"channel_id"`
 	ChannelName string `json:"channel_name"`
+}
+
+type ModelMarketChannel struct {
+	ChannelID       int    `json:"channel_id"`
+	ChannelName     string `json:"channel_name"`
+	Enabled         bool   `json:"enabled"`
+	EnabledKeyCount int    `json:"enabled_key_count"`
+}
+
+type ModelMarketItem struct {
+	Name             string               `json:"name"`
+	Input            float64              `json:"input"`
+	Output           float64              `json:"output"`
+	CacheRead        float64              `json:"cache_read"`
+	CacheWrite       float64              `json:"cache_write"`
+	ChannelCount     int                  `json:"channel_count"`
+	EnabledKeyCount  int                  `json:"enabled_key_count"`
+	AverageLatencyMS int64                `json:"average_latency_ms"`
+	SuccessRate      float64              `json:"success_rate"`
+	RequestSuccess   int64                `json:"request_success"`
+	RequestFailed    int64                `json:"request_failed"`
+	Channels         []ModelMarketChannel `json:"channels"`
+}
+
+type ModelMarketSummary struct {
+	ModelCount         int       `json:"model_count"`
+	CoverageCount      int       `json:"coverage_count"`
+	UniqueChannelCount int       `json:"unique_channel_count"`
+	AverageLatencyMS   int64     `json:"average_latency_ms"`
+	LastUpdateTime     time.Time `json:"last_update_time"`
+}
+
+type ModelMarketResponse struct {
+	Summary ModelMarketSummary `json:"summary"`
+	Items   []ModelMarketItem  `json:"items"`
 }
 
 type GeminiModel struct {
@@ -56,10 +93,14 @@ type AnthropicModelList struct {
 }
 
 // TableName explicitly returns "-" for DTO structs to prevent GORM auto-mapping.
-func (LLMChannel) TableName() string       { return "-" }
-func (GeminiModel) TableName() string      { return "-" }
-func (GeminiModelList) TableName() string  { return "-" }
-func (OpenAIModel) TableName() string      { return "-" }
-func (OpenAIModelList) TableName() string  { return "-" }
-func (AnthropicModel) TableName() string   { return "-" }
+func (LLMChannel) TableName() string             { return "-" }
+func (ModelMarketChannel) TableName() string     { return "-" }
+func (ModelMarketItem) TableName() string        { return "-" }
+func (ModelMarketSummary) TableName() string     { return "-" }
+func (ModelMarketResponse) TableName() string    { return "-" }
+func (GeminiModel) TableName() string            { return "-" }
+func (GeminiModelList) TableName() string        { return "-" }
+func (OpenAIModel) TableName() string            { return "-" }
+func (OpenAIModelList) TableName() string        { return "-" }
+func (AnthropicModel) TableName() string         { return "-" }
 func (AnthropicModelList) TableName() string { return "-" }

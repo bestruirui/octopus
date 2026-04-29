@@ -29,6 +29,36 @@ export interface LLMChannel {
     channel_name: string;
 }
 
+export interface ModelMarketChannel {
+    channel_id: number;
+    channel_name: string;
+    enabled: boolean;
+    enabled_key_count: number;
+}
+
+export interface ModelMarketItem extends LLMInfo {
+    channel_count: number;
+    enabled_key_count: number;
+    average_latency_ms: number;
+    success_rate: number;
+    request_success: number;
+    request_failed: number;
+    channels: ModelMarketChannel[];
+}
+
+export interface ModelMarketSummary {
+    model_count: number;
+    coverage_count: number;
+    unique_channel_count: number;
+    average_latency_ms: number;
+    last_update_time: string;
+}
+
+export interface ModelMarketResponse {
+    summary: ModelMarketSummary;
+    items: ModelMarketItem[];
+}
+
 /**
  * 获取 LLM 模型列表 Hook
  * 
@@ -72,6 +102,17 @@ export function useModelChannelList() {
     });
 }
 
+export function useModelMarket() {
+    return useQuery({
+        queryKey: ['models', 'market'],
+        queryFn: async () => {
+            return apiClient.get<ModelMarketResponse>('/api/v1/model/market');
+        },
+        refetchInterval: 30000,
+        refetchOnMount: 'always',
+    });
+}
+
 /**
  * 更新 LLM 模型 Hook
  * 
@@ -96,6 +137,7 @@ export function useUpdateModel() {
         onSuccess: (data) => {
             logger.log('模型更新成功:', data);
             queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
         },
         onError: (error) => {
             logger.error('模型更新失败:', error);
@@ -127,6 +169,7 @@ export function useCreateModel() {
         onSuccess: (data) => {
             logger.log('模型创建成功:', data);
             queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
         },
         onError: (error) => {
             logger.error('模型创建失败:', error);
@@ -152,6 +195,7 @@ export function useDeleteModel() {
         onSuccess: () => {
             logger.log('模型删除成功');
             queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
         },
         onError: (error) => {
             logger.error('模型删除失败:', error);
@@ -177,6 +221,7 @@ export function useUpdateModelPrice() {
         onSuccess: () => {
             logger.log('模型价格更新成功');
             queryClient.invalidateQueries({ queryKey: ['models', 'last-update-time'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
         },
         onError: (error) => {
             logger.error('模型价格更新失败:', error);

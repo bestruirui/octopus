@@ -34,6 +34,7 @@ func Start() error {
 		r.Use(middleware.Logger())
 	}
 	r.Use(middleware.Cors())
+	r.Use(middleware.AuditManagementWrite())
 	if static.StaticFS != nil {
 		r.Use(middleware.StaticEmbed("/", static.StaticFS))
 	} else {

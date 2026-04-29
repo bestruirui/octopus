@@ -17,6 +17,7 @@ import {
   Variant,
 } from 'motion/react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
 import useClickOutside from '@/hooks/useClickOutside';
@@ -114,6 +115,7 @@ function MorphingDialogTrigger({
   style,
   triggerRef: triggerRefProp,
 }: MorphingDialogTriggerProps) {
+  const t = useTranslations('common.dialog');
   const { setIsOpen, isOpen, uniqueId, triggerRef } = useMorphingDialog();
 
   const handleClick = useCallback(() => {
@@ -158,7 +160,7 @@ function MorphingDialogTrigger({
       aria-haspopup='dialog'
       aria-expanded={isOpen}
       aria-controls={`motion-ui-morphing-dialog-content-${uniqueId}`}
-      aria-label={`Open dialog ${uniqueId}`}
+      aria-label={t('open')}
       role='button'
       tabIndex={0}
     >
@@ -443,6 +445,7 @@ function MorphingDialogClose({
   className,
   variants,
 }: MorphingDialogCloseProps) {
+  const t = useTranslations('common.dialog');
   const { setIsOpen, uniqueId } = useMorphingDialog();
 
   const handleClose = useCallback(() => {
@@ -453,7 +456,7 @@ function MorphingDialogClose({
     <motion.button
       onClick={handleClose}
       type='button'
-      aria-label='Close dialog'
+      aria-label={t('close')}
       key={`dialog-close-${uniqueId}`}
       className={cn('absolute top-6 right-6', className)}
       initial='initial'

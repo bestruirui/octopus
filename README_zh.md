@@ -25,9 +25,12 @@
 - 🧾 **API Key 治理** - 支持模型白名单、过期时间、费用上限、RPM / TPM 限额，以及可选的按模型配额
 - 🔐 **角色化管理权限** - 内置 `admin`、`editor`、`viewer` 三种角色，并由服务端强制执行权限控制
 - 🚨 **Webhook 告警** - 支持错误率、费用阈值、额度超限、渠道下线等告警规则，并记录通知历史
-- 💰 **价格同步** - 自动更新模型价格
+- 💎 **模型广场与价格能力** - 模型页已升级为 `Model Market` 视图，同时保留创建 / 编辑 / 删除 / 刷新价格能力，并展示覆盖渠道、可用 Key、延迟和成功率
 - 🔃 **模型同步** - 自动与渠道同步可用模型列表，省心省力
-- 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪和中继日志
+- 📊 **Analytics 与 Evaluation** - 提供概览、供应商 / 模型 / API Key 利用率、路由健康、语义缓存评估，以及分组测试 / AI 路由入口
+- 🛠️ **Ops 与审计** - 提供缓存、配额、健康、系统、审计面板，以及管理面写操作审计链路
+- 🧠 **语义缓存** - 为非流式 OpenAI Chat / OpenAI Responses 文本请求提供基于 embedding 的语义缓存，并暴露运行态和成效指标
+- 🧭 **页面顺序可配置** - 支持在设置页拖拽调整一级导航顺序，并持久化到服务端设置中
 - 💾 **运行时状态持久化** - Auto 策略窗口和熔断器状态会持久化到数据库
 - 🎨 **优雅界面** - 简洁美观的 Web 管理面板
 - 🗄️ **多数据库支持** - 支持 SQLite、MySQL、PostgreSQL
@@ -262,6 +265,8 @@ http://localhost:3000
 
 ## 📸 界面预览
 
+> 说明：下方截图主要展示核心管理界面。当前版本仍沿用同一套 UI 风格与导航体系，其中 `Model` 已升级为 `Model Market`，侧边栏也新增了 `Analytics` 与 `Ops`。
+
 ### 🖥️ 桌面端
 
 <div align="center">
@@ -277,12 +282,12 @@ http://localhost:3000
 <td><img src="web/public/screenshot/desktop-group.png" alt="分组" width="400"></td>
 </tr>
 <tr>
-<td align="center"><b>模型</b></td>
+<td align="center"><b>模型广场</b></td>
 <td align="center"><b>日志</b></td>
 <td align="center"><b>设置</b></td>
 </tr>
 <tr>
-<td><img src="web/public/screenshot/desktop-price.png" alt="模型" width="400"></td>
+<td><img src="web/public/screenshot/desktop-price.png" alt="模型广场" width="400"></td>
 <td><img src="web/public/screenshot/desktop-log.png" alt="日志" width="400"></td>
 <td><img src="web/public/screenshot/desktop-setting.png" alt="设置" width="400"></td>
 </tr>
@@ -297,7 +302,7 @@ http://localhost:3000
 <td align="center"><b>首页</b></td>
 <td align="center"><b>渠道</b></td>
 <td align="center"><b>分组</b></td>
-<td align="center"><b>模型</b></td>
+<td align="center"><b>模型广场</b></td>
 <td align="center"><b>日志</b></td>
 <td align="center"><b>设置</b></td>
 </tr>
@@ -305,7 +310,7 @@ http://localhost:3000
 <td><img src="web/public/screenshot/mobile-home.png" alt="移动端首页" width="140"></td>
 <td><img src="web/public/screenshot/mobile-channel.png" alt="移动端渠道" width="140"></td>
 <td><img src="web/public/screenshot/mobile-group.png" alt="移动端分组" width="140"></td>
-<td><img src="web/public/screenshot/mobile-price.png" alt="移动端模型" width="140"></td>
+<td><img src="web/public/screenshot/mobile-price.png" alt="移动端模型广场" width="140"></td>
 <td><img src="web/public/screenshot/mobile-log.png" alt="移动端日志" width="140"></td>
 <td><img src="web/public/screenshot/mobile-setting.png" alt="移动端设置" width="140"></td>
 </tr>
@@ -314,6 +319,23 @@ http://localhost:3000
 
 
 ## 📖 功能说明
+
+### 🧭 管理台模块
+
+当前内嵌管理台包含以下一级模块：
+
+| 模块 | 作用 |
+|------|------|
+| Home | 版本信息、运行状态和高层摘要 |
+| Channel | 上游渠道、Key、Header、同步和延迟探测 |
+| Group | 模型路由、负载均衡、会话保持、分组测试和 AI 路由 |
+| Model Market | 模型目录、自定义价格、渠道覆盖、可用 Key 数、延迟和成功率摘要 |
+| Analytics | 概览、利用率、路由健康、评估中心 |
+| Log | Relay 请求历史、错误详情、Token 使用和费用记录 |
+| Alert | 告警规则、通知渠道、状态和历史 |
+| Ops | 语义缓存、API Key 配额、系统健康、运行时摘要、审计轨迹 |
+| Setting | 运行时调优、语义缓存、页面顺序、AI 路由服务池、重试、熔断、备份和危险操作 |
+| User | 管理员用户和角色管理 |
 
 ### 📡 渠道管理
 
@@ -350,6 +372,8 @@ http://localhost:3000
 | Multipart 媒体类 | `/v1/images/edits`、`/v1/images/variations`、`/v1/audio/transcriptions` | 透传 multipart 上传 |
 
 当上游支持 `stream=true` 时，JSON 媒体类端点也可以直接透传 SSE 流。
+
+语义缓存当前只会评估非流式的 OpenAI Chat 与 OpenAI Responses 文本请求。Anthropic、embeddings、流式请求以及媒体 / 工具类端点都会直接旁路缓存，继续走正常 relay 链路。
 
 ---
 
@@ -396,24 +420,83 @@ http://localhost:3000
 
 ---
 
-### 💰 模型管理
+### 💎 模型广场与价格
 
-管理系统中的模型目录和价格信息。
+`Model` 路由现在已经从单纯的价格列表升级为模型广场视图。它会在一个页面里同时展示模型价格、渠道覆盖、可用 Key 数、平均延迟和成功 / 失败统计，但原本的价格管理能力仍然保留。
+
+**每张卡片整合的数据：**
+
+- LLM 价格目录中的自定义价格或同步价格
+- 渠道与模型关系中的覆盖渠道数、可用 Key 数
+- 模型统计中的平均延迟、成功次数、失败次数
+
+**顶部摘要指标：**
+
+| 指标 | 含义 |
+|------|------|
+| Models | 当前筛选结果里的模型卡片数 |
+| Coverage | 当前结果集中渠道对模型的覆盖总数 |
+| Unique Channels | 当前结果集中涉及的去重渠道数 |
+| Average Latency | 按请求统计加权后的平均延迟 |
 
 **数据来源：**
 
 - 系统会定期从 [models.dev](https://github.com/sst/models.dev) 同步更新模型价格数据
-- 当创建渠道时，若渠道包含的模型不在 models.dev 中，系统会自动在此页面创建该模型的价格信息,所以此页面显示的是没有从上游获取到价格的模型，用户可以手动设置价格
+- 当创建渠道或同步渠道模型时，如果某个模型还不在本地目录里，Octopus 会自动创建本地价格记录，确保后续仍可手动维护价格
 - 也支持手动创建 models.dev 中已存在的模型，用于自定义价格
 
 **价格优先级：**
 
 | 优先级 | 来源 | 说明 |
 |:------:|------|------|
-| 🥇 高 | 本页面 | 用户在模型管理页面设置的价格 |
+| 🥇 高 | 本页面 | 用户在模型广场页面设置的价格 |
 | 🥈 低 | models.dev | 自动同步的默认价格 |
 
-> 💡 **提示**：如需覆盖某个模型的默认价格，只需在模型管理页面为其设置自定义价格即可。
+> 💡 **提示**：如需覆盖某个模型的默认价格，只需在模型广场页面为其设置自定义价格即可。
+
+**页面仍保留的操作：**
+
+- 创建自定义模型价格
+- 编辑已有模型的输入 / 输出 / 缓存价格
+- 删除自定义模型条目
+- 在页面头部手动刷新上游价格
+- 在设置页 `LLM Price` 卡片里继续维护定时刷新策略
+
+---
+
+### 📈 Analytics
+
+Analytics 是偏只读的分析模块，当前包含 4 个页签：
+
+| 页签 | 展示内容 |
+|------|----------|
+| Overview | 请求量、成功率、Token 总量、总费用、供应商数、API Key 数、模型数、回退率 |
+| Utilization | 按供应商、模型、API Key 的利用率拆分 |
+| Route Health | 每个分组的健康分、启用 / 禁用项数量、近期失败压力 |
+| Evaluation | 分组可用性、AI 路由进度、分组测试进度、语义缓存成效 |
+
+**时间范围：** `1d`、`7d`、`30d`、`90d`、`ytd`、`all`
+
+`Evaluation` 不会复制完整的分组页和设置页，而是作为轻量入口，把分组测试、AI 路由和语义缓存评估串起来。
+
+---
+
+### 🛠️ Ops
+
+Ops 模块面向运行态诊断和运维视角，当前包含：
+
+| 页签 | 展示内容 |
+|------|----------|
+| Cache | 语义缓存的配置开关、运行态是否生效、TTL、阈值、命中 / 未命中、占用率 |
+| Quota | API Key 在 RPM、TPM、费用上限、按模型配额上的整体姿态 |
+| Health | 数据库连通性、缓存就绪状态、任务运行状态、近期错误量、异常分组 |
+| System | 构建信息、数据库类型、Public API Base URL、代理、保留周期、AI 路由模式和服务列表 |
+| Audit | 管理面写操作的分页审计日志 |
+
+**审计范围：**
+
+- 覆盖已纳入白名单的管理面写接口，例如 channel / group / model / setting / API key / alert / user 变更、AI 路由生成、日志清理、价格刷新、导入、自更新等
+- 不记录公共 `/v1/...` relay 流量
 
 ---
 
@@ -435,6 +518,26 @@ http://localhost:3000
 - 熔断器状态会在启动时从数据库恢复
 - 二者都会按统计保存周期定时落库
 - 二者也会在优雅退出时主动保存
+
+**当前设置页的重点卡片：**
+
+| 卡片 | 作用 |
+|------|------|
+| System | Public API Base URL、代理和通用运行参数 |
+| Semantic Cache | 开关、TTL、相似度阈值、最大条目数、embedding Base URL / API Key / 模型 / 超时 |
+| Page Order | 拖拽调整一级导航顺序，并全局持久化到设置中 |
+| AI Route | 单分组兼容默认目标、超时、并发度、服务池配置 |
+| Retry / Auto Strategy / Circuit Breaker | Relay 重试和候选优选调优 |
+| Log / LLM Price / LLM Sync | 日志保留、价格刷新节奏、上游模型同步 |
+| Backup | 数据库导出与导入 |
+| Route Group Danger | 二次确认后删除全部路由分组 |
+
+**语义缓存的真实生效条件：**
+
+- 只作用于非流式 OpenAI Chat / OpenAI Responses 文本请求
+- 缓存命名空间按 `api_key_id + endpoint_family + requested_model` 隔离
+- 即使开关打开，只要 embedding 客户端没有配完整，或查询 / 写入 embedding 失败，也会自动旁路，不阻断正常转发
+- 运行态与成效可同时在 `Analytics -> Evaluation` 和 `Ops -> Cache` 中查看
 
 **设置页危险操作：**
 
