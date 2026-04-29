@@ -108,14 +108,12 @@ func storeSemanticCacheResponse(ctx context.Context, req *transmodel.InternalLLM
 
 	cfg, ok := loadSemanticCacheRuntimeConfig()
 	if !ok {
-		semantic_cache.RecordBypass()
 		return
 	}
 	ensureSemanticCacheInitialized(cfg)
 
 	embedding, err := semantic_cache.NewEmbeddingClient(cfg).CreateEmbedding(ctx, text)
 	if err != nil {
-		semantic_cache.RecordBypass()
 		log.Warnf("semantic cache store bypassed: %v", err)
 		return
 	}
