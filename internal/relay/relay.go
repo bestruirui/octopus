@@ -278,6 +278,21 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 		streamSession:     streamSession,
 	}
 
+	if endpointFamily := semanticCacheEndpointFamily(endpointType, inboundType); endpointFamily != "" {
+		served, err := maybeServeSemanticCacheHit(c, req, endpointFamily)
+		if err != nil {
+			lastErr = err
+			resp.BadGateway(c)
+			return
+		}
+		if served {
+			metrics.Save(true, nil, iter.Attempts())
+			return
+		}
+	} else {
+		semantic_cache.RecordBypass()
+	}
+
 	maxAttemptsPerCandidate := getMaxAttemptsPerCandidate()
 	ratelimitCooldown := getRatelimitCooldown()
 	maxTotalAttempts := getMaxTotalAttempts()
@@ -853,6 +868,7 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 	}
 
 	ra.c.Data(http.StatusOK, "application/json", inResponse)
+	storeSemanticCacheResponse(ctx, ra.internalRequest, inResponse)
 	return nil
 }
 
