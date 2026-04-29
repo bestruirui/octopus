@@ -8,8 +8,9 @@ import (
 
 // CacheEntry holds a cached request/response pair with its embedding.
 type CacheEntry struct {
-	RequestJSON  string
-	ResponseJSON string
+	Namespace    string
+	RequestKey   string
+	ResponseJSON []byte
 	Embedding    []float64
 	CreatedAt    time.Time
 	LastAccessAt time.Time
@@ -29,6 +30,17 @@ type SemanticCache struct {
 
 var globalCache *SemanticCache
 
+type RuntimeConfig struct {
+	Enabled          bool
+	MaxEntries       int
+	Threshold        float64
+	TTL              time.Duration
+	EmbeddingBaseURL string
+	EmbeddingAPIKey  string
+	EmbeddingModel   string
+	EmbeddingTimeout time.Duration
+}
+
 // Init creates or reconfigures the global semantic cache.
 func Init(maxEntries int, threshold float64, ttlSec int) {
 	if maxEntries <= 0 {
@@ -45,25 +57,49 @@ func Init(maxEntries int, threshold float64, ttlSec int) {
 	}
 }
 
+// ApplyRuntimeConfig creates or reconfigures the global semantic cache from runtime settings.
+func ApplyRuntimeConfig(cfg RuntimeConfig) {
+	if !cfg.Enabled || cfg.MaxEntries <= 0 {
+		Reset()
+		return
+	}
+
+	ttl := cfg.TTL
+	globalCache = &SemanticCache{
+		entries:    make([]CacheEntry, 0, cfg.MaxEntries),
+		maxEntries: cfg.MaxEntries,
+		threshold:  cfg.Threshold,
+		ttl:        ttl,
+	}
+}
+
+// Reset clears the cache and runtime configuration.
+func Reset() {
+	globalCache = nil
+}
+
 // Lookup finds the best matching cache entry for the given embedding.
 // Returns the response JSON and true if a match above threshold is found.
-func Lookup(embedding []float64) (responseJSON string, found bool) {
+func Lookup(namespace string, embedding []float64) (responseJSON []byte, found bool) {
 	if globalCache == nil {
-		return "", false
+		return nil, false
 	}
-	globalCache.mu.RLock()
-	defer globalCache.mu.RUnlock()
+	globalCache.mu.Lock()
+	defer globalCache.mu.Unlock()
 
 	globalCache.pruneExpiredLocked()
 
 	if len(globalCache.entries) == 0 {
 		globalCache.misses++
-		return "", false
+		return nil, false
 	}
 
 	bestIdx := -1
 	bestSim := -1.0
 	for i, entry := range globalCache.entries {
+		if entry.Namespace != namespace {
+			continue
+		}
 		sim := cosineSimilarity(embedding, entry.Embedding)
 		if sim > bestSim {
 			bestSim = sim
@@ -75,15 +111,15 @@ func Lookup(embedding []float64) (responseJSON string, found bool) {
 		globalCache.entries[bestIdx].HitCount++
 		globalCache.entries[bestIdx].LastAccessAt = time.Now()
 		globalCache.hits++
-		return globalCache.entries[bestIdx].ResponseJSON, true
+		return append([]byte(nil), globalCache.entries[bestIdx].ResponseJSON...), true
 	}
 
 	globalCache.misses++
-	return "", false
+	return nil, false
 }
 
 // Store adds a new entry to the cache. If the cache is full, the oldest entry is evicted.
-func Store(requestJSON, responseJSON string, embedding []float64) {
+func Store(namespace, requestKey string, responseJSON []byte, embedding []float64) {
 	if globalCache == nil {
 		return
 	}
@@ -91,12 +127,12 @@ func Store(requestJSON, responseJSON string, embedding []float64) {
 	defer globalCache.mu.Unlock()
 
 	entry := CacheEntry{
-		RequestJSON:  requestJSON,
-		ResponseJSON: responseJSON,
+		Namespace:    namespace,
+		RequestKey:   requestKey,
+		ResponseJSON: append([]byte(nil), responseJSON...),
 		Embedding:    cloneEmbedding(embedding),
 		CreatedAt:    time.Now(),
 		LastAccessAt: time.Now(),
-		HitCount:     1,
 	}
 
 	if len(globalCache.entries) >= globalCache.maxEntries {
