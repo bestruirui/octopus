@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -211,6 +212,12 @@ func (s *Setting) Validate() error {
 		default:
 			return fmt.Errorf("alert notify language must be zh-Hans, zh-Hant, or en")
 		}
+	case SettingKeyNavOrder:
+		var navOrder []string
+		if err := json.Unmarshal([]byte(s.Value), &navOrder); err != nil {
+			return fmt.Errorf("nav order must be a valid JSON array of strings")
+		}
+		return nil
 	case SettingKeyAIRouteServices:
 		return ValidateAIRouteServiceConfigs(s.Value)
 	}
