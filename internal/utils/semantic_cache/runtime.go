@@ -48,6 +48,10 @@ func GetRuntimeStats() RuntimeStats {
 	}
 }
 
+func RuntimeEnabled() bool {
+	return Enabled()
+}
+
 func ResetRuntimeStats() {
 	runtimeStats.evaluatedRequests.Store(0)
 	runtimeStats.cacheHitResponses.Store(0)

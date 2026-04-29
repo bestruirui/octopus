@@ -47,6 +47,10 @@ type AnalyticsOverview struct {
 	FallbackRate  float64 `json:"fallback_rate"`
 }
 
+type AnalyticsEvaluationSummary struct {
+	SemanticCache SemanticCacheEvaluationSummary `json:"semantic_cache"`
+}
+
 type SemanticCacheEvaluationSummary struct {
 	Enabled           bool    `json:"enabled"`
 	RuntimeEnabled    bool    `json:"runtime_enabled"`

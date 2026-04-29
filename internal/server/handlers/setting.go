@@ -75,6 +75,12 @@ func setSetting(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
+	if shouldRefreshSemanticCacheRuntime(setting.Key) {
+		if err := op.RefreshSemanticCacheRuntime(); err != nil {
+			resp.InternalError(c)
+			return
+		}
+	}
 	switch setting.Key {
 	case model.SettingKeyStatsSaveInterval:
 		minutes, err := strconv.Atoi(setting.Value)
@@ -101,6 +107,22 @@ func setSetting(c *gin.Context) {
 		task.Update(string(setting.Key), time.Duration(hours)*time.Hour)
 	}
 	resp.Success(c, setting)
+}
+
+func shouldRefreshSemanticCacheRuntime(key model.SettingKey) bool {
+	switch key {
+	case model.SettingKeySemanticCacheEnabled,
+		model.SettingKeySemanticCacheTTL,
+		model.SettingKeySemanticCacheThreshold,
+		model.SettingKeySemanticCacheMaxEntries,
+		model.SettingKeySemanticCacheEmbeddingBaseURL,
+		model.SettingKeySemanticCacheEmbeddingAPIKey,
+		model.SettingKeySemanticCacheEmbeddingModel,
+		model.SettingKeySemanticCacheEmbeddingTimeoutSeconds:
+		return true
+	default:
+		return false
+	}
 }
 
 func exportDB(c *gin.Context) {
@@ -138,6 +160,10 @@ func importDB(c *gin.Context) {
 	}
 
 	if err := op.InitCache(); err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := op.RefreshSemanticCacheRuntime(); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}

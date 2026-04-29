@@ -2,15 +2,21 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lingyuins/octopus/internal/db"
 	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
 )
 
 func TestDecodeDBDumpReaderSupportsWrappedDump(t *testing.T) {
@@ -118,6 +124,60 @@ func TestReadDBDumpRejectsMultipartEnvelopeLargerThanImportLimit(t *testing.T) {
 	err = readDBDump(c, &dump)
 	if !isDBImportTooLarge(err) {
 		t.Fatalf("readDBDump() error = %v, want import-size error", err)
+	}
+}
+
+func TestImportDBRefreshesSemanticCacheRuntime(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name()))
+	if err := db.InitDB("sqlite", dsn, false); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	if err := op.InitCache(); err != nil {
+		t.Fatalf("init cache: %v", err)
+	}
+	t.Cleanup(func() {
+		semantic_cache.Reset()
+		_ = db.Close()
+	})
+
+	semantic_cache.ApplyRuntimeConfig(semantic_cache.RuntimeConfig{
+		Enabled:          true,
+		MaxEntries:       8,
+		Threshold:        0.98,
+		TTL:              time.Hour,
+		EmbeddingBaseURL: "https://stale.example.com",
+		EmbeddingModel:   "text-embedding-3-small",
+	})
+	if !semantic_cache.RuntimeEnabled() {
+		t.Fatal("expected seeded semantic cache runtime to be enabled")
+	}
+
+	dump := model.DBDump{
+		Version: 1,
+		Settings: []model.Setting{
+			{Key: model.SettingKeySemanticCacheEnabled, Value: "false"},
+		},
+	}
+	body, err := json.Marshal(dump)
+	if err != nil {
+		t.Fatalf("marshal dump: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/setting/import", bytes.NewReader(body))
+	c.Request = c.Request.WithContext(context.Background())
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	importDB(c)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+	if semantic_cache.RuntimeEnabled() {
+		t.Fatal("expected importDB to refresh semantic cache runtime and clear stale state")
 	}
 }
 
