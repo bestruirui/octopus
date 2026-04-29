@@ -74,3 +74,25 @@ func TestBuildModelMarket_SortsItemsByName(t *testing.T) {
 		t.Fatalf("unexpected item order: %+v", items)
 	}
 }
+
+func TestBuildModelMarket_UsesEmptyChannelsSliceWhenModelHasNoChannels(t *testing.T) {
+	items, _ := buildModelMarket(
+		[]model.LLMInfo{
+			{Name: "standalone-model"},
+		},
+		nil,
+		nil,
+		nil,
+		time.Time{},
+	)
+
+	if len(items) != 1 {
+		t.Fatalf("len(items) = %d, want 1", len(items))
+	}
+	if items[0].Channels == nil {
+		t.Fatal("Channels = nil, want empty slice")
+	}
+	if len(items[0].Channels) != 0 {
+		t.Fatalf("len(Channels) = %d, want 0", len(items[0].Channels))
+	}
+}

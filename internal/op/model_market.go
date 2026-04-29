@@ -93,6 +93,9 @@ func buildModelMarket(
 	for _, llm := range models {
 		name := strings.ToLower(strings.TrimSpace(llm.Name))
 		modelItemChannels := channelsByModelName[name]
+		if modelItemChannels == nil {
+			modelItemChannels = make([]model.ModelMarketChannel, 0)
+		}
 		slices.SortFunc(modelItemChannels, func(a, b model.ModelMarketChannel) int {
 			return strings.Compare(a.ChannelName, b.ChannelName)
 		})

@@ -59,6 +59,26 @@ export interface ModelMarketResponse {
     items: ModelMarketItem[];
 }
 
+const EMPTY_MODEL_MARKET_SUMMARY: ModelMarketSummary = {
+    model_count: 0,
+    coverage_count: 0,
+    unique_channel_count: 0,
+    average_latency_ms: 0,
+    last_update_time: '',
+};
+
+function normalizeModelMarketResponse(response: Partial<ModelMarketResponse> | null | undefined): ModelMarketResponse {
+    const items = Array.isArray(response?.items) ? response.items : [];
+
+    return {
+        summary: response?.summary ?? EMPTY_MODEL_MARKET_SUMMARY,
+        items: items.map((item) => ({
+            ...item,
+            channels: Array.isArray(item.channels) ? item.channels : [],
+        })),
+    };
+}
+
 /**
  * 获取 LLM 模型列表 Hook
  * 
@@ -106,7 +126,8 @@ export function useModelMarket() {
     return useQuery({
         queryKey: ['models', 'market'],
         queryFn: async () => {
-            return apiClient.get<ModelMarketResponse>('/api/v1/model/market');
+            const response = await apiClient.get<ModelMarketResponse>('/api/v1/model/market');
+            return normalizeModelMarketResponse(response);
         },
         refetchInterval: 30000,
         refetchOnMount: 'always',
