@@ -153,6 +153,9 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 
 	// 所有通道都失败
 	metrics.Save(c.Request.Context(), false, lastErr, iter.Attempts())
+	if err := waitBeforeAllChannelsFailed(c.Request.Context()); err != nil {
+		return
+	}
 	resp.Error(c, http.StatusBadGateway, "all channels failed")
 }
 

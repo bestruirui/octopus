@@ -182,6 +182,10 @@
                 "label": "最大冷却时间（秒）",
                 "placeholder": "请输入最大冷却时间"
             },
+            "allChannelsFailedWait": {
+                "label": "全渠道失败冷却（秒）",
+                "placeholder": "请输入冷却时间"
+            },
             "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间"
         },
         "saved": "已保存",

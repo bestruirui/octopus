@@ -182,6 +182,10 @@
                 "label": "最大冷卻時間（秒）",
                 "placeholder": "請輸入最大冷卻時間"
             },
+            "allChannelsFailedWait": {
+                "label": "全渠道失敗冷卻（秒）",
+                "placeholder": "請輸入冷卻時間"
+            },
             "hint": "當渠道連續失敗達到閾值後觸發熔斷，冷卻時間按指數退避增長，上限為最大冷卻時間"
         },
         "saved": "已儲存",

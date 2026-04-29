@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Zap, Hash, Timer, TimerOff, HelpCircle } from 'lucide-react';
+import { Zap, Hash, Timer, TimerOff, HelpCircle, ClockAlert } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useSettingList, useSetSetting, SettingKey } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
@@ -16,16 +16,19 @@ export function SettingCircuitBreaker() {
     const [threshold, setThreshold] = useState('');
     const [cooldown, setCooldown] = useState('');
     const [maxCooldown, setMaxCooldown] = useState('');
+    const [allChannelsFailedWait, setAllChannelsFailedWait] = useState('');
 
     const initialThreshold = useRef('');
     const initialCooldown = useRef('');
     const initialMaxCooldown = useRef('');
+    const initialAllChannelsFailedWait = useRef('');
 
     useEffect(() => {
         if (settings) {
             const th = settings.find(s => s.key === SettingKey.CircuitBreakerThreshold);
             const cd = settings.find(s => s.key === SettingKey.CircuitBreakerCooldown);
             const mcd = settings.find(s => s.key === SettingKey.CircuitBreakerMaxCooldown);
+            const acfw = settings.find(s => s.key === SettingKey.AllChannelsFailedWait);
             if (th) {
                 queueMicrotask(() => setThreshold(th.value));
                 initialThreshold.current = th.value;
@@ -37,6 +40,10 @@ export function SettingCircuitBreaker() {
             if (mcd) {
                 queueMicrotask(() => setMaxCooldown(mcd.value));
                 initialMaxCooldown.current = mcd.value;
+            }
+            if (acfw) {
+                queueMicrotask(() => setAllChannelsFailedWait(acfw.value));
+                initialAllChannelsFailedWait.current = acfw.value;
             }
         }
     }, [settings]);
@@ -53,6 +60,8 @@ export function SettingCircuitBreaker() {
                     initialCooldown.current = value;
                 } else if (key === SettingKey.CircuitBreakerMaxCooldown) {
                     initialMaxCooldown.current = value;
+                } else if (key === SettingKey.AllChannelsFailedWait) {
+                    initialAllChannelsFailedWait.current = value;
                 }
             }
         });
@@ -119,6 +128,21 @@ export function SettingCircuitBreaker() {
                     onChange={(e) => setMaxCooldown(e.target.value)}
                     onBlur={() => handleSave(SettingKey.CircuitBreakerMaxCooldown, maxCooldown, initialMaxCooldown.current)}
                     placeholder={t('circuitBreaker.maxCooldown.placeholder')}
+                    className="w-48 rounded-xl"
+                />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <ClockAlert className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">{t('circuitBreaker.allChannelsFailedWait.label')}</span>
+                </div>
+                <Input
+                    type="number"
+                    value={allChannelsFailedWait}
+                    onChange={(e) => setAllChannelsFailedWait(e.target.value)}
+                    onBlur={() => handleSave(SettingKey.AllChannelsFailedWait, allChannelsFailedWait, initialAllChannelsFailedWait.current)}
+                    placeholder={t('circuitBreaker.allChannelsFailedWait.placeholder')}
                     className="w-48 rounded-xl"
                 />
             </div>

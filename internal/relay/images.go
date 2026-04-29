@@ -229,6 +229,9 @@ func ImagesHandler(endpoint string, c *gin.Context) {
 
 	// 所有通道都失败
 	metrics.Save(ctx, false, lastErr, iter.Attempts())
+	if err := waitBeforeAllChannelsFailed(ctx); err != nil {
+		return
+	}
 	resp.Error(c, http.StatusBadGateway, "all channels failed")
 }
 
@@ -376,10 +379,10 @@ func buildImagesResponseContentForLog(stream bool, upstreamCT string, usage *ima
 	}
 	// 不记录 b64_json，仅记录 usage
 	type respForLog struct {
-		Stream      bool        `json:"stream"`
-		ContentType string      `json:"content_type,omitempty"`
+		Stream      bool         `json:"stream"`
+		ContentType string       `json:"content_type,omitempty"`
 		Usage       *imagesUsage `json:"usage,omitempty"`
-		Note        string      `json:"note,omitempty"`
+		Note        string       `json:"note,omitempty"`
 	}
 	obj := respForLog{
 		Stream:      stream,
@@ -756,8 +759,8 @@ func proxySSE(ctx context.Context, c *gin.Context, respUp *http.Response, firstT
 	}
 
 	var (
-		firstWrite      = true
-		currentEvent    string
+		firstWrite       = true
+		currentEvent     string
 		completedScanner = newUsageScanner()
 	)
 

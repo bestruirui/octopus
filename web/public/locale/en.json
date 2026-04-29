@@ -182,6 +182,10 @@
                 "label": "Max Cooldown (seconds)",
                 "placeholder": "Enter max cooldown in seconds"
             },
+            "allChannelsFailedWait": {
+                "label": "Cooldown After All Channels Fail (seconds)",
+                "placeholder": "Enter cooldown in seconds"
+            },
             "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
         },
         "saved": "Saved",
