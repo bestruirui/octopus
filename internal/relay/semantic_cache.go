@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	dbmodel "github.com/lingyuins/octopus/internal/model"
 	"github.com/lingyuins/octopus/internal/op"
+	"github.com/lingyuins/octopus/internal/transformer/inbound"
 	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
 	"github.com/lingyuins/octopus/internal/utils/log"
 	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
@@ -20,15 +21,11 @@ const (
 	semanticCacheTextMetadataKey      = "semantic_cache_text"
 )
 
-func semanticCacheEndpointFamily(req *transmodel.InternalLLMRequest) string {
-	if req == nil {
-		return ""
-	}
-
-	switch req.RawAPIFormat {
-	case transmodel.APIFormatOpenAIChatCompletion:
+func semanticCacheEndpointFamily(endpointType string, inboundType inbound.InboundType) string {
+	switch {
+	case endpointType == dbmodel.EndpointTypeChat && inboundType == inbound.InboundTypeOpenAIChat:
 		return "chat"
-	case transmodel.APIFormatOpenAIResponse:
+	case endpointType == dbmodel.EndpointTypeResponses && inboundType == inbound.InboundTypeOpenAIResponse:
 		return "responses"
 	default:
 		return ""
@@ -37,17 +34,21 @@ func semanticCacheEndpointFamily(req *transmodel.InternalLLMRequest) string {
 
 func buildSemanticCacheLookupInput(apiKeyID int, endpointFamily string, req *transmodel.InternalLLMRequest) (string, string, bool) {
 	if req == nil || apiKeyID <= 0 {
+		semantic_cache.RecordBypass()
 		return "", "", false
 	}
 	if strings.TrimSpace(endpointFamily) == "" || strings.TrimSpace(req.Model) == "" {
+		semantic_cache.RecordBypass()
 		return "", "", false
 	}
 	if req.Stream != nil && *req.Stream {
+		semantic_cache.RecordBypass()
 		return "", "", false
 	}
 
 	text, ok := semantic_cache.ExtractNormalizedText(req)
 	if !ok {
+		semantic_cache.RecordBypass()
 		return "", "", false
 	}
 
@@ -66,20 +67,25 @@ func maybeServeSemanticCacheHit(c *gin.Context, req *relayRequest, endpointFamil
 
 	cfg, ok := loadSemanticCacheRuntimeConfig()
 	if !ok {
+		semantic_cache.RecordBypass()
 		return false, nil
 	}
 	ensureSemanticCacheInitialized(cfg)
 
 	embedding, err := semantic_cache.NewEmbeddingClient(cfg).CreateEmbedding(req.operationCtx, text)
 	if err != nil {
+		semantic_cache.RecordBypass()
 		log.Warnf("semantic cache lookup bypassed: %v", err)
 		return false, nil
 	}
 
+	semantic_cache.RecordEvaluated()
 	if payload, found := semantic_cache.Lookup(namespace, embedding); found {
+		semantic_cache.RecordHit()
 		c.Data(http.StatusOK, "application/json", payload)
 		return true, nil
 	}
+	semantic_cache.RecordMiss()
 
 	if req.internalRequest.TransformerMetadata == nil {
 		req.internalRequest.TransformerMetadata = make(map[string]string, 2)
@@ -102,17 +108,20 @@ func storeSemanticCacheResponse(ctx context.Context, req *transmodel.InternalLLM
 
 	cfg, ok := loadSemanticCacheRuntimeConfig()
 	if !ok {
+		semantic_cache.RecordBypass()
 		return
 	}
 	ensureSemanticCacheInitialized(cfg)
 
 	embedding, err := semantic_cache.NewEmbeddingClient(cfg).CreateEmbedding(ctx, text)
 	if err != nil {
+		semantic_cache.RecordBypass()
 		log.Warnf("semantic cache store bypassed: %v", err)
 		return
 	}
 
 	semantic_cache.Store(namespace, text, responseJSON, embedding)
+	semantic_cache.RecordStored()
 }
 
 func semanticCacheStoreMetadata(req *transmodel.InternalLLMRequest) (string, string, bool) {

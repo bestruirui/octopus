@@ -23,6 +23,7 @@ import (
 	"github.com/lingyuins/octopus/internal/transformer/model"
 	"github.com/lingyuins/octopus/internal/transformer/outbound"
 	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
 	"github.com/tmaxmax/go-sse"
 )
 
@@ -254,7 +255,7 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 		streamSession:     streamSession,
 	}
 
-	if endpointFamily := semanticCacheEndpointFamily(internalRequest); endpointFamily != "" {
+	if endpointFamily := semanticCacheEndpointFamily(endpointType, inboundType); endpointFamily != "" {
 		served, err := maybeServeSemanticCacheHit(c, req, endpointFamily)
 		if err != nil {
 			lastErr = err
@@ -265,6 +266,8 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 			metrics.Save(true, nil, iter.Attempts())
 			return
 		}
+	} else {
+		semantic_cache.RecordBypass()
 	}
 
 	maxAttemptsPerCandidate := getMaxAttemptsPerCandidate()
