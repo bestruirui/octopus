@@ -144,87 +144,99 @@ func ImagesHandler(endpoint string, c *gin.Context) {
 			continue
 		}
 		if !channel.Enabled {
-			iter.Skip(channel.ID, 0, channel.Name, "channel disabled")
+			lastErr = fmt.Errorf("channel %s: disabled", channel.Name)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 
 		// channel.Type 限制：仅 OpenAI Chat/Responses
 		if channel.Type != outbound.OutboundTypeOpenAIChat && channel.Type != outbound.OutboundTypeOpenAIResponse {
-			iter.Skip(channel.ID, 0, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
+			lastErr = fmt.Errorf("channel %s: unsupported channel type: %d", channel.Name, channel.Type)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 
-		usedKey := channel.GetChannelKey()
-		if usedKey.ChannelKey == "" {
-			iter.Skip(channel.ID, 0, channel.Name, "no available key")
+		keys := channel.GetChannelKeys()
+		if len(keys) == 0 {
+			lastErr = fmt.Errorf("channel %s: no available key", channel.Name)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 
-		// 熔断检查（熔断 key 使用 actualModel=item.ModelName）
-		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
-			continue
-		}
-
-		log.Infof("images request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t, stream=%t)",
-			requestModel, group.Mode, channel.Name, item.ModelName,
-			iter.Index()+1, iter.Len(), iter.IsSticky(), stream)
-
-		span := iter.StartAttempt(channel.ID, usedKey.ID, channel.Name)
-
-		// 尝试一次转发
-		statusCode, written, usage, upstreamCT, fwdErr := imagesAttempt(ctx, endpoint, c, bc, isMultipart, boundary, jsonPayload, stream, channel, usedKey.ChannelKey, group.FirstTokenTimeOut, metrics, item.ModelName)
-
-		// 更新 channel key 状态
-		usedKey.StatusCode = statusCode
-		usedKey.LastUseTimeStamp = time.Now().Unix()
-
-		if fwdErr == nil {
-			// ====== 成功 ======
-			metrics.ActualModel = item.ModelName
-			if usage != nil {
-				metrics.SetUsageFromImages(item.ModelName, *usage)
+		allCircuitBroken := true
+		for _, usedKey := range keys {
+			// 熔断检查（熔断 key 使用 actualModel=item.ModelName）
+			if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+				continue
 			}
-			metrics.ResponseContent = buildImagesResponseContentForLog(stream, upstreamCT, usage)
+			allCircuitBroken = false
 
-			usedKey.TotalCost += metrics.Stats.InputCost + metrics.Stats.OutputCost
+			log.Infof("images request model %s, mode: %d, forwarding to channel: %s key: %d model: %s (attempt %d/%d, sticky=%t, stream=%t)",
+				requestModel, group.Mode, channel.Name, usedKey.ID, item.ModelName,
+				iter.Index()+1, iter.Len(), iter.IsSticky(), stream)
+
+			span := iter.StartAttempt(channel.ID, usedKey.ID, channel.Name)
+
+			// 尝试一次转发
+			statusCode, written, usage, upstreamCT, fwdErr := imagesAttempt(ctx, endpoint, c, bc, isMultipart, boundary, jsonPayload, stream, channel, usedKey.ChannelKey, group.FirstTokenTimeOut, metrics, item.ModelName)
+
+			// 更新 channel key 状态
+			usedKey.StatusCode = statusCode
+			usedKey.LastUseTimeStamp = time.Now().Unix()
+
+			if fwdErr == nil {
+				// ====== 成功 ======
+				metrics.ActualModel = item.ModelName
+				if usage != nil {
+					metrics.SetUsageFromImages(item.ModelName, *usage)
+				}
+				metrics.ResponseContent = buildImagesResponseContentForLog(stream, upstreamCT, usage)
+
+				usedKey.TotalCost += metrics.Stats.InputCost + metrics.Stats.OutputCost
+				op.ChannelKeyUpdate(usedKey)
+
+				span.End(model.AttemptSuccess, statusCode, "")
+
+				// Channel 维度统计
+				op.StatsChannelUpdate(channel.ID, model.StatsMetrics{
+					WaitTime:       span.Duration().Milliseconds(),
+					RequestSuccess: 1,
+				})
+
+				// 熔断器：记录成功
+				balancer.RecordSuccess(channel.ID, usedKey.ID, item.ModelName)
+				// 会话保持：更新粘性记录
+				balancer.SetSticky(apiKeyID, requestModel, channel.ID, usedKey.ID)
+
+				metrics.Save(ctx, true, nil, iter.Attempts())
+				return
+			}
+
+			// ====== 失败 ======
 			op.ChannelKeyUpdate(usedKey)
-
-			span.End(model.AttemptSuccess, statusCode, "")
+			span.End(model.AttemptFailed, statusCode, fwdErr.Error())
 
 			// Channel 维度统计
 			op.StatsChannelUpdate(channel.ID, model.StatsMetrics{
-				WaitTime:       span.Duration().Milliseconds(),
-				RequestSuccess: 1,
+				WaitTime:      span.Duration().Milliseconds(),
+				RequestFailed: 1,
 			})
 
-			// 熔断器：记录成功
-			balancer.RecordSuccess(channel.ID, usedKey.ID, item.ModelName)
-			// 会话保持：更新粘性记录
-			balancer.SetSticky(apiKeyID, requestModel, channel.ID, usedKey.ID)
+			// 熔断器：记录失败
+			balancer.RecordFailure(channel.ID, usedKey.ID, item.ModelName)
 
-			metrics.Save(ctx, true, nil, iter.Attempts())
-			return
+			if written || c.Writer.Written() {
+				metrics.Save(ctx, false, fwdErr, iter.Attempts())
+				return
+			}
+
+			lastErr = fmt.Errorf("channel %s failed: %v", channel.Name, fwdErr)
 		}
 
-		// ====== 失败 ======
-		op.ChannelKeyUpdate(usedKey)
-		span.End(model.AttemptFailed, statusCode, fwdErr.Error())
-
-		// Channel 维度统计
-		op.StatsChannelUpdate(channel.ID, model.StatsMetrics{
-			WaitTime:      span.Duration().Milliseconds(),
-			RequestFailed: 1,
-		})
-
-		// 熔断器：记录失败
-		balancer.RecordFailure(channel.ID, usedKey.ID, item.ModelName)
-
-		if written || c.Writer.Written() {
-			metrics.Save(ctx, false, fwdErr, iter.Attempts())
-			return
+		if allCircuitBroken {
+			iter.Skip(channel.ID, 0, channel.Name, "all keys circuit-brokered")
+			lastErr = fmt.Errorf("channel %s: all keys circuit-brokered", channel.Name)
 		}
-
-		lastErr = fmt.Errorf("channel %s failed: %v", channel.Name, fwdErr)
 	}
 
 	// 所有通道都失败
