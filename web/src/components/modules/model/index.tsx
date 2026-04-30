@@ -1,13 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useModelList } from '@/api/endpoints/model';
+import { useModelMarket } from '@/api/endpoints/model';
 import { ModelItem } from './Item';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
 
 export function Model() {
-    const { data: models } = useModelList();
+    const { data: market } = useModelMarket();
     const pageKey = 'model' as const;
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
     const layout = useToolbarViewOptionsStore((s) => s.getLayout(pageKey));
@@ -15,7 +15,7 @@ export function Model() {
 
     const visibleModels = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
-        const rankedModels = models ?? [];
+        const rankedModels = market?.items ?? [];
         const byName = !term ? rankedModels : rankedModels.filter((m) => m.name.toLowerCase().includes(term));
         const hasPricing = (model: (typeof byName)[number]) =>
             model.input + model.output + model.cache_read + model.cache_write > 0;
@@ -28,7 +28,7 @@ export function Model() {
         }
 
         return byName;
-    }, [models, searchTerm, filter]);
+    }, [market, searchTerm, filter]);
 
     return (
         <VirtualizedGrid

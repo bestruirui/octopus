@@ -393,6 +393,19 @@ func StatsModelUpdate(stats model.StatsModel) error {
 	return nil
 }
 
+func StatsModelList() []model.StatsModel {
+	stats := statsModelCache.GetAll()
+	if len(stats) == 0 {
+		return nil
+	}
+
+	result := make([]model.StatsModel, 0, len(stats))
+	for _, item := range stats {
+		result = append(result, item)
+	}
+	return result
+}
+
 func StatsModelRecord(channelID int, modelName string, metrics model.StatsMetrics) error {
 	normalizedName := strings.TrimSpace(modelName)
 	if normalizedName == "" {

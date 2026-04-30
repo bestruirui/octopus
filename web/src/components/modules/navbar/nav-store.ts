@@ -1,9 +1,30 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type NavItem = 'home' | 'channel' | 'group' | 'model' | 'log' | 'setting' | 'user' | 'alert';
+export type NavItem =
+    | 'home'
+    | 'channel'
+    | 'group'
+    | 'model'
+    | 'analytics'
+    | 'log'
+    | 'alert'
+    | 'ops'
+    | 'setting'
+    | 'user';
 
-export const DEFAULT_NAV_ORDER: NavItem[] = ['home', 'channel', 'group', 'model', 'log', 'alert', 'setting', 'user'];
+export const DEFAULT_NAV_ORDER: NavItem[] = [
+    'home',
+    'channel',
+    'group',
+    'model',
+    'analytics',
+    'log',
+    'alert',
+    'ops',
+    'setting',
+    'user',
+];
 export const MIN_VISIBLE_NAV_ITEMS = 5;
 export const FIXED_VISIBLE_NAV_ITEMS: NavItem[] = ['setting'];
 
@@ -73,8 +94,10 @@ interface NavState {
     orderedItems: NavItem[];
     visibleItems: NavItem[];
     setActiveItem: (item: NavItem) => void;
+    setNavOrder: (items: NavItem[]) => void;
     setOrderedItems: (items: NavItem[]) => void;
     setItemVisible: (item: NavItem, visible: boolean) => void;
+    resetNavOrder: () => void;
     resetPreferences: () => void;
 }
 
@@ -117,6 +140,9 @@ export const useNavStore = create<NavState>()(
                     };
                 });
             },
+            setNavOrder: (items) => {
+                get().setOrderedItems(items);
+            },
             setItemVisible: (item, visible) => {
                 set((state) => {
                     if (visible === state.visibleItems.includes(item)) {
@@ -146,6 +172,9 @@ export const useNavStore = create<NavState>()(
                             : getDirection(state.activeItem, activeItem, state.orderedItems, visibleItems),
                     };
                 });
+            },
+            resetNavOrder: () => {
+                get().resetPreferences();
             },
             resetPreferences: () => {
                 set((state) => {
