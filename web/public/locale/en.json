@@ -545,6 +545,9 @@
             "autoGroupRegex": "Regex",
             "matchRegex": "Match Regex",
             "matchRegexPlaceholder": "Optional: regex pattern to match request model names",
+            "filterRegex": "Filter Regex",
+            "filterRegexPlaceholder": "Optional: regex pattern to filter request model names",
+            "filterRegexAdd": "Add Filter Rule",
             "remark": "Remark"
         }
     }

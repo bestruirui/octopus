@@ -65,14 +65,16 @@ export type Channel = {
     param_override?: string | null;
     channel_proxy?: string | null;
     match_regex?: string | null;
+    filter_regex?: string[] | null;
     stats: StatsChannel;
 };
 
 // Internal type: backend may return null for slice fields; normalize to [] in select()
-type ChannelServer = Omit<Channel, 'base_urls' | 'custom_header' | 'keys'> & {
+type ChannelServer = Omit<Channel, 'base_urls' | 'custom_header' | 'keys' | 'filter_regex'> & {
     base_urls: BaseUrl[] | null;
     custom_header: CustomHeader[] | null;
     keys: ChannelKey[] | null;
+    filter_regex: string[] | null;
 };
 
 /**
@@ -93,6 +95,7 @@ export type CreateChannelRequest = {
     channel_proxy?: string | null;
     param_override?: string | null;
     match_regex?: string | null;
+    filter_regex?: string[] | null;
 };
 
 /**
@@ -113,6 +116,7 @@ export type UpdateChannelRequest = {
     channel_proxy?: string | null;
     param_override?: string | null;
     match_regex?: string | null;
+    filter_regex?: string[] | null;
     // keys diff
     keys_to_add?: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'remark'>>;
     keys_to_update?: Array<{ id: number; enabled?: boolean; channel_key?: string; remark?: string }>;
@@ -126,6 +130,7 @@ export type FetchModelRequest = {
     proxy?: boolean;
     channel_proxy?: string | null;
     match_regex?: string | null;
+    filter_regex?: string[] | null;
     custom_header?: CustomHeader[];
 };
 
@@ -152,6 +157,7 @@ export function useChannelList() {
                 base_urls: item.base_urls ?? [],
                 custom_header: item.custom_header ?? [],
                 keys: item.keys ?? [],
+                filter_regex: item.filter_regex ?? [],
             }) satisfies Channel,
             formatted: {
                 input_token: formatCount(item.stats.input_token),

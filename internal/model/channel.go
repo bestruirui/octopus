@@ -32,6 +32,7 @@ type Channel struct {
 	ChannelProxy  *string               `json:"channel_proxy"`
 	Stats         *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
 	MatchRegex    *string               `json:"match_regex"`
+	FilterRegex   []string              `json:"filter_regex" gorm:"serializer:json"`
 }
 
 type BaseUrl struct {
@@ -71,6 +72,7 @@ type ChannelUpdateRequest struct {
 	ChannelProxy  *string                `json:"channel_proxy,omitempty"`
 	ParamOverride *string                `json:"param_override,omitempty"`
 	MatchRegex    *string                `json:"match_regex,omitempty"`
+	FilterRegex   *[]string              `json:"filter_regex,omitempty"`
 
 	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
 	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`
@@ -92,10 +94,12 @@ type ChannelKeyUpdateRequest struct {
 
 // ChannelFetchModelRequest is used by /channel/fetch-model (not persisted).
 type ChannelFetchModelRequest struct {
-	Type    outbound.OutboundType `json:"type" binding:"required"`
-	BaseURL string                `json:"base_url" binding:"required"`
-	Key     string                `json:"key" binding:"required"`
-	Proxy   bool                  `json:"proxy"`
+	Type        outbound.OutboundType `json:"type" binding:"required"`
+	BaseURL     string                `json:"base_url" binding:"required"`
+	Key         string                `json:"key" binding:"required"`
+	Proxy       bool                  `json:"proxy"`
+	MatchRegex  *string               `json:"match_regex"`
+	FilterRegex []string              `json:"filter_regex"`
 }
 
 func (c *Channel) GetBaseUrl() string {

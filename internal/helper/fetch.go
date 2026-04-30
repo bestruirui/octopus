@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/bestruirui/octopus/internal/model"
@@ -43,7 +44,16 @@ func FetchModels(ctx context.Context, request model.Channel) ([]string, error) {
 				matchModel = append(matchModel, model)
 			}
 		}
-		return matchModel, nil
+		fetchModel = matchModel
+	}
+	if len(request.FilterRegex) > 0 {
+		filtered := make([]string, 0, len(fetchModel))
+		for _, m := range fetchModel {
+			if !globMatchAny(request.FilterRegex, m) {
+				filtered = append(filtered, m)
+			}
+		}
+		fetchModel = filtered
 	}
 	return fetchModel, nil
 }
@@ -188,4 +198,15 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 		return fetchOpenAIModels(client, ctx, request)
 	}
 	return allModels, nil
+}
+
+func globMatchAny(patterns []string, name string) bool {
+	nameLower := strings.ToLower(name)
+	for _, p := range patterns {
+		matched, _ := path.Match(strings.ToLower(p), nameLower)
+		if matched {
+			return true
+		}
+	}
+	return false
 }

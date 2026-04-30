@@ -40,6 +40,7 @@ export interface ChannelFormData {
     auto_sync: boolean;
     auto_group: AutoGroupType;
     match_regex: string;
+    filter_regex: string[];
 }
 
 export interface ChannelFormProps {
@@ -123,6 +124,9 @@ export function ChannelForm({
                 proxy: formData.proxy,
                 channel_proxy: formData.channel_proxy?.trim() || null,
                 match_regex: formData.match_regex.trim() || null,
+                filter_regex: (formData.filter_regex ?? []).filter(Boolean).length > 0
+                    ? (formData.filter_regex ?? []).filter(Boolean)
+                    : null,
                 custom_header: formData.custom_header?.filter((h) => h.header_key.trim()) || [],
             },
             {
@@ -560,6 +564,55 @@ export function ChannelForm({
                                 placeholder={t('matchRegexPlaceholder')}
                                 className="rounded-xl"
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium text-card-foreground">
+                                    {t('filterRegex')} {(formData.filter_regex ?? []).length > 0 ? `(${(formData.filter_regex ?? []).length})` : ''}
+                                </label>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onFormDataChange({ ...formData, filter_regex: [...(formData.filter_regex ?? []), ''] })}
+                                    className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                                >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    {t('filterRegexAdd')}
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {(formData.filter_regex ?? []).map((pattern, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <Input
+                                            type="text"
+                                            value={pattern}
+                                            onChange={(e) => {
+                                                const next = [...(formData.filter_regex ?? [])];
+                                                next[idx] = e.target.value;
+                                                onFormDataChange({ ...formData, filter_regex: next });
+                                            }}
+                                            placeholder={t('filterRegexPlaceholder')}
+                                            className="rounded-xl flex-1"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                const next = (formData.filter_regex ?? []).filter((_, i) => i !== idx);
+                                                onFormDataChange({ ...formData, filter_regex: next });
+                                            }}
+                                            disabled={(formData.filter_regex ?? []).length <= 1}
+                                            className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-destructive hover:bg-transparent disabled:opacity-40"
+                                            title="Remove"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="space-y-2">

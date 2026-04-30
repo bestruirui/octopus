@@ -545,6 +545,9 @@
             "autoGroupRegex": "正規比對",
             "matchRegex": "匹配正規",
             "matchRegexPlaceholder": "可選：用於匹配請求模型名稱的正規表示式",
+            "filterRegex": "過濾正規",
+            "filterRegexPlaceholder": "可選：用於配置過濾請求模型名稱正規",
+            "filterRegexAdd": "新增過濾規則",
             "remark": "備註"
         }
     }
