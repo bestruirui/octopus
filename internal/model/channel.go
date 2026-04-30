@@ -2,6 +2,7 @@ package model
 
 import (
 	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/bestruirui/octopus/internal/transformer/outbound"
@@ -19,7 +20,7 @@ const (
 type ChannelKeyMode int
 
 const (
-	ChannelKeyModeCost          ChannelKeyMode = 0 // 按总成本最低
+	ChannelKeyModeCost           ChannelKeyMode = 0 // 按总成本最低
 	ChannelKeyModeRoundRobin     ChannelKeyMode = 1 // 轮询
 	ChannelKeyModeWeightedRandom ChannelKeyMode = 2 // 加权随机
 )
@@ -92,7 +93,7 @@ type ChannelUpdateRequest struct {
 type ChannelKeyAddRequest struct {
 	Enabled    bool   `json:"enabled"`
 	ChannelKey string `json:"channel_key" binding:"required"`
-	Weight    int    `json:"weight"`
+	Weight     int    `json:"weight"`
 	Remark     string `json:"remark"`
 }
 
@@ -100,7 +101,7 @@ type ChannelKeyUpdateRequest struct {
 	ID         int     `json:"id" binding:"required"`
 	Enabled    *bool   `json:"enabled,omitempty"`
 	ChannelKey *string `json:"channel_key,omitempty"`
-	Weight    *int    `json:"weight,omitempty"`
+	Weight     *int    `json:"weight,omitempty"`
 	Remark     *string `json:"remark,omitempty"`
 }
 
@@ -135,24 +136,37 @@ func (c *Channel) GetBaseUrl() string {
 	return bestURL
 }
 
-func (c *Channel) GetChannelKey() ChannelKey {
-	if c == nil || len(c.Keys) == 0 {
-		return ChannelKey{}
-	}
-
+// GetChannelKeys 按 KeyMode 策略返回排序后的可用 key 列表。
+// 第一个元素是按策略选中的最优 key，剩余元素按同策略排序作为 fallback。
+// 当调用方希望在一个 channel 内进行 key 级重试时，直接遍历返回值即可。
+func (c *Channel) GetChannelKeys() []ChannelKey {
 	candidates := c.availableKeys()
 	if len(candidates) == 0 {
-		return ChannelKey{}
+		return candidates
 	}
 
 	switch c.KeyMode {
 	case ChannelKeyModeRoundRobin:
-		return c.roundRobinKey(candidates)
+		sort.Slice(candidates, func(i, j int) bool {
+			return candidates[i].LastUseTimeStamp < candidates[j].LastUseTimeStamp
+		})
 	case ChannelKeyModeWeightedRandom:
-		return c.weightedRandomKey(candidates)
+		c.weightedRandomSort(candidates)
 	default: // ChannelKeyModeCost
-		return c.costKey(candidates)
+		sort.Slice(candidates, func(i, j int) bool {
+			return candidates[i].TotalCost < candidates[j].TotalCost
+		})
 	}
+	return candidates
+}
+
+// GetChannelKey 按 KeyMode 策略返回最优 key
+func (c *Channel) GetChannelKey() ChannelKey {
+	keys := c.GetChannelKeys()
+	if len(keys) == 0 {
+		return ChannelKey{}
+	}
+	return keys[0]
 }
 
 const key429CooldownSeconds int64 = 60
@@ -175,30 +189,11 @@ func (c *Channel) availableKeys() []ChannelKey {
 	return result
 }
 
-// costKey 选 TotalCost 最低的 key
-func (c *Channel) costKey(keys []ChannelKey) ChannelKey {
-	best := keys[0]
-	for _, k := range keys {
-		if k.TotalCost < best.TotalCost {
-			best = k
-		}
+// weightedRandomSort 按加权随机分数降序排序
+func (c *Channel) weightedRandomSort(keys []ChannelKey) {
+	if len(keys) <= 1 {
+		return
 	}
-	return best
-}
-
-// roundRobinKey 按 LastUseTimeStamp 升序选最早的（轮询效果）
-func (c *Channel) roundRobinKey(keys []ChannelKey) ChannelKey {
-	best := keys[0]
-	for _, k := range keys {
-		if k.LastUseTimeStamp < best.LastUseTimeStamp {
-			best = k
-		}
-	}
-	return best
-}
-
-// weightedRandomKey 按权重随机选择
-func (c *Channel) weightedRandomKey(keys []ChannelKey) ChannelKey {
 	totalWeight := 0
 	for _, k := range keys {
 		w := k.Weight
@@ -226,12 +221,11 @@ func (c *Channel) weightedRandomKey(keys []ChannelKey) ChannelKey {
 		}
 	}
 
-	// 找分数最高的 key
-	best := scored[0]
-	for _, s := range scored[1:] {
-		if s.score > best.score {
-			best = s
-		}
+	sort.Slice(scored, func(i, j int) bool {
+		return scored[i].score > scored[j].score
+	})
+
+	for i := range keys {
+		keys[i] = scored[i].key
 	}
-	return best.key
 }
