@@ -11,12 +11,19 @@ export function Model() {
     const pageKey = 'model' as const;
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
     const layout = useToolbarViewOptionsStore((s) => s.getLayout(pageKey));
+    const sortOrder = useToolbarViewOptionsStore((s) => s.getSortOrder(pageKey));
     const filter = useToolbarViewOptionsStore((s) => s.modelFilter);
+
+    const sortedModels = useMemo(() => {
+        const items = market?.items ?? [];
+        return [...items].sort((a, b) =>
+            sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+        );
+    }, [market, sortOrder]);
 
     const visibleModels = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
-        const rankedModels = market?.items ?? [];
-        const byName = !term ? rankedModels : rankedModels.filter((m) => m.name.toLowerCase().includes(term));
+        const byName = !term ? sortedModels : sortedModels.filter((m) => m.name.toLowerCase().includes(term));
         const hasPricing = (model: (typeof byName)[number]) =>
             model.input + model.output + model.cache_read + model.cache_write > 0;
 
@@ -28,7 +35,7 @@ export function Model() {
         }
 
         return byName;
-    }, [market, searchTerm, filter]);
+    }, [sortedModels, searchTerm, filter]);
 
     return (
         <VirtualizedGrid

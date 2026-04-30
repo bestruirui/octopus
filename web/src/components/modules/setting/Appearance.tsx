@@ -16,11 +16,13 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
+    DEFAULT_NAV_ORDER,
     isFixedVisibleNavItem,
     MIN_VISIBLE_NAV_ITEMS,
     useNavStore,
     type NavItem,
 } from '@/components/modules/navbar';
+import { serializeNavOrder } from '@/components/modules/navbar/nav-order';
 import { useSettingStore, type Locale } from '@/stores/setting';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
@@ -48,6 +50,7 @@ function reorderList<T>(list: readonly T[], startIndex: number, endIndex: number
 function NavigationPreferences() {
     const t = useTranslations('setting');
     const navT = useTranslations('navbar');
+    const setSetting = useSetSetting();
     const orderedItems = useNavStore((state) => state.orderedItems);
     const visibleItems = useNavStore((state) => state.visibleItems);
     const setOrderedItems = useNavStore((state) => state.setOrderedItems);
@@ -56,14 +59,31 @@ function NavigationPreferences() {
     const visibleItemSet = useMemo(() => new Set(visibleItems), [visibleItems]);
     const visibleCount = visibleItems.length;
 
+    const persistNavOrder = useCallback((items: readonly NavItem[], onSuccess?: () => void) => {
+        setSetting.mutate(
+            {
+                key: SettingKey.NavOrder,
+                value: serializeNavOrder(items),
+            },
+            {
+                onSuccess,
+                onError: () => {
+                    toast.error(t('saveFailed'));
+                },
+            }
+        );
+    }, [setSetting, t]);
+
     const handleDragEnd = useCallback((result: DropResult) => {
         const { destination, source } = result;
         if (!destination || destination.index === source.index) {
             return;
         }
 
-        setOrderedItems(reorderList(orderedItems, source.index, destination.index));
-    }, [orderedItems, setOrderedItems]);
+        const nextOrder = reorderList(orderedItems, source.index, destination.index);
+        setOrderedItems(nextOrder);
+        persistNavOrder(nextOrder);
+    }, [orderedItems, persistNavOrder, setOrderedItems]);
 
     const handleVisibleChange = useCallback((item: NavItem, checked: boolean) => {
         if (!checked && isFixedVisibleNavItem(item)) {
@@ -79,8 +99,10 @@ function NavigationPreferences() {
 
     const handleReset = useCallback(() => {
         resetPreferences();
-        toast.success(t('navOrder.resetSuccess'));
-    }, [resetPreferences, t]);
+        persistNavOrder(DEFAULT_NAV_ORDER, () => {
+            toast.success(t('navOrder.resetSuccess'));
+        });
+    }, [persistNavOrder, resetPreferences, t]);
 
     return (
         <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
