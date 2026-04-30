@@ -1,5 +1,6 @@
 import type { ApiError } from './types';
 import { HttpStatus } from './types';
+import { resolveRuntimeI18nMessage } from '@/lib/i18n-runtime';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '.';
 
@@ -62,13 +63,22 @@ async function handleResponse<T>(response: Response): Promise<T> {
     }
 
     if (!response.ok) {
+        const messageKey = (data && typeof data === 'object' && 'message_key' in data && typeof data.message_key === 'string')
+            ? data.message_key
+            : undefined;
+        const messageArgs = (data && typeof data === 'object' && 'message_args' in data && data.message_args && typeof data.message_args === 'object')
+            ? data.message_args as Record<string, unknown>
+            : undefined;
+        const fallbackMessage = (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string')
+            ? data.message
+            : (typeof data === 'string'
+                ? summarizeNonJSONErrorBody(response.status, data, response.statusText)
+                : response.statusText);
         const error: ApiError = {
             code: response.status,
-            message: (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string')
-                ? data.message
-                : (typeof data === 'string'
-                    ? summarizeNonJSONErrorBody(response.status, data, response.statusText)
-                    : response.statusText),
+            message: resolveRuntimeI18nMessage(messageKey, messageArgs, fallbackMessage) ?? fallbackMessage,
+            message_key: messageKey,
+            message_args: messageArgs,
         };
 
         handleError(error);

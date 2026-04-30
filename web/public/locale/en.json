@@ -76,343 +76,11 @@
         "channel": "Channel",
         "group": "Group",
         "key": "Key",
-        "model": "Model Market",
-        "analytics": "Analytics",
+        "model": "Price",
         "log": "Log",
         "alert": "Alert",
-        "ops": "Ops",
         "user": "User",
-        "setting": "Setting",
-        "ariaLabel": "Main navigation"
-    },
-    "analytics": {
-        "title": "Analytics",
-        "subtitle": "A unified view for Octopus metrics, utilization, and route health. Phase one stays on top of existing stats and relay logs.",
-        "cards": {
-            "overview": {
-                "title": "Overview",
-                "description": "A shared surface for requests, tokens, cost, and coverage metrics."
-            },
-            "utilization": {
-                "title": "Utilization",
-                "description": "Track capacity usage and distribution across channels, models, and keys."
-            },
-            "routeHealth": {
-                "title": "Route Health",
-                "description": "Summarize group availability, failure signals, and routing stability."
-            }
-        },
-        "note": "This phase only establishes the page shell and navigation. Real aggregates are added in the next step.",
-        "range": {
-            "1d": "1D",
-            "7d": "7D",
-            "30d": "30D",
-            "90d": "90D",
-            "ytd": "YTD",
-            "all": "All"
-        },
-        "states": {
-            "loading": "Loading...",
-            "empty": "No data available"
-        },
-        "overview": {
-            "description": "Phase-one overview built from existing daily stats and replay data, focused on readable signals instead of new configuration."
-        },
-        "metrics": {
-            "requestCount": "Requests",
-            "successRate": "Success Rate",
-            "totalTokens": "Total Tokens",
-            "totalCost": "Total Cost",
-            "providerCount": "Providers",
-            "apiKeyCount": "API Keys",
-            "modelCount": "Models",
-            "fallbackRate": "Fallback Rate"
-        },
-        "utilization": {
-            "description": "Break down request usage across providers, models, and API keys for the selected range.",
-            "providers": "Providers",
-            "models": "Models",
-            "apikeys": "API Keys",
-            "enabled": "Enabled",
-            "disabled": "Disabled",
-            "empty": "No utilization data in the selected range"
-        },
-        "routeHealth": {
-            "description": "Combines current group membership state with failures from the last 24 hours, sorted to surface risky groups first.",
-            "endpointType": "Endpoint Type",
-            "healthScore": "Health Score",
-            "failureCount": "Failures in 24h",
-            "enabledItems": "Enabled Route Items",
-            "disabledItems": "Disabled Route Items",
-            "lastFailure": "Last Failure",
-            "lastFailureEmpty": "No recent failure",
-            "empty": "No route groups available for evaluation",
-            "statuses": {
-                "healthy": "Healthy",
-                "warning": "Warning",
-                "degraded": "Degraded",
-                "down": "Down",
-                "empty": "Empty"
-            }
-        },
-        "evaluation": {
-            "title": "Evaluation",
-            "description": "Aggregate existing group testing and AI route analysis entry points, while keeping this release to live runtime summaries only and avoiding benchmark archival.",
-            "actions": {
-                "openGroupTest": "Open Group Checks",
-                "openAIRoute": "Open Route Analysis",
-                "openSemanticCache": "Open Semantic Cache Settings"
-            },
-            "availability": {
-                "title": "Group Availability Checks",
-                "description": "The actual test action still runs from each group card; this page only provides the shared entry point and latest runtime summary.",
-                "hint": "{count} groups are currently available for testing.",
-                "empty": "There are no groups available to test right now."
-            },
-            "aiRoute": {
-                "title": "AI Route Analysis",
-                "description": "Reuse the existing AI Route trigger and progress flow, and surface the latest task state here.",
-                "hint": "Latest task step: {step}",
-                "unavailable": "The latest AI route task is temporarily unavailable.",
-                "empty": "There is no recent AI route task."
-            },
-            "semanticCache": {
-                "title": "Semantic Cache Evaluation",
-                "description": "Review the live semantic cache runtime and hit signals here, while keeping configuration in Settings.",
-                "hint": "Use this entry to inspect runtime status first, then tune embedding and cache settings from the Settings page.",
-                "summaryTitle": "Semantic Cache Effectiveness",
-                "summaryDescription": "This section shows the live runtime counters returned by the evaluation API without duplicating the control surface from Settings.",
-                "unavailable": "Semantic cache summary is temporarily unavailable. The rest of Evaluation stays usable.",
-                "status": {
-                    "disabled": "Disabled",
-                    "runtimeOn": "Runtime On",
-                    "runtimeOff": "Configured but Runtime Off",
-                    "loading": "Loading...",
-                    "unavailable": "Unavailable"
-                },
-                "metrics": {
-                    "hits": "Hits",
-                    "misses": "Misses",
-                    "hitRate": "Hit Rate",
-                    "currentEntries": "Current Entries",
-                    "maxEntries": "Max Entries",
-                    "usageRate": "Capacity Used",
-                    "evaluatedRequests": "Evaluated",
-                    "cacheHitResponses": "Hit Responses",
-                    "cacheMissRequests": "Miss Requests",
-                    "bypassedRequests": "Bypassed",
-                    "storedResponses": "Stored"
-                }
-            },
-            "archive": {
-                "title": "History Archive",
-                "description": "This version intentionally leaves benchmark history unarchived; this is product scope, not a loading failure.",
-                "hint": "If long-term storage is needed later, the data model and write path should be designed separately."
-            },
-            "summary": {
-                "title": "Latest Evaluation Runtime",
-                "description": "Only the latest AI Route and group test tasks from the current session are shown here. No persistent history is stored yet.",
-                "aiRoute": "Latest AI Route Task",
-                "groupTest": "Latest Group Test Task",
-                "status": "Status",
-                "progress": "Progress",
-                "groups": "Groups",
-                "routes": "Routes / Items",
-                "result": "Result",
-                "passed": "Passed",
-                "failed": "Failed",
-                "allPassed": "All Passed",
-                "partialFailed": "Partial Failure",
-                "unavailable": "The latest task progress is temporarily unavailable.",
-                "empty": "There is no runtime task to show right now."
-            },
-            "runtime": {
-                "status": {
-                    "idle": "Idle",
-                    "queued": "Queued",
-                    "running": "Running",
-                    "unavailable": "Unavailable",
-                    "completed": "Completed",
-                    "failed": "Failed",
-                    "timeout": "Timed Out"
-                },
-                "step": {
-                    "idle": "No Step",
-                    "queued": "Waiting",
-                    "collecting_models": "Collecting Models",
-                    "building_batches": "Building Batches",
-                    "analyzing_batches": "Analyzing Batches",
-                    "parsing_response": "Parsing Response",
-                    "validating_routes": "Validating Routes",
-                    "writing_groups": "Writing Groups",
-                    "finalizing": "Finalizing",
-                    "completed": "Completed",
-                    "failed": "Failed",
-                    "timeout": "Timed Out"
-                }
-            }
-        }
-    },
-    "ops": {
-        "title": "Ops",
-        "subtitle": "An operational view for cache, quota, health, and system summaries with the same density as the existing admin UI.",
-        "tabs": {
-            "cache": "Cache",
-            "quota": "Quota",
-            "health": "Health",
-            "system": "System",
-            "audit": "Audit"
-        },
-        "actions": {
-            "openSettings": "Open Settings",
-            "manageKeys": "Manage in Settings"
-        },
-        "states": {
-            "loading": "Loading...",
-            "empty": "No data available"
-        },
-        "cache": {
-            "description": "Review semantic-cache configuration, runtime hit signals, and capacity usage in one place.",
-            "metrics": {
-                "hitRate": "Hit Rate",
-                "currentEntries": "Current Entries",
-                "ttlSeconds": "TTL",
-                "threshold": "Similarity Threshold"
-            },
-            "status": {
-                "configuredOn": "Configured On",
-                "configuredOff": "Configured Off",
-                "runtimeOn": "Runtime Active",
-                "runtimeOff": "Runtime Missing",
-                "runtimeHint": "The semantic cache is initialized and the metrics reflect the live runtime state.",
-                "runtimeMissing": "The cache is disabled or the runtime was not initialized. Check semantic-cache settings."
-            },
-            "detail": {
-                "hits": "Hits",
-                "misses": "Misses",
-                "maxEntries": "Max Entries",
-                "usageRate": "Capacity Used"
-            }
-        },
-        "quota": {
-            "description": "Aggregate API key caps, current spend, and anomaly signals without duplicating the full edit surface.",
-            "metrics": {
-                "availableKeys": "Available Keys",
-                "limitedKeys": "Limited Keys",
-                "exhaustedKeys": "Exhausted Keys",
-                "totalMaxCost": "Total Cost Cap"
-            },
-            "fields": {
-                "requestCount": "Requests",
-                "totalCost": "Total Cost",
-                "maxCost": "Cost Cap",
-                "rpm": "RPM",
-                "tpm": "TPM",
-                "supportedModels": "Supported Models",
-                "perModelQuota": "Per-model Quota"
-            },
-            "statuses": {
-                "open": "Open",
-                "limited": "Limited",
-                "exhausted": "Exhausted",
-                "expired": "Expired",
-                "disabled": "Disabled"
-            },
-            "empty": "No API key quota summary is available."
-        },
-        "health": {
-            "description": "Track database, cache, task configuration, and risky route groups in a single operational summary.",
-            "statuses": {
-                "ok": "OK",
-                "issue": "Check"
-            },
-            "groupStatuses": {
-                "healthy": "Healthy",
-                "warning": "Warning",
-                "degraded": "Degraded",
-                "down": "Down",
-                "empty": "Empty"
-            },
-            "cards": {
-                "database": "Database",
-                "cache": "Cache Runtime",
-                "taskRuntime": "Task Config",
-                "recentErrors": "Errors in 24h",
-                "healthyGroups": "Healthy Groups",
-                "warningGroups": "Warning + Degraded",
-                "downGroups": "Down Groups",
-                "emptyGroups": "Empty Groups"
-            },
-            "detail": {
-                "failingGroups": "Groups Requiring Attention",
-                "endpointType": "Endpoint Type",
-                "healthScore": "Health Score",
-                "failureCount": "Failures in 24h",
-                "noIssues": "No high-priority risky groups at the moment."
-            }
-        },
-        "system": {
-            "description": "Summarize version, key settings, and AI-route service-pool state in a read-only operations view.",
-            "metrics": {
-                "channels": "Channels",
-                "groups": "Groups",
-                "apiKeys": "API Keys",
-                "aiRouteServices": "AI Route Services"
-            },
-            "sections": {
-                "runtime": "Runtime Summary",
-                "operations": "Operational Settings",
-                "services": "AI Route Service Pool"
-            },
-            "fields": {
-                "version": "Version",
-                "commit": "Commit",
-                "buildTime": "Build Time",
-                "databaseType": "Database Type",
-                "publicApiBaseUrl": "Public API Base URL",
-                "proxyUrl": "Proxy URL",
-                "relayLogRetention": "Relay Log Retention",
-                "statsSaveInterval": "Stats Flush Interval",
-                "syncLlmInterval": "Model Sync Interval",
-                "modelInfoInterval": "Price Refresh Interval",
-                "importExport": "Import / Export",
-                "aiRouteGroup": "AI Route Target Group",
-                "aiRouteTimeout": "AI Route Timeout",
-                "aiRouteParallelism": "AI Route Parallelism",
-                "aiRouteMode": "AI Route Mode",
-                "legacyMode": "Legacy Single Service",
-                "servicePoolMode": "Service Pool Mode",
-                "enabled": "Enabled",
-                "disabled": "Disabled",
-                "notConfigured": "No AI-route service is configured right now."
-            }
-        },
-        "audit": {
-            "description": "Track the management write operations that actually change system state, so it is clear who changed what and when.",
-            "writeScope": "Management writes only",
-            "empty": "No audit records yet.",
-            "list": {
-                "noMore": "No more audit records"
-            },
-            "fields": {
-                "action": "Action",
-                "target": "Target",
-                "path": "Path",
-                "createdAt": "Time",
-                "username": "User",
-                "userId": "User ID",
-                "method": "Method",
-                "statusCode": "Status Code"
-            },
-            "detail": {
-                "entryTitle": "Audit Record #{id}",
-                "notFound": "This audit record was not found.",
-                "summary": "Summary",
-                "emptyTarget": "No target extracted",
-                "context": "Request Context",
-                "rawRecord": "Raw Record"
-            }
-        }
+        "setting": "Setting"
     },
     "user": {
         "title": "User Management",
@@ -554,16 +222,34 @@
     },
     "common": {
         "copy": {
-            "button": "Copy",
             "success": "Copied",
             "failed": "Copy failed",
             "noContent": "Nothing to copy"
-        },
-        "dialog": {
-            "open": "Open dialog",
-            "close": "Close dialog"
-        },
-        "routeNotFound": "Route not found: {route}"
+        }
+    },
+    "errors": {
+        "invalidRequestParameters": "Invalid request parameters",
+        "invalidJsonFormat": "Invalid JSON format",
+        "invalidParameter": "Invalid parameter",
+        "inputValidationFailed": "Input validation failed",
+        "resourceAlreadyExists": "Resource already exists",
+        "resourceNotFound": "Resource not found",
+        "internalServer": "An unexpected error occurred",
+        "database": "Database operation failed",
+        "authenticationFailed": "Authentication failed",
+        "tooManyRequests": "Too many requests",
+        "permissionDenied": "Permission denied",
+        "channelNotFound": "Channel not found",
+        "groupNotFound": "Group not found",
+        "groupTestProgressNotFound": "Group test progress not found",
+        "aiRouteProgressNotFound": "AI route progress not found",
+        "missingProgressId": "Missing progress id",
+        "channelNameAlreadyExists": "Channel name already exists",
+        "groupNameAlreadyExists": "Group name already exists",
+        "groupDuplicateChannelModelItems": "Group contains duplicate channel/model items",
+        "databaseSchemaOutdated": "Database schema is outdated",
+        "databaseSchemaOutdatedRestart": "Database schema is outdated; restart the service to apply the latest migrations",
+        "upstreamServiceUnavailable": "Upstream service unavailable"
     },
     "home": {
         "activity": {
@@ -642,6 +328,18 @@
             "zh_hant": "Chinese (Traditional)",
             "en": "English"
         },
+        "navOrder": {
+            "title": "Page Order & Visibility",
+            "description": "Drag to reorder navigation pages and hide non-critical pages. The Settings page always stays visible.",
+            "reset": "Reset Default",
+            "resetSuccess": "Page order has been reset",
+            "visible": "Visible",
+            "hidden": "Hidden",
+            "fixed": "Pinned",
+            "minimumVisibleHint": "Keep at least {count} pages visible. The Settings page cannot be hidden.",
+            "minimumVisibleError": "At least {count} pages must remain visible",
+            "toggleAriaLabel": "Toggle page visibility: {page}"
+        },
         "proxyUrl": {
             "label": "Proxy URL",
             "placeholder": "Enter proxy URL"
@@ -658,8 +356,7 @@
         "corsAllowOrigins": {
             "label": "CORS Allowed Origins",
             "hint": "Empty = deny all, * = allow all",
-            "example": "Only allow specific domains: https://example.com,https://example2.com",
-            "removeAriaLabel": "Remove {origin}"
+            "example": "Only allow specific domains: https://example.com,https://example2.com"
         },
         "circuitBreaker": {
             "title": "Circuit Breaker",
@@ -754,55 +451,6 @@
       "invalid": "AI service pool JSON must be an array"
     }
   },
-  "semanticCache": {
-    "title": "Semantic Cache",
-    "description": "Configure the semantic cache runtime and its dedicated embedding service without leaving the current card layout.",
-    "enabled": {
-      "label": "Enable Semantic Cache"
-    },
-    "ttl": {
-      "label": "Cache TTL (seconds)",
-      "placeholder": "Enter TTL in seconds",
-      "hint": "Cached entries expire after this duration."
-    },
-    "threshold": {
-      "label": "Similarity Threshold (0-100)",
-      "placeholder": "Enter similarity threshold",
-      "hint": "Higher values require a closer semantic match before a cached response is reused."
-    },
-    "maxEntries": {
-      "label": "Max Entries",
-      "placeholder": "Enter the maximum number of cached entries",
-      "hint": "When the limit is reached, older cached entries are evicted first."
-    },
-    "embedding": {
-      "title": "Embedding Service",
-      "description": "These settings are used only for semantic-cache embedding requests and are not shared with AI Route."
-    },
-    "baseUrl": {
-      "label": "Embedding Base URL",
-      "placeholder": "Enter an OpenAI-compatible embedding base URL"
-    },
-    "apiKey": {
-      "label": "Embedding API Key",
-      "placeholder": "Enter the embedding API key"
-    },
-    "model": {
-      "label": "Embedding Model",
-      "placeholder": "Enter the embedding model name"
-    },
-    "timeoutSeconds": {
-      "label": "Embedding Timeout (seconds)",
-      "placeholder": "Enter the embedding request timeout",
-      "hint": "Applies only to semantic-cache embedding requests."
-    }
-  },
-  "pageOrder": {
-    "title": "Page Order",
-    "description": "Drag the top-level pages into the order you want. Changes are saved globally as soon as the drop completes.",
-    "reset": "Restore Default Order",
-    "hint": "This setting controls only the stored page order. The actual navbar integration is handled separately."
-  },
   "saved": "Saved",
         "saveFailed": "Save failed",
         "backup": {
@@ -848,21 +496,8 @@
                 "name": "Name",
                 "maxCost": "Max Cost",
                 "maxCostPlaceholder": "Enter amount",
-                "rateLimitRpm": {
-                    "label": "Rate Limit (RPM)",
-                    "placeholder": "Requests per minute, 0 = unlimited"
-                },
-                "rateLimitTpm": {
-                    "label": "Rate Limit (TPM)",
-                    "placeholder": "Tokens per minute, 0 = unlimited"
-                },
-                "perModelQuota": {
-                    "label": "Per-Model Quota (JSON)",
-                    "placeholder": "{\"gpt-4o\":{\"rpm\":5,\"tpm\":50000}}"
-                },
                 "unlimited": "Unlimited",
                 "expireAt": "Expire Date",
-                "expireTimePlaceholder": "HH:mm",
                 "selectDate": "Select date",
                 "neverExpire": "Never Expire",
                 "supportedModels": "Supported Models",
@@ -882,11 +517,6 @@
                 "outputCost": "Output Cost",
                 "requestSuccess": "Request Success",
                 "requestFailed": "Request Failed"
-            },
-            "actions": {
-                "viewStats": "View stats",
-                "edit": "Edit",
-                "close": "Close"
             },
             "toast": {
                 "createSuccess": "API key created",
@@ -999,21 +629,6 @@
         }
     },
     "group": {
-        "endpointType": {
-            "label": "Endpoint Type",
-            "all": "All",
-            "chat": "Chat",
-            "deepseek": "DeepSeek",
-            "embeddings": "Embeddings",
-            "rerank": "Rerank",
-            "moderations": "Moderations",
-            "imageGeneration": "Image Generation",
-            "audioSpeech": "Speech Synthesis",
-            "audioTranscription": "Audio Transcription",
-            "videoGeneration": "Video Generation",
-            "musicGeneration": "Music Generation",
-            "search": "Search"
-        },
         "toast": {
             "created": "Created successfully",
             "createFailed": "Create failed",
@@ -1083,6 +698,7 @@
       "batchChannels": "Channels in Batch",
       "batchService": "Service",
       "batchAttempt": "Attempt",
+      "channelFallbackName": "Channel {id}",
       "channelList": "Channel Progress",
       "channelSections": {
         "running": "Active",
@@ -1141,6 +757,39 @@
         "pendingChannels": "Pending Channels",
         "failedChannels": "Failed Channels",
         "modelsProgress": "Model Progress"
+      },
+      "runtime": {
+        "taskCreated": "AI route task created and waiting to start.",
+        "taskCompleted": "AI route generation completed.",
+        "taskTimeout": "AI route task timed out. Please try again later.",
+        "collectedModels": "Collected {channels} channels and {models} models.",
+        "plannedSingleBatch": "Batch planning completed. Ready to start AI analysis.",
+        "plannedBatches": "Batch planning completed with {batches} batches.",
+        "waitingBatchResult": "Waiting for AI result for batch {index}/{total} ({endpoint}, {channels} channels / {models} models).",
+        "parallelAnalyzing": "Analyzing {active} batches in parallel. Latest started batch {index}/{total} ({endpoint}, {channels} channels / {models} models).",
+        "batchRetrying": "Batch {index}/{total} failed. Switching to another service and retrying.",
+        "batchRetryingWithReason": "Batch {index}/{total} failed. Switching to another service and retrying: {reason}",
+        "batchParsing": "AI returned results for batch {index}/{total}. Parsing and validating.",
+        "batchCompletedWithActive": "Batch {index}/{total} completed. {active} active batches remain.",
+        "batchCompletedWaitingNext": "Batch {index}/{total} completed. Waiting to start the next batch.",
+        "allBatchesCompleted": "All batches completed. Preparing to validate routes.",
+        "batchFailedIndexed": "Batch {index}/{total} failed.",
+        "batchFailedIndexedWithReason": "Batch {index}/{total} failed: {reason}",
+        "validatingRoutes": "Validating {routes} candidate routes returned by AI.",
+        "validatingRoutesGeneric": "Validating candidate routes returned by AI.",
+        "writingCurrentGroup": "Writing the current group.",
+        "writingNamedGroup": "Writing group \"{group}\".",
+        "writingRoute": "Writing route {index}/{total}.",
+        "writingNamedRoute": "Writing route \"{route}\" ({index}/{total}).",
+        "finalizing": "Finalizing.",
+        "finalizingCustom": "{message}",
+        "channelAnalyzingEndpoint": "Analyzing {endpoint} models.",
+        "channelAnalyzing": "Analyzing.",
+        "channelCompleted": "Completed.",
+        "channelFailedWithReason": "Channel failed: {reason}",
+        "partialFailure": "AI routing partially failed, but preserved {success_groups} successfully written groups: {cause}",
+        "channelFailed": "Current channel processing failed.",
+        "batchFailed": "Current batch failed."
       }
     }
   },
@@ -1152,6 +801,7 @@
         "card": {
             "empty": "No rules",
             "modelCount": "{count, plural, one {# model} other {# models}}",
+            "endpointType": "API Type: {value}",
             "testProgressTitle": "Test progress",
             "testProgressCount": "Completed {completed}/{total}",
             "testPending": "Pending",
@@ -1175,17 +825,34 @@
         },
         "form": {
             "name": "Group Name",
+            "searchAriaLabel": "Search models",
+            "endpointType": {
+                "label": "API Type",
+                "options": {
+                    "all": "All",
+                    "chat": "Conversation",
+                    "deepseek": "DeepSeek",
+                    "embeddings": "Embeddings",
+                    "rerank": "Rerank",
+                    "moderations": "Moderations",
+                    "imageGeneration": "Image generation",
+                    "audioSpeech": "Text-to-speech",
+                    "audioTranscription": "Speech-to-text",
+                    "videoGeneration": "Video generation",
+                    "musicGeneration": "Music generation",
+                    "search": "Search"
+                }
+            },
             "matchRegex": "Match Regex",
             "matchRegexPlaceholder": "Leave empty to use default fuzzy match by group name",
             "matchRegexInvalid": "Invalid regex",
-            "searchAriaLabel": "Search models",
             "firstTokenTimeOut": "First Token Timeout",
             "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
             "sessionKeepTime": "Session Keep Time",
             "sessionKeepTimeHint": "Unit: seconds, keeps using the same channel within a session, 0 = disabled",
             "condition": {
                 "label": "Condition (JSON)",
-                "hint": "JSON array of rules. Leave empty to always match.",
+                "hint": "JSON array of rules. Empty means always match.",
                 "example": "Example: [{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]",
                 "placeholder": "[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]"
             },
@@ -1222,8 +889,6 @@
         }
     },
     "model": {
-        "loading": "Loading model market...",
-        "empty": "No matching models found",
         "create": {
             "title": "Create Model",
             "name": "Model Name",
@@ -1233,20 +898,6 @@
             "cacheWrite": "Cache Write",
             "submit": "Create",
             "submitting": "Creating..."
-        },
-        "summary": {
-            "title": "Model Market",
-            "description": "View model pricing, channel coverage, available keys, and runtime performance in one place while keeping the existing pricing workflow.",
-            "modelCount": "Models",
-            "coverage": "Channel Coverage",
-            "uniqueChannels": "Unique Channels",
-            "averageLatency": "Average Latency",
-            "lastUpdate": "Price Updated",
-            "neverUpdated": "Never updated",
-            "refresh": "Refresh Prices",
-            "refreshing": "Refreshing...",
-            "refreshSuccess": "Prices refreshed",
-            "refreshFailed": "Failed to refresh prices"
         },
         "toast": {
             "updated": "Model price updated",
@@ -1258,25 +909,7 @@
             "inputCache": "Input/Cache",
             "outputCache": "Output/Cache",
             "edit": "Edit",
-            "delete": "Delete",
-            "requests": "Requests",
-            "channels": "Channels",
-            "keys": "Keys",
-            "latency": "Latency",
-            "successRate": "Success Rate",
-            "expand": "Expand details",
-            "collapse": "Collapse details"
-        },
-        "detail": {
-            "pricing": "Pricing",
-            "runtime": "Runtime Stats",
-            "channels": "Channels",
-            "requestSuccess": "Successful Requests",
-            "requestFailed": "Failed Requests",
-            "noChannels": "No channels cover this model yet",
-            "enabled": "Enabled",
-            "disabled": "Disabled",
-            "keyCount": "Keys"
+            "delete": "Delete"
         },
         "overlay": {
             "cancel": "Cancel",
@@ -1416,37 +1049,21 @@
             "modelSelected": "Selected Models",
             "modelNoSelected": "No models selected",
             "modelClearAll": "Clear All",
+            "remove": "Remove",
             "template": {
                 "label": "Built-in Templates",
                 "hint": "One click to prefill common provider settings",
-                "options": {
-                    "openai": {
-                        "description": "OpenAI Chat official API"
-                    },
-                    "openaiResponses": {
-                        "description": "OpenAI Responses API"
-                    },
-                    "anthropic": {
-                        "description": "Claude official API"
-                    },
-                    "gemini": {
-                        "description": "Google Gemini official API"
-                    },
-                    "deepseek": {
-                        "description": "DeepSeek OpenAI-compatible API"
-                    },
-                    "openrouter": {
-                        "description": "OpenRouter aggregation API"
-                    },
-                    "siliconflow": {
-                        "description": "SiliconFlow OpenAI-compatible API"
-                    },
-                    "volcengine": {
-                        "description": "Volcengine Ark API"
-                    }
+                "descriptions": {
+                    "openai": "Official OpenAI Chat endpoint.",
+                    "openaiResponses": "OpenAI Responses API endpoint.",
+                    "anthropic": "Official Claude endpoint.",
+                    "gemini": "Official Google Gemini endpoint.",
+                    "deepseek": "DeepSeek OpenAI-compatible endpoint.",
+                    "openrouter": "OpenRouter aggregated endpoint.",
+                    "siliconflow": "SiliconFlow OpenAI-compatible endpoint.",
+                    "volcengine": "Volcengine Ark endpoint."
                 }
             },
-            "remove": "Remove",
             "test": {
                 "button": "Test",
                 "success": "Channel test passed",

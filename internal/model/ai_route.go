@@ -80,16 +80,18 @@ type GenerateAIRouteProgressSummary struct {
 }
 
 type GenerateAIRouteCurrentBatch struct {
-	Index        int      `json:"index"`
-	Total        int      `json:"total"`
-	EndpointType string   `json:"endpoint_type,omitempty"`
-	ModelCount   int      `json:"model_count"`
-	ChannelIDs   []int    `json:"channel_ids,omitempty"`
-	ChannelNames []string `json:"channel_names,omitempty"`
-	ServiceName  string   `json:"service_name,omitempty"`
-	Attempt      int      `json:"attempt,omitempty"`
-	Status       string   `json:"status,omitempty"`
-	Message      string   `json:"message,omitempty"`
+	Index        int            `json:"index"`
+	Total        int            `json:"total"`
+	EndpointType string         `json:"endpoint_type,omitempty"`
+	ModelCount   int            `json:"model_count"`
+	ChannelIDs   []int          `json:"channel_ids,omitempty"`
+	ChannelNames []string       `json:"channel_names,omitempty"`
+	ServiceName  string         `json:"service_name,omitempty"`
+	Attempt      int            `json:"attempt,omitempty"`
+	Status       string         `json:"status,omitempty"`
+	Message      string         `json:"message,omitempty"`
+	MessageKey   string         `json:"message_key,omitempty"`
+	MessageArgs  map[string]any `json:"message_args,omitempty"`
 }
 
 type GenerateAIRouteRunningBatch struct {
@@ -103,6 +105,8 @@ type GenerateAIRouteRunningBatch struct {
 	Attempt      int                `json:"attempt,omitempty"`
 	Status       AIRouteBatchStatus `json:"status,omitempty"`
 	Message      string             `json:"message,omitempty"`
+	MessageKey   string             `json:"message_key,omitempty"`
+	MessageArgs  map[string]any     `json:"message_args,omitempty"`
 }
 
 type GenerateAIRouteChannelProgress struct {
@@ -113,6 +117,8 @@ type GenerateAIRouteChannelProgress struct {
 	TotalModels     int                  `json:"total_models"`
 	ProcessedModels int                  `json:"processed_models"`
 	Message         string               `json:"message,omitempty"`
+	MessageKey      string               `json:"message_key,omitempty"`
+	MessageArgs     map[string]any       `json:"message_args,omitempty"`
 }
 
 type GenerateAIRouteProgress struct {
@@ -127,7 +133,11 @@ type GenerateAIRouteProgress struct {
 	Done             bool                             `json:"done"`
 	ResultReady      bool                             `json:"result_ready"`
 	Message          string                           `json:"message,omitempty"`
+	MessageKey       string                           `json:"message_key,omitempty"`
+	MessageArgs      map[string]any                   `json:"message_args,omitempty"`
 	ErrorReason      string                           `json:"error_reason,omitempty"`
+	ErrorReasonKey   string                           `json:"error_reason_key,omitempty"`
+	ErrorReasonArgs  map[string]any                   `json:"error_reason_args,omitempty"`
 	StartedAt        *time.Time                       `json:"started_at,omitempty"`
 	UpdatedAt        *time.Time                       `json:"updated_at,omitempty"`
 	HeartbeatAt      *time.Time                       `json:"heartbeat_at,omitempty"`

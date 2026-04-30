@@ -76,343 +76,11 @@
         "channel": "供應源",
         "group": "分組",
         "key": "金鑰",
-        "model": "模型廣場",
-        "analytics": "分析中心",
+        "model": "價格",
         "log": "日誌",
         "alert": "告警",
-        "ops": "運維中心",
         "user": "用戶",
-        "setting": "設定",
-        "ariaLabel": "主導航"
-    },
-    "analytics": {
-        "title": "分析中心",
-        "subtitle": "聚合 Octopus 目前的統計、利用率與路由健康視角，一期先復用現有統計與日誌能力完成可用分析頁。",
-        "cards": {
-            "overview": {
-                "title": "概述",
-                "description": "統一承載請求量、Token、成本與覆蓋範圍等總覽指標。"
-            },
-            "utilization": {
-                "title": "利用率",
-                "description": "依供應源、模型與金鑰維度查看容量消耗與分佈趨勢。"
-            },
-            "routeHealth": {
-                "title": "路由健康",
-                "description": "彙總分組可用性、失敗訊號與路由穩定度。"
-            }
-        },
-        "note": "目前階段先完成頁面殼層與導航接入，真實聚合資料會在下一步接入。",
-        "range": {
-            "1d": "1天",
-            "7d": "7天",
-            "30d": "30天",
-            "90d": "90天",
-            "ytd": "年初至今",
-            "all": "全部"
-        },
-        "states": {
-            "loading": "載入中...",
-            "empty": "暫無可展示資料"
-        },
-        "overview": {
-            "description": "用現有日統計與請求回放結果聚合出一期總覽，優先提供可讀指標而不是額外設定項。"
-        },
-        "metrics": {
-            "requestCount": "請求次數",
-            "successRate": "成功率",
-            "totalTokens": "總 Token",
-            "totalCost": "總成本",
-            "providerCount": "供應源數",
-            "apiKeyCount": "API 金鑰數",
-            "modelCount": "模型數",
-            "fallbackRate": "回退率"
-        },
-        "utilization": {
-            "description": "依供應源、模型與 API 金鑰查看目前範圍內的請求消耗分佈。",
-            "providers": "供應源",
-            "models": "模型",
-            "apikeys": "API 金鑰",
-            "enabled": "啟用",
-            "disabled": "停用",
-            "empty": "目前範圍內暫無利用率資料"
-        },
-        "routeHealth": {
-            "description": "結合目前分組成員狀態與近 24 小時失敗日誌，優先把問題分組排在前面。",
-            "endpointType": "API 分類",
-            "healthScore": "健康分",
-            "failureCount": "近 24 小時失敗",
-            "enabledItems": "已啟用路由項",
-            "disabledItems": "停用路由項",
-            "lastFailure": "最近失敗",
-            "lastFailureEmpty": "暫無近期失敗",
-            "empty": "暫無可評估的路由分組",
-            "statuses": {
-                "healthy": "健康",
-                "warning": "波動",
-                "degraded": "降級",
-                "down": "不可用",
-                "empty": "空分組"
-            }
-        },
-        "evaluation": {
-            "title": "評估",
-            "description": "聚合現有分組檢測與 AI 路由分析入口，當前版本只展示運行態摘要，不新增 benchmark 歷史歸檔。",
-            "actions": {
-                "openGroupTest": "前往分組檢測",
-                "openAIRoute": "前往路由分析",
-                "openSemanticCache": "前往語意快取設定"
-            },
-            "availability": {
-                "title": "分組可用性檢測",
-                "description": "檢測動作仍在分組卡片內觸發，這裡只提供統一入口和最近狀態摘要。",
-                "hint": "當前共有 {count} 個分組可進入檢測流程。",
-                "empty": "當前沒有可檢測分組"
-            },
-            "aiRoute": {
-                "title": "AI 路由分析",
-                "description": "複用現有 AI Route 入口和進度能力，在這裡聚合最近任務狀態。",
-                "hint": "最近任務當前階段：{step}",
-                "unavailable": "最近一次 AI 路由任務狀態暫時不可用。",
-                "empty": "當前沒有 AI 路由任務"
-            },
-            "semanticCache": {
-                "title": "語意快取評估",
-                "description": "這裡集中查看語意快取執行態與命中訊號，具體設定仍保留在設定頁。",
-                "hint": "先確認執行狀態，再前往設定頁調整 embedding 服務與快取參數。",
-                "summaryTitle": "語意快取成效",
-                "summaryDescription": "這裡只展示 evaluation 介面回傳的即時執行計數，不複製設定頁控制項。",
-                "unavailable": "語意快取摘要暫時不可用，但 Evaluation 其他部分仍可正常使用。",
-                "status": {
-                    "disabled": "未啟用",
-                    "runtimeOn": "執行中",
-                    "runtimeOff": "已設定但未執行",
-                    "loading": "載入中...",
-                    "unavailable": "暫不可用"
-                },
-                "metrics": {
-                    "hits": "命中次數",
-                    "misses": "未命中次數",
-                    "hitRate": "命中率",
-                    "currentEntries": "目前條目數",
-                    "maxEntries": "最大條目數",
-                    "usageRate": "容量占用",
-                    "evaluatedRequests": "參與評估請求",
-                    "cacheHitResponses": "命中回應",
-                    "cacheMissRequests": "未命中請求",
-                    "bypassedRequests": "旁路請求",
-                    "storedResponses": "已寫入回應"
-                }
-            },
-            "archive": {
-                "title": "歷史歸檔",
-                "description": "當前版本暫無 benchmark 歷史歸檔，這是有意留白，不是載入失敗。",
-                "hint": "如果後續確認需要長期歸檔，再單獨設計資料模型和寫入流程。"
-            },
-            "summary": {
-                "title": "最近評測狀態",
-                "description": "這裡只展示當前會話最近一次 AI Route 與分組檢測任務，不做持久化歷史。",
-                "aiRoute": "最近 AI 路由任務",
-                "groupTest": "最近分組檢測任務",
-                "status": "當前狀態",
-                "progress": "任務進度",
-                "groups": "分組數量",
-                "routes": "路由 / 路由項",
-                "result": "檢測結果",
-                "passed": "通過數量",
-                "failed": "失敗數量",
-                "allPassed": "全部通過",
-                "partialFailed": "存在失敗",
-                "unavailable": "最近任務進度暫時不可用。",
-                "empty": "當前沒有可展示的運行態任務"
-            },
-            "runtime": {
-                "status": {
-                    "idle": "空閒",
-                    "queued": "排隊中",
-                    "running": "運行中",
-                    "unavailable": "暫不可用",
-                    "completed": "已完成",
-                    "failed": "失敗",
-                    "timeout": "超時"
-                },
-                "step": {
-                    "idle": "暫無階段",
-                    "queued": "等待開始",
-                    "collecting_models": "收集模型",
-                    "building_batches": "建立批次",
-                    "analyzing_batches": "分析批次",
-                    "parsing_response": "解析回應",
-                    "validating_routes": "校驗路由",
-                    "writing_groups": "寫入分組",
-                    "finalizing": "整理結果",
-                    "completed": "已完成",
-                    "failed": "失敗",
-                    "timeout": "超時"
-                }
-            }
-        }
-    },
-    "ops": {
-        "title": "運維中心",
-        "subtitle": "聚合快取、配額、健康與系統摘要，維持與現有設定頁一致的運維視圖密度。",
-        "tabs": {
-            "cache": "快取",
-            "quota": "配額",
-            "health": "健康",
-            "system": "系統",
-            "audit": "審計"
-        },
-        "actions": {
-            "openSettings": "前往設定",
-            "manageKeys": "前往設定管理"
-        },
-        "states": {
-            "loading": "載入中...",
-            "empty": "暫無可展示資料"
-        },
-        "cache": {
-            "description": "集中查看語意快取設定、執行態命中情況與容量占用。",
-            "metrics": {
-                "hitRate": "命中率",
-                "currentEntries": "目前條目",
-                "ttlSeconds": "TTL",
-                "threshold": "相似度閾值"
-            },
-            "status": {
-                "configuredOn": "已啟用設定",
-                "configuredOff": "設定關閉",
-                "runtimeOn": "執行中",
-                "runtimeOff": "未執行",
-                "runtimeHint": "目前語意快取已初始化，命中率與容量資料反映即時執行態。",
-                "runtimeMissing": "目前設定已關閉或執行態未初始化，可在設定頁檢查語意快取開關。"
-            },
-            "detail": {
-                "hits": "命中次數",
-                "misses": "未命中次數",
-                "maxEntries": "最大條目數",
-                "usageRate": "容量占用"
-            }
-        },
-        "quota": {
-            "description": "聚合 API 金鑰的限額設定、目前消耗與異常訊號，不重複展示完整編輯表單。",
-            "metrics": {
-                "availableKeys": "可用金鑰",
-                "limitedKeys": "有限額金鑰",
-                "exhaustedKeys": "已耗盡金鑰",
-                "totalMaxCost": "總成本上限"
-            },
-            "fields": {
-                "requestCount": "請求次數",
-                "totalCost": "累計成本",
-                "maxCost": "成本上限",
-                "rpm": "RPM",
-                "tpm": "TPM",
-                "supportedModels": "支援模型數",
-                "perModelQuota": "按模型配額"
-            },
-            "statuses": {
-                "open": "無限制",
-                "limited": "有限額",
-                "exhausted": "已耗盡",
-                "expired": "已過期",
-                "disabled": "已停用"
-            },
-            "empty": "目前沒有可展示的 API 金鑰配額摘要。"
-        },
-        "health": {
-            "description": "統一查看資料庫、快取、任務設定與分組風險訊號，優先暴露需要人工關注的問題。",
-            "statuses": {
-                "ok": "正常",
-                "issue": "需檢查"
-            },
-            "groupStatuses": {
-                "healthy": "健康",
-                "warning": "波動",
-                "degraded": "降級",
-                "down": "不可用",
-                "empty": "空分組"
-            },
-            "cards": {
-                "database": "資料庫",
-                "cache": "快取執行態",
-                "taskRuntime": "任務設定",
-                "recentErrors": "近 24 小時錯誤",
-                "healthyGroups": "健康分組",
-                "warningGroups": "波動與降級分組",
-                "downGroups": "不可用分組",
-                "emptyGroups": "空分組"
-            },
-            "detail": {
-                "failingGroups": "需關注的路由分組",
-                "endpointType": "API 分類",
-                "healthScore": "健康分",
-                "failureCount": "近 24 小時失敗",
-                "noIssues": "目前沒有高優先級風險分組。"
-            }
-        },
-        "system": {
-            "description": "彙總目前版本、關鍵設定與 AI 路由服務池資訊，維持為唯讀運維視角。",
-            "metrics": {
-                "channels": "渠道數",
-                "groups": "分組數",
-                "apiKeys": "API Key 數",
-                "aiRouteServices": "AI 路由服務"
-            },
-            "sections": {
-                "runtime": "執行時摘要",
-                "operations": "運維設定",
-                "services": "AI 路由服務池"
-            },
-            "fields": {
-                "version": "版本",
-                "commit": "提交",
-                "buildTime": "建置時間",
-                "databaseType": "資料庫類型",
-                "publicApiBaseUrl": "公開 API 位址",
-                "proxyUrl": "代理位址",
-                "relayLogRetention": "日誌保留",
-                "statsSaveInterval": "統計落盤週期",
-                "syncLlmInterval": "模型同步週期",
-                "modelInfoInterval": "價格刷新週期",
-                "importExport": "匯入 / 匯出",
-                "aiRouteGroup": "AI 路由目標分組",
-                "aiRouteTimeout": "AI 路由逾時",
-                "aiRouteParallelism": "AI 路由並行數",
-                "aiRouteMode": "AI 路由模式",
-                "legacyMode": "舊版單服務",
-                "servicePoolMode": "服務池模式",
-                "enabled": "啟用",
-                "disabled": "關閉",
-                "notConfigured": "目前沒有已設定的 AI 路由服務。"
-            }
-        },
-        "audit": {
-            "description": "記錄管理面真正會修改狀態的寫操作，方便追蹤是誰在什麼時間改了什麼。",
-            "writeScope": "僅記錄管理寫操作",
-            "empty": "目前還沒有審計記錄。",
-            "list": {
-                "noMore": "沒有更多審計記錄了"
-            },
-            "fields": {
-                "action": "操作",
-                "target": "目標",
-                "path": "路徑",
-                "createdAt": "時間",
-                "username": "使用者",
-                "userId": "使用者 ID",
-                "method": "方法",
-                "statusCode": "狀態碼"
-            },
-            "detail": {
-                "entryTitle": "審計記錄 #{id}",
-                "notFound": "找不到這筆審計記錄。",
-                "summary": "記錄摘要",
-                "emptyTarget": "未擷取目標",
-                "context": "請求內容",
-                "rawRecord": "原始記錄"
-            }
-        }
+        "setting": "設定"
     },
     "user": {
         "title": "用戶管理",
@@ -554,16 +222,34 @@
     },
     "common": {
         "copy": {
-            "button": "複製",
             "success": "複製成功",
             "failed": "複製失敗",
             "noContent": "無可複製內容"
-        },
-        "dialog": {
-            "open": "打開視窗",
-            "close": "關閉視窗"
-        },
-        "routeNotFound": "找不到路由：{route}"
+        }
+    },
+    "errors": {
+        "invalidRequestParameters": "請求參數無效",
+        "invalidJsonFormat": "JSON 格式無效",
+        "invalidParameter": "參數無效",
+        "inputValidationFailed": "輸入校驗失敗",
+        "resourceAlreadyExists": "資源已存在",
+        "resourceNotFound": "資源不存在",
+        "internalServer": "發生了未預期的錯誤",
+        "database": "資料庫操作失敗",
+        "authenticationFailed": "認證失敗",
+        "tooManyRequests": "請求過多",
+        "permissionDenied": "權限不足",
+        "channelNotFound": "供應源不存在",
+        "groupNotFound": "分組不存在",
+        "groupTestProgressNotFound": "分組檢測進度不存在",
+        "aiRouteProgressNotFound": "AI 路由進度不存在",
+        "missingProgressId": "缺少進度 ID",
+        "channelNameAlreadyExists": "供應源名稱已存在",
+        "groupNameAlreadyExists": "分組名稱已存在",
+        "groupDuplicateChannelModelItems": "分組內存在重複的供應源/模型項",
+        "databaseSchemaOutdated": "資料庫結構已過期",
+        "databaseSchemaOutdatedRestart": "資料庫結構已過期，請重啟服務以套用最新遷移",
+        "upstreamServiceUnavailable": "上游服務不可用"
     },
     "home": {
         "activity": {
@@ -642,6 +328,18 @@
             "zh_hant": "繁體中文",
             "en": "English"
         },
+        "navOrder": {
+            "title": "頁面順序與顯示",
+            "description": "拖拽調整導覽頁面順序，可隱藏非關鍵頁面；設定頁面固定顯示。",
+            "reset": "恢復預設",
+            "resetSuccess": "頁面順序已恢復預設",
+            "visible": "顯示中",
+            "hidden": "已隱藏",
+            "fixed": "固定保留",
+            "minimumVisibleHint": "最少保留 {count} 個頁面；設定頁面不可隱藏。",
+            "minimumVisibleError": "最少需要保留 {count} 個頁面",
+            "toggleAriaLabel": "切換頁面顯示狀態：{page}"
+        },
         "proxyUrl": {
             "label": "代理位址",
             "placeholder": "請輸入代理位址"
@@ -658,8 +356,7 @@
         "corsAllowOrigins": {
             "label": "CORS 跨網域白名單",
             "hint": "為空禁止跨網域，* 允許所有",
-            "example": "只允許指定域名: https://example.com,https://example2.com",
-            "removeAriaLabel": "移除 {origin}"
+            "example": "只允許指定域名: https://example.com,https://example2.com"
         },
         "circuitBreaker": {
             "title": "熔斷器配置",
@@ -754,55 +451,6 @@
       "invalid": "AI 服務池 JSON 必須是陣列"
     }
   },
-  "semanticCache": {
-    "title": "Semantic Cache",
-    "description": "在維持目前卡片布局的前提下，設定語意快取運行參數與獨立 embedding 服務。",
-    "enabled": {
-      "label": "啟用語意快取"
-    },
-    "ttl": {
-      "label": "快取 TTL（秒）",
-      "placeholder": "請輸入 TTL 秒數",
-      "hint": "快取條目會在該時長後過期。"
-    },
-    "threshold": {
-      "label": "相似度閾值（0-100）",
-      "placeholder": "請輸入相似度閾值",
-      "hint": "值越高，命中快取前要求的語意相似度越接近。"
-    },
-    "maxEntries": {
-      "label": "最大條目數",
-      "placeholder": "請輸入最大快取條目數",
-      "hint": "達到上限後會優先淘汰較早的快取條目。"
-    },
-    "embedding": {
-      "title": "Embedding 服務",
-      "description": "以下設定僅用於語意快取的 embedding 請求，不與 AI Route 共用。"
-    },
-    "baseUrl": {
-      "label": "Embedding Base URL",
-      "placeholder": "請輸入 OpenAI 相容 embedding Base URL"
-    },
-    "apiKey": {
-      "label": "Embedding API Key",
-      "placeholder": "請輸入 embedding API Key"
-    },
-    "model": {
-      "label": "Embedding 模型",
-      "placeholder": "請輸入 embedding 模型名稱"
-    },
-    "timeoutSeconds": {
-      "label": "Embedding 超時（秒）",
-      "placeholder": "請輸入 embedding 請求超時時間",
-      "hint": "僅作用於語意快取的 embedding 請求。"
-    }
-  },
-  "pageOrder": {
-    "title": "Page Order",
-    "description": "拖曳調整頂級頁面順序，放開後會立即儲存為全域設定。",
-    "reset": "恢復預設順序",
-    "hint": "這裡僅保存頁面順序設定，不改目前 navbar 的實際接入邏輯。"
-  },
   "saved": "已儲存",
         "saveFailed": "儲存失敗",
         "backup": {
@@ -848,21 +496,8 @@
                 "name": "名稱",
                 "maxCost": "最大金額",
                 "maxCostPlaceholder": "請輸入金額",
-                "rateLimitRpm": {
-                    "label": "速率限制（RPM）",
-                    "placeholder": "每分鐘請求數，0 表示無限制"
-                },
-                "rateLimitTpm": {
-                    "label": "速率限制（TPM）",
-                    "placeholder": "每分鐘 Token 數，0 表示無限制"
-                },
-                "perModelQuota": {
-                    "label": "按模型配額（JSON）",
-                    "placeholder": "{\"gpt-4o\":{\"rpm\":5,\"tpm\":50000}}"
-                },
                 "unlimited": "無限制",
                 "expireAt": "過期日期",
-                "expireTimePlaceholder": "HH:mm",
                 "selectDate": "選擇日期",
                 "neverExpire": "永不過期",
                 "supportedModels": "支援的模型",
@@ -882,11 +517,6 @@
                 "outputCost": "輸出費用",
                 "requestSuccess": "成功請求",
                 "requestFailed": "失敗請求"
-            },
-            "actions": {
-                "viewStats": "查看統計",
-                "edit": "編輯",
-                "close": "關閉"
             },
             "toast": {
                 "createSuccess": "API 金鑰建立成功",
@@ -999,21 +629,6 @@
         }
     },
     "group": {
-        "endpointType": {
-            "label": "API 分類",
-            "all": "全部",
-            "chat": "對話",
-            "deepseek": "DeepSeek",
-            "embeddings": "向量嵌入",
-            "rerank": "重排序",
-            "moderations": "內容審查",
-            "imageGeneration": "圖像生成",
-            "audioSpeech": "語音合成",
-            "audioTranscription": "語音轉寫",
-            "videoGeneration": "影片生成",
-            "musicGeneration": "音樂生成",
-            "search": "搜尋"
-        },
         "toast": {
             "created": "建立成功",
             "createFailed": "建立失敗",
@@ -1083,6 +698,7 @@
       "batchChannels": "涉及供應源數",
       "batchService": "分析服務",
       "batchAttempt": "嘗試次數",
+      "channelFallbackName": "供應源 {id}",
       "channelList": "供應源處理進度",
       "channelSections": {
         "running": "目前活躍",
@@ -1141,6 +757,39 @@
         "pendingChannels": "待處理供應源",
         "failedChannels": "失敗供應源",
         "modelsProgress": "模型處理進度"
+      },
+      "runtime": {
+        "taskCreated": "AI 路由任務已建立，等待開始。",
+        "taskCompleted": "AI 路由生成完成。",
+        "taskTimeout": "AI 路由任務超時，請稍後再試。",
+        "collectedModels": "已收集 {channels} 個供應源，共 {models} 個模型。",
+        "plannedSingleBatch": "已完成批次規劃，準備開始 AI 分析。",
+        "plannedBatches": "已完成批次規劃，共拆分為 {batches} 批。",
+        "waitingBatchResult": "正在等待第 {index}/{total} 批 AI 返回結果（{endpoint}，涉及 {channels} 個供應源 / {models} 個模型）。",
+        "parallelAnalyzing": "正在並發分析 {active} 個批次，最近啟動第 {index}/{total} 批（{endpoint}，涉及 {channels} 個供應源 / {models} 個模型）。",
+        "batchRetrying": "第 {index}/{total} 批分析失敗，正在切換其他服務重試。",
+        "batchRetryingWithReason": "第 {index}/{total} 批分析失敗，正在切換其他服務重試：{reason}",
+        "batchParsing": "AI 已返回第 {index}/{total} 批結果，正在解析與校驗。",
+        "batchCompletedWithActive": "第 {index}/{total} 批已完成，目前還有 {active} 個活躍批次。",
+        "batchCompletedWaitingNext": "第 {index}/{total} 批已完成，等待啟動下一批。",
+        "allBatchesCompleted": "全部批次分析完成，準備校驗路由結果。",
+        "batchFailedIndexed": "第 {index}/{total} 批失敗。",
+        "batchFailedIndexedWithReason": "第 {index}/{total} 批失敗：{reason}",
+        "validatingRoutes": "正在校驗 AI 返回的 {routes} 條候選路由。",
+        "validatingRoutesGeneric": "正在校驗 AI 返回的候選路由。",
+        "writingCurrentGroup": "正在寫入當前分組。",
+        "writingNamedGroup": "正在寫入分組 \"{group}\"。",
+        "writingRoute": "正在寫入第 {index}/{total} 條路由。",
+        "writingNamedRoute": "正在寫入路由 \"{route}\"（{index}/{total}）。",
+        "finalizing": "正在收尾。",
+        "finalizingCustom": "{message}",
+        "channelAnalyzingEndpoint": "正在分析 {endpoint} 模型。",
+        "channelAnalyzing": "正在分析。",
+        "channelCompleted": "已完成。",
+        "channelFailedWithReason": "供應源處理失敗：{reason}",
+        "partialFailure": "AI 路由部分失敗，但已保留成功寫入的 {success_groups} 個分組：{cause}",
+        "channelFailed": "當前供應源處理失敗。",
+        "batchFailed": "當前批次失敗。"
       }
     }
   },
@@ -1152,6 +801,7 @@
         "card": {
             "empty": "暫無規則",
             "modelCount": "{count} 個模型",
+            "endpointType": "API 分類：{value}",
             "testProgressTitle": "檢測進度",
             "testProgressCount": "已完成 {completed}/{total}",
             "testPending": "待檢測",
@@ -1175,18 +825,35 @@
         },
         "form": {
             "name": "分組名稱",
+            "searchAriaLabel": "搜尋模型",
+            "endpointType": {
+                "label": "API 分類",
+                "options": {
+                    "all": "全部",
+                    "chat": "對話",
+                    "deepseek": "DeepSeek",
+                    "embeddings": "Embeddings",
+                    "rerank": "Rerank",
+                    "moderations": "Moderations",
+                    "imageGeneration": "圖像生成",
+                    "audioSpeech": "語音合成",
+                    "audioTranscription": "語音轉寫",
+                    "videoGeneration": "影片生成",
+                    "musicGeneration": "音樂生成",
+                    "search": "搜尋"
+                }
+            },
             "matchRegex": "匹配正規",
             "matchRegexPlaceholder": "留空則預設按分組名稱模糊比對",
             "matchRegexInvalid": "正規無效",
-            "searchAriaLabel": "搜尋模型",
             "firstTokenTimeOut": "首字逾時",
             "firstTokenTimeOutHint": "單位秒，僅串流響應起效，0 表示不限制",
             "sessionKeepTime": "會話保持",
             "sessionKeepTimeHint": "單位秒，會話期間保持使用同一供應源，0 表示停用",
             "condition": {
-                "label": "條件匹配（JSON）",
-                "hint": "JSON 規則陣列。留空表示始終匹配。",
-                "example": "示例：[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]",
+                "label": "Condition (JSON)",
+                "hint": "規則 JSON 陣列，留空表示永遠匹配。",
+                "example": "範例：[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]",
                 "placeholder": "[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]"
             },
             "items": "已選模型",
@@ -1222,8 +889,6 @@
         }
     },
     "model": {
-        "loading": "載入模型廣場中...",
-        "empty": "目前沒有符合條件的模型",
         "create": {
             "title": "建立模型",
             "name": "模型名稱",
@@ -1233,20 +898,6 @@
             "cacheWrite": "快取寫入",
             "submit": "建立",
             "submitting": "建立中..."
-        },
-        "summary": {
-            "title": "模型廣場",
-            "description": "集中檢視模型價格、覆蓋渠道、可用 key 與執行表現，並保留原有價格維護能力。",
-            "modelCount": "模型數",
-            "coverage": "覆蓋渠道數",
-            "uniqueChannels": "唯一渠道數",
-            "averageLatency": "平均延遲",
-            "lastUpdate": "價格更新時間",
-            "neverUpdated": "尚未更新",
-            "refresh": "重新整理價格",
-            "refreshing": "重新整理中...",
-            "refreshSuccess": "價格重新整理成功",
-            "refreshFailed": "價格重新整理失敗"
         },
         "toast": {
             "updated": "模型價格已更新",
@@ -1258,25 +909,7 @@
             "inputCache": "輸入/快取",
             "outputCache": "輸出/快取",
             "edit": "編輯",
-            "delete": "刪除",
-            "requests": "請求數",
-            "channels": "渠道",
-            "keys": "Key 數",
-            "latency": "延遲",
-            "successRate": "成功率",
-            "expand": "展開詳情",
-            "collapse": "收起詳情"
-        },
-        "detail": {
-            "pricing": "價格資訊",
-            "runtime": "執行統計",
-            "channels": "渠道明細",
-            "requestSuccess": "成功請求",
-            "requestFailed": "失敗請求",
-            "noChannels": "目前沒有覆蓋渠道",
-            "enabled": "已啟用",
-            "disabled": "已停用",
-            "keyCount": "Key"
+            "delete": "刪除"
         },
         "overlay": {
             "cancel": "取消",
@@ -1416,37 +1049,21 @@
             "modelSelected": "已選模型",
             "modelNoSelected": "暫未選擇模型",
             "modelClearAll": "清除全部",
+            "remove": "移除",
             "template": {
                 "label": "內建供應商模板",
                 "hint": "一鍵預填常見供應商設定",
-                "options": {
-                    "openai": {
-                        "description": "OpenAI Chat 官方介面"
-                    },
-                    "openaiResponses": {
-                        "description": "OpenAI Responses API"
-                    },
-                    "anthropic": {
-                        "description": "Claude 官方介面"
-                    },
-                    "gemini": {
-                        "description": "Google Gemini 官方介面"
-                    },
-                    "deepseek": {
-                        "description": "DeepSeek OpenAI 相容介面"
-                    },
-                    "openrouter": {
-                        "description": "OpenRouter 聚合介面"
-                    },
-                    "siliconflow": {
-                        "description": "矽基流動 OpenAI 相容介面"
-                    },
-                    "volcengine": {
-                        "description": "火山引擎 Ark 介面"
-                    }
+                "descriptions": {
+                    "openai": "OpenAI Chat 官方接口。",
+                    "openaiResponses": "OpenAI Responses API 接口。",
+                    "anthropic": "Claude 官方接口。",
+                    "gemini": "Google Gemini 官方接口。",
+                    "deepseek": "DeepSeek OpenAI 相容接口。",
+                    "openrouter": "OpenRouter 聚合接口。",
+                    "siliconflow": "矽基流動 OpenAI 相容接口。",
+                    "volcengine": "火山引擎 Ark 接口。"
                 }
             },
-            "remove": "移除",
             "test": {
                 "button": "測試",
                 "success": "供應源測試通過",

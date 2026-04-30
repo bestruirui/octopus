@@ -14,7 +14,7 @@ import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
 import { GroupEditor, type GroupEditorValues } from './Editor';
 import { AIRouteButton } from './AIRouteButton';
-import { buildChannelNameByModelKey, modelChannelKey, MODE_LABELS, inferGroupCapabilities, CAPABILITY_LABEL_KEYS, CAPABILITY_COLORS, endpointTypeLabel, normalizeEndpointType } from './utils';
+import { buildChannelNameByModelKey, modelChannelKey, MODE_LABELS, inferGroupCapabilities, CAPABILITY_LABEL_KEYS, CAPABILITY_COLORS, endpointTypeLabelKey, normalizeEndpointType } from './utils';
 import { GroupMode, type GroupUpdateRequest } from '@/api/endpoints/group';
 import {
     MorphingDialog,
@@ -106,11 +106,11 @@ export function GroupCard({ group }: { group: Group }) {
                 name: item.model_name,
                 enabled: enabledByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? true,
                 channel_id: item.channel_id,
-                channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? `Channel ${item.channel_id}`,
+                channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? t('aiRoute.progress.channelFallbackName', { id: item.channel_id }),
                 item_id: item.id,
                 weight: item.weight,
             })),
-        [group.items, channelNameByKey, enabledByKey]
+        [group.items, channelNameByKey, enabledByKey, t]
     );
 
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -481,7 +481,9 @@ export function GroupCard({ group }: { group: Group }) {
                 return (
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-500/15 text-slate-700 dark:text-slate-300">
-                            API 分类：{endpointTypeLabel(t, group.endpoint_type)}
+                            {t('card.endpointType', {
+                                value: t(endpointTypeLabelKey(group.endpoint_type) ?? 'form.endpointType.options.all'),
+                            })}
                         </span>
                         {capabilities.map((cap) => (
                             <span

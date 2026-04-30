@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:i18n": "node --test tests/i18n.test.cjs"
+    "test:i18n": "node tests/i18n.test.mjs"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",

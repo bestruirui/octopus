@@ -23,7 +23,8 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { endpointTypeLabel } from './utils';
+import { resolveRuntimeI18nMessage } from '@/lib/i18n-runtime';
+import { endpointTypeLabelKey } from './utils';
 
 type AIRouteProgressDialogProps = {
     open: boolean;
@@ -95,7 +96,7 @@ function batchBadgeClass(status?: AIRouteBatchStatus | string) {
 
 type BatchCardData = Pick<
     GenerateAIRouteCurrentBatch,
-    'index' | 'total' | 'endpoint_type' | 'model_count' | 'channel_ids' | 'channel_names' | 'service_name' | 'attempt' | 'status' | 'message'
+    'index' | 'total' | 'endpoint_type' | 'model_count' | 'channel_ids' | 'channel_names' | 'service_name' | 'attempt' | 'status' | 'message' | 'message_key' | 'message_args'
 >;
 
 export function AIRouteProgressDialog({
@@ -184,6 +185,9 @@ export function AIRouteProgressDialog({
         ? 'aiRoute.progress.description.group'
         : 'aiRoute.progress.description.table';
 
+    const resolveMessage = (message?: string, messageKey?: string, messageArgs?: Record<string, unknown>) =>
+        resolveRuntimeI18nMessage(messageKey, messageArgs, message) ?? message;
+
     const renderChannelCards = (items: typeof channels, emptyText: string) => {
         if (items.length === 0) {
             return (
@@ -208,7 +212,7 @@ export function AIRouteProgressDialog({
                             <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <div className="truncate text-sm font-medium text-foreground">
-                                        {channel.channel_name || `Channel ${channel.channel_id}`}
+                                        {channel.channel_name || t('aiRoute.progress.channelFallbackName', { id: channel.channel_id })}
                                     </div>
                                     <div className="mt-1 text-xs text-muted-foreground">
                                         {channel.provider || '--'}
@@ -225,8 +229,8 @@ export function AIRouteProgressDialog({
                                         total: channel.total_models,
                                     })}
                                 </span>
-                                {channel.message ? (
-                                    <span className="max-w-full truncate">{channel.message}</span>
+                                {resolveMessage(channel.message, channel.message_key, channel.message_args) ? (
+                                    <span className="max-w-full truncate">{resolveMessage(channel.message, channel.message_key, channel.message_args)}</span>
                                 ) : null}
                             </div>
                             <Progress value={channelPercent} className="mt-2 h-1.5" />
@@ -259,7 +263,7 @@ export function AIRouteProgressDialog({
                 <div>
                     <div className="text-xs text-muted-foreground">{t('aiRoute.progress.batchCapability')}</div>
                     <div className="mt-1 text-sm font-medium text-foreground">
-                        {batch.endpoint_type ? endpointTypeLabel(t, batch.endpoint_type) : '--'}
+                        {batch.endpoint_type ? t(endpointTypeLabelKey(batch.endpoint_type) ?? 'form.endpointType.options.all') : '--'}
                     </div>
                 </div>
                 <div>
@@ -281,9 +285,9 @@ export function AIRouteProgressDialog({
                     <div className="mt-1 text-sm font-medium text-foreground">{batch.attempt || 1}</div>
                 </div>
             </div>
-            {batch.message ? (
+            {resolveMessage(batch.message, batch.message_key, batch.message_args) ? (
                 <div className="mt-3 rounded-xl bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                    {batch.message}
+                    {resolveMessage(batch.message, batch.message_key, batch.message_args)}
                 </div>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
@@ -320,7 +324,7 @@ export function AIRouteProgressDialog({
                                     {t(`aiRoute.progress.steps.${step as AIRouteTaskStep}`)}
                                 </div>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    {progress?.message || t('aiRoute.progress.loading')}
+                                    {resolveMessage(progress?.message, progress?.message_key, progress?.message_args) || t('aiRoute.progress.loading')}
                                 </p>
                             </div>
                             <div className="text-right">

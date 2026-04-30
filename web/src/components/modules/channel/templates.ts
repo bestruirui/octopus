@@ -30,7 +30,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'openai',
         name: 'OpenAI',
-        descriptionKey: 'template.options.openai.description',
+        descriptionKey: 'template.descriptions.openai',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenAI',
             type: ChannelType.OpenAIChat,
@@ -47,7 +47,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'openai-responses',
         name: 'OpenAI Responses',
-        descriptionKey: 'template.options.openaiResponses.description',
+        descriptionKey: 'template.descriptions.openaiResponses',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenAI Responses',
             type: ChannelType.OpenAIResponse,
@@ -64,7 +64,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'anthropic',
         name: 'Anthropic',
-        descriptionKey: 'template.options.anthropic.description',
+        descriptionKey: 'template.descriptions.anthropic',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Anthropic',
             type: ChannelType.Anthropic,
@@ -81,7 +81,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'gemini',
         name: 'Gemini',
-        descriptionKey: 'template.options.gemini.description',
+        descriptionKey: 'template.descriptions.gemini',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Gemini',
             type: ChannelType.Gemini,
@@ -98,7 +98,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'deepseek',
         name: 'DeepSeek',
-        descriptionKey: 'template.options.deepseek.description',
+        descriptionKey: 'template.descriptions.deepseek',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'DeepSeek',
             type: ChannelType.OpenAIChat,
@@ -115,7 +115,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'openrouter',
         name: 'OpenRouter',
-        descriptionKey: 'template.options.openrouter.description',
+        descriptionKey: 'template.descriptions.openrouter',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenRouter',
             type: ChannelType.OpenAIChat,
@@ -132,7 +132,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'siliconflow',
         name: 'SiliconFlow',
-        descriptionKey: 'template.options.siliconflow.description',
+        descriptionKey: 'template.descriptions.siliconflow',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'SiliconFlow',
             type: ChannelType.OpenAIChat,
@@ -149,7 +149,7 @@ export const channelTemplates: ChannelTemplate[] = [
     {
         key: 'volcengine',
         name: 'Volcengine',
-        descriptionKey: 'template.options.volcengine.description',
+        descriptionKey: 'template.descriptions.volcengine',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Volcengine',
             type: ChannelType.Volcengine,

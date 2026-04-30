@@ -146,6 +146,8 @@ export interface GenerateAIRouteCurrentBatch {
     attempt?: number;
     status?: string;
     message?: string;
+    message_key?: string;
+    message_args?: Record<string, unknown>;
 }
 
 export interface GenerateAIRouteRunningBatch {
@@ -159,6 +161,8 @@ export interface GenerateAIRouteRunningBatch {
     attempt?: number;
     status?: AIRouteBatchStatus;
     message?: string;
+    message_key?: string;
+    message_args?: Record<string, unknown>;
 }
 
 export interface GenerateAIRouteChannelProgress {
@@ -169,6 +173,8 @@ export interface GenerateAIRouteChannelProgress {
     total_models: number;
     processed_models: number;
     message?: string;
+    message_key?: string;
+    message_args?: Record<string, unknown>;
 }
 
 export interface GenerateAIRouteProgress {
@@ -183,7 +189,11 @@ export interface GenerateAIRouteProgress {
     done: boolean;
     result_ready: boolean;
     message?: string;
+    message_key?: string;
+    message_args?: Record<string, unknown>;
     error_reason?: string;
+    error_reason_key?: string;
+    error_reason_args?: Record<string, unknown>;
     started_at?: string;
     updated_at?: string;
     heartbeat_at?: string;

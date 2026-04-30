@@ -19,44 +19,20 @@ export const MODE_LABELS: Record<GroupMode, string> = {
     [GroupMode.Auto]: 'auto',
 } as const;
 
-const ENDPOINT_TYPE_VALUES = [
-    '*',
-    'chat',
-    'deepseek',
-    'embeddings',
-    'rerank',
-    'moderations',
-    'image_generation',
-    'audio_speech',
-    'audio_transcription',
-    'video_generation',
-    'music_generation',
-    'search',
+export const ENDPOINT_TYPE_OPTIONS = [
+    { labelKey: 'form.endpointType.options.all', value: '*' },
+    { labelKey: 'form.endpointType.options.chat', value: 'chat' },
+    { labelKey: 'form.endpointType.options.deepseek', value: 'deepseek' },
+    { labelKey: 'form.endpointType.options.embeddings', value: 'embeddings' },
+    { labelKey: 'form.endpointType.options.rerank', value: 'rerank' },
+    { labelKey: 'form.endpointType.options.moderations', value: 'moderations' },
+    { labelKey: 'form.endpointType.options.imageGeneration', value: 'image_generation' },
+    { labelKey: 'form.endpointType.options.audioSpeech', value: 'audio_speech' },
+    { labelKey: 'form.endpointType.options.audioTranscription', value: 'audio_transcription' },
+    { labelKey: 'form.endpointType.options.videoGeneration', value: 'video_generation' },
+    { labelKey: 'form.endpointType.options.musicGeneration', value: 'music_generation' },
+    { labelKey: 'form.endpointType.options.search', value: 'search' },
 ] as const;
-
-const ENDPOINT_TYPE_LABEL_KEYS: Record<(typeof ENDPOINT_TYPE_VALUES)[number], string> = {
-    '*': 'endpointType.all',
-    chat: 'endpointType.chat',
-    deepseek: 'endpointType.deepseek',
-    embeddings: 'endpointType.embeddings',
-    rerank: 'endpointType.rerank',
-    moderations: 'endpointType.moderations',
-    image_generation: 'endpointType.imageGeneration',
-    audio_speech: 'endpointType.audioSpeech',
-    audio_transcription: 'endpointType.audioTranscription',
-    video_generation: 'endpointType.videoGeneration',
-    music_generation: 'endpointType.musicGeneration',
-    search: 'endpointType.search',
-};
-
-type GroupTranslation = (key: string) => string;
-
-export function getEndpointTypeOptions(t: GroupTranslation) {
-    return ENDPOINT_TYPE_VALUES.map((value) => ({
-        label: t(ENDPOINT_TYPE_LABEL_KEYS[value]),
-        value,
-    }));
-}
 
 export function normalizeEndpointType(value?: string | null) {
     const normalized = value?.trim().toLowerCase();
@@ -66,10 +42,9 @@ export function normalizeEndpointType(value?: string | null) {
     return normalized || '*';
 }
 
-export function endpointTypeLabel(t: GroupTranslation, value?: string | null) {
+export function endpointTypeLabelKey(value?: string | null) {
     const endpointType = normalizeEndpointType(value);
-    const labelKey = ENDPOINT_TYPE_LABEL_KEYS[endpointType as keyof typeof ENDPOINT_TYPE_LABEL_KEYS];
-    return labelKey ? t(labelKey) : endpointType;
+    return ENDPOINT_TYPE_OPTIONS.find((option) => option.value === endpointType)?.labelKey;
 }
 
 export function normalizeKey(value: string) {

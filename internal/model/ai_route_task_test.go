@@ -23,7 +23,15 @@ func TestAIRouteTaskRoundTripPreservesProgressSnapshot(t *testing.T) {
 		Done:             true,
 		ResultReady:      true,
 		Message:          "AI 路由生成完成",
+		MessageKey:       "group.aiRoute.progress.runtime.taskCompleted",
+		MessageArgs: map[string]any{
+			"routes": 3,
+		},
 		ErrorReason:      "",
+		ErrorReasonKey:   "group.aiRoute.progress.runtime.batchFailed",
+		ErrorReasonArgs: map[string]any{
+			"reason": "timeout",
+		},
 		StartedAt:        &startedAt,
 		UpdatedAt:        &updatedAt,
 		HeartbeatAt:      &heartbeatAt,
@@ -46,6 +54,11 @@ func TestAIRouteTaskRoundTripPreservesProgressSnapshot(t *testing.T) {
 			Attempt:      2,
 			Status:       "completed",
 			Message:      "当前批次已完成",
+			MessageKey:   "group.aiRoute.progress.runtime.batchCompletedWaitingNext",
+			MessageArgs: map[string]any{
+				"index": 3,
+				"total": 3,
+			},
 		},
 		RunningBatches: []GenerateAIRouteRunningBatch{
 			{
@@ -59,6 +72,11 @@ func TestAIRouteTaskRoundTripPreservesProgressSnapshot(t *testing.T) {
 				Attempt:      1,
 				Status:       AIRouteBatchStatusParsing,
 				Message:      "解析中",
+				MessageKey:   "group.aiRoute.progress.runtime.batchParsing",
+				MessageArgs: map[string]any{
+					"index": 2,
+					"total": 3,
+				},
 			},
 		},
 		Channels: []GenerateAIRouteChannelProgress{
@@ -68,6 +86,7 @@ func TestAIRouteTaskRoundTripPreservesProgressSnapshot(t *testing.T) {
 				Status:          AIRouteChannelStatusCompleted,
 				TotalModels:     2,
 				ProcessedModels: 2,
+				MessageKey:      "group.aiRoute.progress.runtime.channelCompleted",
 			},
 			{
 				ChannelID:       2,
@@ -94,17 +113,29 @@ func TestAIRouteTaskRoundTripPreservesProgressSnapshot(t *testing.T) {
 	if !got.Done || !got.ResultReady || got.EventSequence != original.EventSequence {
 		t.Fatalf("task progress state fields changed: got %+v", got)
 	}
+	if got.MessageKey != original.MessageKey || got.ErrorReasonKey != original.ErrorReasonKey {
+		t.Fatalf("message keys not preserved: got message_key=%q error_reason_key=%q", got.MessageKey, got.ErrorReasonKey)
+	}
 	if got.Summary == nil || got.Summary.TotalModels != original.Summary.TotalModels {
 		t.Fatalf("summary not preserved: got %+v", got.Summary)
 	}
 	if got.CurrentBatch == nil || len(got.CurrentBatch.ChannelIDs) != 2 || got.CurrentBatch.ChannelNames[1] != "beta" {
 		t.Fatalf("current batch not preserved: got %+v", got.CurrentBatch)
 	}
+	if got.CurrentBatch.MessageKey != original.CurrentBatch.MessageKey {
+		t.Fatalf("current batch message key not preserved: got %+v", got.CurrentBatch)
+	}
 	if len(got.RunningBatches) != 1 || got.RunningBatches[0].ServiceName != "svc-b" || got.RunningBatches[0].Status != AIRouteBatchStatusParsing {
 		t.Fatalf("running batches not preserved: got %+v", got.RunningBatches)
 	}
+	if got.RunningBatches[0].MessageKey != original.RunningBatches[0].MessageKey {
+		t.Fatalf("running batch message key not preserved: got %+v", got.RunningBatches)
+	}
 	if len(got.Channels) != 2 || got.Channels[0].ChannelName != "alpha" || got.Channels[1].ProcessedModels != 1 {
 		t.Fatalf("channels not preserved: got %+v", got.Channels)
+	}
+	if got.Channels[0].MessageKey != original.Channels[0].MessageKey {
+		t.Fatalf("channel message key not preserved: got %+v", got.Channels)
 	}
 	if got.Result == nil || got.Result.RouteCount != original.Result.RouteCount || got.Result.ItemCount != original.Result.ItemCount {
 		t.Fatalf("result not preserved: got %+v", got.Result)

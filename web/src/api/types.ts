@@ -4,6 +4,8 @@
 export interface ApiResponse<T = unknown> {
     code?: number;
     message?: string;
+    message_key?: string;
+    message_args?: Record<string, unknown>;
     data?: T;
 }
 
@@ -13,6 +15,8 @@ export interface ApiResponse<T = unknown> {
 export interface ApiError {
     code: number;
     message: string;
+    message_key?: string;
+    message_args?: Record<string, unknown>;
 }
 
 /**

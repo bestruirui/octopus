@@ -34,6 +34,7 @@ func newAIRouteProgressTracker(req model.GenerateAIRouteRequest, report aiRouteP
 			CurrentStep:     model.AIRouteTaskStepCollectingModels,
 			ProgressPercent: 3,
 			Message:         "正在收集渠道和模型",
+			MessageKey:      "group.aiRoute.progress.steps.collecting_models",
 		},
 		channelIndexByID:    make(map[int]int),
 		channelActiveCounts: make(map[int]int),
@@ -84,6 +85,11 @@ func (t *aiRouteProgressTracker) SetModelInputs(modelInputs []model.AIRouteModel
 	t.progress.Summary = t.buildSummaryLocked()
 	t.progress.ProgressPercent = 10
 	t.progress.Message = fmt.Sprintf("已收集 %d 个渠道，共 %d 个模型", len(channels), totalModels)
+	t.progress.MessageKey = "group.aiRoute.progress.runtime.collectedModels"
+	t.progress.MessageArgs = map[string]any{
+		"channels": len(channels),
+		"models":   totalModels,
+	}
 	t.mu.Unlock()
 
 	t.emit()
@@ -116,8 +122,12 @@ func (t *aiRouteProgressTracker) SetBuckets(buckets []aiRoutePromptBucket) {
 	t.nextBatchOrder = 0
 	if len(buckets) <= 1 {
 		t.progress.Message = "已完成批次规划，准备开始 AI 分析"
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.plannedSingleBatch"
+		t.progress.MessageArgs = nil
 	} else {
 		t.progress.Message = fmt.Sprintf("已完成批次规划，共拆分为 %d 批", len(buckets))
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.plannedBatches"
+		t.progress.MessageArgs = map[string]any{"batches": len(buckets)}
 	}
 	t.mu.Unlock()
 
@@ -145,6 +155,7 @@ func (t *aiRouteProgressTracker) StartBatch(index int, bucket aiRoutePromptBucke
 	t.progress.ProgressPercent = t.analysisProgressLocked()
 	t.progress.Summary = t.buildSummaryLocked()
 	t.progress.Message = t.buildAnalysisMessageLocked(batch)
+	t.progress.MessageKey, t.progress.MessageArgs = t.buildAnalysisMessageMetaLocked(batch)
 	t.mu.Unlock()
 
 	t.emit()
@@ -164,8 +175,12 @@ func (t *aiRouteProgressTracker) MarkBatchRetry(index int, bucket aiRoutePromptB
 	t.progress.Summary = t.buildSummaryLocked()
 	if strings.TrimSpace(message) == "" {
 		t.progress.Message = fmt.Sprintf("第 %d/%d 批分析失败，正在切换其他服务重试", index, t.progress.TotalBatches)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.batchRetrying"
+		t.progress.MessageArgs = map[string]any{"index": index, "total": t.progress.TotalBatches}
 	} else {
 		t.progress.Message = fmt.Sprintf("第 %d/%d 批分析失败，正在切换其他服务重试：%s", index, t.progress.TotalBatches, strings.TrimSpace(message))
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.batchRetryingWithReason"
+		t.progress.MessageArgs = map[string]any{"index": index, "total": t.progress.TotalBatches, "reason": strings.TrimSpace(message)}
 	}
 	t.mu.Unlock()
 
@@ -185,6 +200,8 @@ func (t *aiRouteProgressTracker) MarkBatchAIResponseReceived(index int, bucket a
 	t.progress.ProgressPercent = t.analysisProgressLocked()
 	t.progress.Summary = t.buildSummaryLocked()
 	t.progress.Message = fmt.Sprintf("AI 已返回第 %d/%d 批结果，正在解析和校验", index, t.progress.TotalBatches)
+	t.progress.MessageKey = "group.aiRoute.progress.runtime.batchParsing"
+	t.progress.MessageArgs = map[string]any{"index": index, "total": t.progress.TotalBatches}
 	t.mu.Unlock()
 
 	t.emit()
@@ -228,14 +245,20 @@ func (t *aiRouteProgressTracker) CompleteBatch(index int, bucket aiRoutePromptBu
 		t.progress.CurrentStep = model.AIRouteTaskStepAnalyzingBatches
 		t.progress.CurrentBatch = activeBatch
 		t.progress.Message = fmt.Sprintf("第 %d/%d 批已完成，当前还有 %d 个活跃批次", index, t.progress.TotalBatches, len(t.runningBatches))
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.batchCompletedWithActive"
+		t.progress.MessageArgs = map[string]any{"index": index, "total": t.progress.TotalBatches, "active": len(t.runningBatches)}
 	} else if t.progress.CompletedBatches < t.progress.TotalBatches {
 		t.progress.CurrentStep = model.AIRouteTaskStepAnalyzingBatches
 		t.progress.CurrentBatch = completedBatch
 		t.progress.Message = fmt.Sprintf("第 %d/%d 批已完成，等待启动下一批", index, t.progress.TotalBatches)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.batchCompletedWaitingNext"
+		t.progress.MessageArgs = map[string]any{"index": index, "total": t.progress.TotalBatches}
 	} else {
 		t.progress.CurrentStep = model.AIRouteTaskStepParsingResponse
 		t.progress.CurrentBatch = completedBatch
 		t.progress.Message = "全部批次分析完成，准备校验路由结果"
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.allBatchesCompleted"
+		t.progress.MessageArgs = nil
 	}
 	t.mu.Unlock()
 
@@ -260,6 +283,8 @@ func (t *aiRouteProgressTracker) FailBatch(index int, bucket aiRoutePromptBucket
 		}
 		channel.Status = model.AIRouteChannelStatusFailed
 		channel.Message = strings.TrimSpace(message)
+		channel.MessageKey = "group.aiRoute.progress.runtime.channelFailedWithReason"
+		channel.MessageArgs = map[string]any{"reason": strings.TrimSpace(message)}
 	}
 	delete(t.runningBatches, index)
 	delete(t.runningBatchOrder, index)
@@ -270,8 +295,12 @@ func (t *aiRouteProgressTracker) FailBatch(index int, bucket aiRoutePromptBucket
 	t.progress.Summary = t.buildSummaryLocked()
 	if strings.TrimSpace(message) == "" {
 		t.progress.Message = fmt.Sprintf("第 %d/%d 批分析失败", index, t.progress.TotalBatches)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.batchFailedIndexed"
+		t.progress.MessageArgs = map[string]any{"index": index, "total": t.progress.TotalBatches}
 	} else {
 		t.progress.Message = fmt.Sprintf("第 %d/%d 批分析失败：%s", index, t.progress.TotalBatches, strings.TrimSpace(message))
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.batchFailedIndexedWithReason"
+		t.progress.MessageArgs = map[string]any{"index": index, "total": t.progress.TotalBatches, "reason": strings.TrimSpace(message)}
 	}
 	t.mu.Unlock()
 
@@ -292,8 +321,12 @@ func (t *aiRouteProgressTracker) SetValidatingRoutes(routeCount int) {
 	t.progress.ProgressPercent = 88
 	if routeCount > 0 {
 		t.progress.Message = fmt.Sprintf("正在校验 AI 返回的 %d 条候选路由", routeCount)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.validatingRoutes"
+		t.progress.MessageArgs = map[string]any{"routes": routeCount}
 	} else {
 		t.progress.Message = "正在校验 AI 返回的候选路由"
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.validatingRoutesGeneric"
+		t.progress.MessageArgs = nil
 	}
 	t.mu.Unlock()
 
@@ -314,8 +347,12 @@ func (t *aiRouteProgressTracker) SetWritingGroup(groupName string) {
 	t.progress.ProgressPercent = 94
 	if groupName == "" {
 		t.progress.Message = "正在写入当前分组"
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.writingCurrentGroup"
+		t.progress.MessageArgs = nil
 	} else {
 		t.progress.Message = fmt.Sprintf("正在写入分组 %q", groupName)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.writingNamedGroup"
+		t.progress.MessageArgs = map[string]any{"group": groupName}
 	}
 	t.mu.Unlock()
 
@@ -343,8 +380,12 @@ func (t *aiRouteProgressTracker) SetWritingRoute(index int, total int, requested
 
 	if requestedModel == "" {
 		t.progress.Message = fmt.Sprintf("正在写入第 %d/%d 条路由", index, total)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.writingRoute"
+		t.progress.MessageArgs = map[string]any{"index": index, "total": total}
 	} else {
 		t.progress.Message = fmt.Sprintf("正在写入路由 %q（%d/%d）", requestedModel, index, total)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.writingNamedRoute"
+		t.progress.MessageArgs = map[string]any{"route": requestedModel, "index": index, "total": total}
 	}
 	t.mu.Unlock()
 
@@ -363,8 +404,12 @@ func (t *aiRouteProgressTracker) SetFinalizing(message string) {
 	t.progress.ProgressPercent = 99
 	if strings.TrimSpace(message) == "" {
 		t.progress.Message = "正在收尾"
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.finalizing"
+		t.progress.MessageArgs = nil
 	} else {
 		t.progress.Message = strings.TrimSpace(message)
+		t.progress.MessageKey = "group.aiRoute.progress.runtime.finalizingCustom"
+		t.progress.MessageArgs = map[string]any{"message": strings.TrimSpace(message)}
 	}
 	t.mu.Unlock()
 
@@ -550,6 +595,8 @@ func (t *aiRouteProgressTracker) incrementChannelActiveLocked(channelID int, end
 	}
 	channel.Status = model.AIRouteChannelStatusRunning
 	channel.Message = fmt.Sprintf("正在分析 %s 模型", airoutePromptEndpointLabel(endpointType))
+	channel.MessageKey = "group.aiRoute.progress.runtime.channelAnalyzingEndpoint"
+	channel.MessageArgs = map[string]any{"endpoint": airoutePromptEndpointLabel(endpointType)}
 }
 
 func (t *aiRouteProgressTracker) decrementChannelActiveLocked(channelID int) {
@@ -582,6 +629,8 @@ func (t *aiRouteProgressTracker) refreshChannelStateLocked(channel *model.Genera
 		channel.Status = model.AIRouteChannelStatusRunning
 		if strings.TrimSpace(channel.Message) == "" {
 			channel.Message = "正在分析"
+			channel.MessageKey = "group.aiRoute.progress.runtime.channelAnalyzing"
+			channel.MessageArgs = nil
 		}
 		return
 	}
@@ -589,6 +638,8 @@ func (t *aiRouteProgressTracker) refreshChannelStateLocked(channel *model.Genera
 	if channel.ProcessedModels >= channel.TotalModels && channel.TotalModels > 0 {
 		channel.Status = model.AIRouteChannelStatusCompleted
 		channel.Message = "已完成"
+		channel.MessageKey = "group.aiRoute.progress.runtime.channelCompleted"
+		channel.MessageArgs = nil
 		return
 	}
 
@@ -598,6 +649,24 @@ func (t *aiRouteProgressTracker) refreshChannelStateLocked(channel *model.Genera
 
 	channel.Status = model.AIRouteChannelStatusPending
 	channel.Message = ""
+	channel.MessageKey = ""
+	channel.MessageArgs = nil
+}
+
+func (t *aiRouteProgressTracker) buildAnalysisMessageMetaLocked(batch model.GenerateAIRouteRunningBatch) (string, map[string]any) {
+	activeCount := len(t.runningBatches)
+	args := map[string]any{
+		"index":    batch.Index,
+		"total":    batch.Total,
+		"endpoint": airoutePromptEndpointLabel(batch.EndpointType),
+		"channels": len(batch.ChannelIDs),
+		"models":   batch.ModelCount,
+	}
+	if activeCount <= 1 {
+		return "group.aiRoute.progress.runtime.waitingBatchResult", args
+	}
+	args["active"] = activeCount
+	return "group.aiRoute.progress.runtime.parallelAnalyzing", args
 }
 
 func (t *aiRouteProgressTracker) channelByIDLocked(channelID int) *model.GenerateAIRouteChannelProgress {

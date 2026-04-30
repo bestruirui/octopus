@@ -90,8 +90,10 @@ type aiRouteBucketResult struct {
 }
 
 type AIRoutePartialFailureError struct {
-	Message string
-	Cause   error
+	Message     string
+	MessageKey  string
+	MessageArgs map[string]any
+	Cause       error
 }
 
 func (e *aiRouteCallError) Error() string {
@@ -510,8 +512,13 @@ func newAIRouteTablePartialFailureError(successGroups int, cause error) error {
 		return cause
 	}
 	return &AIRoutePartialFailureError{
-		Message: fmt.Sprintf("AI 路由部分失败，但已保留成功写入的 %d 个分组：%s", successGroups, cause.Error()),
-		Cause:   cause,
+		Message:    fmt.Sprintf("AI 路由部分失败，但已保留成功写入的 %d 个分组：%s", successGroups, cause.Error()),
+		MessageKey: "group.aiRoute.progress.runtime.partialFailure",
+		MessageArgs: map[string]any{
+			"success_groups": successGroups,
+			"cause":          cause.Error(),
+		},
+		Cause: cause,
 	}
 }
 

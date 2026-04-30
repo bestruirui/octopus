@@ -50,6 +50,7 @@ func StartGenerateAIRoute(req model.GenerateAIRouteRequest) (*model.GenerateAIRo
 		CurrentStep:     model.AIRouteTaskStepQueued,
 		ProgressPercent: 0,
 		Message:         "AI 路由任务已创建，等待开始",
+		MessageKey:      "group.aiRoute.progress.runtime.taskCreated",
 		StartedAt:       cloneTimePtr(&now),
 		UpdatedAt:       cloneTimePtr(&now),
 		HeartbeatAt:     cloneTimePtr(&now),
@@ -248,6 +249,7 @@ func cloneAIRouteCurrentBatch(batch *model.GenerateAIRouteCurrentBatch) *model.G
 	}
 
 	cloned := *batch
+	cloned.MessageArgs = cloneAIRouteArgs(batch.MessageArgs)
 	if len(batch.ChannelIDs) > 0 {
 		cloned.ChannelIDs = append([]int(nil), batch.ChannelIDs...)
 	}
@@ -265,6 +267,7 @@ func cloneAIRouteRunningBatchList(batches []model.GenerateAIRouteRunningBatch) [
 	cloned := make([]model.GenerateAIRouteRunningBatch, len(batches))
 	for i := range batches {
 		cloned[i] = batches[i]
+		cloned[i].MessageArgs = cloneAIRouteArgs(batches[i].MessageArgs)
 		if len(batches[i].ChannelIDs) > 0 {
 			cloned[i].ChannelIDs = append([]int(nil), batches[i].ChannelIDs...)
 		}
@@ -281,7 +284,10 @@ func cloneAIRouteChannelProgressList(channels []model.GenerateAIRouteChannelProg
 	}
 
 	cloned := make([]model.GenerateAIRouteChannelProgress, len(channels))
-	copy(cloned, channels)
+	for i := range channels {
+		cloned[i] = channels[i]
+		cloned[i].MessageArgs = cloneAIRouteArgs(channels[i].MessageArgs)
+	}
 	return cloned
 }
 
@@ -315,7 +321,11 @@ func mergeAIRouteProgressSnapshot(dst *model.GenerateAIRouteProgress, snapshot m
 	dst.Done = snapshot.Done
 	dst.ResultReady = snapshot.ResultReady
 	dst.Message = snapshot.Message
+	dst.MessageKey = snapshot.MessageKey
+	dst.MessageArgs = cloneAIRouteArgs(snapshot.MessageArgs)
 	dst.ErrorReason = snapshot.ErrorReason
+	dst.ErrorReasonKey = snapshot.ErrorReasonKey
+	dst.ErrorReasonArgs = cloneAIRouteArgs(snapshot.ErrorReasonArgs)
 	dst.Summary = cloneAIRouteProgressSummary(snapshot.Summary)
 	dst.CurrentBatch = cloneAIRouteCurrentBatch(snapshot.CurrentBatch)
 	dst.RunningBatches = cloneAIRouteRunningBatchList(snapshot.RunningBatches)
@@ -362,6 +372,8 @@ func finalizeAIRouteProgress(
 	progress.HeartbeatAt = cloneTimePtr(&now)
 	progress.EventSequence++
 	progress.ErrorReason = ""
+	progress.ErrorReasonKey = ""
+	progress.ErrorReasonArgs = nil
 	progress.ResultReady = false
 
 	if result != nil {
@@ -376,16 +388,24 @@ func finalizeAIRouteProgress(
 			progress.Status = model.AIRouteTaskStatusFailed
 			progress.CurrentStep = model.AIRouteTaskStepFailed
 			progress.Message = partialErr.Error()
+			progress.MessageKey = "group.aiRoute.progress.runtime.partialFailure"
+			progress.MessageArgs = cloneAIRouteArgs(partialErr.MessageArgs)
 		} else if errors.Is(runErr, context.DeadlineExceeded) || errors.Is(ctxErr, context.DeadlineExceeded) {
 			progress.Status = model.AIRouteTaskStatusTimeout
 			progress.CurrentStep = model.AIRouteTaskStepTimeout
 			progress.Message = "AI 路由任务超时，请稍后重试"
+			progress.MessageKey = "group.aiRoute.progress.runtime.taskTimeout"
+			progress.MessageArgs = nil
 		} else {
 			progress.Status = model.AIRouteTaskStatusFailed
 			progress.CurrentStep = model.AIRouteTaskStepFailed
 			progress.Message = runErr.Error()
+			progress.MessageKey = ""
+			progress.MessageArgs = nil
 		}
 		progress.ErrorReason = progress.Message
+		progress.ErrorReasonKey = progress.MessageKey
+		progress.ErrorReasonArgs = cloneAIRouteArgs(progress.MessageArgs)
 		progress.ResultReady = progress.Result != nil
 		markRunningAIRouteChannelsFailed(progress, progress.Message)
 		markRunningAIRouteBatchesFailed(progress, progress.Message)
@@ -398,6 +418,8 @@ func finalizeAIRouteProgress(
 	progress.CurrentBatch = nil
 	progress.RunningBatches = nil
 	progress.Message = "AI 路由生成完成"
+	progress.MessageKey = "group.aiRoute.progress.runtime.taskCompleted"
+	progress.MessageArgs = nil
 	progress.ResultReady = result != nil
 }
 
@@ -413,6 +435,8 @@ func markRunningAIRouteChannelsFailed(progress *model.GenerateAIRouteProgress, m
 		progress.Channels[i].Status = model.AIRouteChannelStatusFailed
 		if progress.Channels[i].Message == "" {
 			progress.Channels[i].Message = message
+			progress.Channels[i].MessageKey = "group.aiRoute.progress.runtime.channelFailed"
+			progress.Channels[i].MessageArgs = nil
 		}
 	}
 
@@ -448,6 +472,8 @@ func markRunningAIRouteBatchesFailed(progress *model.GenerateAIRouteProgress, me
 		progress.CurrentBatch.Status = "failed"
 		if strings.TrimSpace(progress.CurrentBatch.Message) == "" {
 			progress.CurrentBatch.Message = message
+			progress.CurrentBatch.MessageKey = "group.aiRoute.progress.runtime.batchFailed"
+			progress.CurrentBatch.MessageArgs = nil
 		}
 	}
 
@@ -459,8 +485,22 @@ func markRunningAIRouteBatchesFailed(progress *model.GenerateAIRouteProgress, me
 		progress.RunningBatches[i].Status = model.AIRouteBatchStatusFailed
 		if strings.TrimSpace(progress.RunningBatches[i].Message) == "" {
 			progress.RunningBatches[i].Message = message
+			progress.RunningBatches[i].MessageKey = "group.aiRoute.progress.runtime.batchFailed"
+			progress.RunningBatches[i].MessageArgs = nil
 		}
 	}
+}
+
+func cloneAIRouteArgs(args map[string]any) map[string]any {
+	if len(args) == 0 {
+		return nil
+	}
+
+	cloned := make(map[string]any, len(args))
+	for key, value := range args {
+		cloned[key] = value
+	}
+	return cloned
 }
 
 func minInt(a, b int) int {
