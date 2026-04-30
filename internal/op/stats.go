@@ -514,6 +514,17 @@ func StatsAPIKeyList() []model.StatsAPIKey {
 	return apiKeys
 }
 
+func StatsModelList() []model.StatsModel {
+	statsModelMutationLock.Lock()
+	defer statsModelMutationLock.Unlock()
+
+	models := make([]model.StatsModel, 0, statsModelCache.Len())
+	for _, v := range statsModelCache.GetAll() {
+		models = append(models, v)
+	}
+	return models
+}
+
 func StatsHourlyGet() []model.StatsHourly {
 	now := time.Now()
 	currentHour := now.Hour()
