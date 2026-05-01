@@ -8,7 +8,7 @@ export type ToolbarCreatedSortablePage = 'channel' | 'group';
 export const TOOLBAR_PAGES = ['channel', 'group', 'model'] as const;
 export type ToolbarPage = (typeof TOOLBAR_PAGES)[number];
 export type ChannelFilter = 'all' | 'enabled' | 'disabled';
-export type GroupFilter = 'all' | 'with-members' | 'empty' | 'chat' | 'responses' | 'messages' | 'embeddings' | 'rerank' | 'moderations' | 'image_generation' | 'audio_speech' | 'audio_transcription' | 'video_generation' | 'music_generation' | 'search';
+export type GroupFilter = 'all' | 'with-members' | 'empty' | 'chat' | 'deepseek' | 'mimo' | 'responses' | 'messages' | 'embeddings' | 'rerank' | 'moderations' | 'image_generation' | 'audio_speech' | 'audio_transcription' | 'video_generation' | 'music_generation' | 'search';
 export type ModelFilter = 'all' | 'priced' | 'free';
 export type ModelSortMode = 'success-rate' | 'request-count';
 
@@ -23,6 +23,8 @@ export function normalizeGroupFilterValue(value?: string | null): GroupFilter {
         case 'with-members':
         case 'empty':
         case 'chat':
+        case 'deepseek':
+        case 'mimo':
         case 'embeddings':
         case 'rerank':
         case 'moderations':

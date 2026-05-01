@@ -163,6 +163,50 @@ func TestGroupGetEnabledMapByEndpoint_PrefersDeepSeekConversationGroupForDeepSee
 	}
 }
 
+func TestGroupGetEnabledMapByEndpoint_PrefersMimoConversationGroupForMimoModels(t *testing.T) {
+	restore := snapshotGroupLookupState()
+	defer restore()
+
+	seedGroupLookupState(
+		map[int]model.Channel{
+			1: {ID: 1, Enabled: true},
+			2: {ID: 2, Enabled: true},
+		},
+		map[int]model.Group{
+			10: {
+				ID:           10,
+				Name:         "mimo-v2.5",
+				EndpointType: model.EndpointTypeChat,
+				Items: []model.GroupItem{
+					{ChannelID: 1, ModelName: "mimo-v2.5"},
+				},
+			},
+			11: {
+				ID:           11,
+				Name:         "mimo-v2.5",
+				EndpointType: model.EndpointTypeMimo,
+				Items: []model.GroupItem{
+					{ChannelID: 2, ModelName: "mimo-v2.5"},
+				},
+			},
+		},
+	)
+
+	got, err := GroupGetEnabledMapByEndpoint(model.EndpointTypeChat, "mimo-v2.5", context.Background())
+	if err != nil {
+		t.Fatalf("expected mimo group match: %v", err)
+	}
+	if got.ID != 11 {
+		t.Fatalf("expected mimo endpoint group id 11, got %d", got.ID)
+	}
+	if got.EndpointType != model.EndpointTypeMimo {
+		t.Fatalf("expected mimo endpoint group, got %q", got.EndpointType)
+	}
+	if len(got.Items) != 1 || got.Items[0].ChannelID != 2 {
+		t.Fatalf("expected mimo group items, got %+v", got.Items)
+	}
+}
+
 func TestGroupGetEnabledMapByEndpoint_UsesTrimmedNameAndPriorityOrderedItems(t *testing.T) {
 	restore := snapshotGroupLookupState()
 	defer restore()

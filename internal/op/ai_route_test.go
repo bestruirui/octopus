@@ -293,6 +293,20 @@ func TestDetectAIRoutePromptEndpointTypeForGroup_PreservesDeepSeekEndpointType(t
 	}
 }
 
+func TestDetectAIRoutePromptEndpointTypeForGroup_PreservesMimoEndpointType(t *testing.T) {
+	group := model.Group{
+		EndpointType: model.EndpointTypeMimo,
+		Items: []model.GroupItem{
+			{ModelName: "mimo-v2.5"},
+		},
+	}
+
+	got := detectAIRoutePromptEndpointTypeForGroup(group)
+	if got != model.EndpointTypeMimo {
+		t.Fatalf("detectAIRoutePromptEndpointTypeForGroup() = %q, want %q", got, model.EndpointTypeMimo)
+	}
+}
+
 func TestBuildAIRoutePromptBucketsSplitsLargeBucket(t *testing.T) {
 	inputs := make([]model.AIRouteModelInput, 0, aiRouteMaxModelsPerRequest+5)
 	for i := 0; i < aiRouteMaxModelsPerRequest+5; i++ {
@@ -336,6 +350,23 @@ func TestBuildAIRoutePromptBuckets_PreservesDeepSeekGroupEndpointTypeForChatProm
 	}
 	if got[0].GroupEndpointType != model.EndpointTypeDeepSeek {
 		t.Fatalf("group endpoint type = %q, want %q", got[0].GroupEndpointType, model.EndpointTypeDeepSeek)
+	}
+}
+
+func TestBuildAIRoutePromptBuckets_PreservesMimoGroupEndpointTypeForChatPrompts(t *testing.T) {
+	inputs := []model.AIRouteModelInput{
+		{ChannelID: 1, ChannelName: "chat", Provider: "mimo", Model: "mimo-v2.5"},
+	}
+
+	got := buildAIRoutePromptBuckets(inputs, model.EndpointTypeMimo)
+	if len(got) != 1 {
+		t.Fatalf("buildAIRoutePromptBuckets() len = %d, want 1", len(got))
+	}
+	if got[0].PromptEndpointType != model.EndpointTypeChat {
+		t.Fatalf("prompt endpoint type = %q, want %q", got[0].PromptEndpointType, model.EndpointTypeChat)
+	}
+	if got[0].GroupEndpointType != model.EndpointTypeMimo {
+		t.Fatalf("group endpoint type = %q, want %q", got[0].GroupEndpointType, model.EndpointTypeMimo)
 	}
 }
 

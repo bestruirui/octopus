@@ -200,11 +200,24 @@ func looksLikeDeepSeekConversationModel(requestModel string) bool {
 	return normalized != "" && strings.Contains(normalized, model.EndpointTypeDeepSeek)
 }
 
+func looksLikeMimoConversationModel(requestModel string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(requestModel))
+	return normalized != "" && strings.Contains(normalized, model.EndpointTypeMimo)
+}
+
 func conversationEndpointLookupOrder(endpointType string, requestModel string) []string {
 	var order []string
 	switch model.NormalizeEndpointType(endpointType) {
 	case model.EndpointTypeChat:
 		order = []string{
+			model.EndpointTypeChat,
+			model.EndpointTypeMimo,
+			model.EndpointTypeResponses,
+			model.EndpointTypeMessages,
+		}
+	case model.EndpointTypeMimo:
+		order = []string{
+			model.EndpointTypeMimo,
 			model.EndpointTypeChat,
 			model.EndpointTypeResponses,
 			model.EndpointTypeMessages,
@@ -213,18 +226,21 @@ func conversationEndpointLookupOrder(endpointType string, requestModel string) [
 		order = []string{
 			model.EndpointTypeResponses,
 			model.EndpointTypeChat,
+			model.EndpointTypeMimo,
 			model.EndpointTypeMessages,
 		}
 	case model.EndpointTypeMessages:
 		order = []string{
 			model.EndpointTypeMessages,
 			model.EndpointTypeChat,
+			model.EndpointTypeMimo,
 			model.EndpointTypeResponses,
 		}
 	case model.EndpointTypeDeepSeek:
 		order = []string{
 			model.EndpointTypeDeepSeek,
 			model.EndpointTypeChat,
+			model.EndpointTypeMimo,
 			model.EndpointTypeResponses,
 			model.EndpointTypeMessages,
 		}
@@ -234,6 +250,9 @@ func conversationEndpointLookupOrder(endpointType string, requestModel string) [
 
 	if looksLikeDeepSeekConversationModel(requestModel) && model.NormalizeEndpointType(endpointType) != model.EndpointTypeDeepSeek {
 		return append([]string{model.EndpointTypeDeepSeek}, order...)
+	}
+	if looksLikeMimoConversationModel(requestModel) && model.NormalizeEndpointType(endpointType) != model.EndpointTypeMimo {
+		return append([]string{model.EndpointTypeMimo}, order...)
 	}
 
 	return order

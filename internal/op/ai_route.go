@@ -798,8 +798,8 @@ func buildAIRoutePromptBuckets(modelInputs []model.AIRouteModelInput, targetProm
 			seen: make(map[string]struct{}),
 		}
 	}
-	if targetGroupEndpointType == model.EndpointTypeDeepSeek {
-		states[model.EndpointTypeChat].bucket.GroupEndpointType = model.EndpointTypeDeepSeek
+	if targetGroupEndpointType == model.EndpointTypeDeepSeek || targetGroupEndpointType == model.EndpointTypeMimo {
+		states[model.EndpointTypeChat].bucket.GroupEndpointType = targetGroupEndpointType
 	}
 
 	for _, input := range modelInputs {
@@ -907,7 +907,7 @@ func inferAIRoutePromptEndpointType(modelName string) string {
 
 func normalizeAIRoutePromptEndpointType(endpointType string) string {
 	switch model.NormalizeEndpointType(endpointType) {
-	case "", model.EndpointTypeAll, model.EndpointTypeChat, model.EndpointTypeDeepSeek, model.EndpointTypeResponses, model.EndpointTypeMessages:
+	case "", model.EndpointTypeAll, model.EndpointTypeChat, model.EndpointTypeDeepSeek, model.EndpointTypeMimo, model.EndpointTypeResponses, model.EndpointTypeMessages:
 		return model.EndpointTypeChat
 	default:
 		return model.NormalizeEndpointType(endpointType)
@@ -976,6 +976,7 @@ func detectAIRoutePromptEndpointTypeForGroup(group model.Group) string {
 	current := model.NormalizeEndpointType(group.EndpointType)
 	switch current {
 	case model.EndpointTypeDeepSeek,
+		model.EndpointTypeMimo,
 		model.EndpointTypeEmbeddings,
 		model.EndpointTypeRerank,
 		model.EndpointTypeModerations,
@@ -1368,7 +1369,7 @@ func selectAIRouteTablePrimaryRoute(
 				}
 			}
 			return -1
-		case model.EndpointTypeChat, model.EndpointTypeResponses, model.EndpointTypeMessages:
+		case model.EndpointTypeChat, model.EndpointTypeMimo, model.EndpointTypeResponses, model.EndpointTypeMessages:
 			for _, idx := range indexes {
 				if normalizeAIRouteGroupEndpointType(routes[idx].EndpointType) == model.EndpointTypeAll {
 					return idx
@@ -1614,7 +1615,7 @@ func ensureAIRouteGroupEndpointType(ctx context.Context, group *model.Group, rou
 
 	if target == model.EndpointTypeAll {
 		switch current {
-		case model.EndpointTypeAll, model.EndpointTypeChat, model.EndpointTypeResponses, model.EndpointTypeMessages:
+		case model.EndpointTypeAll, model.EndpointTypeChat, model.EndpointTypeMimo, model.EndpointTypeResponses, model.EndpointTypeMessages:
 			return group, nil
 		default:
 			return nil, fmt.Errorf("分组 %q 的 API 分类为 %s，与 AI 路由结果 %s 冲突", group.Name, current, target)

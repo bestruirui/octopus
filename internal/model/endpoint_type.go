@@ -6,6 +6,7 @@ const (
 	EndpointTypeAll                = "*"
 	EndpointTypeChat               = "chat"
 	EndpointTypeDeepSeek           = "deepseek"
+	EndpointTypeMimo               = "mimo"
 	EndpointTypeResponses          = "responses"
 	EndpointTypeMessages           = "messages"
 	EndpointTypeEmbeddings         = "embeddings"
@@ -29,7 +30,7 @@ func NormalizeEndpointType(endpointType string) string {
 
 func IsConversationEndpointType(endpointType string) bool {
 	switch NormalizeEndpointType(endpointType) {
-	case EndpointTypeChat, EndpointTypeDeepSeek, EndpointTypeResponses, EndpointTypeMessages:
+	case EndpointTypeChat, EndpointTypeDeepSeek, EndpointTypeMimo, EndpointTypeResponses, EndpointTypeMessages:
 		return true
 	default:
 		return false

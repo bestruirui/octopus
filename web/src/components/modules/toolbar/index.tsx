@@ -34,7 +34,7 @@ import {
 } from './view-options-store';
 
 const CHANNEL_FILTER_OPTIONS: ChannelFilter[] = ['all', 'enabled', 'disabled'];
-const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty', 'chat', 'embeddings', 'rerank', 'moderations', 'image_generation', 'audio_speech', 'audio_transcription', 'video_generation', 'music_generation', 'search'];
+const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty', 'chat', 'deepseek', 'mimo', 'embeddings', 'rerank', 'moderations', 'image_generation', 'audio_speech', 'audio_transcription', 'video_generation', 'music_generation', 'search'];
 const MODEL_FILTER_OPTIONS: ModelFilter[] = ['all', 'priced', 'free'];
 const MODEL_SORT_OPTIONS: ModelSortMode[] = ['success-rate', 'request-count'];
 type CombinedSortOption = {
@@ -117,6 +117,8 @@ export function Toolbar() {
         'with-members': 'popover.filter.group.withMembers',
         empty: 'popover.filter.group.empty',
         chat: 'popover.filter.group.chat',
+        deepseek: 'popover.filter.group.deepseek',
+        mimo: 'popover.filter.group.mimo',
         responses: 'popover.filter.group.chat',
         messages: 'popover.filter.group.chat',
         embeddings: 'popover.filter.group.embeddings',

@@ -23,6 +23,7 @@ export const ENDPOINT_TYPE_OPTIONS = [
     { labelKey: 'form.endpointType.options.all', value: '*' },
     { labelKey: 'form.endpointType.options.chat', value: 'chat' },
     { labelKey: 'form.endpointType.options.deepseek', value: 'deepseek' },
+    { labelKey: 'form.endpointType.options.mimo', value: 'mimo' },
     { labelKey: 'form.endpointType.options.embeddings', value: 'embeddings' },
     { labelKey: 'form.endpointType.options.rerank', value: 'rerank' },
     { labelKey: 'form.endpointType.options.moderations', value: 'moderations' },

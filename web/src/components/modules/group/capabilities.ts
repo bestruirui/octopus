@@ -23,7 +23,7 @@ export const ALL_CAPABILITIES: CapabilityType[] = [
     'search',
 ];
 
-const CONVERSATION_ENDPOINT_TYPES = new Set<string>(['chat', 'responses', 'messages']);
+const CONVERSATION_ENDPOINT_TYPES = new Set<string>(['chat', 'deepseek', 'mimo', 'responses', 'messages']);
 
 const FILTER_CAPABILITY_MAP = {
     chat: 'chat',
