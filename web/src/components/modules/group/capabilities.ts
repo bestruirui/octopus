@@ -39,7 +39,7 @@ const FILTER_CAPABILITY_MAP = {
 } as const satisfies Record<string, CapabilityType>;
 
 export type GroupEndpointFilter = keyof typeof FILTER_CAPABILITY_MAP;
-type LegacyGroupEndpointFilter = GroupEndpointFilter | 'responses' | 'messages';
+type LegacyGroupEndpointFilter = GroupEndpointFilter | 'deepseek' | 'mimo' | 'responses' | 'messages';
 
 const EMBEDDINGS_PATTERNS = [
     /embedding/,
@@ -191,6 +191,10 @@ export function matchesGroupEndpointFilter(
 
     if (normalizedEndpointType === normalizedFilter) {
         return true;
+    }
+
+    if (normalizedFilter === 'deepseek' || normalizedFilter === 'mimo') {
+        return false;
     }
 
     return inferGroupCapabilities(modelNames).includes(FILTER_CAPABILITY_MAP[normalizedFilter]);
