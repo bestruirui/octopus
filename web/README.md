@@ -66,9 +66,9 @@ The top-level `Dockerfile` already builds this frontend and copies the export in
 
 - `src/components/app.tsx`: Main application shell
 - `src/components/modules/model/*`: Model Market UI, including summary strip, virtualized cards, and price-edit actions
-- `src/components/modules/analytics/*`: Overview, utilization, route-health, and evaluation surfaces
+- `src/components/modules/analytics/*`: Utilization, route-health, and evaluation surfaces, plus shared overview cards reused by Home
 - `src/components/modules/ops/*`: Cache, quota, health, system, and audit surfaces
-- `src/components/modules/setting/*`: Settings cards including semantic cache, page order, AI route, backup, and dangerous actions
+- `src/components/modules/setting/*`: Settings cards including info, appearance/nav preferences, semantic cache, AI route, API key defaults, backup, and dangerous actions
 - `src/components/modules/navbar/*`: Top-level navigation state and persisted nav-order helpers
 - `src/api/`: API client and endpoint hooks
 - `src/route/config.tsx`: UI route registration
@@ -81,7 +81,7 @@ The top-level `Dockerfile` already builds this frontend and copies the export in
 - AI routing has two entry points: the route page button generates the full routing table, while the group edit dialog button appends matched items into the current group only.
 - The settings field for AI routing is now the default target group for the single-group compatibility flow, not the target for full-table generation.
 - The `Model` route is now a `Model Market` view backed by `/api/v1/model/market`; it merges pricing, coverage, enabled-key counts, latency, and success metrics while preserving price-management actions.
-- `Analytics` is organized into `overview`, `utilization`, `route-health`, and `evaluation` tabs. The evaluation tab links back into Group and Setting instead of duplicating those workflows.
+- `Analytics` is organized into `utilization`, `route-health`, and `evaluation` tabs. The overview query remains available, but its primary UI summary cards now live on Home.
 - `Ops` is organized into `cache`, `quota`, `health`, `system`, and `audit` tabs. Audit only covers selected management write routes, not public relay traffic.
 - Semantic cache settings are split into configured state and runtime-enabled state. Enabling the switch alone is not enough; the embedding base URL and embedding model also need to be configured before runtime metrics turn green.
-- Top-level page order is persisted through the `nav_order` setting and normalized against `DEFAULT_NAV_ORDER`, so missing routes are appended automatically and unknown routes are dropped.
+- Top-level page order is edited inside the `Appearance` card, persisted through the `nav_order` setting, and normalized against `DEFAULT_NAV_ORDER`, so missing routes are appended automatically and unknown routes are dropped.

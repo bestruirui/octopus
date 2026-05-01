@@ -74,7 +74,7 @@ export function normalizeRequestRewriteFormData(config?: RequestRewriteConfig | 
 }
 
 export function isRequestRewriteSupportedChannelType(channelType: ChannelType): boolean {
-    return channelType === ChannelType.OpenAIChat;
+    return channelType === ChannelType.OpenAIChat || channelType === ChannelType.Mimo;
 }
 
 export function getEffectiveRequestRewriteFormData(channelType: ChannelType, config?: RequestRewriteConfig | null): RequestRewriteConfig {
@@ -400,6 +400,7 @@ export function ChannelForm({
                             <SelectItem className='rounded-xl' value={String(ChannelType.Gemini)}>{t('typeGemini')}</SelectItem>
                             <SelectItem className='rounded-xl' value={String(ChannelType.Volcengine)}>{t('typeVolcengine')}</SelectItem>
                             <SelectItem className='rounded-xl' value={String(ChannelType.OpenAIEmbedding)}>{t('typeOpenAIEmbedding')}</SelectItem>
+                            <SelectItem className='rounded-xl' value={String(ChannelType.Mimo)}>{t('typeMimo')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

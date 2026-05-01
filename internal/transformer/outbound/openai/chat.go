@@ -82,13 +82,18 @@ func sanitizeRequestForOpenAICompat(request *model.InternalLLMRequest, baseURL s
 		return
 	}
 
+	normalizeDeepSeekReasoningCompat(request, baseURL)
+	request.ReasoningEffort = normalizeOpenAICompatReasoningEffort(request.ReasoningEffort)
+
 	preserveDeepSeekReasoning := shouldPreserveDeepSeekReasoning(baseURL, request)
 
 	for i := range request.Messages {
 		sanitizeMessageForOpenAICompat(&request.Messages[i], preserveDeepSeekReasoning)
 	}
 
-	request.ExtraBody = nil
+	if !isDeepSeekCompatRequest(baseURL, request) {
+		request.ExtraBody = nil
+	}
 	request.Include = nil
 }
 
@@ -108,24 +113,7 @@ func sanitizeMessageForOpenAICompat(msg *model.Message, preserveDeepSeekReasonin
 }
 
 func shouldPreserveDeepSeekReasoning(baseURL string, request *model.InternalLLMRequest) bool {
-	lowerBaseURL := strings.ToLower(strings.TrimSpace(baseURL))
-	if lowerBaseURL != "" && strings.Contains(lowerBaseURL, "deepseek") {
-		return true
-	}
-	if request == nil {
-		return false
-	}
-
-	if strings.EqualFold(
-		strings.TrimSpace(request.TransformerMetadata[model.TransformerMetadataGroupEndpointType]),
-		"deepseek",
-	) {
-		return true
-	}
-
-	lowerModelName := strings.ToLower(strings.TrimSpace(request.Model))
-
-	return strings.Contains(lowerModelName, "deepseek")
+	return isDeepSeekCompatRequest(baseURL, request)
 }
 
 func shouldKeepDeepSeekReasoningContent(msg *model.Message, preserveDeepSeekReasoning bool, reasoningContent string) bool {

@@ -1553,6 +1553,9 @@
                     },
                     "volcengine": {
                         "description": "火山引擎 Ark 接口"
+                    },
+                    "mimo": {
+                        "description": "小米 Mimo OpenAI 兼容接口"
                     }
                 },
                 "descriptions": {
@@ -1563,7 +1566,8 @@
                     "deepseek": "DeepSeek OpenAI 兼容接口。",
                     "openrouter": "OpenRouter 聚合接口。",
                     "siliconflow": "硅基流动 OpenAI 兼容接口。",
-                    "volcengine": "火山引擎 Ark 接口。"
+                    "volcengine": "火山引擎 Ark 接口。",
+                    "mimo": "小米 Mimo OpenAI 兼容接口。"
                 }
             },
             "remove": "移除",
@@ -1584,6 +1588,7 @@
             "typeAnthropic": "Anthropic",
             "typeGemini": "Gemini",
             "typeVolcengine": "火山引擎",
+            "typeMimo": "Mimo",
             "autoSync": "自动同步",
             "autoGroup": "自动分组",
             "autoGroupNone": "不自动分组",

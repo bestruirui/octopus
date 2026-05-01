@@ -329,11 +329,11 @@ The embedded management UI currently ships with these top-level modules:
 | Channel | Upstream provider configuration, keys, headers, sync, and latency probing |
 | Group | Model routing, load-balancing strategies, sticky sessions, group test, and AI route generation |
 | Model Market | Model catalog, custom pricing, channel coverage, enabled key counts, latency, and success summaries |
-| Analytics | Overview, utilization, route health, and evaluation |
+| Analytics | Home-linked overview metrics, utilization, route health, and evaluation |
 | Log | Relay request history, error details, token usage, and cost records |
 | Alert | Alert rules, notification channels, state, and history |
 | Ops | Semantic cache, API key quota posture, system health, runtime summary, and audit trail |
-| Setting | Runtime tuning, semantic cache, page order, AI route services, retry, circuit breaker, backup, and dangerous operations |
+| Setting | Version/update info, appearance and nav preferences, runtime tuning, semantic cache, AI route services, API key defaults, retry, circuit breaker, backup, and dangerous operations |
 | User | Admin user management and roles |
 
 ### 📡 Channel Management
@@ -465,16 +465,17 @@ The `Model` route is now a model market view instead of a plain price list. It c
 
 ### 📈 Analytics
 
-The Analytics module is a read-oriented operations view with four tabs:
+The Analytics module is a read-oriented operations view with three tabs:
 
 | Tab | What it shows |
 |-----|---------------|
-| Overview | Request count, success rate, token volume, cost, provider count, API key count, model count, and fallback rate |
 | Utilization | Provider, model, and API key breakdowns for the selected time range |
 | Route Health | Health score, enabled / disabled item counts, and recent failure pressure for each group |
 | Evaluation | Group readiness, AI route progress, group test progress, and semantic-cache effectiveness |
 
 **Time ranges:** `1d`, `7d`, `30d`, `90d`, `ytd`, and `all`
+
+The overview metrics API still exists as `/api/v1/analytics/overview`, but the primary UI entry point for those summary cards is now the Home page. Home also carries an independent `7d / 30d / 90d` overview-range switch, plus a daily hero summary, trend chart, activity heatmap, and ranking panel.
 
 The Evaluation tab is intentionally lightweight: it acts as an entry point into group testing, AI routing, and semantic-cache tuning instead of duplicating those full workflows.
 
@@ -522,10 +523,13 @@ Since the program handles numerous statistics, writing to the database on every 
 
 | Card | Purpose |
 |------|---------|
-| System | Public API base URL, proxy URL, and general runtime settings |
+| Info | Current version, latest release lookup, cache-mismatch detection, and in-place self-update entry |
+| Appearance | Theme, locale, alert language, and drag-and-drop top-level navigation order preferences |
+| System | Public API base URL, proxy URL, CORS allowlist, and stats persistence interval |
+| Account | Login-session/account preferences exposed in the current console |
 | Semantic Cache | Enablement, TTL, similarity threshold, max entries, embedding base URL / API key / model / timeout |
-| Page Order | Drag-and-drop ordering for top-level console pages, persisted globally in settings |
 | AI Route | Default compatibility group, timeout, parallelism, and service-pool configuration |
+| API Key | API key creation defaults and quota-related controls |
 | Retry / Auto Strategy / Circuit Breaker | Relay retry and candidate-selection tuning |
 | Log / LLM Price / LLM Sync | Retention, price refresh cadence, and upstream model synchronization |
 | Backup | Database export and import |

@@ -438,6 +438,8 @@ type ResponsesStreamEvent struct {
 // Conversion functions
 
 func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest {
+	reasoningEffort := normalizeOpenAICompatReasoningEffort(req.ReasoningEffort)
+
 	result := &ResponsesRequest{
 		Model:             req.Model,
 		Temperature:       req.Temperature,
@@ -477,9 +479,9 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 	}
 
 	// Convert reasoning
-	if req.ReasoningEffort != "" || req.ReasoningBudget != nil {
+	if reasoningEffort != "" {
 		result.Reasoning = &ResponsesReasoning{
-			Effort: req.ReasoningEffort,
+			Effort: reasoningEffort,
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/lingyuins/octopus/internal/transformer/model"
@@ -517,6 +518,205 @@ func TestChatOutboundTransformRequest_ClearsReasoningAliasForGenericOpenAICompat
 	}
 }
 
+func TestChatOutboundTransformRequest_OmitsNoneReasoningEffort(t *testing.T) {
+	outbound := &ChatOutbound{}
+	stream := false
+
+	request := &model.InternalLLMRequest{
+		Model:             "mimo-v2.5-pro",
+		ReasoningEffort:   "none",
+		Store:             &stream,
+		ParallelToolCalls: &stream,
+		Messages: []model.Message{
+			{
+				Role: "user",
+				Content: model.MessageContent{
+					Content: loPtr("Use the get_current_time tool."),
+				},
+			},
+		},
+	}
+
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://token-plan-cn.xiaomimimo.com/v1", "tp-test")
+	if err != nil {
+		t.Fatalf("TransformRequest() error = %v", err)
+	}
+
+	body, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		t.Fatalf("failed to read request body: %v", err)
+	}
+
+	var got struct {
+		ReasoningEffort *string `json:"reasoning_effort,omitempty"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal outbound body: %v", err)
+	}
+
+	if got.ReasoningEffort != nil {
+		t.Fatalf("expected reasoning_effort to be omitted, got %q", *got.ReasoningEffort)
+	}
+	if request.ReasoningEffort != "none" {
+		t.Fatalf("expected original request reasoning_effort to stay intact, got %q", request.ReasoningEffort)
+	}
+}
+
+func TestChatOutboundTransformRequest_MapsDeepSeekThinkingControls(t *testing.T) {
+	outbound := &ChatOutbound{}
+	stream := false
+
+	request := &model.InternalLLMRequest{
+		Model:           "DeepSeek-V4-Pro",
+		ReasoningEffort: "xhigh",
+		Store:           &stream,
+		ExtraBody:       json.RawMessage(`{"thinking":{"type":"enabled"},"foo":"bar"}`),
+		Messages: []model.Message{
+			{
+				Role: "user",
+				Content: model.MessageContent{
+					Content: loPtr("hello"),
+				},
+			},
+		},
+	}
+
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://api.deepseek.com/v1", "sk-test")
+	if err != nil {
+		t.Fatalf("TransformRequest() error = %v", err)
+	}
+
+	body, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		t.Fatalf("failed to read request body: %v", err)
+	}
+
+	var got struct {
+		ReasoningEffort string         `json:"reasoning_effort,omitempty"`
+		ExtraBody       map[string]any `json:"extra_body,omitempty"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal outbound body: %v", err)
+	}
+
+	if got.ReasoningEffort != "max" {
+		t.Fatalf("expected deepseek reasoning_effort max, got %q", got.ReasoningEffort)
+	}
+
+	thinking, ok := got.ExtraBody["thinking"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected extra_body.thinking to be preserved, got %#v", got.ExtraBody)
+	}
+	if thinking["type"] != "enabled" {
+		t.Fatalf("expected extra_body.thinking.type enabled, got %#v", thinking["type"])
+	}
+	if got.ExtraBody["foo"] != "bar" {
+		t.Fatalf("expected extra_body custom fields to be preserved, got %#v", got.ExtraBody["foo"])
+	}
+}
+
+func TestChatOutboundTransformRequest_DisablesDeepSeekThinkingWhenReasoningEffortNone(t *testing.T) {
+	outbound := &ChatOutbound{}
+	stream := false
+
+	request := &model.InternalLLMRequest{
+		Model:           "DeepSeek-V4-Pro",
+		ReasoningEffort: "none",
+		Store:           &stream,
+		Messages: []model.Message{
+			{
+				Role: "user",
+				Content: model.MessageContent{
+					Content: loPtr("hello"),
+				},
+			},
+		},
+	}
+
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://api.deepseek.com/v1", "sk-test")
+	if err != nil {
+		t.Fatalf("TransformRequest() error = %v", err)
+	}
+
+	body, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		t.Fatalf("failed to read request body: %v", err)
+	}
+
+	bodyText := string(body)
+	if strings.Contains(bodyText, `"reasoning_effort":"none"`) {
+		t.Fatalf("expected invalid reasoning_effort none to be omitted, got %s", bodyText)
+	}
+
+	var got struct {
+		ReasoningEffort *string `json:"reasoning_effort,omitempty"`
+		ExtraBody       struct {
+			Thinking struct {
+				Type string `json:"type"`
+			} `json:"thinking"`
+		} `json:"extra_body,omitempty"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal outbound body: %v", err)
+	}
+
+	if got.ReasoningEffort != nil {
+		t.Fatalf("expected reasoning_effort to be omitted, got %q", *got.ReasoningEffort)
+	}
+	if got.ExtraBody.Thinking.Type != "disabled" {
+		t.Fatalf("expected deepseek thinking to be disabled, got %q", got.ExtraBody.Thinking.Type)
+	}
+}
+
+func TestChatOutboundTransformRequest_DeepSeekThinkingDisabledOverridesReasoningEffort(t *testing.T) {
+	outbound := &ChatOutbound{}
+	stream := false
+
+	request := &model.InternalLLMRequest{
+		Model:           "deepseek-v4-pro",
+		ReasoningEffort: "high",
+		Store:           &stream,
+		ExtraBody:       json.RawMessage(`{"thinking":{"type":"disabled"}}`),
+		Messages: []model.Message{
+			{
+				Role: "user",
+				Content: model.MessageContent{
+					Content: loPtr("hello"),
+				},
+			},
+		},
+	}
+
+	httpReq, err := outbound.TransformRequest(context.Background(), request, "https://api.deepseek.com/v1", "sk-test")
+	if err != nil {
+		t.Fatalf("TransformRequest() error = %v", err)
+	}
+
+	body, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		t.Fatalf("failed to read request body: %v", err)
+	}
+
+	var got struct {
+		ReasoningEffort *string `json:"reasoning_effort,omitempty"`
+		ExtraBody       struct {
+			Thinking struct {
+				Type string `json:"type"`
+			} `json:"thinking"`
+		} `json:"extra_body,omitempty"`
+	}
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("failed to unmarshal outbound body: %v", err)
+	}
+
+	if got.ReasoningEffort != nil {
+		t.Fatalf("expected reasoning_effort to be omitted when thinking disabled, got %q", *got.ReasoningEffort)
+	}
+	if got.ExtraBody.Thinking.Type != "disabled" {
+		t.Fatalf("expected deepseek thinking type disabled, got %q", got.ExtraBody.Thinking.Type)
+	}
+}
+
 func assertJSONEncodedString(t *testing.T, raw json.RawMessage, want string) {
 	t.Helper()
 
@@ -527,4 +727,8 @@ func assertJSONEncodedString(t *testing.T, raw json.RawMessage, want string) {
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
+}
+
+func loPtr[T any](v T) *T {
+	return &v
 }

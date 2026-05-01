@@ -72,6 +72,7 @@ func detectZenPreferredChannelTypes(requestModel string, isEmbeddingRequest bool
 			outbound.OutboundTypeOpenAIChat:     {},
 			outbound.OutboundTypeOpenAIResponse: {},
 			outbound.OutboundTypeVolcengine:     {},
+			outbound.OutboundTypeMimo:           {},
 		}
 	default:
 		return nil

@@ -163,4 +163,21 @@ export const channelTemplates: ChannelTemplate[] = [
             match_regex: '',
         }),
     },
+    {
+        key: 'mimo',
+        name: 'Mimo',
+        descriptionKey: 'template.descriptions.mimo',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Mimo',
+            type: ChannelType.Mimo,
+            base_urls: [{ url: 'https://api.xiaomimimo.com/v1', delay: 0 }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
 ];

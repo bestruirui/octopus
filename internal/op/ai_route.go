@@ -1996,6 +1996,8 @@ func aiRouteProviderName(provider outbound.OutboundType) string {
 		return "volcengine"
 	case outbound.OutboundTypeOpenAIEmbedding:
 		return "openai_embedding"
+	case outbound.OutboundTypeMimo:
+		return "mimo"
 	default:
 		return fmt.Sprintf("provider_%d", provider)
 	}

@@ -1553,6 +1553,9 @@
                     },
                     "volcengine": {
                         "description": "Volcengine Ark API"
+                    },
+                    "mimo": {
+                        "description": "Xiaomi Mimo OpenAI-compatible API"
                     }
                 },
                 "descriptions": {
@@ -1563,7 +1566,8 @@
                     "deepseek": "DeepSeek OpenAI-compatible endpoint.",
                     "openrouter": "OpenRouter aggregated endpoint.",
                     "siliconflow": "SiliconFlow OpenAI-compatible endpoint.",
-                    "volcengine": "Volcengine Ark endpoint."
+                    "volcengine": "Volcengine Ark endpoint.",
+                    "mimo": "Xiaomi Mimo OpenAI-compatible endpoint."
                 }
             },
             "remove": "Remove",
@@ -1584,6 +1588,7 @@
             "typeAnthropic": "Anthropic",
             "typeGemini": "Gemini",
             "typeVolcengine": "Volcengine",
+            "typeMimo": "Mimo",
             "autoSync": "Auto Sync",
             "autoGroup": "Auto Group",
             "autoGroupNone": "None",

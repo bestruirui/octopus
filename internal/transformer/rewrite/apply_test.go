@@ -53,6 +53,22 @@ func TestResolve_RejectsUnsupportedChannelType(t *testing.T) {
 	}
 }
 
+func TestResolve_AcceptsMimoChannelType(t *testing.T) {
+	got, enabled, err := Resolve(outbound.OutboundTypeMimo, &appmodel.RequestRewriteConfig{
+		Enabled: true,
+		Profile: appmodel.RequestRewriteProfileOpenAIChatCompat,
+	})
+	if err != nil {
+		t.Fatalf("Resolve() error = %v", err)
+	}
+	if !enabled {
+		t.Fatal("Resolve() enabled = false, want true")
+	}
+	if got == nil {
+		t.Fatal("Resolve() config = nil, want non-nil")
+	}
+}
+
 func TestApply_FlattensTextOnlyBlockArray(t *testing.T) {
 	first := "first"
 	second := "second"

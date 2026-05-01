@@ -137,7 +137,7 @@ Channel creation/update also kicks off async helper work such as model discovery
 - Production frontend output is a static export (`next.config.ts` uses `output: "export"`) that gets copied into `static/out/` for Go embedding.
 - Dangerous settings actions live under `web/src/components/modules/setting/`; bulk route-group deletion uses a confirmation dialog in `RouteGroupDanger.tsx`.
 - Current primary modules are Home, Channel, Group, Model (Model Market), Analytics, Log, Alert, Ops, Setting, and User.
-- The settings module now includes dedicated Semantic Cache and Page Order cards in addition to the older runtime-tuning cards.
+- The settings module now includes dedicated Semantic Cache controls, while top-level page order lives inside the Appearance card rather than a standalone Page Order card.
 
 ## Files to inspect first for common tasks
 - Startup / wiring: `main.go`, `cmd/start.go`

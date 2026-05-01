@@ -145,7 +145,7 @@ func (c *RequestRewriteConfig) Validate(channelType outbound.OutboundType) error
 
 	switch c.Profile {
 	case RequestRewriteProfileOpenAIChatCompat:
-		if channelType != outbound.OutboundTypeOpenAIChat {
+		if channelType != outbound.OutboundTypeOpenAIChat && channelType != outbound.OutboundTypeMimo {
 			return fmt.Errorf("request rewrite profile %s is not supported for channel type %d", c.Profile, channelType)
 		}
 	default:

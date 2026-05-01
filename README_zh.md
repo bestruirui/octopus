@@ -330,11 +330,11 @@ http://localhost:3000
 | Channel | 上游渠道、Key、Header、同步和延迟探测 |
 | Group | 模型路由、负载均衡、会话保持、分组测试和 AI 路由 |
 | Model Market | 模型目录、自定义价格、渠道覆盖、可用 Key 数、延迟和成功率摘要 |
-| Analytics | 概览、利用率、路由健康、评估中心 |
+| Analytics | 首页承载概览指标后的利用率、路由健康、评估中心 |
 | Log | Relay 请求历史、错误详情、Token 使用和费用记录 |
 | Alert | 告警规则、通知渠道、状态和历史 |
 | Ops | 语义缓存、API Key 配额、系统健康、运行时摘要、审计轨迹 |
-| Setting | 运行时调优、语义缓存、页面顺序、AI 路由服务池、重试、熔断、备份和危险操作 |
+| Setting | 版本更新信息、外观与导航偏好、运行时调优、语义缓存、AI 路由服务池、API Key 默认配置、重试、熔断、备份和危险操作 |
 | User | 管理员用户和角色管理 |
 
 ### 📡 渠道管理
@@ -466,16 +466,17 @@ http://localhost:3000
 
 ### 📈 Analytics
 
-Analytics 是偏只读的分析模块，当前包含 4 个页签：
+Analytics 是偏只读的分析模块，当前包含 3 个页签：
 
 | 页签 | 展示内容 |
 |------|----------|
-| Overview | 请求量、成功率、Token 总量、总费用、供应商数、API Key 数、模型数、回退率 |
 | Utilization | 按供应商、模型、API Key 的利用率拆分 |
 | Route Health | 每个分组的健康分、启用 / 禁用项数量、近期失败压力 |
 | Evaluation | 分组可用性、AI 路由进度、分组测试进度、语义缓存成效 |
 
 **时间范围：** `1d`、`7d`、`30d`、`90d`、`ytd`、`all`
+
+`/api/v1/analytics/overview` 这个概览接口仍然保留，但当前 UI 中这些摘要指标的主要入口已经迁移到首页。首页现在额外承载独立的 `7d / 30d / 90d` 概览范围切换，以及 Hero 摘要、趋势图、活跃热力图和排行榜。
 
 `Evaluation` 不会复制完整的分组页和设置页，而是作为轻量入口，把分组测试、AI 路由和语义缓存评估串起来。
 
@@ -523,10 +524,13 @@ Ops 模块面向运行态诊断和运维视角，当前包含：
 
 | 卡片 | 作用 |
 |------|------|
-| System | Public API Base URL、代理和通用运行参数 |
+| Info | 当前版本、最新发布检查、前后端版本不一致检测、站内自更新入口 |
+| Appearance | 主题、语言、告警通知语言，以及一级导航顺序拖拽偏好 |
+| System | Public API Base URL、代理、CORS 白名单和统计落库周期 |
+| Account | 当前控制台暴露的账户 / 会话相关偏好 |
 | Semantic Cache | 开关、TTL、相似度阈值、最大条目数、embedding Base URL / API Key / 模型 / 超时 |
-| Page Order | 拖拽调整一级导航顺序，并全局持久化到设置中 |
 | AI Route | 单分组兼容默认目标、超时、并发度、服务池配置 |
+| API Key | API Key 创建默认值和配额相关控制 |
 | Retry / Auto Strategy / Circuit Breaker | Relay 重试和候选优选调优 |
 | Log / LLM Price / LLM Sync | 日志保留、价格刷新节奏、上游模型同步 |
 | Backup | 数据库导出与导入 |

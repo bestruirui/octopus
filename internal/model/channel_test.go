@@ -81,6 +81,16 @@ func TestRequestRewriteConfigValidate(t *testing.T) {
 			},
 			channelType: outbound.OutboundTypeOpenAIChat,
 		},
+		{
+			name: "valid mimo chat compat config",
+			cfg: &RequestRewriteConfig{
+				Enabled:               true,
+				Profile:               RequestRewriteProfileOpenAIChatCompat,
+				ToolRoleStrategy:      ToolRoleStrategyKeep,
+				SystemMessageStrategy: SystemMessageStrategyKeep,
+			},
+			channelType: outbound.OutboundTypeMimo,
+		},
 	}
 
 	for _, tt := range tests {
