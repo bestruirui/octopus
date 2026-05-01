@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:i18n": "node tests/i18n.test.mjs"
+    "test:i18n": "node tests/i18n.test.mjs",
+    "test:unit": "node --experimental-strip-types --test src/components/modules/alert/forms.test.ts src/components/modules/group/capabilities.test.ts src/components/modules/home/store.test.ts src/components/modules/model/sort.test.ts src/components/modules/navbar/nav-order.test.ts src/components/modules/setting/runtime-settings.test.ts src/components/ui/morphing-dialog-state.test.ts"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",

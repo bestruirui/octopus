@@ -28,6 +28,7 @@ import {
     type ChannelFilter,
     type GroupFilter,
     type ModelFilter,
+    type ModelSortMode,
     type ToolbarSortField,
     type ToolbarSortOrder,
 } from './view-options-store';
@@ -35,6 +36,7 @@ import {
 const CHANNEL_FILTER_OPTIONS: ChannelFilter[] = ['all', 'enabled', 'disabled'];
 const GROUP_FILTER_OPTIONS: GroupFilter[] = ['all', 'with-members', 'empty', 'chat', 'embeddings', 'rerank', 'moderations', 'image_generation', 'audio_speech', 'audio_transcription', 'video_generation', 'music_generation', 'search'];
 const MODEL_FILTER_OPTIONS: ModelFilter[] = ['all', 'priced', 'free'];
+const MODEL_SORT_OPTIONS: ModelSortMode[] = ['success-rate', 'request-count'];
 type CombinedSortOption = {
     value: `${ToolbarSortField}-${ToolbarSortOrder}`;
     field: ToolbarSortField;
@@ -65,7 +67,7 @@ function CreateDialogContent({ activeItem }: { activeItem: ToolbarPage }) {
 
 function getCreateDialogContentClassName(activeItem: ToolbarPage) {
     if (activeItem === 'group') {
-        return 'w-[min(100vw-1rem,72rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]';
+        return 'w-[min(100vw-1rem,56rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow h-[min(44rem,calc(100dvh-1rem))] flex flex-col overflow-hidden md:px-6 md:h-[min(44rem,calc(100dvh-2rem))]';
     }
 
     if (activeItem === 'channel') {
@@ -92,9 +94,11 @@ export function Toolbar() {
     const channelFilter = useToolbarViewOptionsStore((s) => s.channelFilter);
     const groupFilter = useToolbarViewOptionsStore((s) => normalizeGroupFilterValue(s.groupFilter));
     const modelFilter = useToolbarViewOptionsStore((s) => s.modelFilter);
+    const modelSortMode = useToolbarViewOptionsStore((s) => s.modelSortMode);
     const setChannelFilter = useToolbarViewOptionsStore((s) => s.setChannelFilter);
     const setGroupFilter = useToolbarViewOptionsStore((s) => s.setGroupFilter);
     const setModelFilter = useToolbarViewOptionsStore((s) => s.setModelFilter);
+    const setModelSortMode = useToolbarViewOptionsStore((s) => s.setModelSortMode);
     const [expandedSearchItem, setExpandedSearchItem] = useState<ToolbarPage | null>(null);
     const searchExpanded = expandedSearchItem === toolbarItem;
 
@@ -129,6 +133,10 @@ export function Toolbar() {
         all: 'popover.filter.model.all',
         priced: 'popover.filter.model.priced',
         free: 'popover.filter.model.free',
+    };
+    const modelSortLabelKeys: Record<ModelSortMode, string> = {
+        'success-rate': 'popover.filter.model.sort.successRate',
+        'request-count': 'popover.filter.model.sort.requestCount',
     };
 
     const filterOptions = toolbarItem === 'channel'
@@ -330,6 +338,26 @@ export function Toolbar() {
                             <div className="grid gap-2">
                                 <p className="text-xs font-medium text-muted-foreground">{t('popover.filter.title')}</p>
                                 <div className="grid gap-2">
+                                    {toolbarItem === 'model' && (
+                                        <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/10 p-2">
+                                            <p className="text-[11px] font-medium text-muted-foreground">{t('popover.filter.model.sort.title')}</p>
+                                            {MODEL_SORT_OPTIONS.map((option) => (
+                                                <button
+                                                    key={option}
+                                                    type="button"
+                                                    onClick={() => setModelSortMode(option)}
+                                                    className={cn(
+                                                        'h-8 rounded-lg border px-2 text-xs font-medium text-left transition-colors',
+                                                        modelSortMode === option
+                                                            ? 'border-primary/30 bg-primary text-primary-foreground'
+                                                            : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
+                                                    )}
+                                                >
+                                                    {t(modelSortLabelKeys[option])}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                     {filterOptions.map((option) => (
                                         <button
                                             key={option.value}

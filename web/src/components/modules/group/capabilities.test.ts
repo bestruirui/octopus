@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { inferCapabilities, matchesGroupEndpointFilter } from './capabilities';
+import { inferCapabilities, matchesGroupEndpointFilter } from './capabilities.ts';
 
 test('inferCapabilities classifies embedding models as embeddings instead of chat fallback', () => {
     assert.deepEqual(inferCapabilities('text-embedding-3-small'), ['embeddings']);

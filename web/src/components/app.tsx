@@ -189,8 +189,8 @@ export function AppContainer() {
                             );
                             prefetches.push(
                                 queryClient.prefetchQuery({
-                                    queryKey: ['channels', 'list'],
-                                    queryFn: async () => apiClient.get('/api/v1/channel/list'),
+                                    queryKey: ['stats', 'channel'],
+                                    queryFn: async () => apiClient.get('/api/v1/stats/channel'),
                                 })
                             );
                             break;

@@ -1,10 +1,19 @@
 package handlers
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/lingyuins/octopus/internal/db"
+	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op"
 )
 
 func TestClassifyChannelMutationError(t *testing.T) {
@@ -77,5 +86,126 @@ func TestClassifyChannelMutationError(t *testing.T) {
 				t.Fatalf("expected message containing %q, got %q", tt.wantMsg, msg)
 			}
 		})
+	}
+}
+
+func TestListChannelMasksKeysForViewer(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	ctx := context.Background()
+	testName := strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name())
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", testName)
+
+	if err := db.InitDB("sqlite", dsn, false); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	if err := op.InitCache(); err != nil {
+		t.Fatalf("init cache: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	channel := &model.Channel{
+		Name:      "viewer-check",
+		Type:      0,
+		Enabled:   true,
+		BaseUrls:  []model.BaseUrl{{URL: "https://example.com", Delay: 0}},
+		Model:     "gpt-4o",
+		AutoGroup: model.AutoGroupTypeNone,
+		Keys: []model.ChannelKey{
+			{Enabled: true, ChannelKey: "sk-secret-12345678", Remark: "primary"},
+		},
+	}
+	if err := op.ChannelCreate(channel, ctx); err != nil {
+		t.Fatalf("create channel: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/channel/list", nil)
+	c.Set("user_role", model.UserRoleViewer)
+
+	listChannel(c)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+
+	var response struct {
+		Code int             `json:"code"`
+		Data []model.Channel `json:"data"`
+	}
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(response.Data) != 1 || len(response.Data[0].Keys) != 1 {
+		t.Fatalf("unexpected response payload: %+v", response.Data)
+	}
+
+	got := response.Data[0].Keys[0].ChannelKey
+	if got == "sk-secret-12345678" {
+		t.Fatalf("expected masked key, got raw value %q", got)
+	}
+	if !strings.HasPrefix(got, "sk-s") || !strings.HasSuffix(got, "5678") {
+		t.Fatalf("expected masked key to retain edges, got %q", got)
+	}
+}
+
+func TestListChannelKeepsRawKeysForEditor(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	ctx := context.Background()
+	testName := strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name())
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", testName)
+
+	if err := db.InitDB("sqlite", dsn, false); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	if err := op.InitCache(); err != nil {
+		t.Fatalf("init cache: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	channel := &model.Channel{
+		Name:      "editor-check",
+		Type:      0,
+		Enabled:   true,
+		BaseUrls:  []model.BaseUrl{{URL: "https://example.com", Delay: 0}},
+		Model:     "gpt-4o",
+		AutoGroup: model.AutoGroupTypeNone,
+		Keys: []model.ChannelKey{
+			{Enabled: true, ChannelKey: "sk-secret-abcdef12", Remark: "primary"},
+		},
+	}
+	if err := op.ChannelCreate(channel, ctx); err != nil {
+		t.Fatalf("create channel: %v", err)
+	}
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/channel/list", nil)
+	c.Set("user_role", model.UserRoleEditor)
+
+	listChannel(c)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+
+	var response struct {
+		Code int             `json:"code"`
+		Data []model.Channel `json:"data"`
+	}
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(response.Data) != 1 || len(response.Data[0].Keys) != 1 {
+		t.Fatalf("unexpected response payload: %+v", response.Data)
+	}
+	if got := response.Data[0].Keys[0].ChannelKey; got != "sk-secret-abcdef12" {
+		t.Fatalf("expected raw key for editor, got %q", got)
 	}
 }

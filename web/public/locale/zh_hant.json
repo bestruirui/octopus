@@ -547,7 +547,12 @@
                 "model": {
                     "all": "全部模型",
                     "priced": "僅收費",
-                    "free": "僅免費"
+                    "free": "僅免費",
+                    "sort": {
+                        "title": "排序方式",
+                        "successRate": "按成功率",
+                        "requestCount": "按呼叫次數"
+                    }
                 }
             }
         }
@@ -576,27 +581,27 @@
             "noData": "無數據"
         },
         "hero": {
-            "eyebrow": "今日總覽",
-            "title": "今日經營總覽",
-            "subtitle": "即時掌握當日請求表現、成本效率與供給運行狀態。",
-            "description": "聚焦當日核心經營指標，幫助快速判斷服務承載、交付品質與成本變化。",
+            "eyebrow": "個人中樞",
+            "title": "今日使用",
+            "subtitle": "",
+            "description": "",
             "signals": {
-                "requests": "今日請求",
+                "requests": "今日呼叫",
                 "successRate": "今日成功率",
-                "cost": "今日成本",
-                "channels": "在線渠道"
+                "cost": "今日花費",
+                "channels": "可用渠道"
             },
             "metrics": {
-                "avgWait": "平均時延",
-                "successful": "成功請求",
+                "avgWait": "平均回應時延",
+                "successful": "成功呼叫",
                 "tokens": "消耗 Token",
-                "costPerRequest": "單次請求成本"
+                "costPerRequest": "單次呼叫成本"
             }
         },
         "overview": {
-            "badge": "經營看板",
-            "title": "核心經營指標",
-            "description": "按週期追蹤請求規模、成功率、成本效率與供給覆蓋，快速判斷整體經營表現。",
+            "badge": "中樞概覽",
+            "title": "使用概覽",
+            "description": "按週期查看呼叫規模、成功率、花費和覆蓋情況。",
             "empty": "目前範圍內暫無概覽資料",
             "range": {
                 "7d": "7天",

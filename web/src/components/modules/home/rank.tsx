@@ -1,14 +1,13 @@
 'use client';
 
-import { useChannelList } from '@/api/endpoints/channel';
-import { useStatsAPIKey } from '@/api/endpoints/stats';
+import { useStatsAPIKey, useStatsChannel } from '@/api/endpoints/stats';
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from '@/components/animate-ui/components/animate/tabs';
 import { useHomeViewStore, type RankSortMode } from '@/components/modules/home/store';
 
-type ChannelData = NonNullable<ReturnType<typeof useChannelList>['data']>[number];
+type ChannelData = NonNullable<ReturnType<typeof useStatsChannel>['data']>[number];
 type APIKeyStatsData = NonNullable<ReturnType<typeof useStatsAPIKey>['data']>[number];
 type APIKeyRankData = APIKeyStatsData & { name: string };
 
@@ -16,7 +15,7 @@ export function Rank() {
     const {
         data: channelData,
         isLoading: isChannelListLoading,
-    } = useChannelList();
+    } = useStatsChannel();
     const t = useTranslations('home.rank');
     const rankSortMode = useHomeViewStore((state) => state.rankSortMode);
     const setRankSortMode = useHomeViewStore((state) => state.setRankSortMode);
@@ -27,19 +26,19 @@ export function Rank() {
 
     const channelsWithUsage = useMemo<ChannelData[]>(() => {
         if (!channelData) return [];
-        return channelData.filter((channel) => channel.formatted.request_count.raw > 0);
+        return channelData.filter((channel) => channel.request_count.raw > 0);
     }, [channelData]);
 
     const rankedByCost = useMemo<ChannelData[]>(() => {
-        return [...channelsWithUsage].sort((a, b) => b.formatted.total_cost.raw - a.formatted.total_cost.raw);
+        return [...channelsWithUsage].sort((a, b) => b.total_cost.raw - a.total_cost.raw);
     }, [channelsWithUsage]);
 
     const rankedByCount = useMemo<ChannelData[]>(() => {
-        return [...channelsWithUsage].sort((a, b) => b.formatted.request_count.raw - a.formatted.request_count.raw);
+        return [...channelsWithUsage].sort((a, b) => b.request_count.raw - a.request_count.raw);
     }, [channelsWithUsage]);
 
     const rankedByTokens = useMemo<ChannelData[]>(() => {
-        return [...channelsWithUsage].sort((a, b) => b.formatted.total_token.raw - a.formatted.total_token.raw);
+        return [...channelsWithUsage].sort((a, b) => b.total_token.raw - a.total_token.raw);
     }, [channelsWithUsage]);
 
     const rankedByKeyUsage = useMemo<APIKeyRankData[]>(() => {
@@ -89,7 +88,7 @@ export function Rank() {
 
                     return (
                         <div
-                            key={channel.raw.id}
+                            key={channel.channel_id}
                             className="flex items-center gap-3 p-3 rounded-2xl hover:bg-accent/5 transition-colors"
                         >
                             <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-lg shrink-0">
@@ -97,10 +96,10 @@ export function Rank() {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{channel.raw.name}</p>
+                                <p className="font-medium text-sm truncate">{channel.channel_name}</p>
                                 {mode === 'count' && (() => {
-                                    const successCount = channel.formatted.request_success.raw;
-                                    const failedCount = channel.formatted.request_failed.raw;
+                                    const successCount = channel.request_success.raw;
+                                    const failedCount = channel.request_failed.raw;
                                     const totalCount = successCount + failedCount;
                                     const successRate = totalCount > 0 ? (successCount / totalCount) * 100 : 0;
 
@@ -117,31 +116,31 @@ export function Rank() {
                                 {mode === 'count' ? (
                                     <div className="flex items-center gap-1 text-sm font-medium tabular-nums">
                                         <span className="text-accent">
-                                            {channel.formatted.request_success.formatted.value}
+                                            {channel.request_success.formatted.value}
                                             <span className="text-xs text-muted-foreground">
-                                                {channel.formatted.request_success.formatted.unit}
+                                                {channel.request_success.formatted.unit}
                                             </span>
                                         </span>
                                         <span className="text-muted-foreground/40 font-light">/</span>
                                         <span className="text-destructive">
-                                            {channel.formatted.request_failed.formatted.value}
+                                            {channel.request_failed.formatted.value}
                                             <span className="text-xs text-muted-foreground">
-                                                {channel.formatted.request_failed.formatted.unit}
+                                                {channel.request_failed.formatted.unit}
                                             </span>
                                         </span>
                                     </div>
                                 ) : mode === 'tokens' ? (
                                     <span className="font-semibold text-base">
-                                        {channel.formatted.total_token.formatted.value}
+                                        {channel.total_token.formatted.value}
                                         <span className="text-xs text-muted-foreground">
-                                            {channel.formatted.total_token.formatted.unit}
+                                            {channel.total_token.formatted.unit}
                                         </span>
                                     </span>
                                 ) : (
                                     <span className="font-semibold text-base">
-                                        {channel.formatted.total_cost.formatted.value}
+                                        {channel.total_cost.formatted.value}
                                         <span className="text-xs text-muted-foreground">
-                                            {channel.formatted.total_cost.formatted.unit}
+                                            {channel.total_cost.formatted.unit}
                                         </span>
                                     </span>
                                 )}

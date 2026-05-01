@@ -33,6 +33,18 @@ export interface StatsChannel extends StatsMetrics {
     channel_id: number;
 }
 
+export interface StatsChannelItem extends StatsMetrics {
+    channel_id: number;
+    channel_name: string;
+    enabled: boolean;
+}
+
+export interface StatsChannelItemFormatted extends StatsMetricsFormatted {
+    channel_id: number;
+    channel_name: string;
+    enabled: boolean;
+}
+
 export interface StatsDaily extends StatsMetrics {
     date: string;
 }
@@ -172,6 +184,35 @@ export function useStatsAPIKey(options?: { enabled?: boolean }) {
         select: (data) => data.map((item): StatsAPIKeyFormatted => ({
             api_key_id: item.api_key_id,
             name: item.name,
+            input_token: formatCount(item.input_token),
+            output_token: formatCount(item.output_token),
+            total_token: formatCount(item.input_token + item.output_token),
+            input_cost: formatMoney(item.input_cost),
+            output_cost: formatMoney(item.output_cost),
+            total_cost: formatMoney(item.input_cost + item.output_cost),
+            wait_time: formatTime(item.wait_time),
+            request_success: formatCount(item.request_success),
+            request_failed: formatCount(item.request_failed),
+            request_count: formatCount(item.request_success + item.request_failed),
+        })),
+        enabled,
+        refetchInterval: 30000,
+        refetchOnMount: 'always',
+    });
+}
+
+export function useStatsChannel(options?: { enabled?: boolean }) {
+    const { enabled = true } = options ?? {};
+
+    return useQuery({
+        queryKey: ['stats', 'channel'],
+        queryFn: async () => {
+            return apiClient.get<StatsChannelItem[]>('/api/v1/stats/channel');
+        },
+        select: (data) => data.map((item): StatsChannelItemFormatted => ({
+            channel_id: item.channel_id,
+            channel_name: item.channel_name,
+            enabled: item.enabled,
             input_token: formatCount(item.input_token),
             output_token: formatCount(item.output_token),
             total_token: formatCount(item.input_token + item.output_token),

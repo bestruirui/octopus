@@ -282,7 +282,7 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 			}
 
 			query := db.GetDB().WithContext(ctx).
-				Select("id", "time", "request_model_name", "request_api_key_name",
+				Select("id", "time", "request_model_name", "request_api_key_id", "request_api_key_name",
 					"channel_id", "channel_name", "actual_model_name",
 					"input_tokens", "output_tokens", "ftut", "use_time",
 					"cost", "error", "attempts", "total_attempts")

@@ -40,7 +40,7 @@ export function CreateDialogContent() {
     const t = useTranslations('group');
 
     return (
-        <div className="w-full max-w-full md:max-w-4xl h-[calc(100dvh-3rem)] min-h-0 flex flex-col md:h-[calc(100dvh-4rem)]">
+        <div className="w-full max-w-full md:max-w-4xl h-[min(42rem,calc(100dvh-3rem))] min-h-0 flex flex-col">
             <MorphingDialogTitle className="shrink-0">
                 <header className="mb-5 flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-card-foreground">

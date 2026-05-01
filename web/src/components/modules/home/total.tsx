@@ -11,8 +11,7 @@ import {
     Percent
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useStatsTotal } from '@/api/endpoints/stats';
-import { useChannelList } from '@/api/endpoints/channel';
+import { useStatsChannel, useStatsTotal } from '@/api/endpoints/stats';
 import { AnimatedNumber } from '@/components/common/AnimatedNumber';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { formatCount, formatMoney, formatTime } from '@/lib/utils';
@@ -20,7 +19,7 @@ import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 
 export function Total() {
     const { data: statsTotalFormatted } = useStatsTotal();
-    const { data: channelData } = useChannelList();
+    const { data: channelData } = useStatsChannel();
     const t = useTranslations('home.total');
 
     const requestCount = statsTotalFormatted?.request_count.raw ?? 0;
@@ -31,7 +30,7 @@ export function Total() {
     const successRate = requestCount > 0 ? (successCount / requestCount) * 100 : 0;
     const avgWaitTime = requestCount > 0 ? totalWaitTime / requestCount : 0;
     const avgCostPerRequest = requestCount > 0 ? totalCost / requestCount : 0;
-    const activeChannelCount = channelData?.filter((channel) => channel.formatted.request_count.raw > 0).length ?? 0;
+    const activeChannelCount = channelData?.filter((channel) => channel.request_count.raw > 0).length ?? 0;
 
     const cards = [
         {

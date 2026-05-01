@@ -55,22 +55,28 @@ func TestBuildModelMarket_AggregatesChannelsKeysAndStats(t *testing.T) {
 	}
 }
 
-func TestBuildModelMarket_SortsItemsByName(t *testing.T) {
+func TestBuildModelMarket_SortsItemsBySuccessRateThenSuccessCount(t *testing.T) {
 	items, _ := buildModelMarket(
 		[]model.LLMInfo{
 			{Name: "z-model"},
 			{Name: "a-model"},
+			{Name: "b-model"},
+			{Name: "c-model"},
 		},
 		nil,
 		nil,
-		nil,
+		[]model.StatsModel{
+			{ID: 1, Name: "z-model", StatsMetrics: model.StatsMetrics{RequestSuccess: 8, RequestFailed: 2}},
+			{ID: 2, Name: "a-model", StatsMetrics: model.StatsMetrics{RequestSuccess: 4, RequestFailed: 0}},
+			{ID: 3, Name: "b-model", StatsMetrics: model.StatsMetrics{RequestSuccess: 6, RequestFailed: 0}},
+		},
 		time.Time{},
 	)
 
-	if len(items) != 2 {
-		t.Fatalf("len(items) = %d, want 2", len(items))
+	if len(items) != 4 {
+		t.Fatalf("len(items) = %d, want 4", len(items))
 	}
-	if items[0].Name != "a-model" || items[1].Name != "z-model" {
+	if items[0].Name != "b-model" || items[1].Name != "a-model" || items[2].Name != "z-model" || items[3].Name != "c-model" {
 		t.Fatalf("unexpected item order: %+v", items)
 	}
 }

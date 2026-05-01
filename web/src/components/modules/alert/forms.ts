@@ -46,7 +46,7 @@ export function applyAlertRuleDraft<T extends AlertRuleEditable>(rule: T, draft:
     };
 }
 
-export function createAlertChannelDraft(channel: Partial<AlertChannelDraft> = {}): AlertChannelDraft {
+export function createAlertChannelDraft<T extends Partial<AlertChannelDraft>>(channel: T = {} as T): AlertChannelDraft {
     return {
         name: channel.name ?? '',
         url: channel.url ?? '',

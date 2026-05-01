@@ -21,6 +21,7 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { XIcon } from 'lucide-react';
 import useClickOutside from '@/hooks/useClickOutside';
+import { getMorphingDialogLifecycleEvent } from './morphing-dialog-state';
 
 export type MorphingDialogContextType = {
   isOpen: boolean;
@@ -60,6 +61,17 @@ function MorphingDialogProvider({
   const [isOpen, setIsOpen] = useState(false);
   const uniqueId = useId();
   const triggerRef = useRef<HTMLDivElement>(null!);
+  const pendingLifecycleEventRef = useRef<ReturnType<typeof getMorphingDialogLifecycleEvent>>(null);
+
+  useEffect(() => {
+    const event = pendingLifecycleEventRef.current;
+    if (event === 'opened') {
+      onOpen?.();
+    } else if (event === 'closed') {
+      onClose?.();
+    }
+    pendingLifecycleEventRef.current = null;
+  }, [isOpen, onOpen, onClose]);
 
   const contextValue = useMemo(
     () => ({
@@ -67,8 +79,7 @@ function MorphingDialogProvider({
       setIsOpen: (value: React.SetStateAction<boolean>) => {
         setIsOpen((prev) => {
           const next = typeof value === 'function' ? value(prev) : value;
-          if (!prev && next) onOpen?.();
-          if (prev && !next) onClose?.();
+          pendingLifecycleEventRef.current = getMorphingDialogLifecycleEvent(prev, next);
           return next;
         });
       },

@@ -3,8 +3,7 @@
 import { motion } from 'motion/react';
 import { Activity, ArrowRight, Coins, DollarSign, RadioTower, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useStatsToday } from '@/api/endpoints/stats';
-import { useChannelList } from '@/api/endpoints/channel';
+import { useStatsChannel, useStatsToday } from '@/api/endpoints/stats';
 import { AnimatedNumber } from '@/components/common/AnimatedNumber';
 import { EASING } from '@/lib/animations/fluid-transitions';
 import { formatCount, formatMoney, formatTime } from '@/lib/utils';
@@ -12,14 +11,14 @@ import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 export function HomeHero() {
     const t = useTranslations('home.hero');
     const { data: statsToday } = useStatsToday();
-    const { data: channelData } = useChannelList();
+    const { data: channelData } = useStatsChannel();
 
     const requestCount = (statsToday?.request_success ?? 0) + (statsToday?.request_failed ?? 0);
     const successCount = statsToday?.request_success ?? 0;
     const totalCost = (statsToday?.input_cost ?? 0) + (statsToday?.output_cost ?? 0);
     const totalWaitTime = statsToday?.wait_time ?? 0;
     const successRate = requestCount > 0 ? (successCount / requestCount) * 100 : 0;
-    const enabledChannels = channelData?.filter((channel) => channel.raw.enabled).length ?? 0;
+    const enabledChannels = channelData?.filter((channel) => channel.enabled).length ?? 0;
     const avgWait = requestCount > 0 ? totalWaitTime / requestCount : 0;
 
     const signals = [
@@ -107,13 +106,17 @@ export function HomeHero() {
                             </div>
                             <div className="space-y-1">
                                 <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t('title')}</h1>
-                                <p className="text-sm leading-6 text-muted-foreground md:text-base">{t('subtitle')}</p>
+                                {t('subtitle') ? (
+                                    <p className="text-sm leading-6 text-muted-foreground md:text-base">{t('subtitle')}</p>
+                                ) : null}
                             </div>
                         </div>
 
-                        <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
-                            {t('description')}
-                        </p>
+                        {t('description') ? (
+                            <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
+                                {t('description')}
+                            </p>
+                        ) : null}
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">

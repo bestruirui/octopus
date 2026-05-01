@@ -77,7 +77,11 @@ func listChannel(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
+	canViewRawKeys := auth.HasPermission(c.GetString("user_role"), auth.PermChannelsWrite)
 	for i, channel := range channels {
+		if !canViewRawKeys {
+			channels[i].Keys = maskChannelKeys(channel.Keys)
+		}
 		stats := op.StatsChannelGet(channel.ID)
 		channels[i].Stats = &stats
 	}
@@ -235,4 +239,28 @@ func classifyChannelMutationError(err error) (int, string, bool) {
 	default:
 		return 0, "", false
 	}
+}
+
+func maskChannelKeys(keys []model.ChannelKey) []model.ChannelKey {
+	if len(keys) == 0 {
+		return nil
+	}
+
+	masked := make([]model.ChannelKey, len(keys))
+	for i, key := range keys {
+		key.ChannelKey = maskChannelKeyValue(key.ChannelKey)
+		masked[i] = key
+	}
+	return masked
+}
+
+func maskChannelKeyValue(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	if len(trimmed) <= 8 {
+		return strings.Repeat("*", len(trimmed))
+	}
+	return trimmed[:4] + strings.Repeat("*", len(trimmed)-8) + trimmed[len(trimmed)-4:]
 }

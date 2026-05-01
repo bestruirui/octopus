@@ -527,6 +527,14 @@ func StatsAPIKeyList() []model.StatsAPIKey {
 	return apiKeys
 }
 
+func StatsChannelList() []model.StatsChannel {
+	channels := make([]model.StatsChannel, 0, statsChannelCache.Len())
+	for _, v := range statsChannelCache.GetAll() {
+		channels = append(channels, v)
+	}
+	return channels
+}
+
 func StatsHourlyGet() []model.StatsHourly {
 	now := time.Now()
 	currentHour := now.Hour()
@@ -590,6 +598,12 @@ func statsRefreshCache(ctx context.Context) error {
 		return fmt.Errorf("failed to get channels: %v", result.Error)
 	}
 
+	var loadedModels []model.StatsModel
+	result = dbConn.Find(&loadedModels)
+	if result.Error != nil {
+		return fmt.Errorf("failed to get model stats: %v", result.Error)
+	}
+
 	var loadedHourly []model.StatsHourly
 	result = dbConn.Find(&loadedHourly)
 	if result.Error != nil {
@@ -610,6 +624,14 @@ func statsRefreshCache(ctx context.Context) error {
 	statsChannelCacheNeedUpdateLock.Unlock()
 	for _, v := range loadedChannels {
 		statsChannelCache.Set(v.ChannelID, v)
+	}
+
+	statsModelCache.Clear()
+	statsModelCacheNeedUpdateLock.Lock()
+	statsModelCacheNeedUpdate = make(map[int]struct{})
+	statsModelCacheNeedUpdateLock.Unlock()
+	for _, v := range loadedModels {
+		statsModelCache.Set(v.ID, v)
 	}
 
 	var loadedAPIKeys []model.StatsAPIKey

@@ -547,7 +547,12 @@
                 "model": {
                     "all": "全部模型",
                     "priced": "仅收费",
-                    "free": "仅免费"
+                    "free": "仅免费",
+                    "sort": {
+                        "title": "排序方式",
+                        "successRate": "按成功率",
+                        "requestCount": "按调用次数"
+                    }
                 }
             }
         }
@@ -576,27 +581,27 @@
             "noData": "无数据"
         },
         "hero": {
-            "eyebrow": "今日总览",
-            "title": "今日经营总览",
-            "subtitle": "实时掌握当日请求表现、成本效率与供给运行状态。",
-            "description": "聚焦当日核心经营指标，帮助快速判断服务承载、交付质量与成本变化。",
+            "eyebrow": "个人中枢",
+            "title": "今日使用",
+            "subtitle": "",
+            "description": "",
             "signals": {
-                "requests": "今日请求",
+                "requests": "今日调用",
                 "successRate": "今日成功率",
-                "cost": "今日成本",
-                "channels": "在线渠道"
+                "cost": "今日花费",
+                "channels": "可用渠道"
             },
             "metrics": {
-                "avgWait": "平均时延",
-                "successful": "成功请求",
+                "avgWait": "平均响应时延",
+                "successful": "成功调用",
                 "tokens": "消耗 Token",
-                "costPerRequest": "单次请求成本"
+                "costPerRequest": "单次调用成本"
             }
         },
         "overview": {
-            "badge": "经营看板",
-            "title": "核心经营指标",
-            "description": "按周期追踪请求规模、成功率、成本效率与供给覆盖，快速判断整体经营表现。",
+            "badge": "中枢概览",
+            "title": "使用概览",
+            "description": "按周期查看调用规模、成功率、花费和覆盖情况。",
             "empty": "当前范围内暂无概览数据",
             "range": {
                 "7d": "7天",

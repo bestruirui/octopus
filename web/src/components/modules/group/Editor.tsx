@@ -523,7 +523,7 @@ export function GroupEditor({
                         ))}
                     </div>
 
-                    <div className="min-h-[36rem] lg:flex-1 lg:min-h-0">
+                    <div className="min-h-[28rem] lg:flex-1 lg:min-h-0">
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:h-full lg:min-h-0">
                             <ModelPickerSection
                                 modelChannels={modelChannels}

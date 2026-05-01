@@ -71,6 +71,8 @@ function hasModel(supported: string | undefined, model: string): boolean {
     return supported ? supported.split(',').includes(model) : false;
 }
 
+const PER_MODEL_QUOTA_PLACEHOLDER = '{"gpt-4o":{"rpm":5,"tpm":50000}}';
+
 interface APIKeyFormProps {
     apiKey?: APIKey;
     isPending: boolean;
@@ -248,7 +250,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                 {t('apiKey.form.perModelQuota.label')}
                 <Input
                     type="text"
-                    placeholder={t('apiKey.form.perModelQuota.placeholder')}
+                    placeholder={PER_MODEL_QUOTA_PLACEHOLDER}
                     value={form.per_model_quota_json ?? ''}
                     onChange={(e) => updateForm({ per_model_quota_json: e.target.value })}
                     className="h-9 text-sm rounded-xl font-mono"

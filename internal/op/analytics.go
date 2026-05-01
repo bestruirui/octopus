@@ -40,7 +40,8 @@ type analyticsModelAggregateRow struct {
 }
 
 type analyticsAPIKeyAggregateRow struct {
-	Name string
+	APIKeyID int
+	Name     string
 	analyticsAggregateMetrics
 }
 
@@ -153,24 +154,7 @@ func AnalyticsAPIKeyBreakdownGet(ctx context.Context, r model.AnalyticsRange) ([
 	if err != nil {
 		return nil, err
 	}
-
-	apiKeys, err := APIKeyList(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	apiKeyIDsByName := make(map[string]int, len(apiKeys))
-	for _, apiKey := range apiKeys {
-		name := strings.TrimSpace(apiKey.Name)
-		if name == "" {
-			continue
-		}
-		if _, exists := apiKeyIDsByName[name]; !exists {
-			apiKeyIDsByName[name] = apiKey.ID
-		}
-	}
-
-	return buildAPIKeyBreakdown(rows, apiKeyIDsByName), nil
+	return buildAPIKeyBreakdown(rows), nil
 }
 
 func AnalyticsGroupHealthGet(ctx context.Context) ([]model.AnalyticsGroupHealthItem, error) {
@@ -383,7 +367,7 @@ func buildModelBreakdown(rows map[string]*analyticsModelAggregateRow) []model.An
 	return items
 }
 
-func buildAPIKeyBreakdown(rows map[string]*analyticsAPIKeyAggregateRow, apiKeyIDsByName map[string]int) []model.AnalyticsAPIKeyBreakdownItem {
+func buildAPIKeyBreakdown(rows map[string]*analyticsAPIKeyAggregateRow) []model.AnalyticsAPIKeyBreakdownItem {
 	items := make([]model.AnalyticsAPIKeyBreakdownItem, 0, len(rows))
 	for _, row := range rows {
 		if row == nil {
@@ -391,7 +375,11 @@ func buildAPIKeyBreakdown(rows map[string]*analyticsAPIKeyAggregateRow, apiKeyID
 		}
 		name := strings.TrimSpace(row.Name)
 		if name == "" {
-			name = "Unknown Key"
+			if row.APIKeyID > 0 {
+				name = "Key #" + strconv.Itoa(row.APIKeyID)
+			} else {
+				name = "Unknown Key"
+			}
 		}
 
 		requestCount := row.RequestSuccess + row.RequestFailed
@@ -411,7 +399,8 @@ func buildAPIKeyBreakdown(rows map[string]*analyticsAPIKeyAggregateRow, apiKeyID
 				SuccessRate:  successRate,
 			},
 		}
-		if id, ok := apiKeyIDsByName[name]; ok {
+		if row.APIKeyID > 0 {
+			id := row.APIKeyID
 			item.APIKeyID = &id
 		}
 		items = append(items, item)
@@ -713,6 +702,7 @@ func loadAnalyticsAPIKeyRows(ctx context.Context, r model.AnalyticsRange) (map[s
 		query := db.GetDB().WithContext(ctx).
 			Model(&model.RelayLog{}).
 			Select(`
+				request_api_key_id AS api_key_id,
 				request_api_key_name AS name,
 				COALESCE(SUM(input_tokens), 0) AS input_tokens,
 				COALESCE(SUM(output_tokens), 0) AS output_tokens,
@@ -720,7 +710,7 @@ func loadAnalyticsAPIKeyRows(ctx context.Context, r model.AnalyticsRange) (map[s
 				COALESCE(SUM(CASE WHEN error = '' THEN 1 ELSE 0 END), 0) AS request_success,
 				COALESCE(SUM(CASE WHEN error <> '' THEN 1 ELSE 0 END), 0) AS request_failed
 			`).
-			Group("request_api_key_name")
+			Group("request_api_key_id, request_api_key_name")
 		if startUnix != nil {
 			query = query.Where("time >= ?", *startUnix)
 		}
@@ -728,10 +718,9 @@ func loadAnalyticsAPIKeyRows(ctx context.Context, r model.AnalyticsRange) (map[s
 			return nil, err
 		}
 		for _, row := range dbRows {
-			keyName := strings.TrimSpace(row.Name)
 			rowCopy := row
-			rowCopy.Name = keyName
-			rows[keyName] = &rowCopy
+			rowCopy.Name = strings.TrimSpace(row.Name)
+			rows[makeAnalyticsAPIKeyAggregateKey(row.APIKeyID, rowCopy.Name)] = &rowCopy
 		}
 	}
 
@@ -740,11 +729,16 @@ func loadAnalyticsAPIKeyRows(ctx context.Context, r model.AnalyticsRange) (map[s
 		if startUnix != nil && logItem.Time < *startUnix {
 			continue
 		}
+		apiKeyID := logItem.RequestAPIKeyID
 		keyName := strings.TrimSpace(logItem.RequestAPIKeyName)
-		row, ok := rows[keyName]
+		aggregateKey := makeAnalyticsAPIKeyAggregateKey(apiKeyID, keyName)
+		row, ok := rows[aggregateKey]
 		if !ok {
-			row = &analyticsAPIKeyAggregateRow{Name: keyName}
-			rows[keyName] = row
+			row = &analyticsAPIKeyAggregateRow{
+				APIKeyID: apiKeyID,
+				Name:     keyName,
+			}
+			rows[aggregateKey] = row
 		}
 		row.InputTokens += int64(logItem.InputTokens)
 		row.OutputTokens += int64(logItem.OutputTokens)
@@ -754,10 +748,20 @@ func loadAnalyticsAPIKeyRows(ctx context.Context, r model.AnalyticsRange) (map[s
 		} else {
 			row.RequestFailed++
 		}
+		if row.Name == "" {
+			row.Name = keyName
+		}
 	}
 	relayLogCacheLock.Unlock()
 
 	return rows, nil
+}
+
+func makeAnalyticsAPIKeyAggregateKey(apiKeyID int, name string) string {
+	if apiKeyID > 0 {
+		return "id:" + strconv.Itoa(apiKeyID)
+	}
+	return "name:" + strings.TrimSpace(name)
 }
 
 func loadAnalyticsFailureRows(ctx context.Context, since time.Time) (map[string]*analyticsFailureAggregateRow, error) {

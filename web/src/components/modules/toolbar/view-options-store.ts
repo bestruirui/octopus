@@ -10,6 +10,7 @@ export type ToolbarPage = (typeof TOOLBAR_PAGES)[number];
 export type ChannelFilter = 'all' | 'enabled' | 'disabled';
 export type GroupFilter = 'all' | 'with-members' | 'empty' | 'chat' | 'responses' | 'messages' | 'embeddings' | 'rerank' | 'moderations' | 'image_generation' | 'audio_speech' | 'audio_transcription' | 'video_generation' | 'music_generation' | 'search';
 export type ModelFilter = 'all' | 'priced' | 'free';
+export type ModelSortMode = 'success-rate' | 'request-count';
 
 export function normalizeGroupFilterValue(value?: string | null): GroupFilter {
     switch (value) {
@@ -57,6 +58,7 @@ interface ToolbarViewOptionsState {
     channelFilter: ChannelFilter;
     groupFilter: GroupFilter;
     modelFilter: ModelFilter;
+    modelSortMode: ModelSortMode;
 
     getLayout: (item: ToolbarPage) => ToolbarLayout;
     setLayout: (item: ToolbarPage, value: ToolbarLayout) => void;
@@ -74,6 +76,7 @@ interface ToolbarViewOptionsState {
     setChannelFilter: (value: ChannelFilter) => void;
     setGroupFilter: (value: GroupFilter) => void;
     setModelFilter: (value: ModelFilter) => void;
+    setModelSortMode: (value: ModelSortMode) => void;
 }
 
 export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
@@ -85,6 +88,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             channelFilter: 'all',
             groupFilter: 'all',
             modelFilter: 'all',
+            modelSortMode: 'success-rate',
 
             getLayout: (item) => get().layouts[item] || 'grid',
             setLayout: (item, value) => {
@@ -107,6 +111,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             setChannelFilter: (value) => set({ channelFilter: value }),
             setGroupFilter: (value) => set({ groupFilter: normalizeGroupFilterValue(value) }),
             setModelFilter: (value) => set({ modelFilter: value }),
+            setModelSortMode: (value) => set({ modelSortMode: value }),
         }),
         {
             name: 'toolbar-view-options-storage',
@@ -117,6 +122,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
                 channelFilter: state.channelFilter,
                 groupFilter: state.groupFilter,
                 modelFilter: state.modelFilter,
+                modelSortMode: state.modelSortMode,
             }),
             merge: (persistedState, currentState) => ({
                 ...currentState,

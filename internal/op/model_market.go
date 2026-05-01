@@ -136,6 +136,37 @@ func buildModelMarket(
 	}
 
 	slices.SortFunc(items, func(a, b model.ModelMarketItem) int {
+		leftRequests := a.RequestSuccess + a.RequestFailed
+		rightRequests := b.RequestSuccess + b.RequestFailed
+
+		switch {
+		case leftRequests == 0 && rightRequests > 0:
+			return 1
+		case leftRequests > 0 && rightRequests == 0:
+			return -1
+		case leftRequests > 0 && rightRequests > 0:
+			leftRatio := a.RequestSuccess * rightRequests
+			rightRatio := b.RequestSuccess * leftRequests
+			if leftRatio != rightRatio {
+				if leftRatio > rightRatio {
+					return -1
+				}
+				return 1
+			}
+		}
+
+		if a.RequestSuccess != b.RequestSuccess {
+			if a.RequestSuccess > b.RequestSuccess {
+				return -1
+			}
+			return 1
+		}
+		if leftRequests != rightRequests {
+			if leftRequests > rightRequests {
+				return -1
+			}
+			return 1
+		}
 		return strings.Compare(a.Name, b.Name)
 	})
 

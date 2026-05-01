@@ -5,21 +5,20 @@ import { useModelMarket } from '@/api/endpoints/model';
 import { ModelItem } from './Item';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
+import { sortModelMarketItems } from './sort';
 
 export function Model() {
     const { data: market } = useModelMarket();
     const pageKey = 'model' as const;
     const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
     const layout = useToolbarViewOptionsStore((s) => s.getLayout(pageKey));
-    const sortOrder = useToolbarViewOptionsStore((s) => s.getSortOrder(pageKey));
     const filter = useToolbarViewOptionsStore((s) => s.modelFilter);
+    const modelSortMode = useToolbarViewOptionsStore((s) => s.modelSortMode);
 
     const sortedModels = useMemo(() => {
         const items = market?.items ?? [];
-        return [...items].sort((a, b) =>
-            sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-        );
-    }, [market, sortOrder]);
+        return sortModelMarketItems(items, modelSortMode);
+    }, [market, modelSortMode]);
 
     const visibleModels = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();

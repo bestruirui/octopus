@@ -547,7 +547,12 @@
                 "model": {
                     "all": "All models",
                     "priced": "Priced only",
-                    "free": "Free only"
+                    "free": "Free only",
+                    "sort": {
+                        "title": "Ranking",
+                        "successRate": "By success rate",
+                        "requestCount": "By call count"
+                    }
                 }
             }
         }
@@ -576,27 +581,27 @@
             "noData": "No Data"
         },
         "hero": {
-            "eyebrow": "Today",
-            "title": "Today's Operating Snapshot",
-            "subtitle": "Track today's request performance, cost efficiency, and supply-side readiness in real time.",
-            "description": "Built for a fast daily read on throughput, delivery quality, and cost movement across the platform.",
+            "eyebrow": "Personal Hub",
+            "title": "Today's Usage",
+            "subtitle": "",
+            "description": "",
             "signals": {
-                "requests": "Today's Requests",
+                "requests": "Today's Calls",
                 "successRate": "Today's Success Rate",
-                "cost": "Today's Cost",
-                "channels": "Online Channels"
+                "cost": "Today's Spend",
+                "channels": "Available Channels"
             },
             "metrics": {
-                "avgWait": "Average Latency",
-                "successful": "Successful Requests",
+                "avgWait": "Average Response Time",
+                "successful": "Successful Calls",
                 "tokens": "Tokens Used",
-                "costPerRequest": "Cost per Request"
+                "costPerRequest": "Cost per Call"
             }
         },
         "overview": {
-            "badge": "Performance Board",
-            "title": "Core Operating Metrics",
-            "description": "Track request volume, success rate, cost efficiency, and supply coverage across each operating window.",
+            "badge": "Hub Overview",
+            "title": "Usage Overview",
+            "description": "Track call volume, success rate, spend, and coverage for the selected range.",
             "empty": "No overview data is available for this range",
             "range": {
                 "7d": "7D",
