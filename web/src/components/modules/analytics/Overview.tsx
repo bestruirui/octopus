@@ -9,6 +9,7 @@ import { MetricCard, QueryState, formatPercent } from './shared';
 export function Overview({ range }: { range: AnalyticsRange }) {
     const t = useTranslations('analytics');
     const { data, isLoading, error } = useAnalyticsOverview(range);
+    const description = t('overview.description');
 
     const cards = data ? [
         {
@@ -68,7 +69,9 @@ export function Overview({ range }: { range: AnalyticsRange }) {
         <section className="rounded-3xl border border-card-border bg-card p-5 text-card-foreground custom-shadow">
             <div className="mb-4 space-y-1">
                 <h3 className="text-base font-semibold">{t('cards.overview.title')}</h3>
-                <p className="text-sm leading-6 text-muted-foreground">{t('overview.description')}</p>
+                {description ? (
+                    <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+                ) : null}
             </div>
             <QueryState
                 loading={isLoading}

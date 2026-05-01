@@ -269,6 +269,7 @@ export function GroupEditor({
 }) {
     const t = useTranslations('group');
     const { data: modelChannels = [] } = useModelChannelList();
+    const conditionPlaceholder = '[{"key":"model","op":"contains","value":"gpt-4"}]';
 
     const [groupName, setGroupName] = useState(initial?.name ?? '');
     const [endpointType, setEndpointType] = useState(normalizeEndpointType(initial?.endpoint_type));
@@ -387,7 +388,7 @@ export function GroupEditor({
                                 id="group-endpoint-type"
                                 value={endpointType}
                                 onChange={(e) => setEndpointType(normalizeEndpointType(e.target.value))}
-                                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
                             >
                                 {ENDPOINT_TYPE_OPTIONS.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -490,7 +491,7 @@ export function GroupEditor({
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             {t('form.condition.hint')}<br />
-                                            {t('form.condition.example')}
+                                            {conditionPlaceholder}
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -500,7 +501,7 @@ export function GroupEditor({
                                 value={condition}
                                 onChange={(e) => setCondition(e.target.value)}
                                 className="rounded-xl font-mono text-xs"
-                                placeholder={t('form.condition.placeholder')}
+                                placeholder={conditionPlaceholder}
                             />
                         </Field>
                     </div>

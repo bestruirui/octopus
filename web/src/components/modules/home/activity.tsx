@@ -88,10 +88,14 @@ export function Activity() {
 
     return (
         <div className="rounded-3xl bg-card border-card-border border text-card-foreground custom-shadow">
+            <div className="px-4 pt-4 md:px-5 md:pt-5">
+                <h3 className="text-base font-semibold">{t('title')}</h3>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{t('description')}</p>
+            </div>
             <div
                 ref={scrollRef}
                 onScroll={checkScroll}
-                className="overflow-x-auto p-4"
+                className="overflow-x-auto px-4 pb-4 pt-3 md:px-5 md:pb-5"
                 style={{ maskImage, WebkitMaskImage: maskImage }}
             >
                 <div className="ml-auto w-fit">

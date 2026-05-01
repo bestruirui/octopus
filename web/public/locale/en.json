@@ -567,11 +567,52 @@
     },
     "home": {
         "activity": {
+            "title": "Activity Heatmap",
+            "description": "Track request activity across the past year and quickly spot active windows or long quiet periods.",
             "requestCount": "Requests",
             "waitTime": "Wait Time",
             "totalToken": "Tokens Used",
             "totalCost": "Total Cost",
             "noData": "No Data"
+        },
+        "hero": {
+            "eyebrow": "Today",
+            "title": "Today's Operating Snapshot",
+            "subtitle": "Track today's request performance, cost efficiency, and supply-side readiness in real time.",
+            "description": "Built for a fast daily read on throughput, delivery quality, and cost movement across the platform.",
+            "signals": {
+                "requests": "Today's Requests",
+                "successRate": "Today's Success Rate",
+                "cost": "Today's Cost",
+                "channels": "Online Channels"
+            },
+            "metrics": {
+                "avgWait": "Average Latency",
+                "successful": "Successful Requests",
+                "tokens": "Tokens Used",
+                "costPerRequest": "Cost per Request"
+            }
+        },
+        "overview": {
+            "badge": "Performance Board",
+            "title": "Core Operating Metrics",
+            "description": "Track request volume, success rate, cost efficiency, and supply coverage across each operating window.",
+            "empty": "No overview data is available for this range",
+            "range": {
+                "7d": "7D",
+                "30d": "30D",
+                "90d": "90D"
+            },
+            "metrics": {
+                "requestCount": "Requests",
+                "successRate": "Success Rate",
+                "totalTokens": "Total Tokens",
+                "totalCost": "Total Cost",
+                "providerCount": "Providers",
+                "apiKeyCount": "API Keys",
+                "modelCount": "Models",
+                "fallbackRate": "Fallback Rate"
+            }
         },
         "total": {
             "requestStats": "Request Stats",

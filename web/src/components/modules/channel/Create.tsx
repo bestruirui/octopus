@@ -99,7 +99,7 @@ export function CreateDialogContent() {
     };
 
     return (
-        <div className="w-full max-w-full md:max-w-xl h-full min-h-0 flex flex-col">
+        <div className="w-full min-h-0 flex flex-col">
             <MorphingDialogTitle className="shrink-0">
                 <header className="mb-6 flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-card-foreground">{t('dialogTitle')}</h2>

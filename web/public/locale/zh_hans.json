@@ -87,7 +87,7 @@
     },
     "analytics": {
         "title": "分析中心",
-        "subtitle": "聚合 Octopus 当前统计、利用率与路由健康视角，一期先复用现有统计与日志能力完成可用分析页。",
+        "subtitle": "聚合 Octopus 当前统计、利用率与路由健康视角。",
         "cards": {
             "overview": {
                 "title": "概述",
@@ -116,7 +116,7 @@
             "empty": "暂无可展示数据"
         },
         "overview": {
-            "description": "用现有日统计与请求回放结果聚合出一期总览，优先提供可读指标而不是额外配置项。"
+            "description": ""
         },
         "metrics": {
             "requestCount": "请求次数",
@@ -157,7 +157,7 @@
         },
         "evaluation": {
             "title": "评估",
-            "description": "聚合现有分组检测与 AI 路由分析入口，当前版本只展示运行态摘要，不新增 benchmark 历史归档。",
+            "description": "聚合现有分组检测与 AI 路由分析入口。",
             "actions": {
                 "openGroupTest": "前往分组检测",
                 "openAIRoute": "前往路由分析",
@@ -181,7 +181,7 @@
                 "description": "这里集中查看语义缓存运行态和命中信号，具体配置仍留在设置页。",
                 "hint": "先确认运行状态，再前往设置页调整 embedding 服务和缓存参数。",
                 "summaryTitle": "语义缓存成效",
-                "summaryDescription": "这里只展示 evaluation 接口返回的实时运行计数，不复制设置页控制项。",
+                "summaryDescription": "这里只展示 evaluation 接口返回的实时运行计数。",
                 "unavailable": "语义缓存摘要暂时不可用，但 Evaluation 其他部分仍可正常使用。",
                 "status": {
                     "disabled": "未启用",
@@ -255,7 +255,7 @@
     },
     "ops": {
         "title": "运维中心",
-        "subtitle": "聚合缓存、配额、健康和系统摘要，保持与现有设置页一致的运维视图密度。",
+        "subtitle": "聚合缓存、配额、健康和系统摘要。",
         "tabs": {
             "cache": "缓存",
             "quota": "配额",
@@ -567,11 +567,52 @@
     },
     "home": {
         "activity": {
+            "title": "活跃度热力图",
+            "description": "按日查看近一年的请求活跃分布，快速定位持续活跃或长期沉寂的时段。",
             "requestCount": "请求次数",
             "waitTime": "等待时间",
             "totalToken": "消耗 Token",
             "totalCost": "消耗费用",
             "noData": "无数据"
+        },
+        "hero": {
+            "eyebrow": "今日总览",
+            "title": "今日经营总览",
+            "subtitle": "实时掌握当日请求表现、成本效率与供给运行状态。",
+            "description": "聚焦当日核心经营指标，帮助快速判断服务承载、交付质量与成本变化。",
+            "signals": {
+                "requests": "今日请求",
+                "successRate": "今日成功率",
+                "cost": "今日成本",
+                "channels": "在线渠道"
+            },
+            "metrics": {
+                "avgWait": "平均时延",
+                "successful": "成功请求",
+                "tokens": "消耗 Token",
+                "costPerRequest": "单次请求成本"
+            }
+        },
+        "overview": {
+            "badge": "经营看板",
+            "title": "核心经营指标",
+            "description": "按周期追踪请求规模、成功率、成本效率与供给覆盖，快速判断整体经营表现。",
+            "empty": "当前范围内暂无概览数据",
+            "range": {
+                "7d": "7天",
+                "30d": "30天",
+                "90d": "90天"
+            },
+            "metrics": {
+                "requestCount": "请求次数",
+                "successRate": "成功率",
+                "totalTokens": "总 Token",
+                "totalCost": "总成本",
+                "providerCount": "供给源数",
+                "apiKeyCount": "API 密钥数",
+                "modelCount": "模型数",
+                "fallbackRate": "回退率"
+            }
         },
         "total": {
             "requestStats": "请求统计",

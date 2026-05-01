@@ -63,6 +63,18 @@ function CreateDialogContent({ activeItem }: { activeItem: ToolbarPage }) {
     }
 }
 
+function getCreateDialogContentClassName(activeItem: ToolbarPage) {
+    if (activeItem === 'group') {
+        return 'w-[min(100vw-1rem,72rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]';
+    }
+
+    if (activeItem === 'channel') {
+        return 'w-[min(100vw-1rem,40rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]';
+    }
+
+    return 'w-[min(100vw-1rem,34rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]';
+}
+
 export function Toolbar() {
     const t = useTranslations('toolbar');
     const { activeItem } = useNavStore();
@@ -353,7 +365,7 @@ export function Toolbar() {
                     </MorphingDialogTrigger>
 
                     <MorphingDialogContainer>
-                        <MorphingDialogContent className="w-[min(100vw-1rem,72rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]">
+                        <MorphingDialogContent className={getCreateDialogContentClassName(toolbarItem)}>
                             <CreateDialogContent activeItem={toolbarItem} />
                         </MorphingDialogContent>
                     </MorphingDialogContainer>

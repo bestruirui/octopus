@@ -347,9 +347,9 @@ export function ChannelForm({
     return (
         <form onSubmit={onSubmit} className="space-y-4 px-1">
             <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
+                <div className="space-y-1">
                     <label className="text-sm font-medium text-card-foreground">{t('template.label')}</label>
-                    <span className="text-xs text-muted-foreground">{t('template.hint')}</span>
+                    <p className="text-xs text-muted-foreground">{t('template.hint')}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {channelTemplates.map((template) => (

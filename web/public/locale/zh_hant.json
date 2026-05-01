@@ -567,11 +567,52 @@
     },
     "home": {
         "activity": {
+            "title": "活躍度熱力圖",
+            "description": "按日查看近一年的請求活躍分佈，快速定位持續活躍或長期沉寂的時段。",
             "requestCount": "請求次數",
             "waitTime": "等待時間",
             "totalToken": "消耗 Token",
             "totalCost": "消耗費用",
             "noData": "無數據"
+        },
+        "hero": {
+            "eyebrow": "今日總覽",
+            "title": "今日經營總覽",
+            "subtitle": "即時掌握當日請求表現、成本效率與供給運行狀態。",
+            "description": "聚焦當日核心經營指標，幫助快速判斷服務承載、交付品質與成本變化。",
+            "signals": {
+                "requests": "今日請求",
+                "successRate": "今日成功率",
+                "cost": "今日成本",
+                "channels": "在線渠道"
+            },
+            "metrics": {
+                "avgWait": "平均時延",
+                "successful": "成功請求",
+                "tokens": "消耗 Token",
+                "costPerRequest": "單次請求成本"
+            }
+        },
+        "overview": {
+            "badge": "經營看板",
+            "title": "核心經營指標",
+            "description": "按週期追蹤請求規模、成功率、成本效率與供給覆蓋，快速判斷整體經營表現。",
+            "empty": "目前範圍內暫無概覽資料",
+            "range": {
+                "7d": "7天",
+                "30d": "30天",
+                "90d": "90天"
+            },
+            "metrics": {
+                "requestCount": "請求次數",
+                "successRate": "成功率",
+                "totalTokens": "總 Token",
+                "totalCost": "總成本",
+                "providerCount": "供應源數",
+                "apiKeyCount": "API 金鑰數",
+                "modelCount": "模型數",
+                "fallbackRate": "回退率"
+            }
         },
         "total": {
             "requestStats": "請求統計",

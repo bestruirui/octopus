@@ -6,19 +6,19 @@ import { useTranslations } from 'next-intl';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { Tabs, TabsContents, TabsContent, TabsList, TabsTrigger } from '@/components/animate-ui/components/animate/tabs';
 import type { AnalyticsRange } from '@/api/endpoints/analytics';
-import { Overview } from './Overview';
 import { Utilization } from './Utilization';
 import { GroupHealth } from './GroupHealth';
 import { Evaluation } from './Evaluation';
 
-type AnalyticsTab = 'overview' | 'utilization' | 'route-health' | 'evaluation';
+type AnalyticsTab = 'utilization' | 'route-health' | 'evaluation';
 
 const RANGE_OPTIONS: AnalyticsRange[] = ['1d', '7d', '30d', '90d', 'ytd', 'all'];
 
 export function Analytics() {
     const t = useTranslations('analytics');
-    const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
+    const [activeTab, setActiveTab] = useState<AnalyticsTab>('utilization');
     const [range, setRange] = useState<AnalyticsRange>('7d');
+    const subtitle = t('subtitle');
 
     return (
         <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain space-y-6 pb-24 md:pb-4 rounded-t-3xl">
@@ -29,9 +29,11 @@ export function Analytics() {
                     </div>
                     <div className="min-w-0 space-y-2">
                         <h2 className="text-2xl font-bold">{t('title')}</h2>
-                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                            {t('subtitle')}
-                        </p>
+                        {subtitle ? (
+                            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                                {subtitle}
+                            </p>
+                        ) : null}
                     </div>
                 </div>
             </section>
@@ -41,7 +43,6 @@ export function Analytics() {
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                         <div className="overflow-x-auto">
                             <TabsList className="w-max min-w-full xl:min-w-0">
-                                <TabsTrigger value="overview">{t('cards.overview.title')}</TabsTrigger>
                                 <TabsTrigger value="utilization">{t('cards.utilization.title')}</TabsTrigger>
                                 <TabsTrigger value="route-health">{t('cards.routeHealth.title')}</TabsTrigger>
                                 <TabsTrigger value="evaluation">{t('evaluation.title')}</TabsTrigger>
@@ -63,9 +64,6 @@ export function Analytics() {
                 </section>
 
                 <TabsContents>
-                    <TabsContent value="overview">
-                        <Overview range={range} />
-                    </TabsContent>
                     <TabsContent value="utilization">
                         <Utilization range={range} />
                     </TabsContent>

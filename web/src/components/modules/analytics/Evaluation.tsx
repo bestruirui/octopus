@@ -75,6 +75,8 @@ function SummaryStat({
 export function Evaluation() {
     const t = useTranslations('analytics');
     const { setActiveItem } = useNavStore();
+    const sectionDescription = t('evaluation.description');
+    const summaryDescription = t('evaluation.semanticCache.summaryDescription');
     const runtime = useAnalyticsEvaluationRuntime();
     const semanticCacheQuery = useAnalyticsEvaluationSummary();
     const semanticCache = semanticCacheQuery.data?.semantic_cache;
@@ -108,7 +110,9 @@ export function Evaluation() {
         <section className="rounded-3xl border border-card-border bg-card p-5 text-card-foreground custom-shadow">
             <div className="mb-4 space-y-1">
                 <h3 className="text-base font-semibold">{t('evaluation.title')}</h3>
-                <p className="text-sm leading-6 text-muted-foreground">{t('evaluation.description')}</p>
+                {sectionDescription ? (
+                    <p className="text-sm leading-6 text-muted-foreground">{sectionDescription}</p>
+                ) : null}
             </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -292,9 +296,11 @@ export function Evaluation() {
                                 <Database className="h-4 w-4" />
                             </div>
                             <h4 className="mt-4 text-sm font-semibold">{t('evaluation.semanticCache.summaryTitle')}</h4>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                {t('evaluation.semanticCache.summaryDescription')}
-                            </p>
+                            {summaryDescription ? (
+                                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                                    {summaryDescription}
+                                </p>
+                            ) : null}
                         </div>
                         <div className="flex flex-col items-start gap-3 lg:items-end">
                             <StatusBadge

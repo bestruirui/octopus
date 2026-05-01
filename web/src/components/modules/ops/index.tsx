@@ -16,6 +16,7 @@ type OpsTab = 'cache' | 'quota' | 'health' | 'system' | 'audit';
 export function Ops() {
     const t = useTranslations('ops');
     const [activeTab, setActiveTab] = useState<OpsTab>('cache');
+    const subtitle = t('subtitle');
 
     return (
         <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain space-y-6 pb-24 md:pb-4 rounded-t-3xl">
@@ -26,9 +27,11 @@ export function Ops() {
                     </div>
                     <div className="min-w-0 space-y-2">
                         <h2 className="text-2xl font-bold">{t('title')}</h2>
-                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                            {t('subtitle')}
-                        </p>
+                        {subtitle ? (
+                            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                                {subtitle}
+                            </p>
+                        ) : null}
                     </div>
                 </div>
             </section>
