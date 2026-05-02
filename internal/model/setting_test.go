@@ -35,18 +35,20 @@ func TestSettingValidateAlertNotifyLanguage(t *testing.T) {
 func TestSettingValidateNavOrder(t *testing.T) {
 	tests := []struct {
 		name    string
+		key     SettingKey
 		value   string
 		wantErr bool
 	}{
-		{name: "valid nav order array", value: `["home","setting"]`},
-		{name: "malformed json", value: `["home"`, wantErr: true},
-		{name: "non array value", value: `{"home":1}`, wantErr: true},
+		{name: "valid nav order array", key: SettingKeyNavOrder, value: `["home","setting"]`},
+		{name: "valid nav visible array", key: SettingKeyNavVisible, value: `["home","setting"]`},
+		{name: "malformed json", key: SettingKeyNavOrder, value: `["home"`, wantErr: true},
+		{name: "non array value", key: SettingKeyNavVisible, value: `{"home":1}`, wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setting := Setting{
-				Key:   SettingKeyNavOrder,
+				Key:   tt.key,
 				Value: tt.value,
 			}
 

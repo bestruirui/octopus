@@ -1,11 +1,11 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { KeyRound, Layers3, Radio } from 'lucide-react';
+import { KeyRound, Layers3, Radio, Waves } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAnalyticsUtilization, type AnalyticsRange, type AnalyticsProviderBreakdownItem, type AnalyticsModelBreakdownItem, type AnalyticsAPIKeyBreakdownItem } from '@/api/endpoints/analytics';
 import { formatCount, formatMoney } from '@/lib/utils';
-import { QueryState, StatusBadge, formatPercent } from './shared';
+import { ObservatorySection, QueryState, StatusBadge, formatPercent } from './shared';
 
 type BreakdownItem = AnalyticsProviderBreakdownItem | AnalyticsModelBreakdownItem | AnalyticsAPIKeyBreakdownItem;
 
@@ -23,9 +23,9 @@ function BreakdownCard({
     getMeta?: (item: BreakdownItem) => ReactNode;
 }) {
     return (
-        <article className="rounded-2xl border border-border/60 bg-background/70 p-4">
+        <article className="waterhouse-pod rounded-[1.75rem] border border-border/30 bg-background/40 p-4 shadow-waterhouse-soft backdrop-blur-md">
             <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <div className="flex h-9 w-9 items-center justify-center rounded-[1.05rem] bg-primary/10 text-primary shadow-waterhouse-soft">
                     <Icon className="h-4 w-4" />
                 </div>
                 <h4 className="text-sm font-semibold">{title}</h4>
@@ -33,7 +33,7 @@ function BreakdownCard({
 
             <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
                 {items.map((item) => (
-                    <div key={`${title}-${getName(item)}`} className="rounded-2xl border border-border/40 bg-card px-3 py-3">
+                    <div key={`${title}-${getName(item)}`} className="waterhouse-pod rounded-[1.35rem] border border-border/25 bg-background/48 px-3 py-3 shadow-waterhouse-soft">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <div className="truncate text-sm font-medium">{getName(item)}</div>
@@ -74,11 +74,12 @@ export function Utilization({ range }: { range: AnalyticsRange }) {
         );
 
     return (
-        <section className="rounded-3xl border border-card-border bg-card p-5 text-card-foreground custom-shadow">
-            <div className="mb-4 space-y-1">
-                <h3 className="text-base font-semibold">{t('cards.utilization.title')}</h3>
-                <p className="text-sm leading-6 text-muted-foreground">{t('utilization.description')}</p>
-            </div>
+        <ObservatorySection
+            eyebrow={t('cards.utilization.title')}
+            title={t('cards.utilization.title')}
+            description={t('utilization.description')}
+            icon={Waves}
+        >
             <QueryState
                 loading={isLoading}
                 error={error}
@@ -115,6 +116,6 @@ export function Utilization({ range }: { range: AnalyticsRange }) {
                     />
                 </div>
             </QueryState>
-        </section>
+        </ObservatorySection>
     );
 }

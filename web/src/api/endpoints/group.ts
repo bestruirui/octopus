@@ -36,6 +36,7 @@ export interface Group {
     endpoint_type: string;
     mode: GroupMode;
     match_regex: string;
+    condition?: string;
     first_token_time_out?: number;
     session_keep_time?: number;
     items?: GroupItem[];
@@ -335,6 +336,7 @@ export interface GroupUpdateRequest {
     endpoint_type?: string;
     mode?: GroupMode;
     match_regex?: string;
+    condition?: string;
     first_token_time_out?: number;
     session_keep_time?: number;
     items_to_add?: GroupItemAddRequest[];

@@ -75,118 +75,167 @@ export function SettingAccount() {
         );
     };
 
+    const sectionClassName = 'waterhouse-pod relative overflow-hidden rounded-[2rem] border border-border/30 bg-background/36 p-5 shadow-waterhouse-soft';
+
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-6">
-            <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                <User className="h-5 w-5" />
-                {t('account.title')}
-            </h2>
-
-            {/* 修改用户名 */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <KeyRound className="size-4" />
-                    {t('account.username.label')}
-                </div>
-                <div className="flex gap-2">
-                    <Input
-                        value={newUsername}
-                        onChange={(e) => setNewUsername(e.target.value)}
-                        placeholder={t('account.username.placeholder')}
-                        className="flex-1 rounded-xl"
-                    />
-                    <Button
-                        onClick={handleChangeUsername}
-                        disabled={changeUsername.isPending || !newUsername.trim()}
-                        className="rounded-xl"
-                    >
-                        {changeUsername.isPending ? t('account.saving') : t('account.save')}
-                    </Button>
-                </div>
-            </div>
-
-            <div className="border-t border-border" />
-
-            {/* 修改密码 */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Lock className="size-4" />
-                    {t('account.password.label')}
-                </div>
-                <div className="space-y-2">
-                    <div className="relative">
-                        <Input
-                            type={showOldPassword ? 'text' : 'password'}
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                            placeholder={t('account.password.oldPlaceholder')}
-                            className="rounded-xl pr-10"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowOldPassword(!showOldPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            {showOldPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
+        <div className="waterhouse-island relative overflow-hidden rounded-[2.25rem] border-border/35 bg-card/62 p-6 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
+            <div className="space-y-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1.5">
+                        <h2 className="flex items-center gap-2 text-lg font-bold text-card-foreground">
+                            <User className="h-5 w-5" />
+                            {t('account.title')}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">{t('account.logout.label')}</p>
                     </div>
-                    <div className="relative">
-                        <Input
-                            type={showNewPassword ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder={t('account.password.newPlaceholder')}
-                            className="rounded-xl pr-10"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
-                    <div className="relative">
-                        <Input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder={t('account.password.confirmPlaceholder')}
-                            className="rounded-xl pr-10"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
-                    <Button
-                        onClick={handleChangePassword}
-                        disabled={changePassword.isPending || !oldPassword || !newPassword || !confirmPassword}
-                        className="w-full rounded-xl"
-                    >
-                        {changePassword.isPending ? t('account.saving') : t('account.password.change')}
-                    </Button>
                 </div>
-            </div>
 
-            <div className="border-t border-border" />
+                <div className={sectionClassName}>
+                    <div className="mb-4 flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                            <span className="grid size-9 shrink-0 place-items-center rounded-[1.1rem] bg-primary/12 text-xs font-semibold text-primary shadow-waterhouse-soft">
+                                01
+                            </span>
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                                    <KeyRound className="size-4 text-muted-foreground" />
+                                    {t('account.username.label')}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{t('account.username.placeholder')}</p>
+                            </div>
+                        </div>
+                        <Button
+                            onClick={handleChangeUsername}
+                            disabled={changeUsername.isPending || !newUsername.trim()}
+                            className="hidden rounded-[1.2rem] lg:inline-flex"
+                        >
+                            {changeUsername.isPending ? t('account.saving') : t('account.save')}
+                        </Button>
+                    </div>
 
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <LogOut className="size-4" />
-                    {t('account.logout.label')}
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+                        <Input
+                            value={newUsername}
+                            onChange={(e) => setNewUsername(e.target.value)}
+                            placeholder={t('account.username.placeholder')}
+                            className="rounded-[1.3rem]"
+                        />
+                        <Button
+                            onClick={handleChangeUsername}
+                            disabled={changeUsername.isPending || !newUsername.trim()}
+                            className="rounded-[1.3rem] lg:hidden"
+                        >
+                            {changeUsername.isPending ? t('account.saving') : t('account.save')}
+                        </Button>
+                    </div>
                 </div>
-                <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={logout}
-                    className="rounded-xl"
-                >
-                    {t('account.logout.button')}
-                </Button>
+
+                <div className={sectionClassName}>
+                    <div className="mb-4 flex items-start gap-3">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-[1.1rem] bg-primary/12 text-xs font-semibold text-primary shadow-waterhouse-soft">
+                            02
+                        </span>
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                                <Lock className="size-4 text-muted-foreground" />
+                                {t('account.password.label')}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{t('account.password.change')}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-3 xl:grid-cols-2">
+                        <div className="relative xl:col-span-2">
+                            <Input
+                                type={showOldPassword ? 'text' : 'password'}
+                                value={oldPassword}
+                                onChange={(e) => setOldPassword(e.target.value)}
+                                placeholder={t('account.password.oldPlaceholder')}
+                                className="rounded-[1.3rem] pr-10"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowOldPassword(!showOldPassword)}
+                                aria-label={showOldPassword ? t('account.password.hideOld') : t('account.password.showOld')}
+                                aria-pressed={showOldPassword}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                {showOldPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <Input
+                                type={showNewPassword ? 'text' : 'password'}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder={t('account.password.newPlaceholder')}
+                                className="rounded-[1.3rem] pr-10"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                aria-label={showNewPassword ? t('account.password.hideNew') : t('account.password.showNew')}
+                                aria-pressed={showNewPassword}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <Input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder={t('account.password.confirmPlaceholder')}
+                                className="rounded-[1.3rem] pr-10"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                aria-label={showConfirmPassword ? t('account.password.hideConfirm') : t('account.password.showConfirm')}
+                                aria-pressed={showConfirmPassword}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                        <Button
+                            onClick={handleChangePassword}
+                            disabled={changePassword.isPending || !oldPassword || !newPassword || !confirmPassword}
+                            className="w-full rounded-[1.3rem] sm:w-auto sm:min-w-36"
+                        >
+                            {changePassword.isPending ? t('account.saving') : t('account.password.change')}
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="waterhouse-pod relative overflow-hidden rounded-[2rem] border border-destructive/20 bg-destructive/6 p-5 shadow-waterhouse-soft">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-start gap-3">
+                            <span className="grid size-9 shrink-0 place-items-center rounded-[1.1rem] bg-destructive/12 text-xs font-semibold text-destructive shadow-waterhouse-soft">
+                                03
+                            </span>
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                                    <LogOut className="size-4 text-destructive" />
+                                    {t('account.logout.label')}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{t('account.logout.button')}</p>
+                            </div>
+                        </div>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={logout}
+                            className="rounded-[1.3rem] sm:min-w-32"
+                        >
+                            {t('account.logout.button')}
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );

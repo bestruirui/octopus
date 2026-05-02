@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Pencil, Trash2, ArrowDownToLine, ArrowUpFromLine, ChevronDown, CircleCheckBig, Gauge, KeyRound, RadioTower } from 'lucide-react';
+import { Pencil, Trash2, ArrowDownToLine, ArrowUpFromLine, ChevronDown, CircleCheckBig, Gauge, KeyRound, Orbit, RadioTower, Waves } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useUpdateModel, useDeleteModel, type ModelMarketItem } from '@/api/endpoints/model';
@@ -47,6 +47,10 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
     const hiddenChannelTagCount = Math.max(0, model.channels.length - visibleChannelTags.length);
     const successRateLabel = requestCount > 0 ? `${(model.success_rate * 100).toFixed(2)}%` : '—';
     const latencyLabel = requestCount > 0 && model.average_latency_ms > 0 ? `${model.average_latency_ms}ms` : '—';
+    const specimenMetricClassName = cn(
+        'waterhouse-pod inline-flex items-center gap-2 rounded-[1.2rem] border border-border/25 bg-background/44 px-3 py-2 shadow-waterhouse-soft backdrop-blur-md',
+        isListLayout ? 'min-w-[10rem] flex-1' : '',
+    );
 
     const updateOverlayRect = useCallback(() => {
         const card = cardRef.current;
@@ -152,217 +156,223 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
         <article
             ref={cardRef}
             className={cn(
-                'group relative rounded-3xl border border-card-border bg-card p-5 text-card-foreground custom-shadow transition-all duration-300',
+                'waterhouse-island group relative overflow-hidden rounded-[2.05rem] border border-border/35 bg-card/58 p-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-primary/18 hover:shadow-[var(--waterhouse-shadow-soft)] md:p-5',
                 (isEditOpen || confirmDelete) && 'z-50'
             )}
         >
-            <div className="flex items-start gap-4">
-                <div className="shrink-0">
-                    <ModelAvatar size={52} />
-                </div>
+            <div className="relative flex flex-col gap-4">
+                <div className="flex items-start gap-4">
+                    <div className="waterhouse-pod grid h-16 w-16 shrink-0 place-items-center rounded-[1.5rem] border border-border/25 bg-background/46 shadow-waterhouse-soft backdrop-blur-md">
+                        <ModelAvatar size={48} />
+                    </div>
 
-                <div className="min-w-0 flex-1 space-y-3">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 space-y-1">
-                            <Tooltip side="top" sideOffset={10} align="start">
-                                <TooltipTrigger className="max-w-full truncate text-left text-base font-semibold leading-tight text-card-foreground">
-                                    {model.name}
-                                </TooltipTrigger>
-                                <TooltipContent key={model.name}>{model.name}</TooltipContent>
-                            </Tooltip>
-                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                                <span
-                                    className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
-                                    style={{ borderColor: `${brandColor}55`, color: brandColor }}
-                                >
+                    <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 space-y-2">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-background/42 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary shadow-waterhouse-soft">
+                                    <Orbit className="size-3.5" />
                                     {providerLabel}
-                                </span>
-                                <span>{t('card.requests')}: {requestCount.toLocaleString()}</span>
+                                </div>
+                                <Tooltip side="top" sideOffset={10} align="start">
+                                    <TooltipTrigger className="block max-w-full truncate text-left text-lg font-semibold leading-tight text-card-foreground">
+                                        {model.name}
+                                    </TooltipTrigger>
+                                    <TooltipContent key={model.name}>{model.name}</TooltipContent>
+                                </Tooltip>
+                                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                    <span className="waterhouse-pod inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/40 px-3 py-1 text-xs shadow-waterhouse-soft">
+                                        <Waves className="size-3.5 text-primary" />
+                                        {t('card.requests')}: {requestCount.toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div
+                                className={cn(
+                                    'flex shrink-0 items-center gap-2',
+                                    (isEditOpen || confirmDelete) && 'invisible pointer-events-none'
+                                )}
+                            >
+                                <CopyIconButton
+                                    text={model.name}
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-background/62 hover:text-foreground"
+                                    copyIconClassName="size-4"
+                                    checkIconClassName="size-4"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setIsExpanded((prev) => !prev)}
+                                    aria-label={isExpanded ? t('card.collapse') : t('card.expand')}
+                                    aria-expanded={isExpanded}
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-background/62 hover:text-foreground"
+                                    title={isExpanded ? t('card.collapse') : t('card.expand')}
+                                >
+                                    <ChevronDown className={cn('size-4 transition-transform', isExpanded && 'rotate-180')} />
+                                </button>
+                                <motion.button
+                                    ref={editButtonRef}
+                                    layoutId={editLayoutId}
+                                    type="button"
+                                    onClick={handleEditClick}
+                                    aria-label={t('card.edit')}
+                                    disabled={isEditOpen || confirmDelete}
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-background/62 hover:text-foreground disabled:opacity-50"
+                                    title={t('card.edit')}
+                                >
+                                    <Pencil className="size-4" />
+                                </motion.button>
+                                <motion.button
+                                    layoutId={deleteLayoutId}
+                                    type="button"
+                                    onClick={handleDeleteClick}
+                                    aria-label={t('card.delete')}
+                                    disabled={isEditOpen || confirmDelete}
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-destructive/15 bg-destructive/8 text-destructive shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50"
+                                    title={t('card.delete')}
+                                >
+                                    <Trash2 className="size-4" />
+                                </motion.button>
                             </div>
                         </div>
 
-                        <div
-                            className={cn(
-                                'flex shrink-0 items-center gap-2',
-                                (isEditOpen || confirmDelete) && 'invisible pointer-events-none'
-                            )}
-                        >
-                            <CopyIconButton
-                                text={model.name}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-muted/20 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-                                copyIconClassName="size-4"
-                                checkIconClassName="size-4"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setIsExpanded((prev) => !prev)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-muted/20 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-                                title={isExpanded ? t('card.collapse') : t('card.expand')}
-                            >
-                                <ChevronDown className={cn('size-4 transition-transform', isExpanded && 'rotate-180')} />
-                            </button>
-                            <motion.button
-                                ref={editButtonRef}
-                                layoutId={editLayoutId}
-                                type="button"
-                                onClick={handleEditClick}
-                                disabled={isEditOpen || confirmDelete}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-muted/20 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground disabled:opacity-50"
-                                title={t('card.edit')}
-                            >
-                                <Pencil className="size-4" />
-                            </motion.button>
-                            <motion.button
-                                layoutId={deleteLayoutId}
-                                type="button"
-                                onClick={handleDeleteClick}
-                                disabled={isEditOpen || confirmDelete}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50"
-                                title={t('card.delete')}
-                            >
-                                <Trash2 className="size-4" />
-                            </motion.button>
+                        <div className={cn('grid gap-2 text-sm text-muted-foreground', isListLayout ? 'grid-cols-2 xl:grid-cols-4' : 'grid-cols-2')}>
+                            <div className={specimenMetricClassName}>
+                                <RadioTower className="size-4" style={{ color: brandColor }} />
+                                <span>{t('card.channels')}</span>
+                                <span className="ml-auto tabular-nums text-foreground">{model.channel_count}</span>
+                            </div>
+                            <div className={specimenMetricClassName}>
+                                <KeyRound className="size-4" style={{ color: brandColor }} />
+                                <span>{t('card.keys')}</span>
+                                <span className="ml-auto tabular-nums text-foreground">{model.enabled_key_count}</span>
+                            </div>
+                            <div className={specimenMetricClassName}>
+                                <Gauge className="size-4" style={{ color: brandColor }} />
+                                <span>{t('card.latency')}</span>
+                                <span className="ml-auto tabular-nums text-foreground">{latencyLabel}</span>
+                            </div>
+                            <div className={specimenMetricClassName}>
+                                <CircleCheckBig className="size-4" style={{ color: brandColor }} />
+                                <span>{t('card.successRate')}</span>
+                                <span className="ml-auto tabular-nums text-foreground">{successRateLabel}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className={cn('grid gap-2 text-sm text-muted-foreground', isListLayout ? 'grid-cols-2 xl:grid-cols-4' : 'grid-cols-2')}>
-                        <div className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2">
-                            <RadioTower className="size-4" style={{ color: brandColor }} />
-                            <span>{t('card.channels')}</span>
-                            <span className="tabular-nums text-foreground">{model.channel_count}</span>
-                        </div>
-                        <div className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2">
-                            <KeyRound className="size-4" style={{ color: brandColor }} />
-                            <span>{t('card.keys')}</span>
-                            <span className="tabular-nums text-foreground">{model.enabled_key_count}</span>
-                        </div>
-                        <div className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2">
-                            <Gauge className="size-4" style={{ color: brandColor }} />
-                            <span>{t('card.latency')}</span>
-                            <span className="tabular-nums text-foreground">{latencyLabel}</span>
-                        </div>
-                        <div className="inline-flex items-center gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2">
-                            <CircleCheckBig className="size-4" style={{ color: brandColor }} />
-                            <span>{t('card.successRate')}</span>
-                            <span className="tabular-nums text-foreground">{successRateLabel}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full border border-border/60 bg-muted/20 px-2.5 py-1 text-xs font-medium text-foreground">
-                            {providerLabel}
-                        </span>
-                        {visibleChannelTags.map((channel) => (
-                            <span
-                                key={`${model.name}-${channel.channel_id}`}
-                                className="rounded-full border border-border/60 bg-muted/20 px-2.5 py-1 text-xs text-muted-foreground"
-                            >
-                                {channel.channel_name}
+                        <div className="flex flex-wrap gap-2">
+                            <span className="waterhouse-pod rounded-full border border-primary/12 bg-background/44 px-2.5 py-1 text-xs font-medium text-foreground shadow-waterhouse-soft">
+                                {providerLabel}
                             </span>
-                        ))}
-                        {hiddenChannelTagCount > 0 ? (
-                            <span className="rounded-full border border-border/60 bg-muted/20 px-2.5 py-1 text-xs text-muted-foreground">
-                                +{hiddenChannelTagCount}
-                            </span>
-                        ) : null}
+                            {visibleChannelTags.map((channel) => (
+                                <span
+                                    key={`${model.name}-${channel.channel_id}`}
+                                    className="waterhouse-pod rounded-full border border-border/25 bg-background/38 px-2.5 py-1 text-xs text-muted-foreground shadow-waterhouse-soft"
+                                >
+                                    {channel.channel_name}
+                                </span>
+                            ))}
+                            {hiddenChannelTagCount > 0 ? (
+                                <span className="waterhouse-pod rounded-full border border-border/25 bg-background/38 px-2.5 py-1 text-xs text-muted-foreground shadow-waterhouse-soft">
+                                    +{hiddenChannelTagCount}
+                                </span>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <AnimatePresence initial={false}>
-                {isExpanded ? (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="mt-4 space-y-4 border-t border-border/60 pt-4">
-                            <div className={cn('grid gap-3', isListLayout ? 'xl:grid-cols-3' : 'md:grid-cols-2')}>
-                                <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                                    <h4 className="text-sm font-medium text-foreground">{t('detail.pricing')}</h4>
-                                    <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
-                                                {t('card.inputCache')}
-                                            </span>
-                                            <span className="tabular-nums text-foreground">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
-                                        </div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <ArrowUpFromLine className="size-3.5" style={{ color: brandColor }} />
-                                                {t('card.outputCache')}
-                                            </span>
-                                            <span className="tabular-nums text-foreground">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                                    <h4 className="text-sm font-medium text-foreground">{t('detail.runtime')}</h4>
-                                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                                        <div className="rounded-xl bg-background/70 px-3 py-2">
-                                            <div>{t('detail.requestSuccess')}</div>
-                                            <div className="mt-1 tabular-nums text-base font-medium text-foreground">{model.request_success.toLocaleString()}</div>
-                                        </div>
-                                        <div className="rounded-xl bg-background/70 px-3 py-2">
-                                            <div>{t('detail.requestFailed')}</div>
-                                            <div className="mt-1 tabular-nums text-base font-medium text-foreground">{model.request_failed.toLocaleString()}</div>
-                                        </div>
-                                        <div className="rounded-xl bg-background/70 px-3 py-2">
-                                            <div>{t('card.latency')}</div>
-                                            <div className="mt-1 tabular-nums text-base font-medium text-foreground">{latencyLabel}</div>
-                                        </div>
-                                        <div className="rounded-xl bg-background/70 px-3 py-2">
-                                            <div>{t('card.successRate')}</div>
-                                            <div className="mt-1 tabular-nums text-base font-medium text-foreground">{successRateLabel}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <h4 className="text-sm font-medium text-foreground">{t('detail.channels')}</h4>
-                                    <span className="text-xs text-muted-foreground">{model.channels.length} {t('card.channels')}</span>
-                                </div>
-                                <div className="mt-3 grid gap-2">
-                                    {model.channels.length === 0 ? (
-                                        <div className="rounded-xl bg-background/70 px-3 py-2 text-sm text-muted-foreground">
-                                            {t('detail.noChannels')}
-                                        </div>
-                                    ) : (
-                                        model.channels.map((channel) => (
-                                            <div key={`${model.name}-detail-${channel.channel_id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-background/70 px-3 py-3">
-                                                <div className="min-w-0">
-                                                    <div className="truncate text-sm font-medium text-foreground">{channel.channel_name}</div>
-                                                    <div className="mt-1 text-xs text-muted-foreground">ID {channel.channel_id}</div>
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-2 text-xs">
-                                                    <span className={cn(
-                                                        'rounded-full border px-2.5 py-1',
-                                                        channel.enabled
-                                                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
-                                                            : 'border-border/60 bg-muted/40 text-muted-foreground'
-                                                    )}>
-                                                        {channel.enabled ? t('detail.enabled') : t('detail.disabled')}
-                                                    </span>
-                                                    <span className="rounded-full border border-border/60 bg-muted/20 px-2.5 py-1 text-muted-foreground">
-                                                        {channel.enabled_key_count} {t('detail.keyCount')}
-                                                    </span>
-                                                </div>
+                <AnimatePresence initial={false}>
+                    {isExpanded ? (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.24 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="space-y-4 border-t border-border/20 pt-4">
+                                <div className={cn('grid gap-3', isListLayout ? 'xl:grid-cols-3' : 'md:grid-cols-2')}>
+                                    <div className="waterhouse-pod rounded-[1.7rem] border border-border/25 bg-background/40 p-4 shadow-waterhouse-soft">
+                                        <h4 className="text-sm font-medium text-foreground">{t('detail.pricing')}</h4>
+                                        <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                                            <div className="flex items-center justify-between gap-3 rounded-[1.15rem] bg-background/44 px-3 py-2 shadow-waterhouse-soft">
+                                                <span className="inline-flex items-center gap-1.5">
+                                                    <ArrowDownToLine className="size-3.5" style={{ color: brandColor }} />
+                                                    {t('card.inputCache')}
+                                                </span>
+                                                <span className="tabular-nums text-foreground">{model.input.toFixed(2)}/{model.cache_read.toFixed(2)}$</span>
                                             </div>
-                                        ))
-                                    )}
+                                            <div className="flex items-center justify-between gap-3 rounded-[1.15rem] bg-background/44 px-3 py-2 shadow-waterhouse-soft">
+                                                <span className="inline-flex items-center gap-1.5">
+                                                    <ArrowUpFromLine className="size-3.5" style={{ color: brandColor }} />
+                                                    {t('card.outputCache')}
+                                                </span>
+                                                <span className="tabular-nums text-foreground">{model.output.toFixed(2)}/{model.cache_write.toFixed(2)}$</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="waterhouse-pod rounded-[1.7rem] border border-border/25 bg-background/40 p-4 shadow-waterhouse-soft">
+                                        <h4 className="text-sm font-medium text-foreground">{t('detail.runtime')}</h4>
+                                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                                            <div className="rounded-[1.1rem] bg-background/48 px-3 py-2 shadow-waterhouse-soft">
+                                                <div>{t('detail.requestSuccess')}</div>
+                                                <div className="mt-1 tabular-nums text-base font-medium text-foreground">{model.request_success.toLocaleString()}</div>
+                                            </div>
+                                            <div className="rounded-[1.1rem] bg-background/48 px-3 py-2 shadow-waterhouse-soft">
+                                                <div>{t('detail.requestFailed')}</div>
+                                                <div className="mt-1 tabular-nums text-base font-medium text-foreground">{model.request_failed.toLocaleString()}</div>
+                                            </div>
+                                            <div className="rounded-[1.1rem] bg-background/48 px-3 py-2 shadow-waterhouse-soft">
+                                                <div>{t('card.latency')}</div>
+                                                <div className="mt-1 tabular-nums text-base font-medium text-foreground">{latencyLabel}</div>
+                                            </div>
+                                            <div className="rounded-[1.1rem] bg-background/48 px-3 py-2 shadow-waterhouse-soft">
+                                                <div>{t('card.successRate')}</div>
+                                                <div className="mt-1 tabular-nums text-base font-medium text-foreground">{successRateLabel}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="waterhouse-pod rounded-[1.8rem] border border-border/25 bg-background/36 p-4 shadow-waterhouse-soft">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <h4 className="text-sm font-medium text-foreground">{t('detail.channels')}</h4>
+                                        <span className="text-xs text-muted-foreground">{model.channels.length} {t('card.channels')}</span>
+                                    </div>
+                                    <div className="mt-3 grid gap-2">
+                                        {model.channels.length === 0 ? (
+                                            <div className="rounded-[1.2rem] bg-background/48 px-3 py-2 text-sm text-muted-foreground shadow-waterhouse-soft">
+                                                {t('detail.noChannels')}
+                                            </div>
+                                        ) : (
+                                            model.channels.map((channel) => (
+                                                <div key={`${model.name}-detail-${channel.channel_id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] bg-background/50 px-3 py-3 shadow-waterhouse-soft">
+                                                    <div className="min-w-0">
+                                                        <div className="truncate text-sm font-medium text-foreground">{channel.channel_name}</div>
+                                                        <div className="mt-1 text-xs text-muted-foreground">ID {channel.channel_id}</div>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                        <span className={cn(
+                                                            'rounded-full border px-2.5 py-1 shadow-waterhouse-soft',
+                                                            channel.enabled
+                                                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
+                                                                : 'border-border/25 bg-background/46 text-muted-foreground'
+                                                        )}>
+                                                            {channel.enabled ? t('detail.enabled') : t('detail.disabled')}
+                                                        </span>
+                                                        <span className="rounded-full border border-border/25 bg-background/46 px-2.5 py-1 text-muted-foreground shadow-waterhouse-soft">
+                                                            {channel.enabled_key_count} {t('detail.keyCount')}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
-                ) : null}
-            </AnimatePresence>
-
+                        </motion.div>
+                    ) : null}
+                </AnimatePresence>
+            </div>
             <AnimatePresence>
                 {confirmDelete && (
                     <ModelDeleteOverlay

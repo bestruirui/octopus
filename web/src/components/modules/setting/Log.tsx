@@ -81,14 +81,14 @@ export function SettingLog() {
     };
 
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+        <div className="waterhouse-island rounded-[2.1rem] border-border/35 bg-card/58 p-6 space-y-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
                 <ScrollText className="h-5 w-5" />
                 {t('log.title')}
             </h2>
 
             {/* 是否启用历史日志 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex items-center justify-between gap-4 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft">
                 <div className="flex items-center gap-3">
                     <ScrollText className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('log.enabled.label')}</span>
@@ -100,7 +100,7 @@ export function SettingLog() {
             </div>
 
             {/* 历史日志保存范围 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex flex-col gap-3 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('log.keepPeriod.label')}</span>
@@ -117,7 +117,7 @@ export function SettingLog() {
             </div>
 
             {/* 清空历史日志 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex flex-col gap-3 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                     <Trash2 className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('log.clear.label')}</span>

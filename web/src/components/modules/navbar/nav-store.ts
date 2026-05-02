@@ -10,6 +10,7 @@ export type NavItem =
     | 'log'
     | 'alert'
     | 'ops'
+    | 'apikey'
     | 'setting'
     | 'user';
 
@@ -22,6 +23,7 @@ export const DEFAULT_NAV_ORDER: NavItem[] = [
     'log',
     'alert',
     'ops',
+    'apikey',
     'setting',
     'user',
 ];
@@ -96,6 +98,7 @@ interface NavState {
     setActiveItem: (item: NavItem) => void;
     setNavOrder: (items: NavItem[]) => void;
     setOrderedItems: (items: NavItem[]) => void;
+    setVisibleItems: (items: NavItem[]) => void;
     setItemVisible: (item: NavItem, visible: boolean) => void;
     resetNavOrder: () => void;
     resetPreferences: () => void;
@@ -142,6 +145,23 @@ export const useNavStore = create<NavState>()(
             },
             setNavOrder: (items) => {
                 get().setOrderedItems(items);
+            },
+            setVisibleItems: (items) => {
+                set((state) => {
+                    const visibleItems = normalizeVisibleNavItems(items, state.orderedItems);
+                    const activeItem = visibleItems.includes(state.activeItem)
+                        ? state.activeItem
+                        : getFallbackActiveItem(state.orderedItems, visibleItems);
+
+                    return {
+                        visibleItems,
+                        activeItem,
+                        prevItem: activeItem === state.activeItem ? state.prevItem : state.activeItem,
+                        direction: activeItem === state.activeItem
+                            ? state.direction
+                            : getDirection(state.activeItem, activeItem, state.orderedItems, visibleItems),
+                    };
+                });
             },
             setItemVisible: (item, visible) => {
                 set((state) => {

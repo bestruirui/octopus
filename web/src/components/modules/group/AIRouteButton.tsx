@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot } from 'lucide-react';
+import { Bot, Waves } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -276,11 +276,11 @@ export function AIRouteButton({
 
     const buttonClassName = cn(
         variant === 'default'
-            ? 'rounded-xl'
+            ? 'rounded-[1.2rem] shadow-waterhouse-soft'
             : buttonVariants({
                 variant: 'ghost',
                 size: 'default',
-                className: 'rounded-xl transition-none hover:bg-transparent text-muted-foreground hover:text-foreground px-3',
+                className: 'rounded-[1.2rem] border border-border/25 bg-background/32 px-3 text-muted-foreground shadow-waterhouse-soft transition-[transform,border-color,background-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:bg-background/50 hover:text-foreground',
             }),
         className,
     );
@@ -314,6 +314,10 @@ export function AIRouteButton({
             <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                 <AlertDialogContent className="rounded-2xl">
                     <AlertDialogHeader>
+                        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-background/44 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-primary shadow-waterhouse-soft">
+                            <Waves className="size-3.5" />
+                            {actionLabel}
+                        </div>
                         <AlertDialogTitle>
                             {isGroupScope ? t('aiRoute.group.confirmTitle') : t('aiRoute.table.confirmTitle')}
                         </AlertDialogTitle>

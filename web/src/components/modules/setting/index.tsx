@@ -3,7 +3,6 @@
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { SettingAppearance } from './Appearance';
 import { SettingSystem } from './System';
-import { SettingAPIKey } from './APIKey';
 import { SettingLLMPrice } from './LLMPrice';
 import { SettingAccount } from './Account';
 import { SettingInfo } from './Info';
@@ -19,23 +18,40 @@ import { SettingRouteGroupDanger } from './RouteGroupDanger';
 
 export function Setting() {
     return (
-        <div className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-3xl">
-            <PageWrapper className="columns-1 gap-4 pb-24 md:columns-2 md:pb-4 *:mb-4 *:break-inside-avoid">
-                <SettingInfo key="setting-info" />
-                <SettingAppearance key="setting-appearance" />
-                <SettingAccount key="setting-account" />
-                <SettingSystem key="setting-system" />
-                <SettingSemanticCache key="setting-semantic-cache" />
-                <SettingAIRoute key="setting-ai-route" />
-                <SettingRetry key="setting-retry" />
-                <SettingAutoStrategy key="setting-auto-strategy" />
-                <SettingLog key="setting-log" />
-                <SettingLLMPrice key="setting-llmprice" />
-                <SettingAPIKey key="setting-apikey" />
-                <SettingLLMSync key="setting-llmsync" />
-                <SettingCircuitBreaker key="setting-circuit-breaker" />
-                <SettingBackup key="setting-backup" />
-                <SettingRouteGroupDanger key="setting-route-group-danger" />
+        <div className="setting-shadowless h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-3xl">
+            <PageWrapper className="pb-24 md:pb-6">
+                <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.42fr)_minmax(20rem,0.78fr)] 2xl:items-start">
+                    <div className="min-w-0 space-y-5">
+                        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] xl:items-start">
+                            <SettingAppearance key="setting-appearance" />
+                            <SettingAccount key="setting-account" />
+                        </div>
+
+                        <SettingAIRoute key="setting-ai-route" />
+
+                        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)]">
+                            <SettingSemanticCache key="setting-semantic-cache" />
+                            <div className="flex min-w-0 flex-col gap-5">
+                                <SettingRetry key="setting-retry" />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-5 xl:grid-cols-2">
+                            <SettingAutoStrategy key="setting-auto-strategy" />
+                            <SettingLog key="setting-log" />
+                        </div>
+                    </div>
+
+                    <div className="flex min-w-0 flex-col gap-5 2xl:sticky 2xl:top-0">
+                        <SettingInfo key="setting-info" />
+                        <SettingSystem key="setting-system" />
+                        <SettingLLMPrice key="setting-llmprice" />
+                        <SettingLLMSync key="setting-llmsync" />
+                        <SettingCircuitBreaker key="setting-circuit-breaker" />
+                        <SettingBackup key="setting-backup" />
+                        <SettingRouteGroupDanger key="setting-route-group-danger" />
+                    </div>
+                </div>
             </PageWrapper>
         </div>
     );

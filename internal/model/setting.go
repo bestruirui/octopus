@@ -38,6 +38,7 @@ const (
 	SettingKeySemanticCacheEmbeddingModel          SettingKey = "semantic_cache_embedding_model"           // 语义缓存 embedding 模型名称
 	SettingKeySemanticCacheEmbeddingTimeoutSeconds SettingKey = "semantic_cache_embedding_timeout_seconds" // 语义缓存 embedding 请求超时（秒）
 	SettingKeyNavOrder                             SettingKey = "nav_order"                                // 顶级页面顺序(JSON)
+	SettingKeyNavVisible                           SettingKey = "nav_visible"                              // 顶级页面显示状态(JSON)
 	SettingKeyAIRouteGroupID                       SettingKey = "ai_route_group_id"                        // AI路由目标分组 ID
 	SettingKeyAIRouteBaseURL                       SettingKey = "ai_route_base_url"                        // AI路由分析服务 Base URL
 	SettingKeyAIRouteAPIKey                        SettingKey = "ai_route_api_key"                         // AI路由分析服务 API Key
@@ -81,7 +82,8 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeySemanticCacheEmbeddingAPIKey, Value: ""},
 		{Key: SettingKeySemanticCacheEmbeddingModel, Value: ""},
 		{Key: SettingKeySemanticCacheEmbeddingTimeoutSeconds, Value: "10"},
-		{Key: SettingKeyNavOrder, Value: `["home","channel","group","model","analytics","log","alert","ops","setting","user"]`},
+		{Key: SettingKeyNavOrder, Value: `["home","channel","group","model","analytics","log","alert","ops","apikey","setting","user"]`},
+		{Key: SettingKeyNavVisible, Value: `["home","channel","group","model","analytics","log","alert","ops","apikey","setting","user"]`},
 		{Key: SettingKeyAIRouteGroupID, Value: "0"},
 		{Key: SettingKeyAIRouteBaseURL, Value: ""},
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},
@@ -212,10 +214,10 @@ func (s *Setting) Validate() error {
 		default:
 			return fmt.Errorf("alert notify language must be zh-Hans, zh-Hant, or en")
 		}
-	case SettingKeyNavOrder:
+	case SettingKeyNavOrder, SettingKeyNavVisible:
 		var navOrder []string
 		if err := json.Unmarshal([]byte(s.Value), &navOrder); err != nil {
-			return fmt.Errorf("nav order must be a valid JSON array of strings")
+			return fmt.Errorf("nav setting must be a valid JSON array of strings")
 		}
 		return nil
 	case SettingKeyAIRouteServices:

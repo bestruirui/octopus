@@ -33,6 +33,7 @@ export function ModelMarketSummary({
     isRefreshing: boolean;
 }) {
     const t = useTranslations('model');
+    const lastUpdateLabel = formatLastUpdate(summary.last_update_time, t('summary.neverUpdated'));
 
     const metrics = [
         {
@@ -62,39 +63,40 @@ export function ModelMarketSummary({
     ];
 
     return (
-        <section className="rounded-3xl border border-card-border bg-card p-5 text-card-foreground custom-shadow">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="space-y-1">
-                    <h2 className="text-xl font-semibold">{t('summary.title')}</h2>
-                    <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{t('summary.description')}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">
-                        {t('summary.lastUpdate')}: {formatLastUpdate(summary.last_update_time, t('summary.neverUpdated'))}
-                    </span>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={onRefresh}
-                        disabled={isRefreshing}
-                        className="rounded-xl"
-                    >
-                        <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        {isRefreshing ? t('summary.refreshing') : t('summary.refresh')}
-                    </Button>
-                </div>
-            </div>
-            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {metrics.map((metric) => (
-                    <div key={metric.key} className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <metric.icon className="h-4 w-4" />
-                            <span>{metric.label}</span>
+        <section className="waterhouse-island relative overflow-hidden rounded-[2.05rem] border border-border/35 bg-card/60 p-4 text-card-foreground shadow-none backdrop-blur-[var(--waterhouse-shell-blur)] md:p-4.5">
+            <div className="relative flex flex-col gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="text-xl font-semibold tracking-tight md:text-2xl">{t('summary.title')}</h2>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <div className="waterhouse-pod flex items-center gap-2 rounded-[1.2rem] border-border/30 bg-background/38 px-3 py-2 text-sm text-muted-foreground shadow-waterhouse-soft backdrop-blur-md">
+                            <Clock3 className="h-4 w-4 text-primary" />
+                            <span>{t('summary.lastUpdate')}: {lastUpdateLabel}</span>
                         </div>
-                        <div className="mt-2 text-2xl font-semibold tracking-tight">{metric.value}</div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={onRefresh}
+                            disabled={isRefreshing}
+                            className="rounded-[1.2rem] border-border/30 bg-background/42 px-3.5 shadow-waterhouse-soft"
+                        >
+                            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            {isRefreshing ? t('summary.refreshing') : t('summary.refresh')}
+                        </Button>
                     </div>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+                    {metrics.map((metric) => (
+                        <div key={metric.key} className="waterhouse-pod group relative overflow-hidden rounded-[1.5rem] border border-border/30 bg-background/40 px-3.5 py-3 shadow-none backdrop-blur-md transition-[transform,border-color] duration-300 hover:-translate-y-0.5 hover:border-primary/18">
+                            <div className="relative flex items-center gap-2 text-xs text-muted-foreground md:text-sm">
+                                <metric.icon className="h-4 w-4 text-primary" />
+                                <span>{metric.label}</span>
+                            </div>
+                            <div className="relative mt-2 text-2xl font-semibold tracking-tight md:text-[1.75rem]">{metric.value}</div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </section>
     );

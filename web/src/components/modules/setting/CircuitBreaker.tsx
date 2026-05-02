@@ -59,7 +59,7 @@ export function SettingCircuitBreaker() {
     };
 
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+        <div className="waterhouse-island rounded-[2.1rem] border-border/35 bg-card/58 p-6 space-y-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
                 <Zap className="h-5 w-5" />
                 {t('circuitBreaker.title')}
@@ -76,7 +76,7 @@ export function SettingCircuitBreaker() {
             </h2>
 
             {/* 熔断触发阈值 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex flex-col gap-3 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                     <Hash className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('circuitBreaker.threshold.label')}</span>
@@ -92,7 +92,7 @@ export function SettingCircuitBreaker() {
             </div>
 
             {/* 基础冷却时间 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex flex-col gap-3 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                     <Timer className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('circuitBreaker.cooldown.label')}</span>
@@ -108,7 +108,7 @@ export function SettingCircuitBreaker() {
             </div>
 
             {/* 最大冷却时间 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex flex-col gap-3 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                     <TimerOff className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('circuitBreaker.maxCooldown.label')}</span>

@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw, X, Plus, FlaskConical, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, X, Plus, FlaskConical, CheckCircle2, AlertTriangle, Sparkles, Orbit, Layers3, KeyRound, Cable, SlidersHorizontal } from 'lucide-react';
 
 export interface ChannelKeyFormItem {
     id?: number;
@@ -108,6 +108,28 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion";
 
+function SectionHeader({
+    icon: Icon,
+    title,
+    hint,
+}: {
+    icon: typeof Sparkles;
+    title: string;
+    hint?: string;
+}) {
+    return (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-background/42 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-primary shadow-waterhouse-soft">
+                    <Icon className="size-3.5" />
+                    {title}
+                </div>
+                {hint ? <p className="text-xs leading-5 text-muted-foreground">{hint}</p> : null}
+            </div>
+        </div>
+    );
+}
+
 export function ChannelForm({
     formData,
     onFormDataChange,
@@ -121,6 +143,9 @@ export function ChannelForm({
 }: ChannelFormProps) {
     const t = useTranslations('channel.form');
     const requestRewriteSupported = isRequestRewriteSupportedChannelType(formData.type);
+    const sectionClassName = 'waterhouse-pod space-y-4 rounded-[1.8rem] border border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:p-5';
+    const labelClassName = 'text-sm font-medium text-card-foreground';
+    const fieldGroupClassName = 'space-y-2';
 
     // Ensure the form always shows at least 1 row for base_urls / keys / custom_header.
     // This avoids "empty list" UI and also keeps URL + APIKEY layout consistent.
@@ -345,12 +370,11 @@ export function ChannelForm({
     };
 
     return (
-        <form onSubmit={onSubmit} className="space-y-4 px-1">
-            <div className="space-y-2">
-                <div className="space-y-1">
-                    <label className="text-sm font-medium text-card-foreground">{t('template.label')}</label>
-                    <p className="text-xs text-muted-foreground">{t('template.hint')}</p>
-                </div>
+        <form onSubmit={onSubmit} className="flex h-full min-h-0 flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto px-1">
+            <div className="space-y-4 pb-2">
+            <section className={sectionClassName}>
+                <SectionHeader icon={Sparkles} title={t('template.label')} hint={t('template.hint')} />
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {channelTemplates.map((template) => (
                         <Button
@@ -358,57 +382,61 @@ export function ChannelForm({
                             type="button"
                             variant="outline"
                             onClick={() => handleApplyTemplate(template.key)}
-                            className="h-auto min-h-20 flex-col items-start gap-1 rounded-2xl px-4 py-3 text-left whitespace-normal"
+                            className="h-auto min-h-24 flex-col items-start gap-1 rounded-[1.55rem] border-border/30 bg-background/42 px-4 py-3 text-left whitespace-normal shadow-waterhouse-soft hover:bg-background/54"
                         >
                             <span className="text-sm font-semibold">{template.name}</span>
                             <span className="text-xs text-muted-foreground">{t(template.descriptionKey)}</span>
                         </Button>
                     ))}
                 </div>
-            </div>
+            </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label htmlFor={`${idPrefix}-name`} className="text-sm font-medium text-card-foreground">
+            <section className={sectionClassName}>
+                <SectionHeader icon={Orbit} title={t('name')} hint={t('type')} />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className={fieldGroupClassName}>
+                        <label htmlFor={`${idPrefix}-name`} className={labelClassName}>
                         {t('name')}
-                    </label>
-                    <Input
-                        className='rounded-xl'
-                        id={`${idPrefix}-name`}
-                        type="text"
-                        value={formData.name}
-                        onChange={(event) => onFormDataChange({ ...formData, name: event.target.value })}
-                        required
-                    />
-                </div>
+                        </label>
+                        <Input
+                            className="rounded-[1.25rem]"
+                            id={`${idPrefix}-name`}
+                            type="text"
+                            value={formData.name}
+                            onChange={(event) => onFormDataChange({ ...formData, name: event.target.value })}
+                            required
+                        />
+                    </div>
 
-                <div className="space-y-2">
-                    <label htmlFor={`${idPrefix}-type`} className="text-sm font-medium text-card-foreground">
+                    <div className={fieldGroupClassName}>
+                        <label htmlFor={`${idPrefix}-type`} className={labelClassName}>
                         {t('type')}
-                    </label>
-                    <Select
-                        value={String(formData.type)}
-                        onValueChange={(value) => onFormDataChange({ ...formData, type: Number(value) as ChannelType })}
-                    >
-                        <SelectTrigger id={`${idPrefix}-type`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className='rounded-xl'>
-                            <SelectItem className='rounded-xl' value={String(ChannelType.OpenAIChat)}>{t('typeOpenAIChat')}</SelectItem>
-                            <SelectItem className='rounded-xl' value={String(ChannelType.OpenAIResponse)}>{t('typeOpenAIResponse')}</SelectItem>
-                            <SelectItem className='rounded-xl' value={String(ChannelType.Anthropic)}>{t('typeAnthropic')}</SelectItem>
-                            <SelectItem className='rounded-xl' value={String(ChannelType.Gemini)}>{t('typeGemini')}</SelectItem>
-                            <SelectItem className='rounded-xl' value={String(ChannelType.Volcengine)}>{t('typeVolcengine')}</SelectItem>
-                            <SelectItem className='rounded-xl' value={String(ChannelType.OpenAIEmbedding)}>{t('typeOpenAIEmbedding')}</SelectItem>
-                            <SelectItem className='rounded-xl' value={String(ChannelType.Mimo)}>{t('typeMimo')}</SelectItem>
-                        </SelectContent>
-                    </Select>
+                        </label>
+                        <Select
+                            value={String(formData.type)}
+                            onValueChange={(value) => onFormDataChange({ ...formData, type: Number(value) as ChannelType })}
+                        >
+                            <SelectTrigger id={`${idPrefix}-type`} className="w-full rounded-[1.25rem] border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-[1.25rem]">
+                                <SelectItem className="rounded-xl" value={String(ChannelType.OpenAIChat)}>{t('typeOpenAIChat')}</SelectItem>
+                                <SelectItem className="rounded-xl" value={String(ChannelType.OpenAIResponse)}>{t('typeOpenAIResponse')}</SelectItem>
+                                <SelectItem className="rounded-xl" value={String(ChannelType.Anthropic)}>{t('typeAnthropic')}</SelectItem>
+                                <SelectItem className="rounded-xl" value={String(ChannelType.Gemini)}>{t('typeGemini')}</SelectItem>
+                                <SelectItem className="rounded-xl" value={String(ChannelType.Volcengine)}>{t('typeVolcengine')}</SelectItem>
+                                <SelectItem className="rounded-xl" value={String(ChannelType.OpenAIEmbedding)}>{t('typeOpenAIEmbedding')}</SelectItem>
+                                <SelectItem className="rounded-xl" value={String(ChannelType.Mimo)}>{t('typeMimo')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div className="space-y-2">
+            <section className={sectionClassName}>
+                <SectionHeader icon={Cable} title={t('baseUrls')} hint={t('baseUrlUrl')} />
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-card-foreground">
+                    <label className={labelClassName}>
                         {t('baseUrls')} {formData.base_urls.length > 0 ? `(${formData.base_urls.length})` : ''}
                     </label>
                     <Button
@@ -424,7 +452,7 @@ export function ChannelForm({
                 </div>
                 <div className="space-y-2">
                     {(formData.base_urls ?? []).map((u, idx) => (
-                        <div key={`baseurl-${idx}`} className="flex items-center gap-2">
+                        <div key={`baseurl-${idx}`} className="waterhouse-pod flex items-center gap-2 rounded-[1.35rem] border border-border/25 bg-background/42 p-2 shadow-waterhouse-soft">
                             <Input
                                 id={`${idPrefix}-base-${idx}`}
                                 type="url"
@@ -432,7 +460,7 @@ export function ChannelForm({
                                 onChange={(e) => handleUpdateBaseUrl(idx, { url: e.target.value })}
                                 placeholder={t('baseUrlUrl')}
                                 required={idx === 0}
-                                className="rounded-xl flex-1"
+                                className="flex-1 rounded-[1.15rem]"
                             />
                             <Button
                                 type="button"
@@ -448,11 +476,12 @@ export function ChannelForm({
                         </div>
                     ))}
                 </div>
-            </div>
+            </section>
 
-            <div className="space-y-2">
+            <section className={sectionClassName}>
+                <SectionHeader icon={KeyRound} title={t('apiKey')} hint={t('remark')} />
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-card-foreground">
+                    <label className={labelClassName}>
                         {t('apiKey')} {formData.keys.length > 0 ? `(${formData.keys.length})` : ''}
                     </label>
                     <Button
@@ -468,26 +497,29 @@ export function ChannelForm({
                 </div>
                 <div className="space-y-2">
                     {(formData.keys ?? []).map((k, idx) => (
-                        <div key={k.id ?? `new-${idx}`} className="flex items-center gap-2">
+                        <div key={k.id ?? `new-${idx}`} className="waterhouse-pod grid gap-2 rounded-[1.35rem] border border-border/25 bg-background/42 p-2 shadow-waterhouse-soft md:grid-cols-[minmax(0,1fr)_10rem_auto_auto] md:items-center">
                             <Input
                                 type="text"
                                 value={k.channel_key}
                                 onChange={(e) => handleUpdateKey(idx, { channel_key: e.target.value })}
                                 placeholder={t('apiKey')}
                                 required={idx === 0}
-                                className="rounded-xl flex-1"
+                                className="rounded-[1.15rem]"
                             />
                             <Input
                                 type="text"
                                 value={k.remark ?? ''}
                                 onChange={(e) => handleUpdateKey(idx, { remark: e.target.value })}
                                 placeholder={t('remark')}
-                                className="rounded-xl w-32"
+                                className="rounded-[1.15rem] md:w-40"
                             />
-                            <Switch
-                                checked={k.enabled}
-                                onCheckedChange={(checked) => handleUpdateKey(idx, { enabled: checked })}
-                            />
+                            <label className="flex items-center gap-2 rounded-[1.1rem] border border-border/20 bg-background/48 px-3 py-2 text-sm text-card-foreground shadow-waterhouse-soft">
+                                <Switch
+                                    checked={k.enabled}
+                                    onCheckedChange={(checked) => handleUpdateKey(idx, { enabled: checked })}
+                                />
+                                <span>{t('enabled')}</span>
+                            </label>
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -502,11 +534,12 @@ export function ChannelForm({
                         </div>
                     ))}
                 </div>
-            </div>
+            </section>
 
-            <div className="space-y-2">
+            <section className={sectionClassName}>
+                <SectionHeader icon={Layers3} title={t('model')} hint={t('modelSelected')} />
                 <div className="flex items-center justify-between gap-2">
-                    <label className="text-sm font-medium text-card-foreground">{t('model')}</label>
+                    <label className={labelClassName}>{t('model')}</label>
                     <div className="flex items-center gap-2">
                         <Button
                             type="button"
@@ -539,7 +572,7 @@ export function ChannelForm({
                 <input type="hidden" value={formData.model} required />
 
                 {testSummary && (
-                    <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+                    <div className="waterhouse-pod space-y-2 rounded-[1.45rem] border border-border/25 bg-background/42 p-3 shadow-waterhouse-soft">
                         <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
                                 {testSummary.passed ? (
@@ -553,7 +586,7 @@ export function ChannelForm({
                         </div>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                             {testSummary.results.map((result, idx) => (
-                                <div key={`${result.base_url}-${result.key_masked}-${idx}`} className="rounded-lg border border-border/70 bg-background p-2.5 text-xs space-y-1">
+                                <div key={`${result.base_url}-${result.key_masked}-${idx}`} className="rounded-[1.1rem] border border-border/30 bg-background/64 p-2.5 text-xs space-y-1">
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="font-mono truncate">{result.base_url}</span>
                                         <div className="flex items-center gap-1 shrink-0">
@@ -582,7 +615,7 @@ export function ChannelForm({
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleInputKeyDown}
                         placeholder={t('modelCustomPlaceholder')}
-                        className="pr-10 rounded-xl"
+                        className="rounded-[1.25rem] pr-10"
                     />
                     {inputValue.trim() && !customModels.includes(inputValue.trim()) && !autoModels.includes(inputValue.trim()) && (
                         <Button
@@ -617,7 +650,7 @@ export function ChannelForm({
                             </Button>
                         )}
                     </div>
-                    <div className="rounded-xl border border-border bg-muted/30 p-2.5 max-h-40 min-h-12 overflow-y-auto">
+                    <div className="waterhouse-pod max-h-40 min-h-12 overflow-y-auto rounded-[1.45rem] border border-border/25 bg-background/42 p-2.5 shadow-waterhouse-soft">
                         {(autoModels.length + customModels.length) > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
                                 {autoModels.map((model) => (
@@ -652,37 +685,41 @@ export function ChannelForm({
                         )}
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <Accordion type="single" collapsible className="w-full border rounded-xl bg-card">
+            <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="advanced" className="border-none">
-                    <AccordionTrigger className="text-sm font-medium text-card-foreground py-3 px-4 hover:no-underline hover:bg-muted/30 rounded-xl transition-colors">
-                        {t('advanced')}
+                    <AccordionTrigger className="waterhouse-pod rounded-[1.8rem] border border-border/30 bg-background/34 px-4 py-4 text-sm font-medium text-card-foreground shadow-waterhouse-soft transition-colors hover:bg-background/44 hover:no-underline">
+                        <span className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-primary/70" />
+                            {t('advanced')}
+                        </span>
                     </AccordionTrigger>
-                    <AccordionContent className="pt-4 px-4 pb-4 space-y-4 border-t">
+                    <AccordionContent className="pt-4">
+                        <div className={sectionClassName}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label htmlFor={`${idPrefix}-auto-group`} className="text-sm font-medium text-card-foreground">
+                            <div className={fieldGroupClassName}>
+                                <label htmlFor={`${idPrefix}-auto-group`} className={labelClassName}>
                                     {t('autoGroup')}
                                 </label>
                                 <Select
                                     value={String(formData.auto_group)}
                                     onValueChange={(value) => onFormDataChange({ ...formData, auto_group: Number(value) as AutoGroupType })}
                                 >
-                                    <SelectTrigger id={`${idPrefix}-auto-group`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <SelectTrigger id={`${idPrefix}-auto-group`} className="w-full rounded-[1.25rem] border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className='rounded-xl'>
-                                        <SelectItem className='rounded-xl' value={String(AutoGroupType.None)}>{t('autoGroupNone')}</SelectItem>
-                                        <SelectItem className='rounded-xl' value={String(AutoGroupType.Fuzzy)}>{t('autoGroupFuzzy')}</SelectItem>
-                                        <SelectItem className='rounded-xl' value={String(AutoGroupType.Exact)}>{t('autoGroupExact')}</SelectItem>
-                                        <SelectItem className='rounded-xl' value={String(AutoGroupType.Regex)}>{t('autoGroupRegex')}</SelectItem>
+                                    <SelectContent className="rounded-[1.25rem]">
+                                        <SelectItem className="rounded-xl" value={String(AutoGroupType.None)}>{t('autoGroupNone')}</SelectItem>
+                                        <SelectItem className="rounded-xl" value={String(AutoGroupType.Fuzzy)}>{t('autoGroupFuzzy')}</SelectItem>
+                                        <SelectItem className="rounded-xl" value={String(AutoGroupType.Exact)}>{t('autoGroupExact')}</SelectItem>
+                                        <SelectItem className="rounded-xl" value={String(AutoGroupType.Regex)}>{t('autoGroupRegex')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            <div className="space-y-2">
-                                <label htmlFor={`${idPrefix}-channel-proxy`} className="text-sm font-medium text-card-foreground">
+                            <div className={fieldGroupClassName}>
+                                <label htmlFor={`${idPrefix}-channel-proxy`} className={labelClassName}>
                                     {t('channelProxy')}
                                 </label>
                                 <Input
@@ -691,14 +728,14 @@ export function ChannelForm({
                                     value={formData.channel_proxy}
                                     onChange={(e) => onFormDataChange({ ...formData, channel_proxy: e.target.value })}
                                     placeholder={t('channelProxyPlaceholder')}
-                                    className="rounded-xl"
+                                    className="rounded-[1.25rem]"
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className={fieldGroupClassName}>
                             <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-card-foreground">
+                                <label className={labelClassName}>
                                     {t('customHeader')} {formData.custom_header.length > 0 ? `(${formData.custom_header.length})` : ''}
                                 </label>
                                 <Button
@@ -714,20 +751,20 @@ export function ChannelForm({
                             </div>
                             <div className="space-y-2">
                                 {(formData.custom_header ?? []).map((h, idx) => (
-                                    <div key={`hdr-${idx}`} className="flex items-center gap-2">
+                                    <div key={`hdr-${idx}`} className="waterhouse-pod grid gap-2 rounded-[1.35rem] border border-border/25 bg-background/42 p-2 shadow-waterhouse-soft md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center">
                                         <Input
                                             type="text"
                                             value={h.header_key}
                                             onChange={(e) => handleUpdateHeader(idx, { header_key: e.target.value })}
                                             placeholder={t('customHeaderKey')}
-                                            className="rounded-xl flex-1"
+                                            className="rounded-[1.15rem]"
                                         />
                                         <Input
                                             type="text"
                                             value={h.header_value}
                                             onChange={(e) => handleUpdateHeader(idx, { header_value: e.target.value })}
                                             placeholder={t('customHeaderValue')}
-                                            className="rounded-xl flex-1"
+                                            className="rounded-[1.15rem]"
                                         />
                                         <Button
                                             type="button"
@@ -745,8 +782,8 @@ export function ChannelForm({
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label htmlFor={`${idPrefix}-match-regex`} className="text-sm font-medium text-card-foreground">
+                        <div className={fieldGroupClassName}>
+                            <label htmlFor={`${idPrefix}-match-regex`} className={labelClassName}>
                                 {t('matchRegex')}
                             </label>
                             <Input
@@ -755,12 +792,12 @@ export function ChannelForm({
                                 value={formData.match_regex}
                                 onChange={(e) => onFormDataChange({ ...formData, match_regex: e.target.value })}
                                 placeholder={t('matchRegexPlaceholder')}
-                                className="rounded-xl"
+                                className="rounded-[1.25rem]"
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <label htmlFor={`${idPrefix}-param-override`} className="text-sm font-medium text-card-foreground">
+                        <div className={fieldGroupClassName}>
+                            <label htmlFor={`${idPrefix}-param-override`} className={labelClassName}>
                                 {t('paramOverride')}
                             </label>
                             <textarea
@@ -768,11 +805,11 @@ export function ChannelForm({
                                 value={formData.param_override}
                                 onChange={(e) => onFormDataChange({ ...formData, param_override: e.target.value })}
                                 placeholder={t('paramOverridePlaceholder')}
-                                className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="waterhouse-liquid-field min-h-28 w-full rounded-[1.35rem] border border-border/35 bg-background/62 px-3 py-2 text-sm text-foreground shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                         </div>
 
-                        <div className="space-y-4 rounded-xl border border-border/70 p-4">
+                        <div className="space-y-4 rounded-[1.55rem] border border-border/30 bg-background/40 p-4 shadow-waterhouse-soft">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div>
                                     <p className="text-sm font-medium text-card-foreground">{t('requestRewrite')}</p>
@@ -795,8 +832,8 @@ export function ChannelForm({
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <label htmlFor={`${idPrefix}-request-rewrite-profile`} className="text-sm font-medium text-card-foreground">
+                                <div className={fieldGroupClassName}>
+                                    <label htmlFor={`${idPrefix}-request-rewrite-profile`} className={labelClassName}>
                                         {t('requestRewriteProfile')}
                                     </label>
                                     <Select
@@ -810,17 +847,17 @@ export function ChannelForm({
                                         })}
                                         disabled={!requestRewriteSupported || !formData.request_rewrite.enabled}
                                     >
-                                        <SelectTrigger id={`${idPrefix}-request-rewrite-profile`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        <SelectTrigger id={`${idPrefix}-request-rewrite-profile`} className="w-full rounded-[1.25rem] border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className='rounded-xl'>
-                                            <SelectItem className='rounded-xl' value={RequestRewriteProfile.OpenAIChatCompat}>{t('requestRewriteProfileOpenAIChatCompat')}</SelectItem>
+                                        <SelectContent className="rounded-[1.25rem]">
+                                            <SelectItem className="rounded-xl" value={RequestRewriteProfile.OpenAIChatCompat}>{t('requestRewriteProfileOpenAIChatCompat')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label htmlFor={`${idPrefix}-request-rewrite-tool-role`} className="text-sm font-medium text-card-foreground">
+                                <div className={fieldGroupClassName}>
+                                    <label htmlFor={`${idPrefix}-request-rewrite-tool-role`} className={labelClassName}>
                                         {t('requestRewriteToolRoleStrategy')}
                                     </label>
                                     <Select
@@ -834,18 +871,18 @@ export function ChannelForm({
                                         })}
                                         disabled={!requestRewriteSupported || !formData.request_rewrite.enabled}
                                     >
-                                        <SelectTrigger id={`${idPrefix}-request-rewrite-tool-role`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        <SelectTrigger id={`${idPrefix}-request-rewrite-tool-role`} className="w-full rounded-[1.25rem] border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className='rounded-xl'>
-                                            <SelectItem className='rounded-xl' value={ToolRoleStrategy.Keep}>{t('requestRewriteStrategyKeep')}</SelectItem>
-                                            <SelectItem className='rounded-xl' value={ToolRoleStrategy.StringifyToUser}>{t('requestRewriteStrategyStringifyToUser')}</SelectItem>
+                                        <SelectContent className="rounded-[1.25rem]">
+                                            <SelectItem className="rounded-xl" value={ToolRoleStrategy.Keep}>{t('requestRewriteStrategyKeep')}</SelectItem>
+                                            <SelectItem className="rounded-xl" value={ToolRoleStrategy.StringifyToUser}>{t('requestRewriteStrategyStringifyToUser')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label htmlFor={`${idPrefix}-request-rewrite-system`} className="text-sm font-medium text-card-foreground">
+                                <div className={fieldGroupClassName}>
+                                    <label htmlFor={`${idPrefix}-request-rewrite-system`} className={labelClassName}>
                                         {t('requestRewriteSystemMessageStrategy')}
                                     </label>
                                     <Select
@@ -859,22 +896,26 @@ export function ChannelForm({
                                         })}
                                         disabled={!requestRewriteSupported || !formData.request_rewrite.enabled}
                                     >
-                                        <SelectTrigger id={`${idPrefix}-request-rewrite-system`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        <SelectTrigger id={`${idPrefix}-request-rewrite-system`} className="w-full rounded-[1.25rem] border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className='rounded-xl'>
-                                            <SelectItem className='rounded-xl' value={SystemMessageStrategy.Keep}>{t('requestRewriteStrategyKeep')}</SelectItem>
-                                            <SelectItem className='rounded-xl' value={SystemMessageStrategy.Merge}>{t('requestRewriteStrategyMerge')}</SelectItem>
+                                        <SelectContent className="rounded-[1.25rem]">
+                                            <SelectItem className="rounded-xl" value={SystemMessageStrategy.Keep}>{t('requestRewriteStrategyKeep')}</SelectItem>
+                                            <SelectItem className="rounded-xl" value={SystemMessageStrategy.Merge}>{t('requestRewriteStrategyMerge')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                             </div>
                         </div>
+                        </div>
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
+            </div>
+            </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-muted/20 border border-border/50">
+            <section className={`${sectionClassName} mt-4 flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between`}>
+                <SectionHeader icon={SlidersHorizontal} title={t('advanced')} />
                 <label className="flex items-center gap-2 cursor-pointer">
                     <Switch
                         checked={formData.enabled}
@@ -898,15 +939,15 @@ export function ChannelForm({
                         <span className="text-sm text-card-foreground">{t('autoSync')}</span>
                     </label>
                 </div>
-            </div>
+            </section>
 
-            <div className={`flex flex-col gap-3 pt-2 ${onCancel ? 'sm:flex-row' : ''}`}>
+            <div className={`shrink-0 flex flex-col gap-3 pt-4 ${onCancel ? 'sm:flex-row' : ''}`}>
                 {onCancel && cancelText && (
                     <Button
                         type="button"
                         variant="secondary"
                         onClick={onCancel}
-                        className="w-full sm:flex-1 rounded-2xl h-12"
+                        className="h-12 w-full rounded-[1.6rem] sm:flex-1"
                     >
                         {cancelText}
                     </Button>
@@ -914,7 +955,7 @@ export function ChannelForm({
                 <Button
                     type="submit"
                     disabled={isPending}
-                    className="w-full sm:flex-1 rounded-2xl h-12"
+                    className="h-12 w-full rounded-[1.6rem] sm:flex-1"
                 >
                     {isPending ? pendingText : submitText}
                 </Button>

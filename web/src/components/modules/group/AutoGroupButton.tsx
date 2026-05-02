@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Waves } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAutoGroupModels } from '@/api/endpoints/group';
 import { toast } from '@/components/common/Toast';
@@ -54,7 +54,7 @@ export function AutoGroupButton({ variant = 'ghost', className }: AutoGroupButto
         <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
                 {variant === 'default' ? (
-                    <Button type="button" className={cn('rounded-xl', className)}>
+                    <Button type="button" className={cn('rounded-[1.2rem] shadow-waterhouse-soft', className)}>
                         <Sparkles className="size-4" />
                         {t('actions.autoGroup')}
                     </Button>
@@ -65,7 +65,7 @@ export function AutoGroupButton({ variant = 'ghost', className }: AutoGroupButto
                             buttonVariants({
                                 variant: 'ghost',
                                 size: 'default',
-                                className: 'rounded-xl transition-none hover:bg-transparent text-muted-foreground hover:text-foreground px-3',
+                                className: 'rounded-[1.2rem] border border-border/25 bg-background/32 px-3 text-muted-foreground shadow-waterhouse-soft transition-[transform,border-color,background-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:bg-background/50 hover:text-foreground',
                             }),
                             className,
                         )}
@@ -77,6 +77,10 @@ export function AutoGroupButton({ variant = 'ghost', className }: AutoGroupButto
             </AlertDialogTrigger>
             <AlertDialogContent className="rounded-2xl">
                 <AlertDialogHeader>
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-background/44 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-primary shadow-waterhouse-soft">
+                        <Waves className="size-3.5" />
+                        {t('actions.autoGroup')}
+                    </div>
                     <AlertDialogTitle>{t('autoGroup.confirmTitle')}</AlertDialogTitle>
                     <AlertDialogDescription className="whitespace-pre-line">
                         {t('autoGroup.confirmDescription')}

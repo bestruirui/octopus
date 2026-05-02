@@ -50,6 +50,13 @@ const COMBINED_SORT_OPTIONS: readonly CombinedSortOption[] = [
     { value: 'created-desc', field: 'created', order: 'desc', labelKey: 'popover.createdDesc' },
 ] as const;
 
+const COMMAND_CELL_CLASS = 'rounded-[1.25rem] border border-border/35 bg-background/48 shadow-waterhouse-soft backdrop-blur-md transition-[color,background-color,border-color,box-shadow,transform] duration-300 hover:border-primary/24 hover:bg-background/68 hover:shadow-[var(--waterhouse-shadow-soft)] active:scale-[0.97]';
+const COMMAND_ICON_BUTTON_CLASS = `${COMMAND_CELL_CLASS} h-11 w-11 text-muted-foreground hover:text-foreground`;
+const COMMAND_TEXT_BUTTON_CLASS = `${COMMAND_CELL_CLASS} h-11 px-3.5 text-sm font-medium text-muted-foreground hover:text-foreground`;
+const OPTION_BUTTON_CLASS = 'h-9 rounded-[1.05rem] border px-3 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-300 active:scale-[0.98]';
+const ACTIVE_OPTION_CLASS = 'border-primary/25 bg-primary/82 text-primary-foreground shadow-waterhouse-soft';
+const INACTIVE_OPTION_CLASS = 'border-border/45 bg-background/42 text-foreground hover:border-primary/20 hover:bg-muted/32';
+
 function isToolbarPage(item: NavItem): item is ToolbarPage {
     return (TOOLBAR_PAGES as readonly NavItem[]).includes(item);
 }
@@ -67,11 +74,11 @@ function CreateDialogContent({ activeItem }: { activeItem: ToolbarPage }) {
 
 function getCreateDialogContentClassName(activeItem: ToolbarPage) {
     if (activeItem === 'group') {
-        return 'w-[min(100vw-1rem,56rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow h-[min(44rem,calc(100dvh-1rem))] flex flex-col overflow-hidden md:px-6 md:h-[min(44rem,calc(100dvh-2rem))]';
+        return 'h-[calc(100dvh-2rem)] w-[min(100vw-2rem,92rem)] max-w-full rounded-[2.4rem] border border-border/35 bg-background/80 px-4 py-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] flex flex-col overflow-hidden md:h-[calc(100dvh-3rem)] md:px-6 md:py-5';
     }
 
     if (activeItem === 'channel') {
-        return 'w-[min(100vw-1rem,40rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]';
+        return 'h-[calc(100dvh-2rem)] w-[min(100vw-2rem,76rem)] max-w-full rounded-[2.4rem] border border-border/35 bg-background/80 px-4 py-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] flex flex-col overflow-hidden md:h-[calc(100dvh-3rem)] md:px-6';
     }
 
     return 'w-[min(100vw-1rem,34rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]';
@@ -79,6 +86,7 @@ function getCreateDialogContentClassName(activeItem: ToolbarPage) {
 
 export function Toolbar() {
     const t = useTranslations('toolbar');
+    const navT = useTranslations('navbar');
     const { activeItem } = useNavStore();
     const toolbarItem = isToolbarPage(activeItem) ? activeItem : null;
     const searchTerm = useSearchStore((s) => (toolbarItem ? s.searchTerms[toolbarItem] || '' : ''));
@@ -161,6 +169,10 @@ export function Toolbar() {
         : toolbarItem === 'group'
             ? groupFilter
             : modelFilter;
+    const activePageLabel = navT(toolbarItem);
+    const searchAriaLabel = `Search ${activePageLabel}`;
+    const clearSearchAriaLabel = `Clear ${activePageLabel} search`;
+    const createAriaLabel = `Create ${activePageLabel}`;
 
     const handleFilterChange = (value: string) => {
         switch (toolbarItem) {
@@ -184,38 +196,55 @@ export function Toolbar() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center gap-2"
+                className="waterhouse-pod flex max-w-full flex-wrap items-center gap-2 rounded-[1.85rem] border-border/35 bg-background/42 p-1.5 shadow-waterhouse-soft backdrop-blur-[var(--waterhouse-shell-blur)]"
             >
                 {/* 搜索按钮/展开框 */}
-                <div className="relative h-9 w-9">
+                <div
+                    className={cn(
+                        'relative h-11 transition-[width] duration-300 ease-out',
+                        searchExpanded ? 'w-[min(18rem,calc(100vw-3rem))] sm:w-72' : 'w-11'
+                    )}
+                >
                     {!searchExpanded ? (
                         <motion.button
                             layoutId="search-box"
+                            type="button"
+                            aria-label={searchAriaLabel}
                             onClick={() => setExpandedSearchItem(toolbarItem)}
-                            className={buttonVariants({ variant: "ghost", size: "icon", className: "absolute inset-0 rounded-xl transition-none hover:bg-transparent text-muted-foreground hover:text-foreground" })}
+                            className={cn(
+                                buttonVariants({ variant: "ghost", size: "icon" }),
+                                "absolute inset-0 rounded-[1.25rem] transition-none",
+                                COMMAND_ICON_BUTTON_CLASS
+                            )}
                         >
                             <motion.span layout="position"><Search className="size-4 transition-colors duration-300" /></motion.span>
                         </motion.button>
                     ) : (
                         <motion.div
                             layoutId="search-box"
-                            className="absolute right-0 top-0 flex items-center gap-2 h-9 px-3 rounded-xl border"
+                            className={cn(
+                                "absolute inset-0 flex items-center gap-2 px-3.5",
+                                COMMAND_CELL_CLASS
+                            )}
                             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         >
                             <motion.span layout="position"><Search className="size-4 text-muted-foreground shrink-0" /></motion.span>
                             <input
                                 type="text"
+                                aria-label={searchAriaLabel}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(toolbarItem, e.target.value)}
                                 autoFocus
-                                className="w-20 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                             />
                             <button
+                                type="button"
+                                aria-label={clearSearchAriaLabel}
                                 onClick={() => {
                                     setSearchTerm(toolbarItem, '');
                                     setExpandedSearchItem(null);
                                 }}
-                                className="p-0.5 rounded shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                                className="grid size-7 shrink-0 place-items-center rounded-full border border-border/30 bg-background/35 text-muted-foreground transition-colors hover:text-foreground"
                             >
                                 <X className="size-3.5" />
                             </button>
@@ -223,183 +252,230 @@ export function Toolbar() {
                     )}
                 </div>
 
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <button
-                            type="button"
-                            aria-label={t('popover.ariaLabel')}
-                            className={buttonVariants({
-                                variant: 'ghost',
-                                size: 'icon',
-                                className: 'rounded-xl transition-none hover:bg-transparent text-muted-foreground hover:text-foreground',
-                            })}
+                <div className="waterhouse-pod flex h-11 items-center gap-1 rounded-[1.45rem] border-border/30 bg-background/28 p-1">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <button
+                                type="button"
+                                aria-label={t('popover.ariaLabel')}
+                                className={cn(
+                                    buttonVariants({ variant: 'ghost', size: 'default' }),
+                                    "h-9 rounded-[1.15rem] border border-transparent bg-transparent px-3 text-muted-foreground shadow-none transition-[color,background-color,border-color] duration-300 hover:border-border/30 hover:bg-background/45 hover:text-foreground hover:shadow-none"
+                                )}
+                            >
+                                <SlidersHorizontal className="size-4 transition-colors duration-300" />
+                                <span className="hidden text-xs font-semibold sm:inline">{t('popover.filter.title')}</span>
+                            </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            align="end"
+                            side="bottom"
+                            sideOffset={12}
+                            className="w-72 rounded-[1.7rem] border border-border/40 bg-card/84 p-3 shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]"
                         >
-                            <SlidersHorizontal className="size-4 transition-colors duration-300" />
-                        </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                        align="center"
-                        side="bottom"
-                        sideOffset={8}
-                        className="w-64 rounded-2xl border border-border/60 bg-card p-3 shadow-xl"
-                    >
-                        <div className="grid gap-3">
-                            {showLayoutOptions && (
-                                <div className="grid gap-2">
-                                    <p className="text-xs font-medium text-muted-foreground">{t('popover.layout')}</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setLayout(toolbarItem, 'grid')}
-                                            className={cn(
-                                                'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                                layout === 'grid'
-                                                    ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                    : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                            )}
-                                        >
-                                            <LayoutGrid className="size-3.5" />
-                                            {t('popover.grid')}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setLayout(toolbarItem, 'list')}
-                                            className={cn(
-                                                'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                                layout === 'list'
-                                                    ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                    : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                            )}
-                                        >
-                                            <List className="size-3.5" />
-                                            {t('popover.list')}
-                                        </button>
+                            <div className="grid gap-3">
+                                {showLayoutOptions && (
+                                    <div className="grid gap-2 rounded-[1.25rem] border border-border/35 bg-background/34 p-2.5">
+                                        <p className="text-xs font-semibold text-muted-foreground">{t('popover.layout')}</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setLayout(toolbarItem, 'grid')}
+                                                className={cn(
+                                                    OPTION_BUTTON_CLASS,
+                                                    'inline-flex items-center justify-center gap-1.5',
+                                                    layout === 'grid' ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                )}
+                                            >
+                                                <LayoutGrid className="size-3.5" />
+                                                {t('popover.grid')}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setLayout(toolbarItem, 'list')}
+                                                className={cn(
+                                                    OPTION_BUTTON_CLASS,
+                                                    'inline-flex items-center justify-center gap-1.5',
+                                                    layout === 'list' ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                )}
+                                            >
+                                                <List className="size-3.5" />
+                                                {t('popover.list')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showSortOptions && (
+                                    <div className="grid gap-2 rounded-[1.25rem] border border-border/35 bg-background/34 p-2.5">
+                                        <p className="text-xs font-semibold text-muted-foreground">{t('popover.sort')}</p>
+                                        {showCombinedSortOptions ? (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {COMBINED_SORT_OPTIONS.map((option) => (
+                                                    <button
+                                                        key={option.value}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (toolbarItem === 'channel' || toolbarItem === 'group') {
+                                                                setSortConfig(toolbarItem, option.field, option.order);
+                                                            }
+                                                        }}
+                                                        className={cn(
+                                                            OPTION_BUTTON_CLASS,
+                                                            'inline-flex items-center justify-center gap-1.5',
+                                                            sortField === option.field && sortOrder === option.order
+                                                                ? ACTIVE_OPTION_CLASS
+                                                                : INACTIVE_OPTION_CLASS
+                                                        )}
+                                                    >
+                                                        {option.field === 'name' ? <ArrowUpAZ className="size-3.5" /> : <Clock3 className="size-3.5" />}
+                                                        {t(option.labelKey)}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSortOrder(toolbarItem, 'asc')}
+                                                    className={cn(
+                                                        OPTION_BUTTON_CLASS,
+                                                        'inline-flex items-center justify-center gap-1.5',
+                                                        sortOrder === 'asc' ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                    )}
+                                                >
+                                                    <ArrowUpAZ className="size-3.5" />
+                                                    {t('popover.nameAsc')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSortOrder(toolbarItem, 'desc')}
+                                                    className={cn(
+                                                        OPTION_BUTTON_CLASS,
+                                                        'inline-flex items-center justify-center gap-1.5',
+                                                        sortOrder === 'desc' ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                    )}
+                                                >
+                                                    <ArrowUpAZ className="size-3.5" />
+                                                    {t('popover.nameDesc')}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="grid gap-2 rounded-[1.25rem] border border-border/35 bg-background/34 p-2.5">
+                                    <p className="text-xs font-semibold text-muted-foreground">{t('popover.filter.title')}</p>
+                                    <div className="grid max-h-72 gap-2 overflow-y-auto pr-1">
+                                        {toolbarItem === 'model' && (
+                                            <div className="grid gap-2 rounded-[1.1rem] border border-border/35 bg-muted/14 p-2">
+                                                <p className="text-[11px] font-semibold text-muted-foreground">{t('popover.filter.model.sort.title')}</p>
+                                                {MODEL_SORT_OPTIONS.map((option) => (
+                                                    <button
+                                                        key={option}
+                                                        type="button"
+                                                        onClick={() => setModelSortMode(option)}
+                                                        className={cn(
+                                                            OPTION_BUTTON_CLASS,
+                                                            'text-left',
+                                                            modelSortMode === option ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                        )}
+                                                    >
+                                                        {t(modelSortLabelKeys[option])}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {filterOptions.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => handleFilterChange(option.value)}
+                                                className={cn(
+                                                    OPTION_BUTTON_CLASS,
+                                                    'text-left',
+                                                    activeFilter === option.value ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                )}
+                                            >
+                                                {option.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                            )}
-
-                            {showSortOptions && (
-                                <div className="grid gap-2">
-                                    <p className="text-xs font-medium text-muted-foreground">{t('popover.sort')}</p>
-                                    {showCombinedSortOptions ? (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {COMBINED_SORT_OPTIONS.map((option) => (
-                                                <button
-                                                    key={option.value}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (toolbarItem === 'channel' || toolbarItem === 'group') {
-                                                            setSortConfig(toolbarItem, option.field, option.order);
-                                                        }
-                                                    }}
-                                                    className={cn(
-                                                        'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                                        sortField === option.field && sortOrder === option.order
-                                                            ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                            : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                                    )}
-                                                >
-                                                    {option.field === 'name' ? <ArrowUpAZ className="size-3.5" /> : <Clock3 className="size-3.5" />}
-                                                    {t(option.labelKey)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setSortOrder(toolbarItem, 'asc')}
-                                                className={cn(
-                                                    'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                                    sortOrder === 'asc'
-                                                        ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                        : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                                )}
-                                            >
-                                                <ArrowUpAZ className="size-3.5" />
-                                                {t('popover.nameAsc')}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setSortOrder(toolbarItem, 'desc')}
-                                                className={cn(
-                                                    'h-8 rounded-lg border text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors',
-                                                    sortOrder === 'desc'
-                                                        ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                        : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                                )}
-                                            >
-                                                <ArrowUpAZ className="size-3.5" />
-                                                {t('popover.nameDesc')}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            <div className="grid gap-2">
-                                <p className="text-xs font-medium text-muted-foreground">{t('popover.filter.title')}</p>
-                                <div className="grid gap-2">
-                                    {toolbarItem === 'model' && (
-                                        <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/10 p-2">
-                                            <p className="text-[11px] font-medium text-muted-foreground">{t('popover.filter.model.sort.title')}</p>
-                                            {MODEL_SORT_OPTIONS.map((option) => (
-                                                <button
-                                                    key={option}
-                                                    type="button"
-                                                    onClick={() => setModelSortMode(option)}
-                                                    className={cn(
-                                                        'h-8 rounded-lg border px-2 text-xs font-medium text-left transition-colors',
-                                                        modelSortMode === option
-                                                            ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                            : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                                    )}
-                                                >
-                                                    {t(modelSortLabelKeys[option])}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {filterOptions.map((option) => (
-                                        <button
-                                            key={option.value}
-                                            type="button"
-                                            onClick={() => handleFilterChange(option.value)}
-                                            className={cn(
-                                                'h-8 rounded-lg border px-2 text-xs font-medium text-left transition-colors',
-                                                activeFilter === option.value
-                                                    ? 'border-primary/30 bg-primary text-primary-foreground'
-                                                    : 'border-border bg-muted/20 text-foreground hover:bg-muted/30'
-                                            )}
-                                        >
-                                            {option.label}
-                                        </button>
-                                    ))}
-                                </div>
                             </div>
+                        </PopoverContent>
+                    </Popover>
+
+                    {showLayoutOptions && (
+                        <div className="hidden items-center gap-1 rounded-[1.15rem] border border-border/25 bg-background/24 p-0.5 sm:flex">
+                            <button
+                                type="button"
+                                aria-label={t('popover.grid')}
+                                onClick={() => setLayout(toolbarItem, 'grid')}
+                                className={cn(
+                                    'grid size-8 place-items-center rounded-[0.95rem] transition-[color,background-color,box-shadow] duration-300',
+                                    layout === 'grid'
+                                        ? 'bg-primary/82 text-primary-foreground shadow-waterhouse-soft'
+                                        : 'text-muted-foreground hover:bg-background/45 hover:text-foreground'
+                                )}
+                            >
+                                <LayoutGrid className="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                aria-label={t('popover.list')}
+                                onClick={() => setLayout(toolbarItem, 'list')}
+                                className={cn(
+                                    'grid size-8 place-items-center rounded-[0.95rem] transition-[color,background-color,box-shadow] duration-300',
+                                    layout === 'list'
+                                        ? 'bg-primary/82 text-primary-foreground shadow-waterhouse-soft'
+                                        : 'text-muted-foreground hover:bg-background/45 hover:text-foreground'
+                                )}
+                            >
+                                <List className="size-3.5" />
+                            </button>
                         </div>
-                    </PopoverContent>
-                </Popover>
+                    )}
+                </div>
 
-                {toolbarItem === 'group' && (
-                    <>
-                        <AutoGroupButton />
-                        <AIRouteButton />
-                    </>
-                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                    {toolbarItem === 'group' && (
+                        <>
+                            <AutoGroupButton
+                                className={cn(
+                                    COMMAND_TEXT_BUTTON_CLASS,
+                                    'border-primary/10 bg-primary/8 px-3 text-foreground hover:border-primary/24 hover:bg-primary/12'
+                                )}
+                            />
+                            <AIRouteButton
+                                className={cn(
+                                    COMMAND_TEXT_BUTTON_CLASS,
+                                    'border-primary/10 bg-primary/8 px-3 text-foreground hover:border-primary/24 hover:bg-primary/12'
+                                )}
+                            />
+                        </>
+                    )}
 
-                {/* 创建按钮 */}
-                <MorphingDialog>
-                    <MorphingDialogTrigger className={buttonVariants({ variant: "ghost", size: "icon", className: "rounded-xl transition-none hover:bg-transparent text-muted-foreground hover:text-foreground" })}>
-                        <Plus className="size-4 transition-colors duration-300" />
-                    </MorphingDialogTrigger>
+                    {/* 创建按钮 */}
+                    <MorphingDialog>
+                        <MorphingDialogTrigger
+                            ariaLabel={createAriaLabel}
+                            className={cn(
+                                buttonVariants({ variant: "ghost", size: "default" }),
+                                COMMAND_TEXT_BUTTON_CLASS,
+                                "bg-primary/82 px-3.5 text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                            )}
+                        >
+                            <Plus className="size-4 transition-colors duration-300" />
+                        </MorphingDialogTrigger>
 
-                    <MorphingDialogContainer>
-                        <MorphingDialogContent className={getCreateDialogContentClassName(toolbarItem)}>
-                            <CreateDialogContent activeItem={toolbarItem} />
-                        </MorphingDialogContent>
-                    </MorphingDialogContainer>
-                </MorphingDialog>
+                        <MorphingDialogContainer>
+                            <MorphingDialogContent className={getCreateDialogContentClassName(toolbarItem)}>
+                                <CreateDialogContent activeItem={toolbarItem} />
+                            </MorphingDialogContent>
+                        </MorphingDialogContainer>
+                    </MorphingDialog>
+                </div>
             </motion.div>
         </AnimatePresence>
     );

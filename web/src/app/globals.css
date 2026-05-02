@@ -53,6 +53,31 @@
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  /* ── Nature 设计令牌 ── */
+  --nature-glass-blur: 12px;
+  --nature-glass-opacity: 0.55;
+  --nature-glass-border-opacity: 0.15;
+  --nature-breath-duration: 8s;
+  --nature-morph-duration: 12s;
+  --nature-float-duration: 20s;
+  --nature-ripple-duration: 1.5s;
+  --nature-shadow-organic: 0 4px 24px -4px hsl(0 0% 0% / 0.08), 0 2px 8px -2px hsl(0 0% 0% / 0.04);
+  --nature-shadow-float: 0 8px 32px -8px hsl(0 0% 0% / 0.12), 0 4px 12px -4px hsl(0 0% 0% / 0.06);
+  --nature-shadow-glow: 0 0 40px -8px var(--primary);
+  /* ── Waterhouse 语义令牌 ── */
+  --waterhouse-bg-top: oklch(0.968 0.016 164);
+  --waterhouse-bg-bottom: oklch(0.914 0.018 96);
+  --waterhouse-fog: color-mix(in oklch, var(--card) 58%, transparent);
+  --waterhouse-fog-strong: color-mix(in oklch, var(--card) 76%, transparent);
+  --waterhouse-line: color-mix(in oklch, var(--border) 22%, transparent);
+  --waterhouse-highlight: oklch(0.776 0.101 173);
+  --waterhouse-highlight-soft: color-mix(in oklch, var(--waterhouse-highlight) 34%, transparent);
+  --waterhouse-shadow-soft: 0 20px 50px -26px color-mix(in oklch, var(--primary) 30%, black 8%);
+  --waterhouse-shadow-deep: 0 36px 90px -44px color-mix(in oklch, var(--foreground) 22%, black 30%);
+  --waterhouse-shell-blur: 22px;
+  --waterhouse-shell-radius: 28px;
+  --waterhouse-drift-duration: 18s;
+  --waterhouse-mist-duration: 24s;
 }
 
 html.dark,
@@ -104,6 +129,17 @@ html.dark,
   --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --nature-glass-opacity: 0.35;
+  --nature-glass-border-opacity: 0.1;
+  --waterhouse-bg-top: oklch(0.344 0.026 174);
+  --waterhouse-bg-bottom: oklch(0.276 0.02 141);
+  --waterhouse-fog: color-mix(in oklch, var(--card) 46%, transparent);
+  --waterhouse-fog-strong: color-mix(in oklch, var(--card) 64%, transparent);
+  --waterhouse-line: color-mix(in oklch, var(--border) 36%, transparent);
+  --waterhouse-highlight: oklch(0.72 0.096 176);
+  --waterhouse-highlight-soft: color-mix(in oklch, var(--waterhouse-highlight) 28%, transparent);
+  --waterhouse-shadow-soft: 0 24px 60px -32px color-mix(in oklch, var(--primary) 22%, black 24%);
+  --waterhouse-shadow-deep: 0 44px 110px -52px color-mix(in oklch, var(--foreground) 24%, black 42%);
 }
 
 @theme inline {
@@ -153,6 +189,21 @@ html.dark,
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+  /* Nature shadows */
+  --shadow-nature-organic: var(--nature-shadow-organic);
+  --shadow-nature-float: var(--nature-shadow-float);
+  --shadow-nature-glow: var(--nature-shadow-glow);
+  --shadow-waterhouse-soft: var(--waterhouse-shadow-soft);
+  --shadow-waterhouse-deep: var(--waterhouse-shadow-deep);
+  /* Nature animations */
+  --animate-nature-breath: nature-breath var(--nature-breath-duration) ease-in-out infinite;
+  --animate-nature-morph: nature-morph var(--nature-morph-duration) ease-in-out infinite;
+  --animate-nature-float: nature-float var(--nature-float-duration) ease-in-out infinite;
+  --animate-nature-ripple: nature-ripple var(--nature-ripple-duration) ease-out infinite;
+  --animate-nature-shimmer: nature-shimmer 3s ease-in-out infinite;
+  /* Waterhouse animations */
+  --animate-waterhouse-drift: waterhouse-drift var(--waterhouse-drift-duration) ease-in-out infinite;
+  --animate-waterhouse-mist: waterhouse-mist var(--waterhouse-mist-duration) ease-in-out infinite;
 }
 
 @layer base {
@@ -164,32 +215,411 @@ html.dark,
 
   body {
     @apply bg-background text-foreground;
+    background-color: var(--background);
+    background-image:
+      radial-gradient(circle at 18% 14%, rgba(123, 205, 191, 0.16) 0%, transparent 34%),
+      radial-gradient(circle at 82% 18%, rgba(118, 184, 143, 0.12) 0%, transparent 30%),
+      radial-gradient(circle at 50% 120%, rgba(139, 191, 164, 0.12) 0%, transparent 38%),
+      linear-gradient(180deg, rgba(236, 241, 235, 1) 0%, rgba(232, 236, 229, 1) 38%, rgba(224, 230, 220, 1) 100%);
     isolation: isolate;
+    overflow-x: hidden;
   }
 
+  @supports (background: color-mix(in oklch, white 50%, transparent)) {
+    body {
+      background-image:
+        radial-gradient(circle at 18% 14%, color-mix(in oklch, var(--waterhouse-highlight) 18%, transparent) 0%, transparent 34%),
+        radial-gradient(circle at 82% 18%, color-mix(in oklch, var(--primary) 14%, transparent) 0%, transparent 30%),
+        radial-gradient(circle at 50% 120%, color-mix(in oklch, var(--accent) 12%, transparent) 0%, transparent 38%),
+        linear-gradient(180deg, var(--waterhouse-bg-top) 0%, var(--background) 38%, var(--waterhouse-bg-bottom) 100%);
+    }
+  }
+
+  /* ── Nature: 有机 Blob 背景层 ── */
   body::before,
   body::after {
     content: '';
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(40px);
-    opacity: 0.6;
+    position: fixed;
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    filter: blur(60px);
+    opacity: 0.5;
     z-index: -1;
+    pointer-events: none;
   }
 
   body::before {
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle at 30% 20%, oklch(0.68 0.05 150) 0%, transparent 70%);
-    top: 10%;
-    right: 10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle at 40% 30%, oklch(0.68 0.08 150) 0%, oklch(0.60 0.12 160 / 0.4) 40%, transparent 70%);
+    top: -5%;
+    right: -8%;
+    animation: nature-blob-drift 18s ease-in-out infinite;
   }
 
   body::after {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle at 60% 40%, oklch(0.75 0.06 190) 0%, oklch(0.65 0.10 170 / 0.4) 40%, transparent 70%);
+    bottom: -5%;
+    left: -6%;
+    animation: nature-blob-drift 22s ease-in-out infinite reverse;
+  }
+
+  /* ── Nature: 第三个隐藏 Blob（中景氛围） ── */
+  .nature-ambient-blob {
+    position: fixed;
     width: 250px;
     height: 250px;
-    background: radial-gradient(circle at 60% 40%, oklch(0.82 0.03 200) 0%, transparent 70%);
-    bottom: 10%;
-    left: 5%;
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    filter: blur(80px);
+    opacity: 0.35;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 50%, oklch(0.72 0.10 140) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: nature-blob-drift 25s ease-in-out infinite;
+  }
+
+  .waterhouse-shell {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .waterhouse-shell::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -2;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, transparent 18%),
+      linear-gradient(90deg, transparent 0%, rgba(176, 191, 180, 0.16) 50%, transparent 100%);
+    mask-image: linear-gradient(180deg, oklch(0 0 0 / 0.7), transparent 88%);
+    opacity: 0.7;
+  }
+
+  @supports (background: color-mix(in oklch, white 50%, transparent)) {
+    .waterhouse-shell::before {
+      background:
+        linear-gradient(180deg, color-mix(in oklch, var(--waterhouse-fog-strong) 68%, transparent) 0%, transparent 18%),
+        linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--waterhouse-line) 58%, transparent) 50%, transparent 100%);
+    }
+  }
+
+  .waterhouse-canopy,
+  .waterhouse-liquid-field {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .waterhouse-canopy {
+    background:
+      radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.42) 0%, transparent 34%),
+      radial-gradient(circle at 88% 6%, rgba(135, 202, 190, 0.18) 0%, transparent 28%);
+    filter: blur(18px);
+    opacity: 0.9;
+    animation: waterhouse-mist var(--waterhouse-mist-duration) ease-in-out infinite;
+  }
+
+  @supports (background: color-mix(in oklch, white 50%, transparent)) {
+    .waterhouse-canopy {
+      background:
+        radial-gradient(circle at 14% 10%, color-mix(in oklch, var(--waterhouse-fog-strong) 70%, transparent) 0%, transparent 34%),
+        radial-gradient(circle at 88% 6%, color-mix(in oklch, var(--waterhouse-highlight-soft) 82%, transparent) 0%, transparent 28%);
+    }
+  }
+
+  .waterhouse-liquid-field {
+    inset: auto 8vw -18vh;
+    height: 42vh;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(121, 196, 184, 0.18) 0%, transparent 44%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(244, 248, 243, 0.34) 100%);
+    filter: blur(36px);
+    opacity: 0.85;
+    animation: waterhouse-drift calc(var(--waterhouse-drift-duration) * 1.35) ease-in-out infinite;
+  }
+
+  @supports (background: color-mix(in oklch, white 50%, transparent)) {
+    .waterhouse-liquid-field {
+      background:
+        radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--waterhouse-highlight) 26%, transparent) 0%, transparent 44%),
+        linear-gradient(180deg, color-mix(in oklch, var(--waterhouse-fog) 24%, transparent) 0%, color-mix(in oklch, var(--waterhouse-fog-strong) 60%, transparent) 100%);
+    }
+  }
+
+  .waterhouse-pod,
+  .waterhouse-island {
+    position: relative;
+    border: 1px solid var(--waterhouse-line);
+    box-shadow: var(--waterhouse-shadow-soft);
+  }
+
+  .waterhouse-pod {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(243, 248, 241, 0.68) 100%);
+    border-radius: var(--waterhouse-shell-radius);
+  }
+
+  .waterhouse-island {
+    background: linear-gradient(180deg, rgba(253, 255, 252, 0.88) 0%, rgba(243, 248, 241, 0.74) 100%);
+    border-radius: calc(var(--waterhouse-shell-radius) + 8px);
+    box-shadow: var(--waterhouse-shadow-deep);
+  }
+
+  @supports (background: color-mix(in oklch, white 50%, transparent)) {
+    .waterhouse-pod {
+      background: linear-gradient(180deg, var(--waterhouse-fog-strong) 0%, var(--waterhouse-fog) 100%);
+    }
+
+    .waterhouse-island {
+      background:
+        linear-gradient(180deg, color-mix(in oklch, var(--waterhouse-fog-strong) 82%, transparent) 0%, color-mix(in oklch, var(--waterhouse-fog) 68%, transparent) 100%);
+    }
+  }
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .waterhouse-pod {
+      backdrop-filter: blur(var(--waterhouse-shell-blur));
+      -webkit-backdrop-filter: blur(var(--waterhouse-shell-blur));
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Nature 动画关键帧
+   ═══════════════════════════════════════════ */
+
+/* 有机 Blob 漂移——模拟流体在容器中缓慢流动 */
+@keyframes nature-blob-drift {
+  0% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    transform: translate(3%, -2%) rotate(3deg) scale(1.05);
+  }
+  50% {
+    border-radius: 40% 60% 30% 70% / 70% 30% 60% 40%;
+    transform: translate(-2%, 3%) rotate(-2deg) scale(0.95);
+  }
+  75% {
+    border-radius: 70% 30% 50% 50% / 40% 70% 30% 60%;
+    transform: translate(-3%, -1%) rotate(-3deg) scale(1.03);
+  }
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+
+/* 呼吸动画——模拟生命体的缓慢脉动 */
+@keyframes nature-breath {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.015);
+    opacity: 0.9;
+  }
+}
+
+/* 有机形态变换——border-radius 不断重塑 */
+@keyframes nature-morph {
+  0% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  20% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  40% {
+    border-radius: 40% 60% 30% 70% / 70% 30% 60% 40%;
+  }
+  60% {
+    border-radius: 70% 30% 50% 50% / 40% 70% 30% 60%;
+  }
+  80% {
+    border-radius: 50% 50% 40% 60% / 60% 40% 70% 30%;
+  }
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+}
+
+/* 悬浮粒子上升动画 */
+@keyframes nature-float {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(40px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* 涟漪扩散 */
+@keyframes nature-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* 水面微光闪烁 */
+@keyframes nature-shimmer {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes waterhouse-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  35% {
+    transform: translate3d(1.4%, -1.8%, 0) scale(1.03);
+  }
+  65% {
+    transform: translate3d(-1.2%, 2.4%, 0) scale(0.98);
+  }
+}
+
+@keyframes waterhouse-mist {
+  0%, 100% {
+    opacity: 0.76;
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(0, 1.4%, 0);
+  }
+}
+
+/* ── Nature 工具类 ── */
+
+/* 磨砂玻璃 */
+.nature-glass {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(177, 191, 181, 0.24);
+}
+
+@supports (background: color-mix(in oklch, white 50%, transparent)) {
+  .nature-glass {
+    background: color-mix(in oklch, var(--card) calc(var(--nature-glass-opacity) * 100%), transparent);
+    border: 1px solid color-mix(in oklch, var(--border) calc(var(--nature-glass-border-opacity) * 100%), transparent);
+  }
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nature-glass {
+    backdrop-filter: blur(var(--nature-glass-blur));
+    -webkit-backdrop-filter: blur(var(--nature-glass-blur));
+  }
+}
+
+/* 柔光悬停 */
+.nature-glow-hover {
+  transition: box-shadow 0.6s ease;
+}
+.nature-glow-hover:hover {
+  box-shadow: var(--nature-shadow-glow);
+}
+
+/* 卡片柔和弥散光——通过 ::before 伪元素避免文字模糊 */
+.nature-card-glow {
+  position: relative;
+}
+.nature-card-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  filter: url(#nature-soft-glow);
+  opacity: 0.25;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.waterhouse-pod::before,
+.waterhouse-island::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 28%, transparent 72%, rgba(122, 198, 185, 0.08) 100%);
+  opacity: 0.6;
+}
+
+@supports (background: color-mix(in oklch, white 50%, transparent)) {
+  .waterhouse-pod::before,
+  .waterhouse-island::before {
+    background: linear-gradient(180deg, color-mix(in oklch, white 24%, transparent) 0%, transparent 28%, transparent 72%, color-mix(in oklch, var(--waterhouse-highlight) 10%, transparent) 100%);
+  }
+}
+
+.analytics-shadowless .waterhouse-island,
+.analytics-shadowless .waterhouse-pod,
+.analytics-shadowless .shadow-waterhouse-soft,
+.analytics-shadowless .shadow-waterhouse-deep,
+.model-shadowless .waterhouse-island,
+.model-shadowless .waterhouse-pod,
+.model-shadowless .shadow-waterhouse-soft,
+.model-shadowless .shadow-waterhouse-deep,
+.setting-shadowless .waterhouse-island,
+.setting-shadowless .waterhouse-pod,
+.setting-shadowless .shadow-waterhouse-soft,
+.setting-shadowless .shadow-waterhouse-deep,
+.channel-detail-shadowless .waterhouse-island,
+.channel-detail-shadowless .waterhouse-pod,
+.channel-detail-shadowless .shadow-waterhouse-soft,
+.channel-detail-shadowless .shadow-waterhouse-deep {
+  box-shadow: none !important;
+}
+
+.analytics-shadowless .waterhouse-island::before,
+.analytics-shadowless .waterhouse-pod::before,
+.model-shadowless .waterhouse-island::before,
+.model-shadowless .waterhouse-pod::before,
+.setting-shadowless .waterhouse-island::before,
+.setting-shadowless .waterhouse-pod::before,
+.channel-detail-shadowless .waterhouse-island::before,
+.channel-detail-shadowless .waterhouse-pod::before {
+  display: none !important;
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after,
+  .nature-ambient-blob,
+  .waterhouse-canopy,
+  .waterhouse-liquid-field {
+    animation: none !important;
+  }
+  [class*="nature-"] {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
   }
 }

@@ -83,7 +83,8 @@
         "ops": "運維中心",
         "user": "用戶",
         "setting": "設定",
-        "ariaLabel": "主導航"
+        "ariaLabel": "主導航",
+        "apikey": "API 密钥"
     },
     "analytics": {
         "title": "分析中心",
@@ -997,6 +998,12 @@
                 "oldPlaceholder": "請輸入當前密碼",
                 "newPlaceholder": "請輸入新密碼",
                 "confirmPlaceholder": "請確認新密碼",
+                "showOld": "顯示當前密碼",
+                "hideOld": "隱藏當前密碼",
+                "showNew": "顯示新密碼",
+                "hideNew": "隱藏新密碼",
+                "showConfirm": "顯示確認密碼",
+                "hideConfirm": "隱藏確認密碼",
                 "oldEmpty": "請輸入當前密碼",
                 "newEmpty": "請輸入新密碼",
                 "mismatch": "兩次輸入的密碼不一致",

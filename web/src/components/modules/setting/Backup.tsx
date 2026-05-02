@@ -58,14 +58,14 @@ export function SettingBackup() {
     };
 
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+        <div className="waterhouse-island rounded-[2.1rem] border-border/35 bg-card/58 p-6 space-y-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
                 <Database className="h-5 w-5" />
                 {t('backup.title')}
             </h2>
 
             {/* 导出 */}
-            <div className="space-y-3">
+            <div className="waterhouse-pod space-y-3 rounded-[1.7rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft">
                 <div className="text-sm font-semibold text-card-foreground">{t('backup.export.title')}</div>
 
                 <div className="flex items-center justify-between gap-4">
@@ -90,10 +90,10 @@ export function SettingBackup() {
                 </Button>
             </div>
 
-            <div className="h-px bg-border" />
+            <div className="h-px bg-border/50" />
 
             {/* 导入 */}
-            <div className="space-y-3">
+            <div className="waterhouse-pod space-y-3 rounded-[1.7rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft">
                 <div className="text-sm font-semibold text-card-foreground">{t('backup.import.title')}</div>
 
                 <Input

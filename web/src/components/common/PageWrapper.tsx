@@ -10,19 +10,17 @@ interface PageWrapperProps {
 }
 
 /**
- * 计算递减延迟 - 前几个元素延迟明显，后续快速收敛
- * 使用对数函数让延迟在前几个元素后迅速趋于平稳
- * 例如: [0, 0.08, 0.14, 0.18, 0.21, 0.24, ...] 最大约 0.4s
+ * 计算递减延迟 - 前几段先拉开层次，后续快速并拢。
+ * Waterhouse 节奏比 Nature 更平滑，因此首段更轻、收敛更早。
  */
 function getDiminishingDelay(index: number): number {
   if (index === 0) return 0;
-  // 对数递减：延迟增长逐渐变慢，最大延迟约 0.4s
-  return Math.min(0.08 * Math.log2(index + 1), 0.4);
+  return Math.min(0.075 * Math.log2(index + 1), 0.3);
 }
 
 /**
- * 通用页面包装器，为页面内容添加流体动画效果
- * 使用递减延迟策略，避免元素过多时动画时间过长
+ * 通用页面包装器——Waterhouse 段落节奏。
+ * 使用递减延迟 + 浮游缓动，让段落像水雾舱体一样依次显形。
  */
 export function PageWrapper({ children, className = 'space-y-6' }: PageWrapperProps) {
   const childArray = Children.toArray(children);
@@ -36,19 +34,19 @@ export function PageWrapper({ children, className = 'space-y-6' }: PageWrapperPr
           return (
             <motion.div
               key={key ?? index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 28, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{
                 opacity: 0,
-                scale: 0.95,
-                transition: { duration: 0.3 }
+                y: 12,
+                scale: 0.99,
+                transition: { duration: 0.32, ease: EASING.waterhouseDrift }
               }}
               transition={{
-                duration: 0.5,
-                ease: EASING.easeOutExpo,
+                duration: 0.65,
+                ease: EASING.waterhouseFloat,
                 delay: getDiminishingDelay(index),
               }}
-              layout
             >
               {child}
             </motion.div>

@@ -192,13 +192,26 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         }, 300);
     };
 
+    const sectionClassName = 'waterhouse-pod relative overflow-hidden rounded-[1.85rem] border border-border/30 bg-background/34 p-4 shadow-waterhouse-soft';
+    const itemClassName = 'waterhouse-pod rounded-[1.45rem] border border-border/25 bg-background/42 p-3 shadow-waterhouse-soft';
+
     return (
         <>
             <MorphingDialogTitle>
-                <header className="mb-6 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-card-foreground">
-                        {isEditing ? t('title.edit') : t('title.view')}
-                    </h2>
+                <header className="relative flex items-center justify-between gap-4 px-1 pb-4 pt-1">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <span className="h-2.5 w-10 rounded-full bg-primary/18 shadow-waterhouse-soft" />
+                            <span className="h-2.5 w-24 rounded-full bg-background/55 shadow-inner" />
+                            <span className="h-2.5 w-14 rounded-full bg-background/38" />
+                        </div>
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-semibold tracking-tight text-card-foreground">
+                                {isEditing ? t('title.edit') : t('title.view')}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">{channel.name}</p>
+                        </div>
+                    </div>
                     <MorphingDialogClose
                         className="relative top-0 right-0"
                         variants={{
@@ -214,9 +227,9 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                 <Tabs value={currentView}>
                     <TabsContents>
                         <TabsContent value="viewing" >
-                            <div className="max-h-[60vh] overflow-y-auto space-y-4 sm:space-y-5">
-                                <dl className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-                                    <div className="rounded-2xl border bg-linear-to-br from-chart-1/10 to-chart-1/5 p-3 sm:p-4">
+                            <div className="channel-detail-shadowless max-h-[min(46rem,calc(100dvh-13rem))] space-y-4 overflow-y-auto pr-1 sm:space-y-5">
+                                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                    <div className="waterhouse-pod rounded-[1.7rem] border border-chart-1/18 bg-linear-to-br from-chart-1/10 via-background/42 to-chart-1/5 p-3.5 shadow-waterhouse-soft sm:p-4">
                                         <dt className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground">
                                             <Activity className="size-4 text-chart-1" />
                                             {t('metrics.totalRequests')}
@@ -227,7 +240,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                         </dd>
                                     </div>
 
-                                    <div className="rounded-2xl border bg-linear-to-br from-chart-3/10 to-chart-3/5 p-3 sm:p-4">
+                                    <div className="waterhouse-pod rounded-[1.7rem] border border-chart-3/18 bg-linear-to-br from-chart-3/10 via-background/42 to-chart-3/5 p-3.5 shadow-waterhouse-soft sm:p-4">
                                         <dt className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground">
                                             <FileText className="size-4 text-chart-3" />
                                             {t('metrics.totalToken')}
@@ -238,7 +251,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                         </dd>
                                     </div>
 
-                                    <div className="rounded-2xl border bg-linear-to-br from-chart-5/10 to-chart-5/5 p-3 sm:p-4">
+                                    <div className="waterhouse-pod rounded-[1.7rem] border border-chart-5/18 bg-linear-to-br from-chart-5/10 via-background/42 to-chart-5/5 p-3.5 shadow-waterhouse-soft sm:p-4">
                                         <dt className="flex items-center gap-2 mb-2 text-xs font-medium text-muted-foreground">
                                             <DollarSign className="size-4 text-chart-5" />
                                             {t('metrics.totalCost')}
@@ -250,14 +263,13 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                     </div>
                                 </dl>
 
-                                {/* 请求详情 */}
-                                <section className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                <section className={sectionClassName}>
+                                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                         <TrendingUp className="size-3.5" />
                                         {t('sections.requests')}
                                     </h4>
-                                    <dl className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                                        <div className="rounded-2xl border bg-card p-3 sm:p-4 transition-colors hover:bg-accent/5">
+                                    <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div className={itemClassName}>
                                             <dt className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
                                                 <CheckCircle2 className="size-4 text-accent" />
                                                 {t('metrics.successRequests')}
@@ -268,7 +280,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                             </dd>
                                         </div>
 
-                                        <div className="rounded-2xl border bg-card p-3 sm:p-4 transition-colors hover:bg-accent/5">
+                                        <div className={itemClassName}>
                                             <dt className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
                                                 <XCircle className="size-4 text-destructive" />
                                                 {t('metrics.failedRequests')}
@@ -281,14 +293,13 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                     </dl>
                                 </section>
 
-                                {/* Token 使用 */}
-                                <section className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                <section className={sectionClassName}>
+                                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                         <FileText className="size-3.5" />
                                         {t('sections.tokens')}
                                     </h4>
-                                    <dl className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                                        <div className="rounded-2xl border bg-card p-3 sm:p-4 transition-colors hover:bg-accent/5">
+                                    <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div className={itemClassName}>
                                             <dt className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
                                                 <div className="size-2 rounded-full bg-chart-1" />
                                                 {t('metrics.inputToken')}
@@ -299,7 +310,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                             </dd>
                                         </div>
 
-                                        <div className="rounded-2xl border bg-card p-3 sm:p-4 transition-colors hover:bg-accent/5">
+                                        <div className={itemClassName}>
                                             <dt className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
                                                 <div className="size-2 rounded-full bg-chart-3" />
                                                 {t('metrics.outputToken')}
@@ -312,14 +323,13 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                     </dl>
                                 </section>
 
-                                {/* 成本详情 */}
-                                <section className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                <section className={sectionClassName}>
+                                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                         <DollarSign className="size-3.5" />
                                         {t('sections.costs')}
                                     </h4>
-                                    <dl className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                                        <div className="rounded-2xl border bg-card p-3 sm:p-4 transition-colors hover:bg-accent/5">
+                                    <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div className={itemClassName}>
                                             <dt className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
                                                 <div className="size-2 rounded-full bg-chart-2" />
                                                 {t('metrics.inputCost')}
@@ -330,7 +340,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                             </dd>
                                         </div>
 
-                                        <div className="rounded-2xl border bg-card p-3 sm:p-4 transition-colors hover:bg-accent/5">
+                                        <div className={itemClassName}>
                                             <dt className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
                                                 <div className="size-2 rounded-full bg-chart-5" />
                                                 {t('metrics.outputCost')}
@@ -343,15 +353,14 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                     </dl>
                                 </section>
 
-                                {/* Base URLs */}
-                                <section className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                <section className={sectionClassName}>
+                                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                         <Globe className="size-3.5" />
                                         {t('sections.baseUrls')}
                                     </h4>
-                                    <div className="rounded-2xl border bg-card overflow-hidden">
+                                    <div className="space-y-2">
                                         {channel.base_urls?.map((url, i) => (
-                                            <div key={i} className="flex items-center justify-between p-3 sm:p-4 border-b last:border-0 hover:bg-accent/5 transition-colors">
+                                            <div key={i} className="waterhouse-pod flex items-center justify-between gap-3 rounded-[1.45rem] border border-border/25 bg-background/42 p-3 shadow-waterhouse-soft">
                                                 <div className="flex flex-col gap-1 min-w-0">
                                                     <span className="font-mono text-sm truncate select-all">{url.url}</span>
                                                 </div>
@@ -371,20 +380,19 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                             </div>
                                         ))}
                                         {(!channel.base_urls || channel.base_urls.length === 0) && (
-                                            <div className="p-4 text-sm text-muted-foreground text-center">{t('noBaseUrls')}</div>
+                                            <div className="waterhouse-pod rounded-[1.45rem] border border-dashed border-border/30 bg-background/28 p-4 text-center text-sm text-muted-foreground shadow-waterhouse-soft">{t('noBaseUrls')}</div>
                                         )}
                                     </div>
                                 </section>
 
-                                {/* Keys */}
-                                <section className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                <section className={sectionClassName}>
+                                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                         <Key className="size-3.5" />
                                         {t('sections.keys')}
                                     </h4>
-                                    <div className="rounded-2xl border bg-card overflow-hidden">
+                                    <div className="space-y-2">
                                         {channel.keys?.map((key) => (
-                                            <div key={key.id} className="flex items-center gap-3 p-3 sm:p-4 border-b last:border-0 hover:bg-accent/5 transition-colors">
+                                            <div key={key.id} className="waterhouse-pod flex items-center gap-3 rounded-[1.45rem] border border-border/25 bg-background/42 p-3 shadow-waterhouse-soft">
                                                 <div className={cn("size-2 shrink-0 rounded-full", key.enabled ? "bg-emerald-500" : "bg-destructive")} />
 
                                                 <span className="font-mono text-sm truncate min-w-0 flex-1">
@@ -433,22 +441,21 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                             </div>
                                         ))}
                                         {(!channel.keys || channel.keys.length === 0) && (
-                                            <div className="p-4 text-sm text-muted-foreground text-center">{t('noKeys')}</div>
+                                            <div className="waterhouse-pod rounded-[1.45rem] border border-dashed border-border/30 bg-background/28 p-4 text-center text-sm text-muted-foreground shadow-waterhouse-soft">{t('noKeys')}</div>
                                         )}
                                     </div>
                                 </section>
 
-                                {/* CC Switch Deep Link */}
-                                <section className="space-y-3">
-                                    <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                <section className={sectionClassName}>
+                                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                         <Link2 className="size-3.5" />
                                         {t('sections.ccSwitch')}
                                     </h4>
-                                    <div className="rounded-2xl border bg-card p-3 sm:p-4 space-y-3 transition-colors hover:bg-accent/5">
+                                    <div className="space-y-3">
                                         <p className="text-sm text-muted-foreground">{t('ccSwitch.description')}</p>
                                         {hasCcSwitchLink ? (
                                             <>
-                                                <div className="flex items-start gap-2 rounded-xl border bg-background/70 p-3">
+                                                <div className="waterhouse-pod flex items-start gap-2 rounded-[1.45rem] border border-border/25 bg-background/48 p-3 shadow-waterhouse-soft">
                                                     <code className="min-w-0 flex-1 break-all font-mono text-xs sm:text-sm">{ccSwitchLink}</code>
                                                     <CopyIconButton
                                                         text={ccSwitchLink}
@@ -458,15 +465,15 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                                     />
                                                 </div>
                                                 <dl className="grid gap-3 sm:grid-cols-3">
-                                                    <div className="rounded-xl border bg-background/70 p-3">
+                                                    <div className="waterhouse-pod rounded-[1.45rem] border border-border/25 bg-background/42 p-3 shadow-waterhouse-soft">
                                                         <dt className="mb-1 text-xs text-muted-foreground">{t('ccSwitch.publicApiBase')}</dt>
                                                         <dd className="break-all font-mono text-xs sm:text-sm">{publicApiBaseUrl}</dd>
                                                     </div>
-                                                    <div className="rounded-xl border bg-background/70 p-3">
+                                                    <div className="waterhouse-pod rounded-[1.45rem] border border-border/25 bg-background/42 p-3 shadow-waterhouse-soft">
                                                         <dt className="mb-1 text-xs text-muted-foreground">{t('ccSwitch.upstreamBase')}</dt>
                                                         <dd className="break-all font-mono text-xs sm:text-sm">{firstBaseUrl || '-'}</dd>
                                                     </div>
-                                                    <div className="rounded-xl border bg-background/70 p-3">
+                                                    <div className="waterhouse-pod rounded-[1.45rem] border border-border/25 bg-background/42 p-3 shadow-waterhouse-soft">
                                                         <dt className="mb-1 text-xs text-muted-foreground">{t('ccSwitch.apiKey')}</dt>
                                                         <dd className="break-all font-mono text-xs sm:text-sm">
                                                             {firstEnabledKey.length > 10
@@ -477,15 +484,14 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                                 </dl>
                                             </>
                                         ) : (
-                                            <div className="rounded-xl border border-dashed bg-background/60 p-3 text-sm text-muted-foreground">
+                                            <div className="waterhouse-pod rounded-[1.45rem] border border-dashed border-border/30 bg-background/28 p-3 text-sm text-muted-foreground shadow-waterhouse-soft">
                                                 {!publicApiBaseUrl ? t('ccSwitch.missingPublicApiBaseUrl') : t('ccSwitch.missingKey')}
                                             </div>
                                         )}
                                     </div>
                                 </section>
 
-                                {/* 等待时间 */}
-                                <dl className="rounded-2xl border bg-card p-3 sm:p-4 transition-colors hover:bg-accent/5">
+                                <dl className={sectionClassName}>
                                     <dt className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
                                         <Clock className="size-4 text-primary" />
                                         {t('metrics.avgWaitTime')}
@@ -497,12 +503,11 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                 </dl>
                             </div>
 
-                            {/* 操作按钮 */}
-                            <div className="grid gap-3 sm:grid-cols-2 pt-2">
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2">
                                 <Button
                                     onClick={() => (isConfirmingDelete ? setIsConfirmingDelete(false) : setIsEditing(true))}
                                     variant={isConfirmingDelete ? 'secondary' : 'default'}
-                                    className="w-full rounded-2xl h-12"
+                                    className="h-12 w-full rounded-[1.6rem]"
                                 >
                                     {isConfirmingDelete ? t('actions.cancel') : t('actions.edit')}
                                 </Button>
@@ -510,7 +515,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                     onClick={handleDeleteClick}
                                     disabled={deleteChannel.isPending}
                                     variant="destructive"
-                                    className="w-full rounded-2xl h-12"
+                                    className="h-12 w-full rounded-[1.6rem]"
                                 >
                                     <Trash2 className={`size-4 transition-transform ${isConfirmingDelete ? 'scale-110' : ''}`} />
                                     {deleteChannel.isPending

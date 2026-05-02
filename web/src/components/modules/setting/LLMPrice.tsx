@@ -59,14 +59,14 @@ export function SettingLLMPrice() {
     };
 
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+        <div className="waterhouse-island rounded-[2.1rem] border-border/35 bg-card/58 p-6 space-y-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
                 {t('llmPrice.title')}
             </h2>
 
             {/* 更新间隔 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex flex-col gap-3 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('llmPrice.updateInterval.label')}</span>
@@ -82,7 +82,7 @@ export function SettingLLMPrice() {
             </div>
 
             {/* 手动更新 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex flex-col gap-3 rounded-[1.5rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">
                         <RefreshCw className="h-5 w-5 text-muted-foreground" />

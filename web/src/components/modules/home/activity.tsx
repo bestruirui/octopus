@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 import dayjs from 'dayjs';
+import { Flame } from 'lucide-react';
 
 interface StatsDailyData {
     dateStr: string;
@@ -23,6 +24,13 @@ const ACTIVITY_LEVELS = [
 function getActivityLevel(value: number): number {
     if (value === 0) return 0;
     return ACTIVITY_LEVELS.find(level => value >= level.min)?.level || 1;
+}
+
+function formatCompactDate(dateStr: string): string {
+    if (/^\d{8}$/.test(dateStr)) {
+        return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+    }
+    return dateStr;
 }
 
 export function Activity() {
@@ -87,22 +95,27 @@ export function Activity() {
     }, [days, isLoading, checkScroll]);
 
     return (
-        <div className="rounded-3xl bg-card border-card-border border text-card-foreground custom-shadow">
-            <div className="px-4 pt-4 md:px-5 md:pt-5">
-                <h3 className="text-base font-semibold">{t('title')}</h3>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">{t('description')}</p>
+        <div className="waterhouse-island relative flex h-full flex-col overflow-hidden rounded-[2rem] border-border/35 bg-card/56 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
+            <div className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full bg-primary/8 blur-3xl" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/24 to-transparent" />
+            <div className="relative px-4 pt-4 md:px-5 md:pt-5">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/12 bg-background/44 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary shadow-waterhouse-soft backdrop-blur-md">
+                    <Flame className="h-3.5 w-3.5" />
+                    <span>{t('title')}</span>
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">{t('description')}</p>
             </div>
             <div
                 ref={scrollRef}
                 onScroll={checkScroll}
-                className="overflow-x-auto px-4 pb-4 pt-3 md:px-5 md:pb-5"
+                className="relative flex-1 overflow-x-auto px-4 pb-5 pt-4 md:px-5 md:pb-5"
                 style={{ maskImage, WebkitMaskImage: maskImage }}
             >
-                <div className="ml-auto w-fit">
+                <div className="waterhouse-pod ml-auto w-fit rounded-[1.55rem] border-border/30 bg-background/38 p-3.5 shadow-waterhouse-soft backdrop-blur-md">
                     <div className="grid gap-1"
                         style={{
-                            gridTemplateColumns: 'repeat(54, 0.875rem)',
-                            gridTemplateRows: 'repeat(7, 0.875rem)',
+                            gridTemplateColumns: 'repeat(54, 1rem)',
+                            gridTemplateRows: 'repeat(7, 1rem)',
                             gridAutoFlow: 'column'
                         }}
                     >
@@ -112,16 +125,33 @@ export function Activity() {
                             }
 
                             const level = getActivityLevel(day.formatted?.request_count.raw ?? 0);
+                            const tooltipDateLabel = formatCompactDate(day.dateStr);
+                            const ariaLabel = day.formatted
+                                ? [
+                                      tooltipDateLabel,
+                                      `${t('requestCount')} ${day.formatted.request_count.formatted.value}${day.formatted.request_count.formatted.unit}`,
+                                      `${t('waitTime')} ${day.formatted.wait_time.formatted.value}${day.formatted.wait_time.formatted.unit}`,
+                                      `${t('totalToken')} ${day.formatted.total_token.formatted.value}${day.formatted.total_token.formatted.unit}`,
+                                      `${t('totalCost')} ${day.formatted.total_cost.formatted.value}${day.formatted.total_cost.formatted.unit}`,
+                                  ].join('，')
+                                : `${tooltipDateLabel}，${t('noData')}`;
 
                             return (
-                                <div
+                                <button
                                     key={day.dateStr}
-                                    className="rounded-sm transition-all cursor-pointer hover:scale-150"
+                                    type="button"
+                                    aria-label={ariaLabel}
+                                    className="cursor-pointer rounded-[0.35rem] ring-1 ring-white/20 transition-all duration-200 hover:scale-150 hover:ring-primary/35 focus-visible:scale-150 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/55"
                                     onMouseEnter={(e) => {
                                         const rect = e.currentTarget.getBoundingClientRect();
                                         setTooltip({ day, x: rect.left + rect.width / 2, y: rect.top, visible: true });
                                     }}
                                     onMouseLeave={() => setTooltip(prev => prev ? { ...prev, visible: false } : null)}
+                                    onFocus={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setTooltip({ day, x: rect.left + rect.width / 2, y: rect.top, visible: true });
+                                    }}
+                                    onBlur={() => setTooltip(prev => prev ? { ...prev, visible: false } : null)}
                                     style={{ backgroundColor: level === 0 ? 'var(--muted)' : `color-mix(in oklch, var(--primary) ${level * 25}%, var(--muted))` }}
                                 />
                             );
@@ -134,8 +164,7 @@ export function Activity() {
                     const isLeft = tooltip.x < 200;
                     const isRight = tooltip.x > window.innerWidth - 200;
                     const isTop = tooltip.y < window.innerHeight / 2;
-                    const tooltipDate = dayjs(tooltip.day.dateStr, 'YYYYMMDD');
-                    const tooltipDateLabel = tooltipDate.isValid() ? tooltipDate.format('YYYY-MM-DD') : tooltip.day.dateStr;
+                    const tooltipDateLabel = formatCompactDate(tooltip.day.dateStr);
 
                     let transform = 'translate(-50%, 15%)';
                     if (!isTop && !isLeft && !isRight) {
@@ -152,7 +181,7 @@ export function Activity() {
 
                     return (
                         <div
-                            className={`fixed z-50 w-fit min-w-max text-sm bg-background text-foreground border rounded-3xl p-3 transition-opacity duration-500 pointer-events-none ${tooltip.visible ? 'opacity-100' : 'opacity-0'}`}
+                            className={`waterhouse-pod fixed z-50 w-fit min-w-max rounded-[1.45rem] border-border/40 bg-background/86 p-3 text-sm text-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] transition-opacity duration-500 pointer-events-none ${tooltip.visible ? 'opacity-100' : 'opacity-0'}`}
                             style={{
                                 left: tooltip.x,
                                 top: tooltip.y,

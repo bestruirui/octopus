@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
-import { Check, ChevronDownIcon, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
+import { Check, ChevronDownIcon, Plus, Search, Sparkles, Trash2, Waves, Orbit, SlidersHorizontal, FlaskConical } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { useModelChannelList, type LLMChannel } from '@/api/endpoints/model';
@@ -94,30 +94,23 @@ function ModelPickerSection({
     }, [channels, normalizedSearch]);
 
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/30 flex min-h-[18rem] flex-col lg:min-h-0">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-2 border-b border-border/30 bg-muted/50">
-                <span className="min-w-0 justify-self-start text-sm font-medium text-foreground">
-                    {t('form.addItem')}
-                </span>
-
-                <div className="relative justify-self-center w-30">
-                    <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        value={searchKeyword}
-                        onChange={(event) => setSearchKeyword(event.target.value)}
-                        className="h-6 rounded-lg border-border/60 bg-background/70 pl-7 pr-2 text-xs shadow-none focus-visible:border-border/60 focus-visible:ring-0"
-                        aria-label={t('form.searchAriaLabel')}
-                    />
+        <div className="waterhouse-pod flex min-h-[22rem] flex-col rounded-[1.85rem] border border-border/30 bg-background/38 shadow-waterhouse-soft lg:min-h-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/20 px-4 py-3">
+                <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/40 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-waterhouse-soft">
+                        <Orbit className="size-3.5" />
+                        {t('form.addItem')}
+                    </div>
                 </div>
 
                 <button
                     type="button"
                     onClick={onAutoAdd}
                     className={cn(
-                        'justify-self-end shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
+                        'justify-self-end shrink-0 flex items-center gap-1 rounded-[1rem] px-3 py-1.5 text-xs font-medium transition-colors',
                         autoAddDisabled
-                            ? 'text-muted-foreground/50 cursor-not-allowed'
-                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                            ? 'cursor-not-allowed text-muted-foreground/50'
+                            : 'bg-background/44 text-muted-foreground shadow-waterhouse-soft hover:bg-background/62 hover:text-foreground'
                     )}
                     disabled={autoAddDisabled}
                     title={t('form.autoAdd')}
@@ -127,7 +120,19 @@ function ModelPickerSection({
                 </button>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-2">
+            <div className="border-b border-border/15 px-4 py-3">
+                <div className="relative w-full">
+                    <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        value={searchKeyword}
+                        onChange={(event) => setSearchKeyword(event.target.value)}
+                        className="h-9 rounded-[1.15rem] border-border/35 bg-background/58 pl-8 pr-3 text-sm shadow-waterhouse-soft focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/20"
+                        aria-label={t('form.searchAriaLabel')}
+                    />
+                </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-3">
                 <Accordion type="multiple" className="w-full space-y-2">
                     {filteredChannels.map((channel) => {
                         const total = channel.models.length;
@@ -139,8 +144,8 @@ function ModelPickerSection({
 
                         return (
                             <AccordionItem key={channel.id} value={`channel-${channel.id}`}>
-                                <AccordionPrimitive.Header className="rounded-lg bg-muted sticky top-0 z-10 flex px-2 overflow-hidden">
-                                    <AccordionPrimitive.Trigger className="flex flex-1 min-w-0 items-center gap-4 py-4 text-left text-sm transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180">
+                                <AccordionPrimitive.Header className="sticky top-0 z-10 flex overflow-hidden rounded-[1.25rem] border border-border/25 bg-background/54 px-3 shadow-waterhouse-soft backdrop-blur-md">
+                                    <AccordionPrimitive.Trigger className="flex min-w-0 flex-1 items-center gap-4 py-3.5 text-left text-sm transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180">
                                         <span className="truncate">{channel.name}</span>
                                         <span className="text-xs text-muted-foreground shrink-0">
                                             {available}/{total}
@@ -148,7 +153,7 @@ function ModelPickerSection({
                                         <ChevronDownIcon className="text-muted-foreground pointer-events-none size-4 shrink-0 transition-transform duration-200" />
                                     </AccordionPrimitive.Trigger>
                                 </AccordionPrimitive.Header>
-                                <AccordionContent className="px-2 pt-2">
+                                <AccordionContent className="px-1 pt-2">
                                     <div className="flex flex-col gap-1.5">
                                         {channel.models.map((m) => {
                                             const isSelected = selectedKeys.has(memberKey(m));
@@ -160,8 +165,8 @@ function ModelPickerSection({
                                                     onClick={() => !isSelected && onAdd(m)}
                                                     disabled={isSelected}
                                                     className={cn(
-                                                        'w-full flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-background px-2.5 py-2 text-left transition-colors',
-                                                        isSelected ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted'
+                                                        'w-full flex items-center justify-between gap-2 rounded-[1.15rem] border border-border/30 bg-background/48 px-3 py-2.5 text-left transition-[transform,border-color,background-color,box-shadow] duration-300',
+                                                        isSelected ? 'cursor-not-allowed opacity-60' : 'shadow-waterhouse-soft hover:-translate-y-0.5 hover:border-primary/18 hover:bg-background/68'
                                                     )}
                                                 >
                                                     <span className="flex items-center gap-2 min-w-0">
@@ -210,9 +215,10 @@ function SortSection({
     const t = useTranslations('group');
 
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/30 flex min-h-[18rem] flex-col lg:min-h-0">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-muted/50">
-                <span className="text-sm font-medium text-foreground">
+        <div className="waterhouse-pod flex min-h-[28rem] flex-col rounded-[1.85rem] border border-border/30 bg-background/34 shadow-waterhouse-soft lg:min-h-0">
+            <div className="flex items-center justify-between border-b border-border/20 px-4 py-3">
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+                    <FlaskConical className="size-4 text-primary" />
                     {t('form.items')}
                     {members.length > 0 && (
                         <span className="ml-1.5 text-xs text-muted-foreground font-normal">
@@ -225,10 +231,10 @@ function SortSection({
                     onClick={onClear}
                     disabled={members.length === 0}
                     className={cn(
-                        'flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
+                        'flex items-center gap-1 rounded-[1rem] px-3 py-1.5 text-xs font-medium transition-colors',
                         members.length === 0
-                            ? 'text-muted-foreground/50 cursor-not-allowed'
-                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                            ? 'cursor-not-allowed text-muted-foreground/50'
+                            : 'bg-background/44 text-muted-foreground shadow-waterhouse-soft hover:bg-background/62 hover:text-foreground'
                     )}
                     title={t('form.clear')}
                 >
@@ -369,194 +375,229 @@ export function GroupEditor({
 
 
     return (
-        <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col">
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1 lg:overflow-hidden">
+        <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1">
                 <FieldGroup className="flex min-h-full flex-col gap-4 lg:h-full">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <Field>
-                            <FieldLabel htmlFor="group-name">{t('form.name')}</FieldLabel>
-                            <Input
-                                id="group-name"
-                                value={groupName}
-                                onChange={(e) => setGroupName(e.target.value)}
-                                className="rounded-xl"
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor="group-endpoint-type">{t('form.endpointType.label')}</FieldLabel>
-                            <select
-                                id="group-endpoint-type"
-                                value={endpointType}
-                                onChange={(e) => setEndpointType(normalizeEndpointType(e.target.value))}
-                                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                            >
-                                {ENDPOINT_TYPE_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {t(option.labelKey)}
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor="group-match-regex">{t('form.matchRegex')}</FieldLabel>
-                            <Input
-                                id="group-match-regex"
-                                value={matchRegex}
-                                onChange={(e) => setMatchRegex(e.target.value)}
-                                className="rounded-xl"
-                                placeholder={t('form.matchRegexPlaceholder')}
-                            />
-                            {regexError && (
-                                <p className="mt-1 text-xs text-destructive">
-                                    {t('form.matchRegexInvalid')}: {regexError}
-                                </p>
-                            )}
-                        </Field>
+                    <div className="grid min-h-full gap-4 xl:grid-cols-[minmax(21rem,0.9fr)_minmax(0,1.55fr)] xl:items-stretch">
+                        <section className="waterhouse-pod flex flex-col gap-4 rounded-[2rem] border border-border/30 bg-background/38 p-4 shadow-waterhouse-soft md:p-5">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="space-y-2">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/14 bg-background/42 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary shadow-waterhouse-soft">
+                                        <Waves className="size-3.5" />
+                                        {t('form.name')}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{t('emptyState.description')}</p>
+                                </div>
+                                <div className="inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/42 px-3 py-1 text-xs text-muted-foreground shadow-waterhouse-soft">
+                                    <SlidersHorizontal className="size-3.5" />
+                                    {t('mode.auto')}
+                                </div>
+                            </div>
 
-                        <Field>
-                            <FieldLabel htmlFor="group-first-token-time-out">
-                                {t('form.firstTokenTimeOut')}
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <HelpCircle className="size-4 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {t('form.firstTokenTimeOutHint')}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </FieldLabel>
-                            <Input
-                                id="group-first-token-time-out"
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                step={1}
-                                value={String(firstTokenTimeOut)}
-                                onChange={(e) => {
-                                    const raw = e.target.value;
-                                    if (raw.trim() === '') {
-                                        setFirstTokenTimeOut(0);
-                                        return;
-                                    }
-                                    const n = Number.parseInt(raw, 10);
-                                    setFirstTokenTimeOut(Number.isFinite(n) && n > 0 ? n : 0);
-                                }}
-                                className="rounded-xl"
-                            />
-                        </Field>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <Field>
+                                    <FieldLabel htmlFor="group-name">{t('form.name')}</FieldLabel>
+                                    <Input
+                                        id="group-name"
+                                        value={groupName}
+                                        onChange={(e) => setGroupName(e.target.value)}
+                                        className="rounded-[1.2rem]"
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="group-endpoint-type">{t('form.endpointType.label')}</FieldLabel>
+                                    <select
+                                        id="group-endpoint-type"
+                                        value={endpointType}
+                                        onChange={(e) => setEndpointType(normalizeEndpointType(e.target.value))}
+                                        className="h-10 w-full rounded-[1.2rem] border border-border/40 bg-background/55 px-3 text-sm shadow-nature-organic backdrop-blur-md transition-[border-color,box-shadow,background-color] duration-300 outline-none hover:border-primary/15 hover:shadow-[var(--waterhouse-shadow-soft)] focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/20"
+                                    >
+                                        {ENDPOINT_TYPE_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {t(option.labelKey)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>
+                                <Field className="md:col-span-2">
+                                    <FieldLabel htmlFor="group-match-regex">{t('form.matchRegex')}</FieldLabel>
+                                    <Input
+                                        id="group-match-regex"
+                                        value={matchRegex}
+                                        onChange={(e) => setMatchRegex(e.target.value)}
+                                        className="rounded-[1.2rem]"
+                                        placeholder={t('form.matchRegexPlaceholder')}
+                                    />
+                                    {regexError && (
+                                        <p className="mt-1 text-xs text-destructive">
+                                            {t('form.matchRegexInvalid')}: {regexError}
+                                        </p>
+                                    )}
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="group-first-token-time-out">
+                                        {t('form.firstTokenTimeOut')}
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <HelpCircle className="size-4 cursor-help text-muted-foreground" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {t('form.firstTokenTimeOutHint')}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </FieldLabel>
+                                    <Input
+                                        id="group-first-token-time-out"
+                                        type="number"
+                                        inputMode="numeric"
+                                        min={0}
+                                        step={1}
+                                        value={String(firstTokenTimeOut)}
+                                        onChange={(e) => {
+                                            const raw = e.target.value;
+                                            if (raw.trim() === '') {
+                                                setFirstTokenTimeOut(0);
+                                                return;
+                                            }
+                                            const n = Number.parseInt(raw, 10);
+                                            setFirstTokenTimeOut(Number.isFinite(n) && n > 0 ? n : 0);
+                                        }}
+                                        className="rounded-[1.2rem]"
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="group-session-keep-time">
+                                        {t('form.sessionKeepTime')}
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <HelpCircle className="size-4 cursor-help text-muted-foreground" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {t('form.sessionKeepTimeHint')}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </FieldLabel>
+                                    <Input
+                                        id="group-session-keep-time"
+                                        type="number"
+                                        inputMode="numeric"
+                                        min={0}
+                                        step={1}
+                                        value={String(sessionKeepTime)}
+                                        onChange={(e) => {
+                                            const raw = e.target.value;
+                                            if (raw.trim() === '') {
+                                                setSessionKeepTime(0);
+                                                return;
+                                            }
+                                            const n = Number.parseInt(raw, 10);
+                                            setSessionKeepTime(Number.isFinite(n) && n > 0 ? n : 0);
+                                        }}
+                                        className="rounded-[1.2rem]"
+                                    />
+                                </Field>
+                                <Field className="md:col-span-2">
+                                    <FieldLabel htmlFor="group-condition">
+                                        {t('form.condition.label')}
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <HelpCircle className="size-4 cursor-help text-muted-foreground" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {t('form.condition.hint')}<br />
+                                                    {conditionPlaceholder}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </FieldLabel>
+                                    <Input
+                                        id="group-condition"
+                                        value={condition}
+                                        onChange={(e) => setCondition(e.target.value)}
+                                        className="rounded-[1.2rem] font-mono text-xs"
+                                        placeholder={conditionPlaceholder}
+                                    />
+                                </Field>
+                            </div>
 
-                        <Field>
-                            <FieldLabel htmlFor="group-session-keep-time">
-                                {t('form.sessionKeepTime')}
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <HelpCircle className="size-4 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {t('form.sessionKeepTimeHint')}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </FieldLabel>
-                            <Input
-                                id="group-session-keep-time"
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                step={1}
-                                value={String(sessionKeepTime)}
-                                onChange={(e) => {
-                                    const raw = e.target.value;
-                                    if (raw.trim() === '') {
-                                        setSessionKeepTime(0);
-                                        return;
-                                    }
-                                    const n = Number.parseInt(raw, 10);
-                                    setSessionKeepTime(Number.isFinite(n) && n > 0 ? n : 0);
-                                }}
-                                className="rounded-xl"
-                            />
-                        </Field>
+                            <div className="space-y-2">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/42 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-waterhouse-soft">
+                                    <Sparkles className="size-3.5" />
+                                    {t('mode.auto')}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                                    {([1, 2, 3, 4, 5] as const).map((m) => (
+                                        <button
+                                            key={m}
+                                            type="button"
+                                            onClick={() => setMode(m)}
+                                            className={cn(
+                                                'rounded-[1.1rem] px-3 py-2 text-xs font-medium transition-[transform,border-color,background-color,box-shadow] duration-300',
+                                                mode === m
+                                                    ? 'border border-primary/20 bg-primary text-primary-foreground shadow-waterhouse-soft'
+                                                    : 'border border-border/30 bg-background/46 text-foreground shadow-waterhouse-soft hover:-translate-y-0.5 hover:border-primary/16 hover:bg-background/64'
+                                            )}
+                                        >
+                                            {t(`mode.${MODE_LABELS[m]}`)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
 
-                        <Field className="col-span-full">
-                            <FieldLabel htmlFor="group-condition">
-                                {t('form.condition.label')}
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <HelpCircle className="size-4 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            {t('form.condition.hint')}<br />
-                                            {conditionPlaceholder}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </FieldLabel>
-                            <Input
-                                id="group-condition"
-                                value={condition}
-                                onChange={(e) => setCondition(e.target.value)}
-                                className="rounded-xl font-mono text-xs"
-                                placeholder={conditionPlaceholder}
-                            />
-                        </Field>
-                    </div>
+                        <section className="waterhouse-pod flex min-h-[34rem] flex-col gap-4 rounded-[2rem] border border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:p-5 xl:min-h-0">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="space-y-2">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-background/42 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-primary shadow-waterhouse-soft">
+                                        <FlaskConical className="size-3.5" />
+                                        {t('form.items')}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{t('card.empty')}</p>
+                                </div>
+                                <div className="inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/42 px-3 py-1 text-xs text-muted-foreground shadow-waterhouse-soft">
+                                    {selectedMembers.length}
+                                </div>
+                            </div>
 
-                    {/* Mode */}
-                    <div className="flex flex-wrap gap-1">
-                        {([1, 2, 3, 4, 5] as const).map((m) => (
-                            <button
-                                key={m}
-                                type="button"
-                                onClick={() => setMode(m)}
-                                className={cn(
-                                    'flex-1 py-1 text-xs rounded-lg transition-colors',
-                                    mode === m ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'
-                                )}
-                            >
-                                {t(`mode.${MODE_LABELS[m]}`)}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="min-h-[28rem] lg:flex-1 lg:min-h-0">
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:h-full lg:min-h-0">
-                            <ModelPickerSection
-                                modelChannels={modelChannels}
-                                selectedMembers={selectedMembers}
-                                onAdd={handleAddMember}
-                                onAutoAdd={handleAutoAdd}
-                                autoAddDisabled={autoAddDisabled}
-                            />
-                            <SortSection
-                                members={selectedMembers}
-                                onReorder={setSelectedMembers}
-                                onRemove={handleRemoveMember}
-                                onWeightChange={handleWeightChange}
-                                removingIds={removingIds}
-                                showWeight={mode === 4 || mode === 5}
-                                onClear={handleClearMembers}
-                            />
-                        </div>
+                            <div className="grid grid-cols-1 gap-4 lg:flex-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:min-h-0">
+                                <ModelPickerSection
+                                    modelChannels={modelChannels}
+                                    selectedMembers={selectedMembers}
+                                    onAdd={handleAddMember}
+                                    onAutoAdd={handleAutoAdd}
+                                    autoAddDisabled={autoAddDisabled}
+                                />
+                                <SortSection
+                                    members={selectedMembers}
+                                    onReorder={setSelectedMembers}
+                                    onRemove={handleRemoveMember}
+                                    onWeightChange={handleWeightChange}
+                                    removingIds={removingIds}
+                                    showWeight={mode === 4 || mode === 5}
+                                    onClear={handleClearMembers}
+                                />
+                            </div>
+                        </section>
                     </div>
                 </FieldGroup>
             </div>
 
-            <div className="pt-4 mt-auto shrink-0">
+            <div className="mt-auto shrink-0 pt-4">
                 <div className="flex gap-2">
                     {onCancel && (
-                        <Button type="button" variant="secondary" className="flex-1 rounded-xl h-11" onClick={onCancel}>
+                        <Button type="button" variant="secondary" className="h-11 flex-1 rounded-[1.25rem]" onClick={onCancel}>
                             {t('detail.actions.cancel')}
                         </Button>
                     )}
                     <Button
                         type="submit"
                         disabled={!isValid || isSubmitting}
-                        className="flex-1 rounded-xl h-11"
+                        className="h-11 flex-1 rounded-[1.25rem]"
                     >
                         {isSubmitting ? submittingText : submitText}
                     </Button>

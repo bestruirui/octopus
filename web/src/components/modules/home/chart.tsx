@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import { AnimatedNumber } from '@/components/common/AnimatedNumber';
 import { Tabs, TabsList, TabsTrigger } from '@/components/animate-ui/components/animate/tabs';
 import { useHomeViewStore, type ChartMetricType, type ChartPeriod } from '@/components/modules/home/store';
+import { BarChart3, CalendarClock } from 'lucide-react';
 
 export function StatsChart() {
     const PERIODS: readonly ChartPeriod[] = ['1', '7', '30'];
@@ -53,7 +54,9 @@ export function StatsChart() {
         } else {
             const days = Number(period);
             return sortedDaily.slice(-days).map((stat) => ({
-                date: dayjs(stat.date).format('MM/DD'),
+                date: /^\d{8}$/.test(stat.date)
+                    ? `${stat.date.slice(4, 6)}/${stat.date.slice(6, 8)}`
+                    : dayjs(stat.date).format('MM/DD'),
                 [dataKey]: chartMetricType === 'cost'
                     ? stat.total_cost.raw
                     : chartMetricType === 'success-rate'
@@ -142,13 +145,56 @@ export function StatsChart() {
         return 'url(#fillMetric3)';
     };
 
+    const summaryMetrics = [
+        {
+            key: 'requests',
+            label: t('totalRequests'),
+            value: formatCount(totals.requests).formatted.value,
+            unit: formatCount(totals.requests).formatted.unit,
+        },
+        {
+            key: 'cost',
+            label: t('totalCost'),
+            value: formatMoney(totals.cost).formatted.value,
+            unit: formatMoney(totals.cost).formatted.unit,
+        },
+        {
+            key: 'tokens',
+            label: t('totalTokens'),
+            value: formatCount(totals.tokens).formatted.value,
+            unit: formatCount(totals.tokens).formatted.unit,
+        },
+        {
+            key: 'successRate',
+            label: t('successRate'),
+            value: totals.successRate.toFixed(2),
+            unit: '%',
+        },
+    ];
+
     return (
-        <div className="rounded-3xl bg-card border-card-border border pt-4 pb-0 text-card-foreground custom-shadow">
-            <div className="px-4 pb-2 space-y-2">
-                <div className="flex justify-between items-center">
-                    <h3 className="font-semibold text-base">{t('title')}</h3>
+        <div className="waterhouse-island relative overflow-hidden rounded-[2.15rem] border-border/35 bg-card/58 pt-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
+            <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-primary/8 blur-3xl" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/28 to-transparent" />
+            <div className="relative space-y-4 px-4 pb-3 md:px-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="space-y-2">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-background/44 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary shadow-waterhouse-soft backdrop-blur-md">
+                            <BarChart3 className="h-3.5 w-3.5" />
+                            <span>{t('title')}</span>
+                        </div>
+                        <button
+                            type="button"
+                            className="waterhouse-pod inline-flex items-center gap-2 rounded-[1.2rem] border-border/30 bg-background/38 px-3 py-2 text-left text-sm shadow-waterhouse-soft backdrop-blur-md transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-primary/20"
+                            onClick={handlePeriodClick}
+                        >
+                            <CalendarClock className="h-4 w-4 text-primary/70" />
+                            <span className="text-xs text-muted-foreground">{t('timePeriod')}</span>
+                            <span className="font-semibold">{getPeriodLabel(period)}</span>
+                        </button>
+                    </div>
                     <Tabs value={chartMetricType} onValueChange={(value) => setChartMetricType(value as ChartMetricType)}>
-                        <TabsList>
+                        <TabsList className="waterhouse-pod flex w-full flex-wrap rounded-[1.4rem] border-border/30 bg-background/38 p-1 shadow-waterhouse-soft backdrop-blur-md sm:w-max">
                             <TabsTrigger value="cost">{t('metricType.cost')}</TabsTrigger>
                             <TabsTrigger value="count">{t('metricType.count')}</TabsTrigger>
                             <TabsTrigger value="tokens">{t('metricType.tokens')}</TabsTrigger>
@@ -157,53 +203,24 @@ export function StatsChart() {
                     </Tabs>
                 </div>
 
-                {/* 第二行：汇总统计 + 周期选择 */}
-                <div className="flex justify-between items-start">
-                    <div className="flex gap-2 text-sm">
-                        <div>
-                            <div className="text-xs text-muted-foreground">{t('totalRequests')}</div>
-                            <div className="text-xl font-semibold">
-                                <AnimatedNumber value={formatCount(totals.requests).formatted.value} />
-                                <span className="ml-0.5 text-sm text-muted-foreground">{formatCount(totals.requests).formatted.unit}</span>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {summaryMetrics.map((metric) => (
+                        <div key={metric.key} className="waterhouse-pod overflow-hidden rounded-[1.35rem] border-border/30 bg-background/38 px-3.5 py-3 shadow-waterhouse-soft backdrop-blur-md">
+                            <div className="mb-2 h-1 w-9 rounded-full bg-primary/18" />
+                            <div className="text-xs text-muted-foreground">{metric.label}</div>
+                            <div className="mt-1 flex items-baseline gap-1">
+                                <span className="text-xl font-semibold tracking-tight">
+                                    <AnimatedNumber value={metric.value} />
+                                </span>
+                                <span className="text-sm text-muted-foreground">{metric.unit}</span>
                             </div>
                         </div>
-                        <div className="w-px bg-border self-stretch"></div>
-                        <div>
-                            <div className="text-xs text-muted-foreground">{t('totalCost')}</div>
-                            <div className="text-xl font-semibold">
-                                <AnimatedNumber value={formatMoney(totals.cost).formatted.value} />
-                                <span className="ml-0.5 text-sm text-muted-foreground">{formatMoney(totals.cost).formatted.unit}</span>
-                            </div>
-                        </div>
-                        <div className="w-px bg-border self-stretch"></div>
-                        <div>
-                            <div className="text-xs text-muted-foreground">{t('totalTokens')}</div>
-                            <div className="text-xl font-semibold">
-                                <AnimatedNumber value={formatCount(totals.tokens).formatted.value} />
-                                <span className="ml-0.5 text-sm text-muted-foreground">{formatCount(totals.tokens).formatted.unit}</span>
-                            </div>
-                        </div>
-                        <div className="w-px bg-border self-stretch"></div>
-                        <div>
-                            <div className="text-xs text-muted-foreground">{t('successRate')}</div>
-                            <div className="text-xl font-semibold">
-                                <AnimatedNumber value={totals.successRate.toFixed(2)} />
-                                <span className="ml-0.5 text-sm text-muted-foreground">%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        className="flex gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={handlePeriodClick}
-                    >
-                        <div>
-                            <div className="text-xs text-muted-foreground">{t('timePeriod')}</div>
-                            <div className="text-base font-semibold">{getPeriodLabel(period)}</div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
-            <ChartContainer config={chartConfig} className="h-40 w-full" >
+            <div className="relative mx-3 mb-3 overflow-hidden rounded-[1.7rem] border border-border/30 bg-background/30 pt-3 shadow-waterhouse-soft backdrop-blur-md">
+                <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/24 to-transparent" />
+                <ChartContainer config={chartConfig} className="h-[20rem] w-full md:h-[24rem]">
                 <AreaChart accessibilityLayer data={chartData}>
                     <defs>
                         <linearGradient id="fillMetric1" x1="0" y1="0" x2="0" y2="1">
@@ -249,7 +266,8 @@ export function StatsChart() {
                         fill={getChartFill(chartMetricType)}
                     />
                 </AreaChart>
-            </ChartContainer>
+                </ChartContainer>
+            </div>
         </div>
     );
 }

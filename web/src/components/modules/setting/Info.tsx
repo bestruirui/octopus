@@ -70,13 +70,13 @@ export function SettingInfo() {
     };
 
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+        <div className="waterhouse-island rounded-[2.1rem] border-border/35 bg-card/58 p-6 space-y-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
                 <Info className="h-5 w-5" />
                 {t('info.title')}
             </h2>
             {/* GitHub 仓库 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex items-center justify-between gap-4 rounded-[1.45rem] border-border/30 bg-background/34 px-4 py-3 shadow-waterhouse-soft">
                 <div className="flex items-center gap-3">
                     <Github className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('info.github')}</span>
@@ -91,7 +91,7 @@ export function SettingInfo() {
                 </a>
             </div>
             {/* 当前版本 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex items-center justify-between gap-4 rounded-[1.45rem] border-border/30 bg-background/34 px-4 py-3 shadow-waterhouse-soft">
                 <div className="flex items-center gap-3">
                     <Tag className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('info.currentVersion')}</span>
@@ -108,7 +108,7 @@ export function SettingInfo() {
             </div>
 
             {/* 最新版本 */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="waterhouse-pod flex items-center justify-between gap-4 rounded-[1.45rem] border-border/30 bg-background/34 px-4 py-3 shadow-waterhouse-soft">
                 <div className="flex items-center gap-3">
                     <Download className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">{t('info.latestVersion')}</span>
@@ -126,7 +126,7 @@ export function SettingInfo() {
 
             {/* 浏览器缓存问题警告 */}
             {isCacheMismatch && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl space-y-2">
+                <div className="waterhouse-pod space-y-2 rounded-[1.45rem] border border-destructive/20 bg-destructive/10 p-3 shadow-waterhouse-soft">
                     <div className="flex items-start gap-3">
                         <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                         <div className="flex-1 space-y-1">
@@ -153,7 +153,7 @@ export function SettingInfo() {
 
             {/* 有新版本可更新 */}
             {hasNewVersion && (
-                <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl space-y-2">
+                <div className="waterhouse-pod space-y-2 rounded-[1.45rem] border border-primary/20 bg-primary/10 p-3 shadow-waterhouse-soft">
                     <div className="flex items-start gap-3">
                         <Download className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                         <div className="flex-1 space-y-1">

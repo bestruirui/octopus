@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { Layers, GripVertical, X, Trash2 } from 'lucide-react';
+import { GripVertical, X, Trash2, Waves, Dot } from 'lucide-react';
 import {
     DragDropContext,
     Draggable,
@@ -33,7 +33,6 @@ type MemberItemDnd = {
     innerRef: DraggableProvided['innerRef'];
     draggableProps: DraggableProvided['draggableProps'];
     dragHandleProps: DraggableProvided['dragHandleProps'];
-    isDragging: boolean;
 };
 
 function MemberItem({
@@ -46,6 +45,7 @@ function MemberItem({
     showConfirmDelete = true,
     layoutScope,
     dnd,
+    isDragging,
 }: {
     member: SelectedMember;
     onRemove: (id: string) => void;
@@ -56,6 +56,7 @@ function MemberItem({
     showConfirmDelete?: boolean;
     layoutScope?: string;
     dnd: MemberItemDnd;
+    isDragging: boolean;
 }) {
     const { Avatar: ModelAvatar } = getModelIcon(member.name);
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -74,17 +75,19 @@ function MemberItem({
             style={{
                 /* eslint-disable-next-line react-hooks/refs */
                 ...(dnd.draggableProps?.style ?? {}),
-                /* eslint-disable-next-line react-hooks/refs */
-                ...(dnd.isDragging ? { zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' } : null),
+                ...(isDragging ? { zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' } : null),
             }}
         >
             <div className={cn(
-                'flex items-center gap-2 rounded-lg bg-background border border-border/50 px-2.5 py-2 select-none transition-opacity duration-200 relative overflow-hidden',
+                'group/item relative flex items-center gap-2 overflow-hidden rounded-[1.3rem] border border-border/30 bg-background/50 px-3 py-2.5 select-none transition-[opacity,transform,border-color,box-shadow,background-color] duration-200',
                 isRemoving && 'opacity-0',
-                isDisabled && 'opacity-60 grayscale'
+                isDisabled && 'opacity-60 grayscale',
+                !isRemoving && !isDragging && 'shadow-waterhouse-soft hover:-translate-y-0.5 hover:border-primary/16 hover:bg-background/68',
+                isDragging && 'border-primary/30 bg-background/78 shadow-waterhouse-deep'
             )}>
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[radial-gradient(circle_at_left,color-mix(in_oklch,var(--waterhouse-highlight)_12%,transparent)_0%,transparent_72%)] opacity-80" />
                 <span className={cn(
-                    'size-5 rounded-md text-xs font-bold grid place-items-center shrink-0',
+                    'relative grid size-7 shrink-0 place-items-center rounded-[0.95rem] text-xs font-bold',
                     isDisabled ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
                 )}>
                     {index + 1}
@@ -92,10 +95,10 @@ function MemberItem({
 
                 <div
                     className={cn(
-                        'p-0.5 rounded touch-none transition-colors',
+                        'relative rounded-[0.8rem] p-1 touch-none transition-colors',
                         isDisabled
                             ? 'cursor-grab active:cursor-grabbing hover:bg-muted/60'
-                            : 'cursor-grab active:cursor-grabbing hover:bg-muted'
+                            : 'cursor-grab active:cursor-grabbing hover:bg-primary/8'
                     )}
                     // eslint-disable-next-line react-hooks/refs
                     {...dnd.dragHandleProps}
@@ -103,11 +106,11 @@ function MemberItem({
                     <GripVertical className="size-3.5 text-muted-foreground" />
                 </div>
 
-                <span className={cn(isDisabled && 'opacity-70')}>
+                <span className={cn('relative', isDisabled && 'opacity-70')}>
                     <ModelAvatar size={18} />
                 </span>
 
-                <div className="flex flex-col min-w-0 flex-1">
+                <div className="relative flex min-w-0 flex-1 flex-col">
                     <Tooltip side="top" sideOffset={10} align="start">
                         <TooltipTrigger className={cn(
                             'text-sm font-medium truncate leading-tight',
@@ -117,7 +120,10 @@ function MemberItem({
                         </TooltipTrigger>
                         <TooltipContent key={member.name}>{member.name}</TooltipContent>
                     </Tooltip>
-                    <span className="text-[10px] text-muted-foreground truncate leading-tight">{member.channel_name}</span>
+                    <span className="inline-flex items-center gap-1 truncate text-[10px] leading-tight text-muted-foreground">
+                        <Dot className="size-3 opacity-70" />
+                        {member.channel_name}
+                    </span>
                 </div>
 
                 {showWeight && (
@@ -127,7 +133,7 @@ function MemberItem({
                         value={member.weight ?? 1}
                         onChange={(e) => onWeightChange?.(member.id, Math.max(1, parseInt(e.target.value) || 1))}
                         className={cn(
-                            'w-12 h-6 text-xs text-center rounded border border-border bg-muted/50 focus:outline-none focus:ring-1 focus:ring-primary',
+                            'h-7 w-14 rounded-[0.9rem] border border-border/35 bg-background/62 text-center text-xs shadow-waterhouse-soft focus:outline-none focus:ring-1 focus:ring-primary',
                             isDisabled && 'text-muted-foreground'
                         )}
                     />
@@ -138,7 +144,7 @@ function MemberItem({
                         layoutId={`delete-btn-member-${layoutScope ?? 'default'}-${member.id}`}
                         type="button"
                         onClick={() => showConfirmDelete ? setConfirmDelete(true) : onRemove(member.id)}
-                        className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        className="relative rounded-[0.85rem] p-1.5 transition-colors hover:bg-destructive/10 hover:text-destructive"
                         initial={false}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.15 }}
@@ -152,7 +158,7 @@ function MemberItem({
                     {showConfirmDelete && confirmDelete && (
                         <motion.div
                             layoutId={`delete-btn-member-${layoutScope ?? 'default'}-${member.id}`}
-                            className="absolute inset-0 flex items-center justify-center gap-2 bg-destructive p-1.5 rounded-lg"
+                            className="absolute inset-0 flex items-center justify-center gap-2 rounded-[1.3rem] bg-destructive p-1.5"
                             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         >
                             <button
@@ -281,18 +287,23 @@ export function MemberList({
         <div className="relative h-full min-h-0">
             <div
                 className={cn(
-                    'absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground',
+                    'absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground',
                     'transition-opacity duration-200 ease-out',
                     isEmpty ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 )}
             >
-                <Layers className="size-10 opacity-40" />
-                <span className="text-sm">{t('card.empty')}</span>
+                <div className="waterhouse-pod grid size-16 place-items-center rounded-[1.5rem] border border-border/25 bg-background/40 shadow-waterhouse-soft">
+                    <Waves className="size-7 opacity-60" />
+                </div>
+                <div className="space-y-1 text-center">
+                    <div className="text-sm font-medium text-foreground">{t('card.empty')}</div>
+                    <div className="text-xs text-muted-foreground">{t('form.addItem')}</div>
+                </div>
             </div>
 
             <div
                 className={cn(
-                    'h-full overflow-y-auto transition-opacity duration-200',
+                    'h-full min-h-0 overflow-y-auto transition-opacity duration-200',
                     isEmpty ? 'opacity-0' : 'opacity-100'
                 )}
                 ref={scrollContainerRef}
@@ -306,7 +317,7 @@ export function MemberList({
                             <div
                                 ref={droppableProvided.innerRef}
                                 {...droppableProvided.droppableProps}
-                                className="p-2 flex flex-col space-y-1.5"
+                                className="flex flex-col space-y-2 p-2.5"
                             >
                                 {members.map((member, index) => (
                                     <Draggable
@@ -329,8 +340,8 @@ export function MemberList({
                                                     innerRef: draggableProvided.innerRef,
                                                     draggableProps: draggableProvided.draggableProps,
                                                     dragHandleProps: draggableProvided.dragHandleProps,
-                                                    isDragging: snapshot.isDragging,
                                                 }}
+                                                isDragging={snapshot.isDragging}
                                             />
                                         )}
                                     </Draggable>

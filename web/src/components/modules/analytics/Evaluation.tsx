@@ -1,6 +1,7 @@
 'use client';
 
-import { Activity, ArrowRight, Clock3, Database, Route } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Activity, ArrowRight, Database, Orbit, Radar, Route, Waves } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
     type SemanticCacheEvaluationSummary,
@@ -10,7 +11,7 @@ import {
 import { useNavStore } from '@/components/modules/navbar';
 import { Button } from '@/components/ui/button';
 import { formatCount } from '@/lib/utils';
-import { StatusBadge, formatPercent } from './shared';
+import { ObservatorySection, StatusBadge, formatPercent } from './shared';
 
 function getStatusTone(status?: string) {
     switch (status) {
@@ -65,10 +66,45 @@ function SummaryStat({
     value: string;
 }) {
     return (
-        <div className="rounded-2xl border border-border/40 bg-card p-3">
+        <div className="waterhouse-pod rounded-[1.25rem] border border-border/25 bg-background/48 p-3 shadow-waterhouse-soft">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="mt-2 text-sm font-semibold">{value}</div>
         </div>
+    );
+}
+
+function EntryCard({
+    icon: Icon,
+    title,
+    description,
+    hint,
+    status,
+    action,
+}: {
+    icon: typeof Activity;
+    title: string;
+    description: string;
+    hint: string;
+    status?: { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' };
+    action: ReactNode;
+}) {
+    return (
+        <article className="waterhouse-pod rounded-[1.8rem] border border-border/30 bg-background/40 p-4 shadow-waterhouse-soft backdrop-blur-md">
+            <div className="flex items-start justify-between gap-3">
+                <div className="waterhouse-pod grid h-10 w-10 shrink-0 place-items-center rounded-[1.15rem] border border-border/25 bg-background/48 text-primary shadow-waterhouse-soft">
+                    <Icon className="h-4 w-4" />
+                </div>
+                {status ? <StatusBadge label={status.label} tone={status.tone} /> : null}
+            </div>
+            <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-semibold">{title}</h4>
+                <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+                <div className="rounded-[1.2rem] border border-border/20 bg-background/42 px-3 py-2 text-sm text-muted-foreground shadow-waterhouse-soft">
+                    {hint}
+                </div>
+            </div>
+            <div className="mt-4">{action}</div>
+        </article>
     );
 }
 
@@ -105,101 +141,83 @@ export function Evaluation() {
         semanticCache,
         !semanticCache && !!semanticCacheQuery.error,
     );
+    const statusButtonClassName = 'rounded-[1.2rem] border-border/25 bg-background/44 shadow-waterhouse-soft hover:bg-background/64';
 
     return (
-        <section className="rounded-3xl border border-card-border bg-card p-5 text-card-foreground custom-shadow">
-            <div className="mb-4 space-y-1">
-                <h3 className="text-base font-semibold">{t('evaluation.title')}</h3>
-                {sectionDescription ? (
-                    <p className="text-sm leading-6 text-muted-foreground">{sectionDescription}</p>
-                ) : null}
-            </div>
-
+        <ObservatorySection
+            eyebrow={t('evaluation.title')}
+            title={t('evaluation.title')}
+            description={sectionDescription}
+            icon={Radar}
+        >
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                <article className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <Activity className="h-4 w-4" />
-                    </div>
-                    <h4 className="mt-4 text-sm font-semibold">{t('evaluation.availability.title')}</h4>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        {t('evaluation.availability.description')}
-                    </p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        {runtime.isLoading
-                            ? t('states.loading')
-                            : runtime.hasGroups
-                                ? t('evaluation.availability.hint', { count: runtime.groupCount })
-                                : t('evaluation.availability.empty')}
-                    </p>
-                    <Button className="mt-4 rounded-xl" onClick={() => setActiveItem('group')}>
-                        {t('evaluation.actions.openGroupTest')}
-                        <ArrowRight className="size-4" />
-                    </Button>
-                </article>
-
-                <article className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <Route className="h-4 w-4" />
-                    </div>
-                    <div className="mt-4 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <h4 className="text-sm font-semibold">{t('evaluation.aiRoute.title')}</h4>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                {t('evaluation.aiRoute.description')}
-                            </p>
-                        </div>
-                        <StatusBadge
-                            label={t(`evaluation.runtime.status.${aiRouteStatus}`)}
-                            tone={getStatusTone(aiRouteStatus)}
-                        />
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        {aiRoute
-                            ? t('evaluation.aiRoute.hint', { step: t(`evaluation.runtime.step.${aiRouteStep}`) })
-                            : hasAiRouteUnavailable
-                                ? t('evaluation.aiRoute.unavailable')
-                                : t('evaluation.aiRoute.empty')}
-                    </p>
-                    <Button className="mt-4 rounded-xl" onClick={() => setActiveItem('group')}>
-                        {t('evaluation.actions.openAIRoute')}
-                        <ArrowRight className="size-4" />
-                    </Button>
-                </article>
-
-                <article className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <Database className="h-4 w-4" />
-                    </div>
-                    <div className="mt-4 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <h4 className="text-sm font-semibold">{t('evaluation.semanticCache.title')}</h4>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                {t('evaluation.semanticCache.description')}
-                            </p>
-                        </div>
-                        <StatusBadge
-                            label={t(`evaluation.semanticCache.status.${semanticCacheStatus.key}`)}
-                            tone={semanticCacheStatus.tone}
-                        />
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{t('evaluation.semanticCache.hint')}</p>
-                    <Button className="mt-4 rounded-xl" onClick={() => setActiveItem('setting')}>
-                        {t('evaluation.actions.openSemanticCache')}
-                        <ArrowRight className="size-4" />
-                    </Button>
-                </article>
+                <EntryCard
+                    icon={Activity}
+                    title={t('evaluation.availability.title')}
+                    description={t('evaluation.availability.description')}
+                    hint={runtime.isLoading
+                        ? t('states.loading')
+                        : runtime.hasGroups
+                            ? t('evaluation.availability.hint', { count: runtime.groupCount })
+                            : t('evaluation.availability.empty')}
+                    action={
+                        <Button className={statusButtonClassName} onClick={() => setActiveItem('group')}>
+                            {t('evaluation.actions.openGroupTest')}
+                            <ArrowRight className="size-4" />
+                        </Button>
+                    }
+                />
+                <EntryCard
+                    icon={Route}
+                    title={t('evaluation.aiRoute.title')}
+                    description={t('evaluation.aiRoute.description')}
+                    hint={aiRoute
+                        ? t('evaluation.aiRoute.hint', { step: t(`evaluation.runtime.step.${aiRouteStep}`) })
+                        : hasAiRouteUnavailable
+                            ? t('evaluation.aiRoute.unavailable')
+                            : t('evaluation.aiRoute.empty')}
+                    status={{
+                        label: t(`evaluation.runtime.status.${aiRouteStatus}`),
+                        tone: getStatusTone(aiRouteStatus),
+                    }}
+                    action={
+                        <Button className={statusButtonClassName} onClick={() => setActiveItem('group')}>
+                            {t('evaluation.actions.openAIRoute')}
+                            <ArrowRight className="size-4" />
+                        </Button>
+                    }
+                />
+                <EntryCard
+                    icon={Database}
+                    title={t('evaluation.semanticCache.title')}
+                    description={t('evaluation.semanticCache.description')}
+                    hint={t('evaluation.semanticCache.hint')}
+                    status={{
+                        label: t(`evaluation.semanticCache.status.${semanticCacheStatus.key}`),
+                        tone: semanticCacheStatus.tone,
+                    }}
+                    action={
+                        <Button className={statusButtonClassName} onClick={() => setActiveItem('setting')}>
+                            {t('evaluation.actions.openSemanticCache')}
+                            <ArrowRight className="size-4" />
+                        </Button>
+                    }
+                />
             </div>
 
             <div className="mt-4 space-y-4">
-                <div className="rounded-2xl border border-dashed border-border bg-background/60 p-4">
-                    <p className="text-sm font-semibold">{t('evaluation.summary.title')}</p>
+                <div className="waterhouse-pod rounded-[1.8rem] border border-dashed border-border/30 bg-background/34 p-4 shadow-waterhouse-soft backdrop-blur-md">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-background/42 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary shadow-waterhouse-soft">
+                        <Orbit className="h-3.5 w-3.5" />
+                        {t('evaluation.summary.title')}
+                    </div>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">{t('evaluation.summary.description')}</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    <article className="rounded-2xl border border-border/60 bg-background/60 p-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <Clock3 className="h-4 w-4" />
+                    <article className="waterhouse-pod rounded-[1.8rem] border border-border/30 bg-background/38 p-4 shadow-waterhouse-soft backdrop-blur-md">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-[1.15rem] bg-primary/10 text-primary shadow-waterhouse-soft">
+                            <Route className="h-4 w-4" />
                         </div>
                         <div className="mt-4 flex items-center justify-between gap-3">
                             <h4 className="text-sm font-semibold">{t('evaluation.summary.aiRoute')}</h4>
@@ -210,39 +228,33 @@ export function Evaluation() {
                         </div>
                         {aiRoute ? (
                             <div className="mt-4 grid grid-cols-2 gap-3">
-                                <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                    <div className="text-xs text-muted-foreground">{t('evaluation.summary.status')}</div>
-                                    <div className="mt-2 text-sm font-semibold">
-                                        {t(`evaluation.runtime.step.${aiRouteStep}`)}
-                                    </div>
-                                </div>
-                                <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                    <div className="text-xs text-muted-foreground">{t('evaluation.summary.progress')}</div>
-                                    <div className="mt-2 text-sm font-semibold">
-                                        {aiRoute.completed_batches} / {aiRoute.total_batches}
-                                    </div>
-                                </div>
-                                <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                    <div className="text-xs text-muted-foreground">{t('evaluation.summary.groups')}</div>
-                                    <div className="mt-2 text-sm font-semibold">
-                                        {aiRoute.result?.group_count ?? 0}
-                                    </div>
-                                </div>
-                                <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                    <div className="text-xs text-muted-foreground">{t('evaluation.summary.routes')}</div>
-                                    <div className="mt-2 text-sm font-semibold">
-                                        {aiRoute.result?.route_count ?? 0} / {aiRoute.result?.item_count ?? 0}
-                                    </div>
-                                </div>
+                                <SummaryStat
+                                    label={t('evaluation.summary.status')}
+                                    value={t(`evaluation.runtime.step.${aiRouteStep}`)}
+                                />
+                                <SummaryStat
+                                    label={t('evaluation.summary.progress')}
+                                    value={`${aiRoute.completed_batches} / ${aiRoute.total_batches}`}
+                                />
+                                <SummaryStat
+                                    label={t('evaluation.summary.groups')}
+                                    value={String(aiRoute.result?.group_count ?? 0)}
+                                />
+                                <SummaryStat
+                                    label={t('evaluation.summary.routes')}
+                                    value={`${aiRoute.result?.route_count ?? 0} / ${aiRoute.result?.item_count ?? 0}`}
+                                />
                             </div>
                         ) : (
-                            <p className="mt-4 text-sm leading-6 text-muted-foreground">{t('evaluation.aiRoute.empty')}</p>
+                            <div className="mt-4 rounded-[1.3rem] border border-border/20 bg-background/44 px-4 py-3 text-sm leading-6 text-muted-foreground shadow-waterhouse-soft">
+                                {t('evaluation.aiRoute.empty')}
+                            </div>
                         )}
                     </article>
 
-                    <article className="rounded-2xl border border-border/60 bg-background/60 p-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <Clock3 className="h-4 w-4" />
+                    <article className="waterhouse-pod rounded-[1.8rem] border border-border/30 bg-background/38 p-4 shadow-waterhouse-soft backdrop-blur-md">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-[1.15rem] bg-primary/10 text-primary shadow-waterhouse-soft">
+                            <Activity className="h-4 w-4" />
                         </div>
                         <div className="mt-4 flex items-center justify-between gap-3">
                             <h4 className="text-sm font-semibold">{t('evaluation.summary.groupTest')}</h4>
@@ -254,45 +266,45 @@ export function Evaluation() {
                         {groupTest ? (
                             <>
                                 <div className="mt-4 grid grid-cols-2 gap-3">
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                        <div className="text-xs text-muted-foreground">{t('evaluation.summary.progress')}</div>
-                                        <div className="mt-2 text-sm font-semibold">
-                                            {groupTest.completed} / {groupTest.total}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                        <div className="text-xs text-muted-foreground">{t('evaluation.summary.result')}</div>
-                                        <div className="mt-2 text-sm font-semibold">
-                                            {groupTestResultLabel}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                        <div className="text-xs text-muted-foreground">{t('evaluation.summary.passed')}</div>
-                                        <div className="mt-2 text-sm font-semibold">{passedCount}</div>
-                                    </div>
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
-                                        <div className="text-xs text-muted-foreground">{t('evaluation.summary.failed')}</div>
-                                        <div className="mt-2 text-sm font-semibold">{failedCount}</div>
-                                    </div>
+                                    <SummaryStat
+                                        label={t('evaluation.summary.progress')}
+                                        value={`${groupTest.completed} / ${groupTest.total}`}
+                                    />
+                                    <SummaryStat
+                                        label={t('evaluation.summary.result')}
+                                        value={groupTestResultLabel}
+                                    />
+                                    <SummaryStat
+                                        label={t('evaluation.summary.passed')}
+                                        value={String(passedCount)}
+                                    />
+                                    <SummaryStat
+                                        label={t('evaluation.summary.failed')}
+                                        value={String(failedCount)}
+                                    />
                                 </div>
                                 {groupTest.message ? (
                                     <p className="mt-3 text-sm leading-6 text-destructive">{groupTest.message}</p>
                                 ) : null}
                             </>
                         ) : (
-                            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                            <div className="mt-4 rounded-[1.3rem] border border-border/20 bg-background/44 px-4 py-3 text-sm leading-6 text-muted-foreground shadow-waterhouse-soft">
                                 {hasGroupTestUnavailable
                                     ? t('evaluation.summary.unavailable')
                                     : t('evaluation.summary.empty')}
-                            </p>
+                            </div>
                         )}
                     </article>
                 </div>
 
-                <article className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <article className="waterhouse-pod rounded-[1.9rem] border border-border/30 bg-background/36 p-4 shadow-waterhouse-soft backdrop-blur-md md:p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/12 bg-background/42 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary shadow-waterhouse-soft">
+                                <Waves className="h-3.5 w-3.5" />
+                                {t('evaluation.semanticCache.summaryTitle')}
+                            </div>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-[1.15rem] bg-primary/10 text-primary shadow-waterhouse-soft">
                                 <Database className="h-4 w-4" />
                             </div>
                             <h4 className="mt-4 text-sm font-semibold">{t('evaluation.semanticCache.summaryTitle')}</h4>
@@ -307,7 +319,7 @@ export function Evaluation() {
                                 label={t(`evaluation.semanticCache.status.${semanticCacheStatus.key}`)}
                                 tone={semanticCacheStatus.tone}
                             />
-                            <Button className="rounded-xl" onClick={() => setActiveItem('setting')}>
+                            <Button className={statusButtonClassName} onClick={() => setActiveItem('setting')}>
                                 {t('evaluation.actions.openSemanticCache')}
                                 <ArrowRight className="size-4" />
                             </Button>
@@ -315,11 +327,11 @@ export function Evaluation() {
                     </div>
 
                     {semanticCacheQuery.isLoading && !semanticCache ? (
-                        <div className="mt-4 rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
+                        <div className="mt-4 rounded-[1.3rem] border border-dashed border-border/30 bg-background/44 p-4 text-sm text-muted-foreground shadow-waterhouse-soft">
                             {t('states.loading')}
                         </div>
                     ) : !semanticCache ? (
-                        <div className="mt-4 rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
+                        <div className="mt-4 rounded-[1.3rem] border border-dashed border-border/30 bg-background/44 p-4 text-sm text-muted-foreground shadow-waterhouse-soft">
                             {t('evaluation.semanticCache.unavailable')}
                         </div>
                     ) : (
@@ -380,6 +392,6 @@ export function Evaluation() {
                     )}
                 </article>
             </div>
-        </section>
+        </ObservatorySection>
     );
 }

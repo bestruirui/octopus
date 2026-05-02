@@ -1,9 +1,9 @@
 'use client';
 
-import { Activity, AlertTriangle, CircleOff, ShieldCheck } from 'lucide-react';
+import { Activity, AlertTriangle, CircleOff, ShieldCheck, Radar } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAnalyticsGroupHealth } from '@/api/endpoints/analytics';
-import { QueryState, StatusBadge, formatUnixTime } from './shared';
+import { ObservatorySection, QueryState, StatusBadge, formatUnixTime } from './shared';
 
 function getStatusTone(status: 'healthy' | 'warning' | 'degraded' | 'down' | 'empty') {
     switch (status) {
@@ -38,11 +38,12 @@ export function GroupHealth() {
     const { data, isLoading, error } = useAnalyticsGroupHealth();
 
     return (
-        <section className="rounded-3xl border border-card-border bg-card p-5 text-card-foreground custom-shadow">
-            <div className="mb-4 space-y-1">
-                <h3 className="text-base font-semibold">{t('cards.routeHealth.title')}</h3>
-                <p className="text-sm leading-6 text-muted-foreground">{t('routeHealth.description')}</p>
-            </div>
+        <ObservatorySection
+            eyebrow={t('cards.routeHealth.title')}
+            title={t('cards.routeHealth.title')}
+            description={t('routeHealth.description')}
+            icon={Radar}
+        >
             <QueryState
                 loading={isLoading}
                 error={error}
@@ -55,12 +56,12 @@ export function GroupHealth() {
                         return (
                             <article
                                 key={`${item.group_id}-${item.endpoint_type}`}
-                                className="rounded-2xl border border-border/60 bg-background/70 p-4"
+                                className="waterhouse-pod rounded-[1.75rem] border border-border/30 bg-background/40 p-4 shadow-waterhouse-soft backdrop-blur-md"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                                            <div className="flex h-9 w-9 items-center justify-center rounded-[1.05rem] bg-primary/10 text-primary shadow-waterhouse-soft">
                                                 <StatusIcon className="h-4 w-4" />
                                             </div>
                                             <div className="min-w-0">
@@ -78,21 +79,21 @@ export function GroupHealth() {
                                 </div>
 
                                 <div className="mt-4 grid grid-cols-2 gap-3">
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
+                                    <div className="waterhouse-pod rounded-[1.3rem] border border-border/25 bg-background/48 p-3 shadow-waterhouse-soft">
                                         <div className="text-xs text-muted-foreground">{t('routeHealth.healthScore')}</div>
                                         <div className="mt-2 text-2xl font-semibold">{item.health_score}</div>
                                     </div>
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
+                                    <div className="waterhouse-pod rounded-[1.3rem] border border-border/25 bg-background/48 p-3 shadow-waterhouse-soft">
                                         <div className="text-xs text-muted-foreground">{t('routeHealth.failureCount')}</div>
                                         <div className="mt-2 text-2xl font-semibold">{item.failure_count}</div>
                                     </div>
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
+                                    <div className="waterhouse-pod rounded-[1.3rem] border border-border/25 bg-background/48 p-3 shadow-waterhouse-soft">
                                         <div className="text-xs text-muted-foreground">{t('routeHealth.enabledItems')}</div>
                                         <div className="mt-2 text-sm font-semibold">
                                             {item.enabled_item_count} / {item.item_count}
                                         </div>
                                     </div>
-                                    <div className="rounded-2xl border border-border/40 bg-card p-3">
+                                    <div className="waterhouse-pod rounded-[1.3rem] border border-border/25 bg-background/48 p-3 shadow-waterhouse-soft">
                                         <div className="text-xs text-muted-foreground">{t('routeHealth.disabledItems')}</div>
                                         <div className="mt-2 text-sm font-semibold">{item.disabled_item_count}</div>
                                     </div>
@@ -109,6 +110,6 @@ export function GroupHealth() {
                     })}
                 </div>
             </QueryState>
-        </section>
+        </ObservatorySection>
     );
 }

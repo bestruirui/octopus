@@ -411,6 +411,7 @@ function APIKeyFormOverlay({
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         >
             <APIKeyForm
+                key={apiKey ? `apikey-form-${apiKey.id}` : 'apikey-form-create'}
                 apiKey={apiKey}
                 isPending={isPending}
                 submitLabel={submitLabel}
@@ -812,15 +813,25 @@ function APIKeyDialogPanel() {
     );
 }
 
+export function APIKeyPagePanel() {
+    return (
+        <APIKeyPanelBase
+            idPrefix="apikey-page"
+            containerClassName="waterhouse-island relative space-y-5 rounded-[2.3rem] border border-border/35 bg-card/58 p-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:p-6"
+            listClassName="waterhouse-pod min-h-[24rem] space-y-2 overflow-y-auto rounded-[1.8rem] border border-border/30 bg-background/30 p-3 shadow-waterhouse-soft md:min-h-[32rem]"
+        />
+    );
+}
+
 export function SettingAPIKey() {
     return (
         <APIKeyPanelBase
             idPrefix="apikey"
-            containerClassName="rounded-3xl border border-border bg-card p-6 space-y-5 relative"
-            listClassName="space-y-2 h-36 overflow-y-auto"
+            containerClassName="waterhouse-island relative space-y-5 rounded-[2.1rem] border border-border/35 bg-card/58 p-6 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]"
+            listClassName="waterhouse-pod h-36 space-y-2 overflow-y-auto rounded-[1.6rem] border border-border/30 bg-background/30 p-3 shadow-waterhouse-soft"
             renderHeaderExtra={() => (
                 <MorphingDialog>
-                    <MorphingDialogTrigger className="h-9 w-9 flex items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors hover:bg-muted">
+                    <MorphingDialogTrigger className="waterhouse-pod h-9 w-9 flex items-center justify-center rounded-[1rem] border-border/30 bg-background/36 text-muted-foreground shadow-waterhouse-soft transition-colors hover:bg-background/52">
                         <Maximize2 className="size-4" />
                     </MorphingDialogTrigger>
                     <MorphingDialogContainer>

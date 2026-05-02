@@ -19,10 +19,11 @@ import { toast } from '@/components/common/Toast';
 import { ENTRANCE_VARIANTS } from '@/lib/animations/fluid-transitions';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { CONTENT_MAP } from '@/route';
-import { parseNavOrder } from '@/components/modules/navbar/nav-order';
+import { parseNavOrder, parseNavVisible } from '@/components/modules/navbar/nav-order';
 import { apiClient } from '@/api/client';
 import { logger } from '@/lib/logger';
 import { FirstRunSetup } from '@/components/modules/first-run-setup';
+import { ParticleBackground, RippleEffect } from '@/components/nature';
 import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
 import type { NavItem } from '@/components/modules/navbar';
 
@@ -40,6 +41,11 @@ function getSettingsListQueryOptions() {
 function getNavOrderFromSettings(settings: Setting[] | undefined): NavItem[] {
     const navOrderValue = settings?.find((item) => item.key === SettingKey.NavOrder)?.value;
     return parseNavOrder(navOrderValue) as NavItem[];
+}
+
+function getNavVisibleFromSettings(settings: Setting[] | undefined): NavItem[] {
+    const navVisibleValue = settings?.find((item) => item.key === SettingKey.NavVisible)?.value;
+    return parseNavVisible(navVisibleValue) as NavItem[];
 }
 
 function HeaderActions({ activeItem }: { activeItem: NavItem }) {
@@ -63,7 +69,7 @@ function HeaderActions({ activeItem }: { activeItem: NavItem }) {
             size="sm"
             onClick={() => void handleRefresh()}
             disabled={isRefreshing}
-            className="rounded-xl"
+            className="h-10 rounded-[1.35rem] border-border/35 bg-background/45 px-4 shadow-waterhouse-soft backdrop-blur-md"
         >
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             {t('actions.refresh')}
@@ -73,7 +79,7 @@ function HeaderActions({ activeItem }: { activeItem: NavItem }) {
 
 export function AppContainer() {
     const { isAuthenticated, isAPIKeyAuth, isLoading: authLoading } = useAuth();
-    const { activeItem, direction, setNavOrder, resetNavOrder } = useNavStore();
+    const { activeItem, direction, setNavOrder, setVisibleItems, resetNavOrder } = useNavStore();
     const t = useTranslations('navbar');
     const queryClient = useQueryClient();
 
@@ -122,7 +128,8 @@ export function AppContainer() {
 
         if (!settings) return;
         setNavOrder(getNavOrderFromSettings(settings));
-    }, [isAPIKeyAuth, isAuthenticated, resetNavOrder, setNavOrder, settings]);
+        setVisibleItems(getNavVisibleFromSettings(settings));
+    }, [isAPIKeyAuth, isAuthenticated, resetNavOrder, setNavOrder, setVisibleItems, settings]);
 
     useEffect(() => {
         if (authLoading) return;
@@ -158,6 +165,7 @@ export function AppContainer() {
                                 return;
                             }
                             useNavStore.getState().setNavOrder(getNavOrderFromSettings(nextSettings));
+                            useNavStore.getState().setVisibleItems(getNavVisibleFromSettings(nextSettings));
                         })
                     );
 
@@ -333,44 +341,64 @@ export function AppContainer() {
             key="main-app"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="mx-auto flex h-dvh max-w-6xl flex-col overflow-hidden px-3 md:grid md:grid-cols-[auto_1fr] md:gap-6 md:px-6"
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="waterhouse-shell relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-hidden px-3 pt-3 pb-24 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
         >
+            {/* Nature: 粒子背景 */}
+            <ParticleBackground count={35} minOpacity={0.06} maxOpacity={0.2} />
+            {/* Nature: 光标水波纹轨迹 */}
+            <RippleEffect maxRipples={16} throttleMs={100} />
             <NavBar />
-            <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-                <header className="my-6 flex flex-none items-center gap-x-2 px-2">
-                    <Logo size={48} />
-                    <div className="flex-1 overflow-hidden">
-                        <AnimatePresence mode="wait" custom={direction}>
-                            <motion.div
-                                key={activeItem}
-                                custom={direction}
-                                variants={{
-                                    initial: (direction: number) => ({
-                                        y: 32 * direction,
-                                        opacity: 0
-                                    }),
-                                    animate: {
-                                        y: 0,
-                                        opacity: 1
-                                    },
-                                    exit: (direction: number) => ({
-                                        y: -32 * direction,
-                                        opacity: 0
-                                    })
-                                }}
-                                initial="initial"
-                                animate="animate"
-                                exit="exit"
-                                transition={{ duration: 0.3 }}
-                                className="flex items-center"
-                            >
-                                <span className="text-3xl font-bold mt-1">{t(activeItem)}</span>
-                            </motion.div>
-                        </AnimatePresence>
+            <main className="relative z-10 flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 md:gap-5">
+                <header className="waterhouse-canopy waterhouse-island !relative !inset-auto !z-20 !pointer-events-auto !animate-none !filter-none !opacity-100 flex flex-none flex-col gap-4 overflow-visible rounded-[2.25rem] border-border/35 bg-background/50 px-4 py-4 shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:px-6 md:py-5 xl:flex-row xl:items-center xl:gap-6">
+                    <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+                    <div className="pointer-events-none absolute -left-8 top-6 size-28 rounded-full bg-primary/10 blur-3xl" />
+                    <div className="flex min-w-0 flex-1 items-center gap-4">
+                        <div className="waterhouse-pod grid size-14 shrink-0 place-items-center overflow-hidden rounded-[1.45rem] border-border/35 bg-background/58 shadow-waterhouse-soft">
+                            <Logo size={42} />
+                        </div>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                            <div className="mb-1 flex items-center gap-2">
+                                <span className="h-2 w-8 rounded-full bg-primary/45 shadow-[0_0_18px_color-mix(in_oklch,var(--primary)_45%,transparent)]" />
+                                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground/80">
+                                    Octopus
+                                </span>
+                            </div>
+                            <AnimatePresence mode="wait" custom={direction}>
+                                <motion.div
+                                    key={activeItem}
+                                    custom={direction}
+                                    variants={{
+                                        initial: (direction: number) => ({
+                                            y: 32 * direction,
+                                            opacity: 0
+                                        }),
+                                        animate: {
+                                            y: 0,
+                                            opacity: 1
+                                        },
+                                        exit: (direction: number) => ({
+                                            y: -32 * direction,
+                                            opacity: 0
+                                        })
+                                    }}
+                                    initial="initial"
+                                    animate="animate"
+                                    exit="exit"
+                                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                                    className="flex min-w-0 flex-col"
+                                >
+                                    <span className="truncate text-3xl font-bold leading-tight tracking-[-0.04em] text-foreground md:text-4xl">
+                                        {t(activeItem)}
+                                    </span>
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-auto">
-                        <HeaderActions activeItem={activeItem} />
+                    <div className="flex min-w-0 flex-col gap-3 xl:ml-auto xl:items-end">
+                        <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 xl:justify-end">
+                            <HeaderActions activeItem={activeItem} />
+                        </div>
                         <Toolbar />
                     </div>
                 </header>
@@ -382,10 +410,11 @@ export function AppContainer() {
                         animate="animate"
                         exit={{
                             opacity: 0,
-                            scale: 0.98,
+                            scale: 0.97,
+                            filter: 'blur(4px)',
                         }}
-                        transition={{ duration: 0.25 }}
-                        className="h-full min-h-0 flex-1"
+                        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                        className="h-full min-h-0 flex-1 overflow-y-auto pb-4"
                     >
                         <ContentLoader activeRoute={activeItem} />
                     </motion.div>

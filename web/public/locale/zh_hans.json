@@ -83,7 +83,8 @@
         "ops": "运维中心",
         "user": "用户",
         "setting": "设置",
-        "ariaLabel": "主导航"
+        "ariaLabel": "主导航",
+        "apikey": "API 密钥"
     },
     "analytics": {
         "title": "分析中心",
@@ -997,6 +998,12 @@
                 "oldPlaceholder": "请输入当前密码",
                 "newPlaceholder": "请输入新密码",
                 "confirmPlaceholder": "请确认新密码",
+                "showOld": "显示当前密码",
+                "hideOld": "隐藏当前密码",
+                "showNew": "显示新密码",
+                "hideNew": "隐藏新密码",
+                "showConfirm": "显示确认密码",
+                "hideConfirm": "隐藏确认密码",
                 "oldEmpty": "请输入当前密码",
                 "newEmpty": "请输入新密码",
                 "mismatch": "两次输入的密码不一致",

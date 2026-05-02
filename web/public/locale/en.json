@@ -83,7 +83,8 @@
         "ops": "Ops",
         "user": "User",
         "setting": "Setting",
-        "ariaLabel": "Main navigation"
+        "ariaLabel": "Main navigation",
+        "apikey": "API Keys"
     },
     "analytics": {
         "title": "Analytics",
@@ -997,6 +998,12 @@
                 "oldPlaceholder": "Enter current password",
                 "newPlaceholder": "Enter new password",
                 "confirmPlaceholder": "Confirm new password",
+                "showOld": "Show current password",
+                "hideOld": "Hide current password",
+                "showNew": "Show new password",
+                "hideNew": "Hide new password",
+                "showConfirm": "Show password confirmation",
+                "hideConfirm": "Hide password confirmation",
                 "oldEmpty": "Please enter current password",
                 "newEmpty": "Please enter new password",
                 "mismatch": "Passwords do not match",

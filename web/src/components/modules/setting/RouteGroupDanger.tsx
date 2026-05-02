@@ -44,13 +44,13 @@ export function SettingRouteGroupDanger() {
 
     return (
         <>
-            <div className="rounded-3xl border border-destructive/20 bg-card p-6 space-y-5">
+            <div className="waterhouse-island rounded-[2.1rem] border border-destructive/20 bg-card/58 p-6 space-y-5 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
                 <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
                     <FolderX className="h-5 w-5 text-destructive" />
                     {t('routeGroups.title')}
                 </h2>
 
-                <div className="space-y-2">
+                <div className="waterhouse-pod space-y-2 rounded-[1.55rem] border border-destructive/15 bg-destructive/6 p-4 shadow-waterhouse-soft">
                     <p className="text-sm text-muted-foreground">{t('routeGroups.description')}</p>
                     <p className="text-xs text-muted-foreground">{countLabel}</p>
                 </div>
@@ -68,7 +68,7 @@ export function SettingRouteGroupDanger() {
             </div>
 
             <AlertDialog open={open} onOpenChange={setOpen}>
-                <AlertDialogContent className="rounded-2xl">
+                <AlertDialogContent className="rounded-[2rem]">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('routeGroups.confirmTitle')}</AlertDialogTitle>
                         <AlertDialogDescription className="whitespace-pre-line">

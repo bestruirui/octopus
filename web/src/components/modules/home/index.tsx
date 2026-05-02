@@ -9,11 +9,11 @@ import { PageWrapper } from '@/components/common/PageWrapper';
 
 export function Home() {
     return (
-        <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain space-y-6 pb-24 md:pb-4 rounded-t-3xl">
+        <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain space-y-7 rounded-t-3xl pb-24 md:pb-4">
             <HomeHero />
             <HomeAnalyticsOverview />
             <StatsChart />
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+            <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.4fr)]">
                 <Activity />
                 <Rank />
             </div>

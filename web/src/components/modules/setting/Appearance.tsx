@@ -22,7 +22,7 @@ import {
     useNavStore,
     type NavItem,
 } from '@/components/modules/navbar';
-import { serializeNavOrder } from '@/components/modules/navbar/nav-order';
+import { serializeNavOrder, serializeNavVisible } from '@/components/modules/navbar/nav-order';
 import { useSettingStore, type Locale } from '@/stores/setting';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
@@ -74,6 +74,21 @@ function NavigationPreferences() {
         );
     }, [setSetting, t]);
 
+    const persistNavVisible = useCallback((items: readonly NavItem[], onSuccess?: () => void) => {
+        setSetting.mutate(
+            {
+                key: SettingKey.NavVisible,
+                value: serializeNavVisible(items),
+            },
+            {
+                onSuccess,
+                onError: () => {
+                    toast.error(t('saveFailed'));
+                },
+            }
+        );
+    }, [setSetting, t]);
+
     const handleDragEnd = useCallback((result: DropResult) => {
         const { destination, source } = result;
         if (!destination || destination.index === source.index) {
@@ -94,18 +109,23 @@ function NavigationPreferences() {
             return;
         }
 
+        const nextVisible = checked
+            ? Array.from(new Set([...visibleItems, item]))
+            : visibleItems.filter((visibleItem) => visibleItem !== item);
         setItemVisible(item, checked);
-    }, [setItemVisible, t, visibleCount, visibleItemSet]);
+        persistNavVisible(nextVisible);
+    }, [persistNavVisible, setItemVisible, t, visibleCount, visibleItemSet, visibleItems]);
 
     const handleReset = useCallback(() => {
         resetPreferences();
         persistNavOrder(DEFAULT_NAV_ORDER, () => {
             toast.success(t('navOrder.resetSuccess'));
         });
-    }, [persistNavOrder, resetPreferences, t]);
+        persistNavVisible(DEFAULT_NAV_ORDER);
+    }, [persistNavOrder, persistNavVisible, resetPreferences, t]);
 
     return (
-        <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
+        <div className="waterhouse-pod space-y-4 rounded-[1.85rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft backdrop-blur-md">
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -127,14 +147,14 @@ function NavigationPreferences() {
                 </Button>
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-background/80">
+            <div className="rounded-[1.5rem] border border-border/30 bg-background/46 p-1.5 shadow-waterhouse-soft backdrop-blur-md">
                 <DragDropContext onDragEnd={handleDragEnd}>
                     <Droppable droppableId="setting-nav-order">
                         {(droppableProvided) => (
                             <div
                                 ref={droppableProvided.innerRef}
                                 {...droppableProvided.droppableProps}
-                                className="space-y-2 p-2"
+                                className="max-h-[24rem] space-y-2 overflow-y-auto p-2 pr-3"
                             >
                                 {orderedItems.map((item, index) => {
                                     const isVisible = visibleItemSet.has(item);
@@ -148,8 +168,8 @@ function NavigationPreferences() {
                                                     ref={draggableProvided.innerRef}
                                                     {...draggableProvided.draggableProps}
                                                     className={cn(
-                                                        'flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-card px-3 py-3 transition-colors',
-                                                        snapshot.isDragging && 'border-primary/40 shadow-lg'
+                                                        'waterhouse-pod flex items-center justify-between gap-3 rounded-[1.25rem] border-border/30 bg-card/82 px-3 py-3 shadow-waterhouse-soft transition-[transform,border-color,box-shadow]',
+                                                        snapshot.isDragging && 'border-primary/40 shadow-waterhouse-deep'
                                                     )}
                                                     style={draggableProvided.draggableProps.style}
                                                 >
@@ -244,73 +264,87 @@ export function SettingAppearance() {
     };
 
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
-            <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                <Sun className="h-5 w-5" />
-                {t('appearance')}
-            </h2>
+        <div className="waterhouse-island relative overflow-visible rounded-[2.25rem] border-border/35 bg-card/62 p-6 text-card-foreground shadow-none backdrop-blur-[var(--waterhouse-shell-blur)]">
+            <div className="space-y-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1.5">
+                        <h2 className="flex items-center gap-2 text-lg font-bold text-card-foreground">
+                            <Sun className="h-5 w-5" />
+                            {t('appearance')}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">{t('navOrder.description')}</p>
+                    </div>
+                    <div className="waterhouse-pod w-fit rounded-full border-border/25 bg-background/36 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-waterhouse-soft">
+                        Octopus
+                    </div>
+                </div>
 
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="grid gap-4">
+                    <div className="waterhouse-pod flex flex-col gap-4 rounded-[1.8rem] border-border/30 bg-background/38 p-4 shadow-waterhouse-soft md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-center gap-3">
                     {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
                     <span className="text-sm font-medium">{t('theme.label')}</span>
-                </div>
-                <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger className="w-36 rounded-xl">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                        <SelectItem value="light" className="rounded-xl">
-                            <Sun className="size-4" />
-                            {t('theme.light')}
-                        </SelectItem>
-                        <SelectItem value="dark" className="rounded-xl">
-                            <Moon className="size-4" />
-                            {t('theme.dark')}
-                        </SelectItem>
-                        <SelectItem value="system" className="rounded-xl">
-                            <Monitor className="size-4" />
-                            {t('theme.system')}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+                        </div>
+                        <Select value={theme} onValueChange={setTheme}>
+                            <SelectTrigger className="w-full rounded-[1.2rem] md:w-40">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-[1.2rem]">
+                                <SelectItem value="light" className="rounded-xl">
+                                    <Sun className="size-4" />
+                                    {t('theme.light')}
+                                </SelectItem>
+                                <SelectItem value="dark" className="rounded-xl">
+                                    <Moon className="size-4" />
+                                    {t('theme.dark')}
+                                </SelectItem>
+                                <SelectItem value="system" className="rounded-xl">
+                                    <Monitor className="size-4" />
+                                    {t('theme.system')}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Languages className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">{t('language.label')}</span>
-                </div>
-                <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-                    <SelectTrigger className="w-36 rounded-xl">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                        <SelectItem value="zh-Hans" className="rounded-xl">{t('language.zh_hans')}</SelectItem>
-                        <SelectItem value="zh-Hant" className="rounded-xl">{t('language.zh_hant')}</SelectItem>
-                        <SelectItem value="en" className="rounded-xl">{t('language.en')}</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="waterhouse-pod flex flex-col gap-4 rounded-[1.8rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft">
+                            <div className="flex items-center gap-3">
+                                <Languages className="h-5 w-5 text-muted-foreground" />
+                                <span className="text-sm font-medium">{t('language.label')}</span>
+                            </div>
+                            <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
+                                <SelectTrigger className="w-full rounded-[1.2rem]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-[1.2rem]">
+                                    <SelectItem value="zh-Hans" className="rounded-xl">{t('language.zh_hans')}</SelectItem>
+                                    <SelectItem value="zh-Hant" className="rounded-xl">{t('language.zh_hant')}</SelectItem>
+                                    <SelectItem value="en" className="rounded-xl">{t('language.en')}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Bell className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">{t('alertLanguage.label')}</span>
-                </div>
-                <Select value={alertNotifyLanguage} onValueChange={handleAlertNotifyLanguageChange}>
-                    <SelectTrigger className="w-36 rounded-xl">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                        <SelectItem value="zh-Hans" className="rounded-xl">{t('alertLanguage.zh_hans')}</SelectItem>
-                        <SelectItem value="zh-Hant" className="rounded-xl">{t('alertLanguage.zh_hant')}</SelectItem>
-                        <SelectItem value="en" className="rounded-xl">{t('alertLanguage.en')}</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+                        <div className="waterhouse-pod flex flex-col gap-4 rounded-[1.8rem] border-border/30 bg-background/34 p-4 shadow-waterhouse-soft">
+                            <div className="flex items-center gap-3">
+                                <Bell className="h-5 w-5 text-muted-foreground" />
+                                <span className="text-sm font-medium">{t('alertLanguage.label')}</span>
+                            </div>
+                            <Select value={alertNotifyLanguage} onValueChange={handleAlertNotifyLanguageChange}>
+                                <SelectTrigger className="w-full rounded-[1.2rem]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-[1.2rem]">
+                                    <SelectItem value="zh-Hans" className="rounded-xl">{t('alertLanguage.zh_hans')}</SelectItem>
+                                    <SelectItem value="zh-Hant" className="rounded-xl">{t('alertLanguage.zh_hant')}</SelectItem>
+                                    <SelectItem value="en" className="rounded-xl">{t('alertLanguage.en')}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
 
-            <NavigationPreferences />
+                    <NavigationPreferences />
+                </div>
+            </div>
         </div>
     );
 }

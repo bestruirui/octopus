@@ -107,8 +107,12 @@ export type MorphingDialogProps = {
 
 function MorphingDialog({ children, transition, onOpen, onClose }: MorphingDialogProps) {
   return (
-    <MorphingDialogProvider onOpen={onOpen} onClose={onClose}>
-      <MotionConfig transition={transition}>{children}</MotionConfig>
+    <MorphingDialogProvider
+      transition={transition}
+      onOpen={onOpen}
+      onClose={onClose}
+    >
+      {children}
     </MorphingDialogProvider>
   );
 }
@@ -118,6 +122,7 @@ export type MorphingDialogTriggerProps = {
   className?: string;
   style?: React.CSSProperties;
   triggerRef?: React.RefObject<HTMLDivElement>;
+  ariaLabel?: string;
 };
 
 function MorphingDialogTrigger({
@@ -125,6 +130,7 @@ function MorphingDialogTrigger({
   className,
   style,
   triggerRef: triggerRefProp,
+  ariaLabel,
 }: MorphingDialogTriggerProps) {
   const t = useTranslations('common.dialog');
   const { setIsOpen, isOpen, uniqueId, triggerRef } = useMorphingDialog();
@@ -171,7 +177,7 @@ function MorphingDialogTrigger({
       aria-haspopup='dialog'
       aria-expanded={isOpen}
       aria-controls={`motion-ui-morphing-dialog-content-${uniqueId}`}
-      aria-label={t('open')}
+      aria-label={ariaLabel ?? t('open')}
       role='button'
       tabIndex={0}
     >
@@ -240,6 +246,10 @@ function MorphingDialogContent({
       document.body.classList.remove('overflow-hidden');
       triggerRef.current?.focus();
     }
+
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
   }, [isOpen, triggerRef]);
 
   useClickOutside(
@@ -273,7 +283,10 @@ function MorphingDialogContent({
     <motion.div
       ref={containerRef}
       layoutId={`dialog-${uniqueId}`}
-      className={cn('overflow-hidden', className)}
+      className={cn(
+        'waterhouse-island relative overflow-hidden rounded-[2rem] border border-border/40 bg-background/80 shadow-[var(--waterhouse-shadow-deep)] backdrop-blur-[var(--waterhouse-shell-blur)]',
+        className
+      )}
       style={style}
       role='dialog'
       aria-modal='true'
@@ -312,10 +325,14 @@ function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
         <>
           <motion.div
             key={`backdrop-${uniqueId}`}
-            className='fixed inset-0 h-full w-full bg-white/40 backdrop-blur-xs dark:bg-black/40 z-50'
+            className='fixed inset-0 z-50 h-full w-full bg-white/12 backdrop-blur-[14px] dark:bg-black/24'
+            style={{
+              background:
+                'radial-gradient(ellipse at center, rgba(255,255,255,0.08) 0%, rgba(18,28,22,0.18) 56%, rgba(5,10,8,0.32) 100%)',
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, transition: { duration: 0.3 } }}
           />
           <div className='fixed inset-0 z-50 flex items-center justify-center'>
             {children}
@@ -469,7 +486,10 @@ function MorphingDialogClose({
       type='button'
       aria-label={t('close')}
       key={`dialog-close-${uniqueId}`}
-      className={cn('absolute top-6 right-6', className)}
+      className={cn(
+        'absolute top-5 right-5 rounded-[1rem] border border-border/35 bg-background/50 p-1.5 opacity-80 shadow-nature-organic backdrop-blur-md transition-all duration-200 hover:opacity-100 hover:scale-105 hover:bg-accent/12 hover:shadow-[var(--waterhouse-shadow-soft)]',
+        className
+      )}
       initial='initial'
       animate='animate'
       exit='exit'
