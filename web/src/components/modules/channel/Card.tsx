@@ -53,7 +53,7 @@ export function Card({ channel, stats, layout = 'grid' }: { channel: Channel; st
         <MorphingDialog>
             <MorphingDialogTrigger className="w-full text-left">
                 <article
-                    className={`waterhouse-island group relative flex w-full overflow-hidden rounded-[2.15rem] border border-border/35 bg-card/58 p-4 text-card-foreground shadow-waterhouse-soft backdrop-blur-[var(--waterhouse-shell-blur)] transition-[transform,border-color,box-shadow] duration-500 hover:-translate-y-1 hover:border-primary/22 hover:shadow-waterhouse-deep ${isListLayout ? 'min-h-[12rem]' : 'min-h-[18rem]'}`}
+                    className={`waterhouse-island group relative flex w-full overflow-hidden rounded-[2.15rem] border border-border/35 bg-card/60 p-4 text-card-foreground shadow-waterhouse-soft transition-[border-color,box-shadow] duration-500 hover:border-primary/22 hover:shadow-waterhouse-deep md:bg-card/58 md:backdrop-blur-[var(--waterhouse-shell-blur)] md:transition-[transform,border-color,box-shadow] md:hover:-translate-y-1 ${isListLayout ? 'min-h-[12rem]' : 'min-h-[18rem]'}`}
                 >
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,color-mix(in_oklch,var(--waterhouse-highlight)_28%,transparent)_0%,transparent_26%),radial-gradient(circle_at_86%_16%,color-mix(in_oklch,var(--primary)_14%,transparent)_0%,transparent_24%),linear-gradient(180deg,color-mix(in_oklch,white_22%,transparent),transparent_30%,color-mix(in_oklch,var(--waterhouse-highlight)_10%,transparent))]" />
                     <div
@@ -88,7 +88,7 @@ export function Card({ channel, stats, layout = 'grid' }: { channel: Channel; st
                         </header>
 
                         <div className={`grid gap-3 ${isListLayout ? 'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.8fr)]' : 'grid-cols-1'}`}>
-                            <div className="waterhouse-pod relative flex min-h-[6.5rem] flex-col justify-between overflow-hidden rounded-[1.7rem] border border-border/28 bg-background/36 p-3.5 shadow-waterhouse-soft">
+                            <div className="waterhouse-pod relative flex min-h-[6.5rem] flex-col justify-between overflow-hidden rounded-[1.7rem] border border-border/28 bg-background/36 p-3.5 shadow-none md:shadow-waterhouse-soft">
                                 <div className="flex items-center gap-2 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                                     <Globe className="size-3.5 text-primary" />
                                     {tSections('baseUrls')}

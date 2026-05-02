@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
 import { LoginForm } from '@/components/modules/login';
@@ -80,10 +80,12 @@ function HeaderActions({ activeItem }: { activeItem: NavItem }) {
 
 export function AppContainer() {
     const { isAuthenticated, isAPIKeyAuth, isLoading: authLoading } = useAuth();
-    const { activeItem, direction, setNavOrder, setVisibleItems, resetNavOrder } = useNavStore();
+    const { activeItem, direction, visibleItems, setNavOrder, setVisibleItems, resetNavOrder } = useNavStore();
     const t = useTranslations('navbar');
     const queryClient = useQueryClient();
     const isMobile = useIsMobile();
+    const reduceMotion = useReducedMotion();
+    const lightweightMotion = reduceMotion || isMobile;
 
     const {
         data: bootstrapStatus,
@@ -106,6 +108,7 @@ export function AppContainer() {
     const [logoAnimationComplete, setLogoAnimationComplete] = useState(false);
     const [bootstrapComplete, setBootstrapComplete] = useState(false);
     const bootstrapStartedRef = useRef(false);
+    const warmedRoutesRef = useRef<Set<NavItem>>(new Set());
 
     // 首屏最早的 server-rendered loader：一旦客户端开始渲染，就淡出移除
     useEffect(() => {
@@ -290,6 +293,39 @@ export function AppContainer() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authLoading, isAPIKeyAuth, isAuthenticated]);
 
+    useEffect(() => {
+        if (!bootstrapComplete || !isAuthenticated || isAPIKeyAuth || visibleItems.length === 0) {
+            return;
+        }
+
+        const pendingRoutes = visibleItems.filter((routeId) => routeId !== activeItem && !warmedRoutesRef.current.has(routeId));
+        if (pendingRoutes.length === 0) {
+            return;
+        }
+
+        const warm = () => {
+            pendingRoutes.forEach((routeId, index) => {
+                window.setTimeout(() => {
+                    CONTENT_MAP[routeId]?.preload?.();
+                    warmedRoutesRef.current.add(routeId);
+                }, index * 120);
+            });
+        };
+
+        const windowWithIdle = window as Window & {
+            requestIdleCallback?: (callback: IdleRequestCallback) => number;
+            cancelIdleCallback?: (handle: number) => void;
+        };
+
+        if (typeof windowWithIdle.requestIdleCallback === 'function') {
+            const idleId = windowWithIdle.requestIdleCallback(() => warm());
+            return () => windowWithIdle.cancelIdleCallback?.(idleId);
+        }
+
+        const timer = globalThis.setTimeout(warm, 200);
+        return () => globalThis.clearTimeout(timer);
+    }, [activeItem, bootstrapComplete, isAPIKeyAuth, isAuthenticated, visibleItems]);
+
     const shouldShowFirstRunSetup =
         !isAuthenticated &&
         !bootstrapStatusLoading &&
@@ -343,18 +379,18 @@ export function AppContainer() {
             key="main-app"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="waterhouse-shell relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-clip px-3 pt-3 pb-24 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
+            transition={{ duration: lightweightMotion ? 0.2 : 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="waterhouse-shell relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:overflow-clip md:px-6 md:py-6"
         >
             {/* Nature: 粒子背景 */}
-            <ParticleBackground count={isMobile ? 12 : 35} minOpacity={0.06} maxOpacity={0.2} />
+            {!isMobile && <ParticleBackground count={35} minOpacity={0.06} maxOpacity={0.2} />}
             {/* Nature: 光标水波纹轨迹 */}
-            <RippleEffect maxRipples={16} throttleMs={100} />
+            {!isMobile && <RippleEffect maxRipples={16} throttleMs={100} />}
             <NavBar />
             <main className="relative z-10 flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 md:gap-5">
                 <header className="waterhouse-canopy waterhouse-island !relative !inset-auto !z-20 !pointer-events-auto !animate-none !filter-none !opacity-100 flex flex-none flex-col gap-4 overflow-visible rounded-[2.25rem] border-border/35 bg-background/50 px-4 py-4 shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:px-6 md:py-5 xl:flex-row xl:items-center xl:gap-6">
                     <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
-                    <div className="pointer-events-none absolute -left-8 top-6 size-28 rounded-full bg-primary/10 blur-3xl" />
+                    {!isMobile && <div className="pointer-events-none absolute -left-8 top-6 size-28 rounded-full bg-primary/10 blur-3xl" />}
                     <div className="flex min-w-0 flex-1 items-center gap-4">
                         <div className="waterhouse-pod grid size-14 shrink-0 place-items-center overflow-hidden rounded-[1.45rem] border-border/35 bg-background/58 shadow-waterhouse-soft">
                             <Logo size={42} />
@@ -370,7 +406,11 @@ export function AppContainer() {
                                 <motion.div
                                     key={activeItem}
                                     custom={direction}
-                                    variants={{
+                                    variants={lightweightMotion ? {
+                                        initial: { opacity: 0 },
+                                        animate: { opacity: 1 },
+                                        exit: { opacity: 0 },
+                                    } : {
                                         initial: (direction: number) => ({
                                             y: 32 * direction,
                                             opacity: 0
@@ -387,7 +427,7 @@ export function AppContainer() {
                                     initial="initial"
                                     animate="animate"
                                     exit="exit"
-                                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                                    transition={{ duration: lightweightMotion ? 0.18 : 0.4, ease: [0.16, 1, 0.3, 1] }}
                                     className="flex min-w-0 flex-col"
                                 >
                                     <span className="truncate text-3xl font-bold leading-tight tracking-[-0.04em] text-foreground md:text-4xl">
@@ -407,15 +447,19 @@ export function AppContainer() {
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div
                         key={activeItem}
-                        variants={ENTRANCE_VARIANTS.content}
+                        variants={lightweightMotion ? {
+                            initial: { opacity: 0 },
+                            animate: { opacity: 1 },
+                            exit: { opacity: 0 },
+                        } : ENTRANCE_VARIANTS.content}
                         initial="initial"
                         animate="animate"
-                        exit={{
+                        exit={lightweightMotion ? { opacity: 0 } : {
                             opacity: 0,
                             scale: 0.97,
                             filter: 'blur(4px)',
                         }}
-                        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                        transition={{ duration: lightweightMotion ? 0.18 : 0.35, ease: [0.16, 1, 0.3, 1] }}
                         className="h-full min-h-0 flex-1 pb-4"
                     >
                         <ContentLoader activeRoute={activeItem} />

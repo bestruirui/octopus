@@ -48,7 +48,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
     const successRateLabel = requestCount > 0 ? `${(model.success_rate * 100).toFixed(2)}%` : '—';
     const latencyLabel = requestCount > 0 && model.average_latency_ms > 0 ? `${model.average_latency_ms}ms` : '—';
     const specimenMetricClassName = cn(
-        'waterhouse-pod inline-flex items-center gap-2 rounded-[1.2rem] border border-border/25 bg-background/44 px-3 py-2 shadow-waterhouse-soft backdrop-blur-md',
+        'waterhouse-pod inline-flex items-center gap-2 rounded-[1.2rem] border border-border/25 bg-background/44 px-3 py-2 shadow-none md:shadow-waterhouse-soft md:backdrop-blur-md',
         isListLayout ? 'min-w-[10rem] flex-1' : '',
     );
 
@@ -156,13 +156,13 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
         <article
             ref={cardRef}
             className={cn(
-                'waterhouse-island group relative overflow-hidden rounded-[2.05rem] border border-border/35 bg-card/58 p-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-primary/18 hover:shadow-[var(--waterhouse-shadow-soft)] md:p-5',
+                'waterhouse-island group relative overflow-hidden rounded-[2.05rem] border border-border/35 bg-card/60 p-4 text-card-foreground shadow-waterhouse-soft transition-[border-color,box-shadow] duration-300 hover:border-primary/18 hover:shadow-[var(--waterhouse-shadow-soft)] md:bg-card/58 md:shadow-waterhouse-deep md:backdrop-blur-[var(--waterhouse-shell-blur)] md:transition-[transform,border-color,box-shadow] md:hover:-translate-y-0.5 md:p-5',
                 (isEditOpen || confirmDelete) && 'z-50'
             )}
         >
             <div className="relative flex flex-col gap-4">
                 <div className="flex items-start gap-4">
-                    <div className="waterhouse-pod grid h-16 w-16 shrink-0 place-items-center rounded-[1.5rem] border border-border/25 bg-background/46 shadow-waterhouse-soft backdrop-blur-md">
+                    <div className="waterhouse-pod grid h-16 w-16 shrink-0 place-items-center rounded-[1.5rem] border border-border/25 bg-background/46 shadow-none md:shadow-waterhouse-soft md:backdrop-blur-md">
                         <ModelAvatar size={48} />
                     </div>
 
@@ -195,7 +195,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
                             >
                                 <CopyIconButton
                                     text={model.name}
-                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-background/62 hover:text-foreground"
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-none transition-colors hover:bg-background/62 hover:text-foreground md:shadow-waterhouse-soft md:backdrop-blur-md"
                                     copyIconClassName="size-4"
                                     checkIconClassName="size-4"
                                 />
@@ -204,7 +204,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
                                     onClick={() => setIsExpanded((prev) => !prev)}
                                     aria-label={isExpanded ? t('card.collapse') : t('card.expand')}
                                     aria-expanded={isExpanded}
-                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-background/62 hover:text-foreground"
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-none transition-colors hover:bg-background/62 hover:text-foreground md:shadow-waterhouse-soft md:backdrop-blur-md"
                                     title={isExpanded ? t('card.collapse') : t('card.expand')}
                                 >
                                     <ChevronDown className={cn('size-4 transition-transform', isExpanded && 'rotate-180')} />
@@ -216,7 +216,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
                                     onClick={handleEditClick}
                                     aria-label={t('card.edit')}
                                     disabled={isEditOpen || confirmDelete}
-                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-background/62 hover:text-foreground disabled:opacity-50"
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-border/25 bg-background/44 text-muted-foreground shadow-none transition-colors hover:bg-background/62 hover:text-foreground disabled:opacity-50 md:shadow-waterhouse-soft md:backdrop-blur-md"
                                     title={t('card.edit')}
                                 >
                                     <Pencil className="size-4" />
@@ -227,7 +227,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
                                     onClick={handleDeleteClick}
                                     aria-label={t('card.delete')}
                                     disabled={isEditOpen || confirmDelete}
-                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-destructive/15 bg-destructive/8 text-destructive shadow-waterhouse-soft backdrop-blur-md transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50"
+                                    className="waterhouse-pod inline-flex h-10 w-10 items-center justify-center rounded-[1.15rem] border border-destructive/15 bg-destructive/8 text-destructive shadow-none transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 md:shadow-waterhouse-soft md:backdrop-blur-md"
                                     title={t('card.delete')}
                                 >
                                     <Trash2 className="size-4" />

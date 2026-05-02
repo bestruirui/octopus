@@ -25,7 +25,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw, X, Plus, FlaskConical, CheckCircle2, AlertTriangle, Sparkles, Orbit, Layers3, KeyRound, Cable, SlidersHorizontal } from 'lucide-react';
+import { RefreshCw, X, Plus, FlaskConical, CheckCircle2, AlertTriangle, Sparkles, Orbit, Layers3, KeyRound, Cable } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface ChannelKeyFormItem {
     id?: number;
@@ -142,6 +143,7 @@ export function ChannelForm({
     idPrefix = 'channel',
 }: ChannelFormProps) {
     const t = useTranslations('channel.form');
+    const isCompactViewport = useIsMobile();
     const requestRewriteSupported = isRequestRewriteSupportedChannelType(formData.type);
     const sectionClassName = 'waterhouse-pod space-y-4 rounded-[1.8rem] border border-border/30 bg-background/34 p-4 shadow-waterhouse-soft md:p-5';
     const labelClassName = 'text-sm font-medium text-card-foreground';
@@ -376,13 +378,13 @@ export function ChannelForm({
             <section className={sectionClassName}>
                 <SectionHeader icon={Sparkles} title={t('template.label')} hint={t('template.hint')} />
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    {channelTemplates.map((template) => (
+                    {channelTemplates.slice(0, isCompactViewport ? 4 : channelTemplates.length).map((template) => (
                         <Button
                             key={template.key}
                             type="button"
                             variant="outline"
                             onClick={() => handleApplyTemplate(template.key)}
-                            className="h-auto min-h-24 flex-col items-start gap-1 rounded-[1.55rem] border-border/30 bg-background/42 px-4 py-3 text-left whitespace-normal shadow-waterhouse-soft hover:bg-background/54"
+                            className="h-auto min-h-20 flex-col items-start gap-1 rounded-[1.4rem] border-border/30 bg-background/42 px-3.5 py-3 text-left whitespace-normal shadow-waterhouse-soft hover:bg-background/54 md:min-h-24 md:rounded-[1.55rem] md:px-4"
                         >
                             <span className="text-sm font-semibold">{template.name}</span>
                             <span className="text-xs text-muted-foreground">{t(template.descriptionKey)}</span>
@@ -915,7 +917,6 @@ export function ChannelForm({
             </div>
 
             <section className={`${sectionClassName} mt-4 flex shrink-0 flex-col gap-4 md:flex-row md:items-center md:justify-between`}>
-                <SectionHeader icon={SlidersHorizontal} title={t('advanced')} />
                 <label className="flex items-center gap-2 cursor-pointer">
                     <Switch
                         checked={formData.enabled}

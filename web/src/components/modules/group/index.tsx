@@ -134,37 +134,7 @@ export function Group() {
     }
 
     return (
-        <div className="flex h-full min-h-0 flex-col gap-4">
-            <section className="waterhouse-island relative flex-none overflow-hidden rounded-[2.1rem] border border-border/35 bg-card/58 p-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:p-5">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,color-mix(in_oklch,var(--waterhouse-highlight)_18%,transparent)_0%,transparent_28%),linear-gradient(135deg,color-mix(in_oklch,white_12%,transparent),transparent_52%,color-mix(in_oklch,var(--primary)_8%,transparent))]" />
-                <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-background/44 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary shadow-waterhouse-soft backdrop-blur-md">
-                            <Waves className="size-3.5" />
-                            {t('actions.aiRoute')}
-                        </span>
-                        <span className="waterhouse-pod inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/36 px-3 py-1 text-xs text-muted-foreground shadow-waterhouse-soft">
-                            {visibleGroups.length}
-                        </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        <AutoGroupButton variant="default" className="h-10 rounded-[1.2rem] px-4" />
-                        <AIRouteButton variant="default" className="h-10 rounded-[1.2rem] px-4" />
-                        <MorphingDialog>
-                            <MorphingDialogTrigger className={buttonVariants({ variant: 'outline', className: 'h-10 rounded-[1.2rem] border-border/35 bg-background/55 px-4 shadow-waterhouse-soft backdrop-blur-md hover:bg-background/72' })}>
-                                {t('create.submit')}
-                            </MorphingDialogTrigger>
-                            <MorphingDialogContainer>
-                                <MorphingDialogContent className="h-[calc(100dvh-2rem)] w-[min(100vw-2rem,92rem)] max-w-full flex-col overflow-hidden rounded-[2.4rem] border border-border/35 bg-background/80 px-4 py-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:h-[calc(100dvh-3rem)] md:px-6 md:py-5">
-                                    <CreateDialogContent />
-                                </MorphingDialogContent>
-                            </MorphingDialogContainer>
-                        </MorphingDialog>
-                    </div>
-                </div>
-            </section>
-
+        <div className="flex h-full min-h-0 flex-col">
             <section className="relative min-h-0 flex-1">
                 <VirtualizedGrid
                     items={visibleGroups}

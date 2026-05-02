@@ -94,6 +94,7 @@ export function VirtualizedGrid<T>({
         if (layout === 'list') return 1;
         return Math.max(1, getColumnsForWidth(containerWidth, columns));
     }, [layout, containerWidth, columns]);
+    const effectiveOverscan = containerWidth < BREAKPOINTS.md ? Math.min(overscan, 2) : overscan;
 
     const itemRowCount = useMemo(
         () => (items.length === 0 ? 0 : Math.ceil(items.length / columnCount)),
@@ -127,7 +128,7 @@ export function VirtualizedGrid<T>({
             element instanceof HTMLElement
                 ? element.offsetHeight
                 : element.getBoundingClientRect().height,
-        overscan,
+        overscan: effectiveOverscan,
     });
 
     const virtualRows = rowVirtualizer.getVirtualItems();

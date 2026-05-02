@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowUpAZ, Clock3, LayoutGrid, List, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
     MorphingDialog,
     MorphingDialogTrigger,
@@ -15,10 +15,9 @@ import { cn } from '@/lib/utils';
 import { useNavStore, type NavItem } from '@/components/modules/navbar';
 import { CreateDialogContent as ChannelCreateContent } from '@/components/modules/channel/Create';
 import { CreateDialogContent as GroupCreateContent } from '@/components/modules/group/Create';
-import { AutoGroupButton } from '@/components/modules/group/AutoGroupButton';
-import { AIRouteButton } from '@/components/modules/group/AIRouteButton';
 import { CreateDialogContent as ModelCreateContent } from '@/components/modules/model/Create';
 import { useTranslations } from 'next-intl';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useSearchStore } from './search-store';
 import {
     useToolbarViewOptionsStore,
@@ -74,11 +73,11 @@ function CreateDialogContent({ activeItem }: { activeItem: ToolbarPage }) {
 
 function getCreateDialogContentClassName(activeItem: ToolbarPage) {
     if (activeItem === 'group') {
-        return 'h-[calc(100dvh-2rem)] w-[min(100vw-2rem,92rem)] max-w-full rounded-[2.4rem] border border-border/35 bg-background/80 px-4 py-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] flex flex-col overflow-hidden md:h-[calc(100dvh-3rem)] md:px-6 md:py-5';
+        return 'h-[calc(100dvh-1rem)] w-[min(100vw-1rem,44rem)] max-w-full rounded-[2rem] border border-border/35 bg-background/84 px-2 py-2 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] flex flex-col overflow-hidden md:h-[calc(100dvh-3rem)] md:w-[min(100vw-3rem,52rem)] md:rounded-[2.4rem] md:px-4 md:py-4';
     }
 
     if (activeItem === 'channel') {
-        return 'h-[calc(100dvh-2rem)] w-[min(100vw-2rem,76rem)] max-w-full rounded-[2.4rem] border border-border/35 bg-background/80 px-4 py-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] flex flex-col overflow-hidden md:h-[calc(100dvh-3rem)] md:px-6';
+        return 'h-[calc(100dvh-1rem)] w-[min(100vw-1rem,42rem)] max-w-full rounded-[2rem] border border-border/35 bg-background/84 px-2 py-2 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] flex flex-col overflow-hidden md:h-[calc(100dvh-3rem)] md:w-[min(100vw-3rem,50rem)] md:rounded-[2.4rem] md:px-4 md:py-4';
     }
 
     return 'w-[min(100vw-1rem,34rem)] max-w-full bg-card text-card-foreground px-4 py-4 rounded-3xl custom-shadow max-h-[calc(100dvh-1rem)] flex flex-col overflow-hidden md:px-6 md:max-h-[calc(100dvh-2rem)]';
@@ -87,6 +86,9 @@ function getCreateDialogContentClassName(activeItem: ToolbarPage) {
 export function Toolbar() {
     const t = useTranslations('toolbar');
     const navT = useTranslations('navbar');
+    const isMobile = useIsMobile();
+    const reduceMotion = useReducedMotion();
+    const lightweightMotion = isMobile || reduceMotion;
     const { activeItem } = useNavStore();
     const toolbarItem = isToolbarPage(activeItem) ? activeItem : null;
     const searchTerm = useSearchStore((s) => (toolbarItem ? s.searchTerms[toolbarItem] || '' : ''));
@@ -192,10 +194,10 @@ export function Toolbar() {
         <AnimatePresence mode="wait">
             <motion.div
                 key="toolbar"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
+                initial={lightweightMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                animate={lightweightMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                exit={lightweightMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                transition={{ duration: lightweightMotion ? 0.12 : 0.2 }}
                 className="waterhouse-pod flex max-w-full flex-wrap items-center gap-2 rounded-[1.85rem] border-border/35 bg-background/42 p-1.5 shadow-waterhouse-soft backdrop-blur-[var(--waterhouse-shell-blur)]"
             >
                 {/* 搜索按钮/展开框 */}
@@ -226,7 +228,7 @@ export function Toolbar() {
                                 "absolute inset-0 flex items-center gap-2 px-3.5",
                                 COMMAND_CELL_CLASS
                             )}
-                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            transition={lightweightMotion ? { duration: 0.12 } : { type: 'spring', stiffness: 400, damping: 30 }}
                         >
                             <motion.span layout="position"><Search className="size-4 text-muted-foreground shrink-0" /></motion.span>
                             <input
@@ -439,23 +441,6 @@ export function Toolbar() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
-                    {toolbarItem === 'group' && (
-                        <>
-                            <AutoGroupButton
-                                className={cn(
-                                    COMMAND_TEXT_BUTTON_CLASS,
-                                    'border-primary/10 bg-primary/8 px-3 text-foreground hover:border-primary/24 hover:bg-primary/12'
-                                )}
-                            />
-                            <AIRouteButton
-                                className={cn(
-                                    COMMAND_TEXT_BUTTON_CLASS,
-                                    'border-primary/10 bg-primary/8 px-3 text-foreground hover:border-primary/24 hover:bg-primary/12'
-                                )}
-                            />
-                        </>
-                    )}
-
                     {/* 创建按钮 */}
                     <MorphingDialog>
                         <MorphingDialogTrigger

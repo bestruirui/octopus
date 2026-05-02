@@ -99,16 +99,16 @@ export function CreateDialogContent() {
     };
 
     return (
-        <div className="waterhouse-island relative flex h-full w-full min-h-0 flex-col overflow-hidden rounded-[2.4rem] border border-border/35 bg-card/62 p-1 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
+        <div className="waterhouse-island relative flex h-full w-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-border/35 bg-card/62 p-1 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,color-mix(in_oklch,var(--waterhouse-highlight)_24%,transparent)_0%,transparent_32%),radial-gradient(circle_at_82%_16%,color-mix(in_oklch,var(--primary)_14%,transparent)_0%,transparent_24%),linear-gradient(180deg,color-mix(in_oklch,white_20%,transparent),transparent_26%,color-mix(in_oklch,var(--waterhouse-highlight)_10%,transparent))]" />
             <MorphingDialogTitle className="shrink-0">
-                <header className="relative mb-4 flex items-center justify-between px-4 pt-4 md:px-5 md:pt-5">
-                    <div className="space-y-3">
+                <header className="relative mb-2 flex items-center justify-between px-4 pt-4 md:px-5 md:pt-5">
+                    <div className="space-y-2">
                         <div className="flex items-center gap-2">
                             <span className="h-2.5 w-10 rounded-full bg-primary/18 shadow-waterhouse-soft" />
-                            <span className="h-2.5 w-24 rounded-full bg-background/55 shadow-inner" />
+                            <span className="h-2.5 w-20 rounded-full bg-background/55 shadow-inner" />
                         </div>
-                        <h2 className="text-2xl font-semibold tracking-tight text-card-foreground">{t('dialogTitle')}</h2>
+                        <h2 className="text-xl font-semibold tracking-tight text-card-foreground md:text-2xl">{t('dialogTitle')}</h2>
                     </div>
                     <MorphingDialogClose
                         className="relative right-0 top-0"
@@ -120,8 +120,8 @@ export function CreateDialogContent() {
                     />
                 </header>
             </MorphingDialogTitle>
-            <MorphingDialogDescription disableLayoutAnimation className="relative flex-1 min-h-0 overflow-hidden px-3 pb-3 md:px-4 md:pb-4">
-                <div className="waterhouse-pod flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-border/30 bg-background/34 px-3 py-4 shadow-waterhouse-soft md:px-4">
+            <MorphingDialogDescription disableLayoutAnimation className="relative flex-1 min-h-0 overflow-hidden px-2 pb-2 md:px-4 md:pb-4">
+                <div className="waterhouse-pod flex h-full min-h-0 flex-col overflow-hidden rounded-[1.7rem] border border-border/30 bg-background/34 px-2 py-3 shadow-waterhouse-soft md:rounded-[2rem] md:px-4 md:py-4">
                     <ChannelForm
                         formData={formData}
                         onFormDataChange={setFormData}

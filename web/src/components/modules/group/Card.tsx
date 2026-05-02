@@ -375,9 +375,9 @@ export function GroupCard({ group }: { group: Group }) {
     const progressValue = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
     return (
-        <article className="waterhouse-island group relative flex flex-col overflow-hidden rounded-[2.1rem] border border-border/35 bg-card/58 p-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)]">
+        <article className="waterhouse-island group relative flex flex-col overflow-hidden rounded-[2.1rem] border border-border/35 bg-card/60 p-4 text-card-foreground shadow-waterhouse-soft md:bg-card/58 md:shadow-waterhouse-deep md:backdrop-blur-[var(--waterhouse-shell-blur)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,color-mix(in_oklch,var(--waterhouse-highlight)_16%,transparent)_0%,transparent_26%),linear-gradient(150deg,color-mix(in_oklch,white_10%,transparent),transparent_48%,color-mix(in_oklch,var(--primary)_8%,transparent))]" />
-            <header className="relative mb-4 overflow-visible rounded-[1.7rem] border border-border/25 bg-background/36 px-4 py-4 shadow-waterhouse-soft">
+            <header className="relative mb-4 overflow-visible rounded-[1.7rem] border border-border/25 bg-background/36 px-4 py-4 shadow-none md:shadow-waterhouse-soft">
                 <div className="flex items-start justify-between gap-3">
                 <div className="relative mr-2 min-w-0 flex-1 group/title">
                     <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-background/44 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-primary shadow-waterhouse-soft">
@@ -495,7 +495,7 @@ export function GroupCard({ group }: { group: Group }) {
                 })()}
             </header>
 
-            <section className="relative mb-4 rounded-[1.7rem] border border-border/25 bg-background/34 p-3 shadow-waterhouse-soft">
+            <section className="relative mb-4 rounded-[1.7rem] border border-border/25 bg-background/34 p-3 shadow-none md:shadow-waterhouse-soft">
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/44 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-waterhouse-soft">
                     <Waves className="size-3.5" />
                     {t(`mode.${MODE_LABELS[group.mode]}`)}
@@ -526,7 +526,7 @@ export function GroupCard({ group }: { group: Group }) {
                 </div>
             </section>
 
-            <section className="relative min-h-[25.25rem] overflow-hidden rounded-[1.8rem] border border-border/25 bg-background/32 shadow-waterhouse-soft">
+            <section className="relative min-h-[25.25rem] overflow-hidden rounded-[1.8rem] border border-border/25 bg-background/32 shadow-none md:shadow-waterhouse-soft">
                 <MemberList
                     members={members}
                     onReorder={setMembers}
@@ -542,7 +542,7 @@ export function GroupCard({ group }: { group: Group }) {
             </section>
 
             {(isTesting || resultByItemId.size > 0) && (
-                <section className="mt-4 rounded-[1.7rem] border border-border/25 bg-background/40 p-4 shadow-waterhouse-soft">
+                <section className="mt-4 rounded-[1.7rem] border border-border/25 bg-background/40 p-4 shadow-none md:shadow-waterhouse-soft">
                     <div className="flex items-center justify-between gap-3">
                         <div className="space-y-1">
                             <div className="inline-flex items-center gap-2 rounded-full border border-border/25 bg-background/44 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-waterhouse-soft">
