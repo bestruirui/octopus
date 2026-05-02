@@ -653,6 +653,18 @@ html.dark,
     opacity: 0.45 !important;
   }
 
+  /* body 固定背景光晕降低模糊——60px blur 在移动端 GPU 上代价过高 */
+  body::before {
+    filter: blur(16px) !important;
+    opacity: 0.32 !important;
+    animation-duration: 28s !important;
+  }
+  body::after {
+    filter: blur(16px) !important;
+    opacity: 0.32 !important;
+    animation-duration: 32s !important;
+  }
+
   /* 初始加载器：移除 backdrop-filter 避免移动端渲染闪烁 */
   #initial-loader {
     backdrop-filter: none !important;

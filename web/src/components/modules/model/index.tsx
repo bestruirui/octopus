@@ -66,7 +66,7 @@ export function Model() {
                         <VirtualizedGrid
                             items={visibleModels}
                             layout={layout}
-                            columns={{ default: 1, md: 2, lg: 3 }}
+                            columns={{ default: 1, sm: 2, md: 2, lg: 3 }}
                             estimateItemHeight={228}
                             getItemKey={(model) => `model-${model.name}`}
                             renderItem={(model) => <ModelItem model={model} layout={layout} />}

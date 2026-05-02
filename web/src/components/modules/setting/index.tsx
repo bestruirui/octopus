@@ -20,7 +20,7 @@ export function Setting() {
     return (
         <div className="setting-shadowless h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-3xl">
             <PageWrapper className="pb-24 md:pb-6">
-                <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.42fr)_minmax(20rem,0.78fr)] 2xl:items-start">
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1.42fr)_minmax(20rem,0.78fr)] xl:items-start">
                     <div className="min-w-0 space-y-5">
                         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] xl:items-start">
                             <SettingAppearance key="setting-appearance" />
@@ -42,7 +42,7 @@ export function Setting() {
                         </div>
                     </div>
 
-                    <div className="flex min-w-0 flex-col gap-5 2xl:sticky 2xl:top-0">
+                    <div className="flex min-w-0 flex-col gap-5 xl:sticky xl:top-0">
                         <SettingInfo key="setting-info" />
                         <SettingSystem key="setting-system" />
                         <SettingLLMPrice key="setting-llmprice" />

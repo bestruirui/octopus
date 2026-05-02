@@ -120,7 +120,7 @@ export function Group() {
                                         {t('create.submit')}
                                     </MorphingDialogTrigger>
                                     <MorphingDialogContainer>
-                                        <MorphingDialogContent className="h-[calc(100dvh-2rem)] w-[min(100vw-2rem,92rem)] max-w-full flex-col overflow-hidden rounded-[2.4rem] border border-border/35 bg-background/80 px-4 py-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:h-[calc(100dvh-3rem)] md:px-6 md:py-5">
+                                        <MorphingDialogContent className="h-[calc(100dvh-2.5rem)] w-[min(100vw-2rem,92rem)] max-w-full flex-col overflow-hidden rounded-[2.4rem] border border-border/35 bg-background/80 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:h-[calc(100dvh-3rem)] md:px-6 md:py-5">
                                             <CreateDialogContent />
                                         </MorphingDialogContent>
                                     </MorphingDialogContainer>
@@ -138,7 +138,7 @@ export function Group() {
             <section className="relative min-h-0 flex-1">
                 <VirtualizedGrid
                     items={visibleGroups}
-                    columns={{ default: 1, md: 2, lg: 3 }}
+                    columns={{ default: 1, sm: 2, md: 2, lg: 3 }}
                     estimateItemHeight={620}
                     getItemKey={(group, index) => group.id ?? `group-${index}`}
                     renderItem={(group) => <GroupCard group={group} />}

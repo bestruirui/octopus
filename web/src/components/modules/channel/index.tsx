@@ -50,7 +50,7 @@ export function Channel() {
                         <VirtualizedGrid
                             items={visibleChannels}
                             layout={layout}
-                            columns={{ default: 1, md: 2, lg: 3 }}
+                            columns={{ default: 1, sm: 2, md: 2, lg: 3 }}
                             estimateItemHeight={232}
                             getItemKey={(item) => `channel-${item.raw.id}`}
                             renderItem={(item) => <Card channel={item.raw} stats={item.formatted} layout={layout} />}

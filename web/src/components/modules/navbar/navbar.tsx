@@ -47,6 +47,9 @@ export function NavBar() {
             >
                 <div className="pointer-events-none absolute inset-1 rounded-[1.85rem] border border-white/20 opacity-70 md:rounded-[2rem]" />
                 <div className="pointer-events-none absolute left-1/2 top-1/2 h-12 w-[82%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-2xl md:h-[72%] md:w-12" />
+                {/* 移动端：滚动边缘渐变指示器，提示用户有更多导航项可滚动 */}
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-30 w-8 rounded-l-[2.15rem] bg-gradient-to-r from-sidebar/90 to-transparent md:hidden" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-30 w-8 rounded-r-[2.15rem] bg-gradient-to-l from-sidebar/90 to-transparent md:hidden" />
                 {orderedRoutes.map((route, index) => {
                     const isActive = activeItem === route.id
                     return (
