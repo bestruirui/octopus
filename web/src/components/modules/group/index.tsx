@@ -134,8 +134,8 @@ export function Group() {
     }
 
     return (
-        <div className="space-y-5">
-            <section className="waterhouse-island relative overflow-hidden rounded-[2.1rem] border border-border/35 bg-card/58 p-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:p-5">
+        <div className="flex h-full min-h-0 flex-col gap-4">
+            <section className="waterhouse-island relative flex-none overflow-hidden rounded-[2.1rem] border border-border/35 bg-card/58 p-4 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:p-5">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,color-mix(in_oklch,var(--waterhouse-highlight)_18%,transparent)_0%,transparent_28%),linear-gradient(135deg,color-mix(in_oklch,white_12%,transparent),transparent_52%,color-mix(in_oklch,var(--primary)_8%,transparent))]" />
                 <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex flex-wrap items-center gap-2">
@@ -165,13 +165,15 @@ export function Group() {
                 </div>
             </section>
 
-            <VirtualizedGrid
-                items={visibleGroups}
-                columns={{ default: 1, md: 2, lg: 3 }}
-                estimateItemHeight={620}
-                getItemKey={(group, index) => group.id ?? `group-${index}`}
-                renderItem={(group) => <GroupCard group={group} />}
-            />
+            <section className="relative min-h-0 flex-1">
+                <VirtualizedGrid
+                    items={visibleGroups}
+                    columns={{ default: 1, md: 2, lg: 3 }}
+                    estimateItemHeight={620}
+                    getItemKey={(group, index) => group.id ?? `group-${index}`}
+                    renderItem={(group) => <GroupCard group={group} />}
+                />
+            </section>
         </div>
     );
 }

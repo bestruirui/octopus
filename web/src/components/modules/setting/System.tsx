@@ -141,7 +141,7 @@ export function SettingSystem() {
                     onChange={(e) => setProxyUrl(e.target.value)}
                     onBlur={() => handleSave('proxy_url', proxyUrl, initialProxyUrl.current)}
                     placeholder={t('proxyUrl.placeholder')}
-                    className="w-48 rounded-xl"
+                    className="w-full min-w-0 rounded-xl md:w-48"
                 />
             </div>
 
@@ -166,7 +166,7 @@ export function SettingSystem() {
                     onChange={(e) => setPublicApiBaseUrl(e.target.value)}
                     onBlur={() => handleSave(SettingKey.PublicAPIBaseURL, publicApiBaseUrl, initialPublicApiBaseUrl.current)}
                     placeholder={t('publicApiBaseUrl.placeholder')}
-                    className="w-72 rounded-xl"
+                    className="w-full min-w-0 rounded-xl md:w-72"
                 />
             </div>
 
@@ -182,7 +182,7 @@ export function SettingSystem() {
                     onChange={(e) => setStatsSaveInterval(e.target.value)}
                     onBlur={() => handleSave('stats_save_interval', statsSaveInterval, initialStatsSaveInterval.current)}
                     placeholder={t('statsSaveInterval.placeholder')}
-                    className="w-48 rounded-xl"
+                    className="w-full min-w-0 rounded-xl md:w-48"
                 />
             </div>
 
@@ -208,7 +208,7 @@ export function SettingSystem() {
                     <PopoverTrigger asChild>
                         <button
                             type="button"
-                            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-48 min-h-9 rounded-[1.2rem] border bg-background/60 px-3 py-2 text-left text-sm shadow-nature-organic transition-[color,box-shadow] outline-none focus-visible:ring-[3px]"
+                            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full min-w-0 min-h-9 rounded-[1.2rem] border bg-background/60 px-3 py-2 text-left text-sm shadow-nature-organic transition-[color,box-shadow] outline-none focus-visible:ring-[3px] md:w-48"
                             title={corsAllowOriginsDisplay}
                         >
                             <span className={`block overflow-hidden text-ellipsis whitespace-nowrap ${corsAllowOriginsList.length === 0 ? 'text-muted-foreground' : ''}`}>

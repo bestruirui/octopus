@@ -112,7 +112,7 @@ function AuditRecordCard({ item }: { item: AuditLogEntry }) {
             </MorphingDialogTrigger>
 
             <MorphingDialogContainer>
-                <MorphingDialogContent className="relative w-[calc(100vw-2rem)] rounded-3xl bg-card px-6 py-4 text-card-foreground md:w-[62rem]">
+                <MorphingDialogContent className="relative w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-card px-6 py-4 text-card-foreground md:w-[62rem]">
                     <MorphingDialogClose className="right-5 top-4 text-muted-foreground hover:text-foreground" />
                     <MorphingDialogTitle className="flex items-center gap-2 text-sm">
                         <ShieldAlert className="h-4 w-4 text-primary" />

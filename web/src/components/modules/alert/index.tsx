@@ -182,7 +182,7 @@ export function Alert() {
     }
 
     return (
-        <PageWrapper className="space-y-4 pb-24">
+        <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-3xl space-y-4 pb-24 md:pb-6">
             <div className="flex items-center gap-2 mb-2">
                 <TabButton active={tab === 'rules'} onClick={() => setTab('rules')}>{t('tabs.rules')}</TabButton>
                 <TabButton active={tab === 'channels'} onClick={() => setTab('channels')}>{t('tabs.channels')}</TabButton>

@@ -60,7 +60,7 @@ export function User() {
     if (isLoading) return <Loader className="size-6 animate-spin mx-auto mt-12" />;
 
     return (
-        <PageWrapper className="space-y-4 pb-24">
+        <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-3xl space-y-4 pb-24 md:pb-6">
             <div className="rounded-3xl border border-border bg-card p-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
                     <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">

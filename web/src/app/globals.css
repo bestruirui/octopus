@@ -623,3 +623,56 @@ html.dark,
     transition-duration: 0s !important;
   }
 }
+
+/* ── 移动端性能优化：大幅降低模糊滤镜开销，消除闪烁 ── */
+/* 移动端 GPU 难以同时处理多个大尺寸 blur 滤镜动画，
+   nature-ambient-blob (blur 80px) + waterhouse-liquid-field (blur 36px)
+   + waterhouse-canopy (blur 18px) 叠加导致合成器丢帧、闪烁 */
+@media (max-width: 767px) {
+  /* 隐藏环境 blob——80px 模糊在移动端 GPU 上代价过高 */
+  .nature-ambient-blob {
+    display: none;
+  }
+
+  /* 大幅降低穹顶光晕模糊 */
+  .waterhouse-canopy {
+    filter: blur(8px) !important;
+    opacity: 0.72 !important;
+    animation-duration: calc(var(--waterhouse-mist-duration, 14s) * 2) !important;
+  }
+
+  /* 大幅降低底部液态场模糊 */
+  .waterhouse-liquid-field {
+    filter: blur(14px) !important;
+    opacity: 0.72 !important;
+    animation-duration: calc(var(--waterhouse-drift-duration, 16s) * 2) !important;
+  }
+
+  /* Shell 伪元素背景也降低开销 */
+  .waterhouse-shell::before {
+    opacity: 0.45 !important;
+  }
+
+  /* 初始加载器：移除 backdrop-filter 避免移动端渲染闪烁 */
+  #initial-loader {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  #initial-loader .octo-shell {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* 加载器动画降速：降低 GPU 负担 */
+  #initial-loader::before {
+    animation-duration: 14s !important;
+  }
+  #initial-loader::after {
+    animation-duration: 20s !important;
+  }
+
+  /* 全局 backdrop-filter 降级：移动端使用更轻量的模糊值 */
+  :root {
+    --waterhouse-shell-blur: 10px;
+  }
+}

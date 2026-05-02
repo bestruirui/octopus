@@ -24,6 +24,7 @@ import { apiClient } from '@/api/client';
 import { logger } from '@/lib/logger';
 import { FirstRunSetup } from '@/components/modules/first-run-setup';
 import { ParticleBackground, RippleEffect } from '@/components/nature';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
 import type { NavItem } from '@/components/modules/navbar';
 
@@ -82,6 +83,7 @@ export function AppContainer() {
     const { activeItem, direction, setNavOrder, setVisibleItems, resetNavOrder } = useNavStore();
     const t = useTranslations('navbar');
     const queryClient = useQueryClient();
+    const isMobile = useIsMobile();
 
     const {
         data: bootstrapStatus,
@@ -342,10 +344,10 @@ export function AppContainer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="waterhouse-shell relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-hidden px-3 pt-3 pb-24 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
+            className="waterhouse-shell relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-clip px-3 pt-3 pb-24 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
         >
             {/* Nature: 粒子背景 */}
-            <ParticleBackground count={35} minOpacity={0.06} maxOpacity={0.2} />
+            <ParticleBackground count={isMobile ? 12 : 35} minOpacity={0.06} maxOpacity={0.2} />
             {/* Nature: 光标水波纹轨迹 */}
             <RippleEffect maxRipples={16} throttleMs={100} />
             <NavBar />
@@ -414,7 +416,7 @@ export function AppContainer() {
                             filter: 'blur(4px)',
                         }}
                         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                        className="h-full min-h-0 flex-1 overflow-y-auto pb-4"
+                        className="h-full min-h-0 flex-1 pb-4"
                     >
                         <ContentLoader activeRoute={activeItem} />
                     </motion.div>

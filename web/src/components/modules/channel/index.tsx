@@ -37,7 +37,7 @@ export function Channel() {
 
     return (
         <section className="relative flex h-full min-h-0 flex-col" aria-label={pageKey}>
-            <div className="waterhouse-island relative flex h-full min-h-0 flex-col overflow-hidden rounded-[2.35rem] border border-border/35 bg-card/54 p-3 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:p-4">
+            <div className="waterhouse-island relative flex h-full min-h-0 flex-col overflow-clip rounded-[2.35rem] border border-border/35 bg-card/54 p-3 text-card-foreground shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:p-4">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,color-mix(in_oklch,var(--waterhouse-highlight)_20%,transparent)_0%,transparent_30%),radial-gradient(circle_at_84%_18%,color-mix(in_oklch,var(--primary)_14%,transparent)_0%,transparent_26%),linear-gradient(180deg,color-mix(in_oklch,white_16%,transparent),transparent_22%,color-mix(in_oklch,var(--waterhouse-highlight)_8%,transparent))]" />
                 <div className="relative mb-3 flex items-center gap-2 px-1">
                     <span className="h-2.5 w-10 rounded-full bg-primary/18 shadow-waterhouse-soft" />

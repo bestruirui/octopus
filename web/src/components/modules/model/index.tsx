@@ -54,7 +54,7 @@ export function Model() {
                 isRefreshing={updateModelPrice.isPending}
             />
 
-            <section className="waterhouse-island relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2.25rem] border border-border/35 bg-card/56 p-3 text-card-foreground shadow-none backdrop-blur-[var(--waterhouse-shell-blur)] md:p-4">
+            <section className="waterhouse-island relative flex min-h-0 flex-1 flex-col overflow-clip rounded-[2.25rem] border border-border/35 bg-card/56 p-3 text-card-foreground shadow-none backdrop-blur-[var(--waterhouse-shell-blur)] md:p-4">
                 <div className="relative mb-3 flex items-center gap-2 px-1">
                     <span className="h-2.5 w-10 rounded-full bg-primary/18 shadow-waterhouse-soft" />
                     <span className="h-2.5 w-24 rounded-full bg-background/60 shadow-inner" />
