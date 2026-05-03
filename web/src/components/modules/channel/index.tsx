@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useChannelList } from '@/api/endpoints/channel';
 import { Card } from './Card';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
-import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
+import { PageWrapper } from '@/components/common/PageWrapper';
 
 export function Channel() {
     const { data: channelsData } = useChannelList();
@@ -35,14 +35,20 @@ export function Channel() {
         return byName;
     }, [sortedChannels, searchTerm, filter]);
 
+    const gridClassName = layout === 'list'
+        ? 'grid grid-cols-1 gap-4'
+        : 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3';
+
     return (
-        <VirtualizedGrid
-            items={visibleChannels}
-            layout={layout}
-            columns={{ default: 1, md: 2, lg: 3 }}
-            estimateItemHeight={216}
-            getItemKey={(item) => `channel-${item.raw.id}`}
-            renderItem={(item) => <Card channel={item.raw} stats={item.formatted} layout={layout} />}
-        />
+        <PageWrapper className={gridClassName}>
+            {visibleChannels.map((item) => (
+                <Card
+                    key={`channel-${item.raw.id}`}
+                    channel={item.raw}
+                    stats={item.formatted}
+                    layout={layout}
+                />
+            ))}
+        </PageWrapper>
     );
 }

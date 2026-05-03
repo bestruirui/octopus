@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLogs } from '@/api/endpoints/log';
 import { LogCard } from './Item';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
+import { PageWrapper } from '@/components/common/PageWrapper';
 
 /**
  * 日志页面组件
@@ -16,44 +16,51 @@ import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
 export function Log() {
     const t = useTranslations('log');
     const { logs, hasMore, isLoading, isLoadingMore, loadMore } = useLogs({ pageSize: 10 });
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+    const armedRef = useRef(true);
 
     const canLoadMore = hasMore && !isLoading && !isLoadingMore && logs.length > 0;
-    const handleReachEnd = useCallback(() => {
-        if (!canLoadMore) return;
-        void loadMore();
+
+    useEffect(() => {
+        const target = loadMoreRef.current;
+        if (!target) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (!entry) return;
+
+                if (!entry.isIntersecting) {
+                    armedRef.current = true;
+                    return;
+                }
+
+                if (!armedRef.current || !canLoadMore) return;
+
+                armedRef.current = false;
+                void loadMore();
+            },
+            { rootMargin: '160px' }
+        );
+
+        observer.observe(target);
+        return () => observer.disconnect();
     }, [canLoadMore, loadMore]);
 
-    const footer = useMemo(() => {
-        if (hasMore && (isLoading || isLoadingMore)) {
-            return (
-                <div className="flex justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-            );
-        }
-        if (!hasMore && logs.length > 0) {
-            return (
-                <div className="flex justify-center py-4">
-                    <span className="text-sm text-muted-foreground">{t('list.noMore')}</span>
-                </div>
-            );
-        }
-        return null;
-    }, [hasMore, isLoading, isLoadingMore, logs.length, t]);
-
     return (
-        <VirtualizedGrid
-            items={logs}
-            layout="list"
-            columns={{ default: 1 }}
-            estimateItemHeight={80}
-            overscan={8}
-            getItemKey={(log) => `log-${log.id}`}
-            renderItem={(log) => <LogCard log={log} />}
-            footer={footer}
-            onReachEnd={handleReachEnd}
-            reachEndEnabled={canLoadMore}
-            reachEndOffset={2}
-        />
+        <PageWrapper className="grid grid-cols-1 gap-4">
+            {logs.map((log) => (
+                <LogCard key={`log-${log.id}`} log={log} />
+            ))}
+
+            <div key="log-load-more" ref={loadMoreRef} className="flex justify-center py-4">
+                {hasMore && (isLoading || isLoadingMore) && (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                )}
+                {!hasMore && logs.length > 0 && (
+                    <span className="text-sm text-muted-foreground">{t('list.noMore')}</span>
+                )}
+            </div>
+        </PageWrapper>
     );
 }
