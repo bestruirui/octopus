@@ -1,13 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
 import { Bot, Sparkles, Waves, PlusCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { GroupCard } from './Card';
 import { AutoGroupButton } from './AutoGroupButton';
 import { AIRouteButton } from './AIRouteButton';
 import { useGroupList } from '@/api/endpoints/group';
-import { normalizeGroupFilterValue, useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
 import {
     MorphingDialog,
@@ -18,40 +16,49 @@ import {
 import { matchesGroupEndpointFilter } from './utils';
 import { CreateDialogContent } from './Create';
 import { buttonVariants } from '@/components/ui/button';
+import { useSearchableList, useGroupFilter } from '@/hooks/use-searchable-list';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 
 export function Group() {
     const t = useTranslations('group');
-    const { data: groups } = useGroupList();
+    const { data: groups, isLoading, isError, refetch } = useGroupList();
     const pageKey = 'group' as const;
-    const searchTerm = useSearchStore((s) => s.getSearchTerm(pageKey));
-    const sortField = useToolbarViewOptionsStore((s) => s.getSortField(pageKey));
-    const sortOrder = useToolbarViewOptionsStore((s) => s.getSortOrder(pageKey));
-    const filter = useToolbarViewOptionsStore((s) => normalizeGroupFilterValue(s.groupFilter));
+    const filter = useGroupFilter();
 
-    const sortedGroups = useMemo(() => {
-        if (!groups) return [];
-        return [...groups].sort((a, b) => {
-            const diff = sortField === 'name'
-                ? a.name.localeCompare(b.name)
-                : (a.id || 0) - (b.id || 0);
-            return sortOrder === 'asc' ? diff : -diff;
-        });
-    }, [groups, sortField, sortOrder]);
+    const { visibleItems: visibleGroups } = useSearchableList({
+        data: groups,
+        pageKey,
+        filter,
+        filterPredicate: (item, f) => {
+            if (f === 'with-members') return (item.items?.length || 0) > 0;
+            if (f === 'empty') return (item.items?.length || 0) === 0;
+            if (f !== 'all') {
+                return matchesGroupEndpointFilter(f, item.endpoint_type, (item.items || []).map((i) => (i as { model_name: string }).model_name));
+            }
+            return true;
+        },
+    });
 
-    const visibleGroups = useMemo(() => {
-        const term = searchTerm.toLowerCase().trim();
-        const result = !term ? sortedGroups : sortedGroups.filter((g) => g.name.toLowerCase().includes(term));
+    if (isLoading) {
+        return (
+            <div className="flex h-full min-h-0 flex-col">
+                <section className="group-shadowless relative min-h-0 flex-1">
+                    <LoadingState />
+                </section>
+            </div>
+        );
+    }
 
-        if (filter === 'with-members') return result.filter((g) => (g.items?.length || 0) > 0);
-        if (filter === 'empty') return result.filter((g) => (g.items?.length || 0) === 0);
-        if (filter !== 'all') {
-            return result.filter((g) =>
-                matchesGroupEndpointFilter(filter, g.endpoint_type, (g.items || []).map((item) => item.model_name)),
-            );
-        }
-
-        return result;
-    }, [sortedGroups, searchTerm, filter]);
+    if (isError) {
+        return (
+            <div className="flex h-full min-h-0 flex-col">
+                <section className="group-shadowless relative min-h-0 flex-1">
+                    <ErrorState onRetry={() => refetch()} />
+                </section>
+            </div>
+        );
+    }
 
     if (groups && groups.length === 0) {
         return (
@@ -135,7 +142,7 @@ export function Group() {
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <section className="relative min-h-0 flex-1">
+            <section className="group-shadowless relative min-h-0 flex-1">
                 <VirtualizedGrid
                     items={visibleGroups}
                     columns={{ default: 1, sm: 2, md: 2, lg: 3 }}

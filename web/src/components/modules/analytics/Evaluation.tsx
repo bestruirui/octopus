@@ -141,7 +141,7 @@ export function Evaluation() {
         semanticCache,
         !semanticCache && !!semanticCacheQuery.error,
     );
-    const statusButtonClassName = 'rounded-[1.2rem] border-border/25 bg-background/44 shadow-waterhouse-soft hover:bg-background/64';
+    const statusButtonClassName = 'rounded-[1.2rem] border-border/25 bg-background/44 text-foreground shadow-waterhouse-soft hover:bg-background/64 hover:text-foreground';
 
     return (
         <ObservatorySection

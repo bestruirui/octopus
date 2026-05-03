@@ -309,24 +309,25 @@ html.dark,
   }
 
   .waterhouse-canopy,
-  .waterhouse-liquid-field {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  .waterhouse-canopy {
+  .waterhouse-canopy-fx {
     background:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.42) 0%, transparent 34%),
       radial-gradient(circle at 88% 6%, rgba(135, 202, 190, 0.18) 0%, transparent 28%);
     filter: blur(18px);
     opacity: 0.9;
+  }
+
+  .waterhouse-canopy {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
     animation: waterhouse-mist var(--waterhouse-mist-duration) ease-in-out infinite;
   }
 
   @supports (background: color-mix(in oklch, white 50%, transparent)) {
-    .waterhouse-canopy {
+    .waterhouse-canopy,
+    .waterhouse-canopy-fx {
       background:
         radial-gradient(circle at 14% 10%, color-mix(in oklch, var(--waterhouse-fog-strong) 70%, transparent) 0%, transparent 34%),
         radial-gradient(circle at 88% 6%, color-mix(in oklch, var(--waterhouse-highlight-soft) 82%, transparent) 0%, transparent 28%);
@@ -334,6 +335,9 @@ html.dark,
   }
 
   .waterhouse-liquid-field {
+    position: fixed;
+    pointer-events: none;
+    z-index: -1;
     inset: auto 8vw -18vh;
     height: 42vh;
     border-radius: 50%;
@@ -354,36 +358,43 @@ html.dark,
   }
 
   .waterhouse-pod,
-  .waterhouse-island {
+  .waterhouse-pod-fx,
+  .waterhouse-island,
+  .waterhouse-island-fx {
     position: relative;
     border: 1px solid var(--waterhouse-line);
     box-shadow: var(--waterhouse-shadow-soft);
   }
 
-  .waterhouse-pod {
+  .waterhouse-pod,
+  .waterhouse-pod-fx {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(243, 248, 241, 0.68) 100%);
     border-radius: var(--waterhouse-shell-radius);
   }
 
-  .waterhouse-island {
+  .waterhouse-island,
+  .waterhouse-island-fx {
     background: linear-gradient(180deg, rgba(253, 255, 252, 0.88) 0%, rgba(243, 248, 241, 0.74) 100%);
     border-radius: calc(var(--waterhouse-shell-radius) + 8px);
     box-shadow: var(--waterhouse-shadow-deep);
   }
 
   @supports (background: color-mix(in oklch, white 50%, transparent)) {
-    .waterhouse-pod {
+    .waterhouse-pod,
+    .waterhouse-pod-fx {
       background: linear-gradient(180deg, var(--waterhouse-fog-strong) 0%, var(--waterhouse-fog) 100%);
     }
 
-    .waterhouse-island {
+    .waterhouse-island,
+    .waterhouse-island-fx {
       background:
         linear-gradient(180deg, color-mix(in oklch, var(--waterhouse-fog-strong) 82%, transparent) 0%, color-mix(in oklch, var(--waterhouse-fog) 68%, transparent) 100%);
     }
   }
 
   @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .waterhouse-pod {
+    .waterhouse-pod,
+    .waterhouse-pod-fx {
       backdrop-filter: blur(var(--waterhouse-shell-blur));
       -webkit-backdrop-filter: blur(var(--waterhouse-shell-blur));
     }
@@ -394,27 +405,19 @@ html.dark,
    Nature 动画关键帧
    ═══════════════════════════════════════════ */
 
-/* 有机 Blob 漂移——模拟流体在容器中缓慢流动 */
+/* 有机 Blob 漂移——使用廉价的 transform 进行硬件加速，彻底解决掉帧 */
 @keyframes nature-blob-drift {
   0% {
-    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    transform: translate(0, 0) rotate(0deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
-  25% {
-    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-    transform: translate(3%, -2%) rotate(3deg) scale(1.05);
+  33% {
+    transform: translate3d(4%, -2%, 0) rotate(8deg) scale(1.05);
   }
-  50% {
-    border-radius: 40% 60% 30% 70% / 70% 30% 60% 40%;
-    transform: translate(-2%, 3%) rotate(-2deg) scale(0.95);
-  }
-  75% {
-    border-radius: 70% 30% 50% 50% / 40% 70% 30% 60%;
-    transform: translate(-3%, -1%) rotate(-3deg) scale(1.03);
+  66% {
+    transform: translate3d(-2%, 4%, 0) rotate(-6deg) scale(0.96);
   }
   100% {
-    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    transform: translate(0, 0) rotate(0deg) scale(1);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
 }
 
@@ -562,7 +565,9 @@ html.dark,
 }
 
 .waterhouse-pod::before,
-.waterhouse-island::before {
+.waterhouse-pod-fx::before,
+.waterhouse-island::before,
+.waterhouse-island-fx::before {
   content: '';
   position: absolute;
   inset: 1px;
@@ -574,7 +579,9 @@ html.dark,
 
 @supports (background: color-mix(in oklch, white 50%, transparent)) {
   .waterhouse-pod::before,
-  .waterhouse-island::before {
+  .waterhouse-pod-fx::before,
+  .waterhouse-island::before,
+  .waterhouse-island-fx::before {
     background: linear-gradient(180deg, color-mix(in oklch, white 24%, transparent) 0%, transparent 28%, transparent 72%, color-mix(in oklch, var(--waterhouse-highlight) 10%, transparent) 100%);
   }
 }
@@ -587,6 +594,10 @@ html.dark,
 .model-shadowless .waterhouse-pod,
 .model-shadowless .shadow-waterhouse-soft,
 .model-shadowless .shadow-waterhouse-deep,
+.group-shadowless .waterhouse-island,
+.group-shadowless .waterhouse-pod,
+.group-shadowless .shadow-waterhouse-soft,
+.group-shadowless .shadow-waterhouse-deep,
 .setting-shadowless .waterhouse-island,
 .setting-shadowless .waterhouse-pod,
 .setting-shadowless .shadow-waterhouse-soft,
@@ -602,11 +613,23 @@ html.dark,
 .analytics-shadowless .waterhouse-pod::before,
 .model-shadowless .waterhouse-island::before,
 .model-shadowless .waterhouse-pod::before,
+.group-shadowless .waterhouse-island::before,
+.group-shadowless .waterhouse-pod::before,
 .setting-shadowless .waterhouse-island::before,
 .setting-shadowless .waterhouse-pod::before,
 .channel-detail-shadowless .waterhouse-island::before,
 .channel-detail-shadowless .waterhouse-pod::before {
   display: none !important;
+}
+
+/* 性能杀手：在列表视图中暴力移除所有深层嵌套的毛玻璃模糊滤镜 */
+.analytics-shadowless *,
+.model-shadowless *,
+.group-shadowless *,
+.setting-shadowless *,
+.channel-detail-shadowless * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* 减少动画偏好 */
@@ -624,67 +647,57 @@ html.dark,
   }
 }
 
-/* ── 移动端性能优化：大幅降低模糊滤镜开销，消除闪烁 ── */
-/* 移动端 GPU 难以同时处理多个大尺寸 blur 滤镜动画，
-   nature-ambient-blob (blur 80px) + waterhouse-liquid-field (blur 36px)
-   + waterhouse-canopy (blur 18px) 叠加导致合成器丢帧、闪烁 */
+/* ── 移动端性能优化：极度缩减渲染开销，消除掉帧 ── */
+/* 移动端 GPU 难以同时处理多个大尺寸 blur 滤镜动画和形变动画。
+   特别是 `border-radius` 的动画 (nature-blob-drift) 会导致连续的 Layout 和 Paint，是掉帧的元凶。*/
 @media (max-width: 767px) {
-  /* 隐藏环境 blob——80px 模糊在移动端 GPU 上代价过高 */
-  .nature-ambient-blob {
-    display: none;
-  }
-
-  /* 大幅降低穹顶光晕模糊 */
-  .waterhouse-canopy {
-    filter: blur(8px) !important;
-    opacity: 0.72 !important;
-    animation-duration: calc(var(--waterhouse-mist-duration, 14s) * 2) !important;
-  }
-
-  /* 大幅降低底部液态场模糊 */
+  /* 完全隐藏不必要的背景层，减少过度绘制 (Overdraw) */
+  .nature-ambient-blob,
   .waterhouse-liquid-field {
-    filter: blur(14px) !important;
-    opacity: 0.72 !important;
-    animation-duration: calc(var(--waterhouse-drift-duration, 16s) * 2) !important;
+    display: none !important;
   }
 
-  /* Shell 伪元素背景也降低开销 */
+  /* 保留穹顶光晕但完全静止，作为静态背景色块 */
+  .waterhouse-canopy {
+    filter: blur(12px) !important;
+    opacity: 0.5 !important;
+    animation: none !important;
+  }
+
+  /* 简化 Shell 伪元素背景 */
   .waterhouse-shell::before {
-    opacity: 0.45 !important;
+    opacity: 0.25 !important;
+    mask-image: none !important; /* 移除耗性能的 mask */
   }
 
-  /* body 固定背景光晕降低模糊——60px blur 在移动端 GPU 上代价过高 */
-  body::before {
-    filter: blur(16px) !important;
-    opacity: 0.32 !important;
-    animation-duration: 28s !important;
+  /* 彻底禁用 body 背景 Blob 的形变动画，改为仅使用 transform 微微漂移 */
+  body::before,
+  body::after {
+    filter: blur(24px) !important;
+    opacity: 0.2 !important;
+    border-radius: 50% !important; /* 放弃复杂的有机形状，使用简单的圆形 */
+    animation: mobile-blob-float 20s ease-in-out infinite alternate !important;
   }
   body::after {
-    filter: blur(16px) !important;
-    opacity: 0.32 !important;
-    animation-duration: 32s !important;
+    animation-direction: alternate-reverse !important;
+    animation-duration: 25s !important;
   }
 
   /* 初始加载器：移除 backdrop-filter 避免移动端渲染闪烁 */
-  #initial-loader {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
+  #initial-loader,
   #initial-loader .octo-shell {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 
-  /* 加载器动画降速：降低 GPU 负担 */
-  #initial-loader::before {
-    animation-duration: 14s !important;
-  }
-  #initial-loader::after {
-    animation-duration: 20s !important;
-  }
-
-  /* 全局 backdrop-filter 降级：移动端使用更轻量的模糊值 */
+  /* 全局 backdrop-filter 降级：移动端使用极轻量的模糊值 */
   :root {
-    --waterhouse-shell-blur: 10px;
+    --waterhouse-shell-blur: 8px;
   }
+}
+
+/* 专供移动端的低性能消耗动画 (仅平移) */
+@keyframes mobile-blob-float {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(5%, 5%, 0) scale(1.05); }
 }

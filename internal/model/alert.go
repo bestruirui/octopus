@@ -24,14 +24,42 @@ type AlertRule struct {
 	ScopeAPIKeyID  int                    `json:"scope_api_key_id,omitempty"`
 }
 
-// AlertNotifChannel defines a notification channel (currently webhook only).
+// AlertNotifChannelType defines the type of a notification channel.
+type AlertNotifChannelType string
+
+const (
+	AlertNotifWebhook AlertNotifChannelType = "webhook"
+	AlertNotifGotify  AlertNotifChannelType = "gotify"
+	AlertNotifEmail   AlertNotifChannelType = "email"
+)
+
+// AlertNotifChannel defines a notification channel (webhook, gotify, email, etc.).
 type AlertNotifChannel struct {
 	ID      int    `json:"id" gorm:"primaryKey"`
 	Name    string `json:"name" gorm:"not null"`
 	Type    string `json:"type" gorm:"not null;default:'webhook'"`
-	URL     string `json:"url" gorm:"not null"`
+	URL     string `json:"url"`
 	Secret  string `json:"secret,omitempty"`
 	Headers string `json:"headers,omitempty"`
+	Config  string `json:"config,omitempty"` // JSON blob for type-specific config (gotify token, email SMTP, etc.)
+}
+
+// GotifyConfig holds the configuration for a Gotify notification channel.
+type GotifyConfig struct {
+	ServerURL string `json:"server_url"` // e.g. https://gotify.example.com
+	Token     string `json:"token"`      // application token
+	Priority  int    `json:"priority,omitempty"`  // message priority (1-10, default 5)
+}
+
+// EmailConfig holds the configuration for an Email notification channel.
+type EmailConfig struct {
+	SMTPHost string `json:"smtp_host"`
+	SMTPPort int    `json:"smtp_port"`    // default 587
+	Username string `json:"username"`
+	Password string `json:"password"`
+	From     string `json:"from"`         // sender address
+	To       string `json:"to"`           // comma-separated recipient addresses
+	UseTLS   bool   `json:"use_tls"`      // default true
 }
 
 // AlertState represents the current firing state of an alert rule.

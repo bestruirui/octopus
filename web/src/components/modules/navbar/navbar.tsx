@@ -84,10 +84,9 @@ export function NavBar() {
                                 {isActive && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute -inset-1 z-0 bg-sidebar-primary"
+                                        className="absolute -inset-1 z-0 bg-sidebar-primary shadow-sm"
                                         style={{
                                             borderRadius: '62% 38% 58% 42% / 46% 58% 42% 54%',
-                                            filter: lightweightMotion ? undefined : 'url(#nature-gooey)',
                                         }}
                                         transition={{
                                             type: "spring",

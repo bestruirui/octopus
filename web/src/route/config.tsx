@@ -39,7 +39,7 @@ export const ROUTES: RouteConfig[] = [
     { id: 'log', label: 'Log', icon: Logs, component: Log_Module },
     { id: 'alert', label: 'Alerts', icon: Bell, component: Alert_Module },
     { id: 'ops', label: 'Ops', icon: Wrench, component: Ops_Module },
-    { id: 'apikey', label: 'API Key', icon: KeyRound, component: APIKey_Module },
+    { id: 'apikey', label: 'apikey', icon: KeyRound, component: APIKey_Module },
     { id: 'setting', label: 'Setting', icon: Settings, component: Setting_Module },
     { id: 'user', label: 'Users', icon: Users, component: User_Module },
 ];

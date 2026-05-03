@@ -143,8 +143,8 @@ func notifyAlert(rule *model.AlertRule, channelMap map[int]*model.AlertNotifChan
 		Time:          time.UnixMilli(current.LastFiredAt).Format(time.RFC3339),
 	}
 
-	if err := helper.SendWebhook(ch, payload); err != nil {
-		log.Warnf("alert notify: failed to send webhook for rule %d: %v", rule.ID, err)
+	if err := helper.SendNotification(ch, payload); err != nil {
+		log.Warnf("alert notify: failed to send notification via %s for rule %d: %v", ch.Type, rule.ID, err)
 	}
 }
 

@@ -10,8 +10,7 @@ import { AnimatedNumber } from '@/components/common/AnimatedNumber';
 import Logo from '@/components/modules/logo';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { CopyIconButton } from '@/components/common/CopyButton';
-import { useCopyToClipboard } from '@uidotdev/usehooks';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { JSX } from 'react';
 import {
     ArrowDownToLine,
@@ -23,7 +22,6 @@ import {
     LogOut,
     Calendar,
     Wallet,
-    Copy,
     Sun,
     Moon,
     Languages,
@@ -41,20 +39,24 @@ export function APIKeyDashboard() {
     const { logout } = useAuthStore();
     const { theme, setTheme } = useTheme();
     const { locale, setLocale } = useSettingStore();
-    const [, copyToClipboard] = useCopyToClipboard();
+    const [copying, setCopying] = useState(false);
 
     const copyWithToast = useCallback(
         async (text: string, label: string) => {
+            if (copying) return false;
+            setCopying(true);
             try {
-                await copyToClipboard(text);
+                await navigator.clipboard.writeText(text);
                 toast.success(`${label} copied`);
                 return true;
             } catch {
                 toast.error(t('error'));
                 return false;
+            } finally {
+                setCopying(false);
             }
         },
-        [copyToClipboard, t]
+        [copying, t]
     );
 
     if (error || !data) {

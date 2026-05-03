@@ -1,1638 +1,1671 @@
 {
-    "login": {
-        "username": "用户名",
-        "usernamePlaceholder": "请输入用户名",
-        "password": "密码",
-        "passwordPlaceholder": "请输入密码",
-        "apikey": "API 密钥",
-        "apikeyPlaceholder": "请输入 API 密钥 (sk-octopus-...)",
-        "mode": {
-            "user": "账户登录",
-            "apikey": "密钥登录"
-        },
-        "error": {
-            "generic": "登录失败，请检查用户名和密码是否正确"
-        },
-        "button": {
-            "loading": "登录中...",
-            "submit": "登录"
-        }
+  "login": {
+    "username": "用户名",
+    "usernamePlaceholder": "请输入用户名",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "apikey": "API 密钥",
+    "apikeyPlaceholder": "请输入 API 密钥 (sk-octopus-...)",
+    "mode": {
+      "user": "账户登录",
+      "apikey": "密钥登录"
     },
-    "bootstrap": {
-        "title": "完成首次初始化",
-        "subtitle": "Octopus 需要先创建初始管理员账户，之后才能登录。",
-        "description": "请在当前页面设置管理员账号和密码，保存后即可登录。",
-        "checking": "正在检查初始化状态...",
-        "initialized": "首次初始化已完成，现在可以登录了。",
-        "notice": {
-            "title": "首次启动保护",
-            "description": "当前实例不会自动创建默认管理员账号。请在首次进入时手动设置安全凭据。"
-        },
-        "form": {
-            "username": "管理员用户名",
-            "usernamePlaceholder": "请输入管理员用户名",
-            "password": "管理员密码",
-            "passwordPlaceholder": "请输入管理员密码",
-            "passwordHint": "密码长度至少 12 个字符。"
-        },
-        "actions": {
-            "refresh": "刷新状态",
-            "submit": "保存管理员账号",
-            "submitting": "保存中...",
-            "submitSuccess": "管理员账号已创建"
-        },
-        "error": {
-            "generic": "加载初始化状态失败",
-            "server": "暂时无法获取初始化状态，请检查后端日志后重试。"
-        }
+    "error": {
+      "generic": "登录失败，请检查用户名和密码是否正确"
     },
-    "apiKeyDashboard": {
-        "error": "加载数据失败",
-        "logout": "退出",
-        "requestStats": "请求统计",
-        "totalStats": "全部统计",
-        "inputStats": "输入统计",
-        "outputStats": "输出统计",
-        "requestCount": "请求次数",
-        "timeConsumed": "消耗时间",
-        "totalToken": "消耗 Token",
-        "totalCost": "消耗费用",
-        "inputTokens": "输入 Tokens",
-        "inputCost": "输入费用",
-        "outputTokens": "输出 Tokens",
-        "outputCost": "输出费用",
-        "successRequests": "成功请求",
-        "failedRequests": "失败请求",
-        "quota": "剩余额度",
-        "unlimited": "无限制",
-        "expireAt": "过期时间",
-        "neverExpire": "永不过期",
-        "daysLeft": "天后到期",
-        "expired": "已过期",
-        "supportedModels": "支持的模型"
+    "button": {
+      "loading": "登录中...",
+      "submit": "登录"
+    }
+  },
+  "bootstrap": {
+    "title": "完成首次初始化",
+    "subtitle": "Octopus 需要先创建初始管理员账户，之后才能登录。",
+    "description": "请在当前页面设置管理员账号和密码，保存后即可登录。",
+    "checking": "正在检查初始化状态...",
+    "initialized": "首次初始化已完成，现在可以登录了。",
+    "notice": {
+      "title": "首次启动保护",
+      "description": "当前实例不会自动创建默认管理员账号。请在首次进入时手动设置安全凭据。"
     },
-    "navbar": {
-        "home": "主页",
-        "channel": "渠道",
-        "group": "分组",
-        "key": "密钥",
-        "model": "模型广场",
-        "analytics": "分析中心",
-        "log": "日志",
-        "alert": "告警",
-        "ops": "运维中心",
-        "user": "用户",
-        "setting": "设置",
-        "ariaLabel": "主导航",
-        "apikey": "API 密钥"
+    "form": {
+      "username": "管理员用户名",
+      "usernamePlaceholder": "请输入管理员用户名",
+      "password": "管理员密码",
+      "passwordPlaceholder": "请输入管理员密码",
+      "passwordHint": "密码长度至少 12 个字符。"
     },
-    "analytics": {
-        "title": "分析中心",
-        "subtitle": "聚合 Octopus 当前统计、利用率与路由健康视角。",
-        "cards": {
-            "overview": {
-                "title": "概述",
-                "description": "统一承载请求量、Token、成本和覆盖范围等总览指标。"
-            },
-            "utilization": {
-                "title": "利用率",
-                "description": "按渠道、模型与密钥维度查看容量消耗和分布趋势。"
-            },
-            "routeHealth": {
-                "title": "路由健康",
-                "description": "汇总分组可用性、失败信号和路由稳定度。"
-            }
-        },
-        "note": "当前阶段先完成页面壳层与导航接入，真实聚合数据会在下一步接入。",
-        "range": {
-            "1d": "1天",
-            "7d": "7天",
-            "30d": "30天",
-            "90d": "90天",
-            "ytd": "年初至今",
-            "all": "全部"
-        },
-        "states": {
-            "loading": "加载中...",
-            "empty": "暂无可展示数据"
-        },
-        "overview": {
-            "description": ""
+    "actions": {
+      "refresh": "刷新状态",
+      "submit": "保存管理员账号",
+      "submitting": "保存中...",
+      "submitSuccess": "管理员账号已创建"
+    },
+    "error": {
+      "generic": "加载初始化状态失败",
+      "server": "暂时无法获取初始化状态，请检查后端日志后重试。"
+    }
+  },
+  "apiKeyDashboard": {
+    "error": "加载数据失败",
+    "logout": "退出",
+    "requestStats": "请求统计",
+    "totalStats": "全部统计",
+    "inputStats": "输入统计",
+    "outputStats": "输出统计",
+    "requestCount": "请求次数",
+    "timeConsumed": "消耗时间",
+    "totalToken": "消耗 Token",
+    "totalCost": "消耗费用",
+    "inputTokens": "输入 Tokens",
+    "inputCost": "输入费用",
+    "outputTokens": "输出 Tokens",
+    "outputCost": "输出费用",
+    "successRequests": "成功请求",
+    "failedRequests": "失败请求",
+    "quota": "剩余额度",
+    "unlimited": "无限制",
+    "expireAt": "过期时间",
+    "neverExpire": "永不过期",
+    "daysLeft": "天后到期",
+    "expired": "已过期",
+    "supportedModels": "支持的模型"
+  },
+  "navbar": {
+    "home": "主页",
+    "channel": "渠道",
+    "group": "分组",
+    "key": "密钥",
+    "model": "模型广场",
+    "analytics": "分析中心",
+    "log": "日志",
+    "alert": "告警",
+    "ops": "运维中心",
+    "user": "用户",
+    "setting": "设置",
+    "ariaLabel": "主导航",
+    "apikey": "API 密钥"
+  },
+  "analytics": {
+    "title": "分析中心",
+    "subtitle": "聚合 Octopus 当前统计、利用率与路由健康视角。",
+    "cards": {
+      "overview": {
+        "title": "概述",
+        "description": "统一承载请求量、Token、成本和覆盖范围等总览指标。"
+      },
+      "utilization": {
+        "title": "利用率",
+        "description": "按渠道、模型与密钥维度查看容量消耗和分布趋势。"
+      },
+      "routeHealth": {
+        "title": "路由健康",
+        "description": "汇总分组可用性、失败信号和路由稳定度。"
+      }
+    },
+    "note": "当前阶段先完成页面壳层与导航接入，真实聚合数据会在下一步接入。",
+    "range": {
+      "1d": "1天",
+      "7d": "7天",
+      "30d": "30天",
+      "90d": "90天",
+      "ytd": "年初至今",
+      "all": "全部"
+    },
+    "states": {
+      "loading": "加载中...",
+      "empty": "暂无可展示数据"
+    },
+    "overview": {
+      "description": "用现有日统计与请求回放结果聚合出一期总览，优先提供可读指标而不是额外设定项。"
+    },
+    "metrics": {
+      "requestCount": "请求次数",
+      "successRate": "成功率",
+      "totalTokens": "总 Token",
+      "totalCost": "总成本",
+      "providerCount": "供给源数",
+      "apiKeyCount": "API 密钥数",
+      "modelCount": "模型数",
+      "fallbackRate": "回退率"
+    },
+    "utilization": {
+      "description": "按供给源、模型和 API 密钥查看当前范围内的请求消耗分布。",
+      "providers": "供给源",
+      "models": "模型",
+      "apikeys": "API 密钥",
+      "enabled": "启用",
+      "disabled": "停用",
+      "empty": "当前范围内暂无利用率数据"
+    },
+    "routeHealth": {
+      "description": "结合当前分组成员状态和近 24 小时失败日志，优先把问题分组排在前面。",
+      "endpointType": "API 分类",
+      "healthScore": "健康分",
+      "failureCount": "近 24 小时失败",
+      "enabledItems": "已启用路由项",
+      "disabledItems": "停用路由项",
+      "lastFailure": "最近失败",
+      "lastFailureEmpty": "暂无近期失败",
+      "empty": "暂无可评估的路由分组",
+      "statuses": {
+        "healthy": "健康",
+        "warning": "波动",
+        "degraded": "降级",
+        "down": "不可用",
+        "empty": "空分组"
+      }
+    },
+    "evaluation": {
+      "title": "评估",
+      "description": "聚合现有分组检测与 AI 路由分析入口。",
+      "actions": {
+        "openGroupTest": "前往分组检测",
+        "openAIRoute": "前往路由分析",
+        "openSemanticCache": "前往语义缓存设置"
+      },
+      "availability": {
+        "title": "分组可用性检测",
+        "description": "检测动作仍在分组卡片内触发，这里只提供统一入口和最近状态摘要。",
+        "hint": "当前共有 {count} 个分组可进入检测流程。",
+        "empty": "当前没有可检测分组"
+      },
+      "aiRoute": {
+        "title": "AI 路由分析",
+        "description": "复用现有 AI Route 入口和进度能力，在这里聚合最近任务状态。",
+        "hint": "最近任务当前阶段：{step}",
+        "unavailable": "最近一次 AI 路由任务状态暂时不可用。",
+        "empty": "当前没有 AI 路由任务"
+      },
+      "semanticCache": {
+        "title": "语义缓存评估",
+        "description": "这里集中查看语义缓存运行态和命中信号，具体配置仍留在设置页。",
+        "hint": "先确认运行状态，再前往设置页调整 embedding 服务和缓存参数。",
+        "summaryTitle": "语义缓存成效",
+        "summaryDescription": "这里只展示 evaluation 接口返回的实时运行计数。",
+        "unavailable": "语义缓存摘要暂时不可用，但 Evaluation 其他部分仍可正常使用。",
+        "status": {
+          "disabled": "未启用",
+          "runtimeOn": "运行中",
+          "runtimeOff": "已配置但运行关闭",
+          "loading": "加载中...",
+          "unavailable": "暂不可用"
         },
         "metrics": {
-            "requestCount": "请求次数",
-            "successRate": "成功率",
-            "totalTokens": "总 Token",
-            "totalCost": "总成本",
-            "providerCount": "供给源数",
-            "apiKeyCount": "API 密钥数",
-            "modelCount": "模型数",
-            "fallbackRate": "回退率"
-        },
-        "utilization": {
-            "description": "按供给源、模型和 API 密钥查看当前范围内的请求消耗分布。",
-            "providers": "供给源",
-            "models": "模型",
-            "apikeys": "API 密钥",
-            "enabled": "启用",
-            "disabled": "停用",
-            "empty": "当前范围内暂无利用率数据"
-        },
-        "routeHealth": {
-            "description": "结合当前分组成员状态和近 24 小时失败日志，优先把问题分组排在前面。",
-            "endpointType": "API 分类",
-            "healthScore": "健康分",
-            "failureCount": "近 24 小时失败",
-            "enabledItems": "已启用路由项",
-            "disabledItems": "停用路由项",
-            "lastFailure": "最近失败",
-            "lastFailureEmpty": "暂无近期失败",
-            "empty": "暂无可评估的路由分组",
-            "statuses": {
-                "healthy": "健康",
-                "warning": "波动",
-                "degraded": "降级",
-                "down": "不可用",
-                "empty": "空分组"
-            }
-        },
-        "evaluation": {
-            "title": "评估",
-            "description": "聚合现有分组检测与 AI 路由分析入口。",
-            "actions": {
-                "openGroupTest": "前往分组检测",
-                "openAIRoute": "前往路由分析",
-                "openSemanticCache": "前往语义缓存设置"
-            },
-            "availability": {
-                "title": "分组可用性检测",
-                "description": "检测动作仍在分组卡片内触发，这里只提供统一入口和最近状态摘要。",
-                "hint": "当前共有 {count} 个分组可进入检测流程。",
-                "empty": "当前没有可检测分组"
-            },
-            "aiRoute": {
-                "title": "AI 路由分析",
-                "description": "复用现有 AI Route 入口和进度能力，在这里聚合最近任务状态。",
-                "hint": "最近任务当前阶段：{step}",
-                "unavailable": "最近一次 AI 路由任务状态暂时不可用。",
-                "empty": "当前没有 AI 路由任务"
-            },
-            "semanticCache": {
-                "title": "语义缓存评估",
-                "description": "这里集中查看语义缓存运行态和命中信号，具体配置仍留在设置页。",
-                "hint": "先确认运行状态，再前往设置页调整 embedding 服务和缓存参数。",
-                "summaryTitle": "语义缓存成效",
-                "summaryDescription": "这里只展示 evaluation 接口返回的实时运行计数。",
-                "unavailable": "语义缓存摘要暂时不可用，但 Evaluation 其他部分仍可正常使用。",
-                "status": {
-                    "disabled": "未启用",
-                    "runtimeOn": "运行中",
-                    "runtimeOff": "已配置但运行关闭",
-                    "loading": "加载中...",
-                    "unavailable": "暂不可用"
-                },
-                "metrics": {
-                    "hits": "命中次数",
-                    "misses": "未命中次数",
-                    "hitRate": "命中率",
-                    "currentEntries": "当前条目数",
-                    "maxEntries": "最大条目数",
-                    "usageRate": "容量占用",
-                    "evaluatedRequests": "参与评估请求",
-                    "cacheHitResponses": "命中响应",
-                    "cacheMissRequests": "未命中请求",
-                    "bypassedRequests": "旁路请求",
-                    "storedResponses": "已写入响应"
-                }
-            },
-            "archive": {
-                "title": "历史归档",
-                "description": "当前版本暂无 benchmark 历史归档，这是有意留白，不是加载失败。",
-                "hint": "如果后续确认需要长期归档，再单独设计数据模型和写入流程。"
-            },
-            "summary": {
-                "title": "最近评测状态",
-                "description": "这里只展示当前会话最近一次 AI Route 与分组检测任务，不做持久化历史。",
-                "aiRoute": "最近 AI 路由任务",
-                "groupTest": "最近分组检测任务",
-                "status": "当前状态",
-                "progress": "任务进度",
-                "groups": "分组数量",
-                "routes": "路由 / 路由项",
-                "result": "检测结果",
-                "passed": "通过数量",
-                "failed": "失败数量",
-                "allPassed": "全部通过",
-                "partialFailed": "存在失败",
-                "unavailable": "最近任务进度暂时不可用。",
-                "empty": "当前没有可展示的运行态任务"
-            },
-            "runtime": {
-                "status": {
-                    "idle": "空闲",
-                    "queued": "排队中",
-                    "running": "运行中",
-                    "unavailable": "暂不可用",
-                    "completed": "已完成",
-                    "failed": "失败",
-                    "timeout": "超时"
-                },
-                "step": {
-                    "idle": "暂无阶段",
-                    "queued": "等待开始",
-                    "collecting_models": "收集模型",
-                    "building_batches": "构建批次",
-                    "analyzing_batches": "分析批次",
-                    "parsing_response": "解析响应",
-                    "validating_routes": "校验路由",
-                    "writing_groups": "写入分组",
-                    "finalizing": "整理结果",
-                    "completed": "已完成",
-                    "failed": "失败",
-                    "timeout": "超时"
-                }
-            }
+          "hits": "命中次数",
+          "misses": "未命中次数",
+          "hitRate": "命中率",
+          "currentEntries": "当前条目数",
+          "maxEntries": "最大条目数",
+          "usageRate": "容量占用",
+          "evaluatedRequests": "参与评估请求",
+          "cacheHitResponses": "命中响应",
+          "cacheMissRequests": "未命中请求",
+          "bypassedRequests": "旁路请求",
+          "storedResponses": "已写入响应"
         }
-    },
-    "ops": {
-        "title": "运维中心",
-        "subtitle": "聚合缓存、配额、健康和系统摘要。",
-        "tabs": {
-            "cache": "缓存",
-            "quota": "配额",
-            "health": "健康",
-            "system": "系统",
-            "audit": "审计"
+      },
+      "archive": {
+        "title": "历史归档",
+        "description": "当前版本暂无 benchmark 历史归档，这是有意留白，不是加载失败。",
+        "hint": "如果后续确认需要长期归档，再单独设计数据模型和写入流程。"
+      },
+      "summary": {
+        "title": "最近评测状态",
+        "description": "这里只展示当前会话最近一次 AI Route 与分组检测任务，不做持久化历史。",
+        "aiRoute": "最近 AI 路由任务",
+        "groupTest": "最近分组检测任务",
+        "status": "当前状态",
+        "progress": "任务进度",
+        "groups": "分组数量",
+        "routes": "路由 / 路由项",
+        "result": "检测结果",
+        "passed": "通过数量",
+        "failed": "失败数量",
+        "allPassed": "全部通过",
+        "partialFailed": "存在失败",
+        "unavailable": "最近任务进度暂时不可用。",
+        "empty": "当前没有可展示的运行态任务"
+      },
+      "runtime": {
+        "status": {
+          "idle": "空闲",
+          "queued": "排队中",
+          "running": "运行中",
+          "unavailable": "暂不可用",
+          "completed": "已完成",
+          "failed": "失败",
+          "timeout": "超时"
         },
-        "actions": {
-            "openSettings": "前往设置",
-            "manageKeys": "前往设置管理"
-        },
-        "states": {
-            "loading": "加载中...",
-            "empty": "暂无可展示数据"
-        },
-        "cache": {
-            "description": "集中查看语义缓存配置、运行态命中情况和容量占用。",
-            "metrics": {
-                "hitRate": "命中率",
-                "currentEntries": "当前条目",
-                "ttlSeconds": "TTL",
-                "threshold": "相似度阈值"
-            },
-            "status": {
-                "configuredOn": "已启用配置",
-                "configuredOff": "配置关闭",
-                "runtimeOn": "运行中",
-                "runtimeOff": "未运行",
-                "runtimeHint": "当前语义缓存已初始化，命中率和容量数据反映实时运行态。",
-                "runtimeMissing": "当前配置已关闭或运行态未初始化，可在设置页检查语义缓存开关。"
-            },
-            "detail": {
-                "hits": "命中次数",
-                "misses": "未命中次数",
-                "maxEntries": "最大条目数",
-                "usageRate": "容量占用"
-            }
-        },
-        "quota": {
-            "description": "聚合 API Key 的限额配置、当前消耗和异常信号，不重复展示完整编辑表单。",
-            "metrics": {
-                "availableKeys": "可用密钥",
-                "limitedKeys": "有限额密钥",
-                "exhaustedKeys": "已耗尽密钥",
-                "totalMaxCost": "总成本上限"
-            },
-            "fields": {
-                "requestCount": "请求次数",
-                "totalCost": "累计成本",
-                "maxCost": "成本上限",
-                "rpm": "RPM",
-                "tpm": "TPM",
-                "supportedModels": "支持模型数",
-                "perModelQuota": "按模型配额"
-            },
-            "statuses": {
-                "open": "无限制",
-                "limited": "有限额",
-                "exhausted": "已耗尽",
-                "expired": "已过期",
-                "disabled": "已停用"
-            },
-            "empty": "当前没有可展示的 API Key 配额摘要。"
-        },
-        "health": {
-            "description": "统一查看数据库、缓存、任务配置和分组风险信号，优先暴露需要人工关注的问题。",
-            "statuses": {
-                "ok": "正常",
-                "issue": "需检查"
-            },
-            "groupStatuses": {
-                "healthy": "健康",
-                "warning": "波动",
-                "degraded": "降级",
-                "down": "不可用",
-                "empty": "空分组"
-            },
-            "cards": {
-                "database": "数据库",
-                "cache": "缓存运行态",
-                "taskRuntime": "任务配置",
-                "recentErrors": "近 24 小时错误",
-                "healthyGroups": "健康分组",
-                "warningGroups": "波动与降级分组",
-                "downGroups": "不可用分组",
-                "emptyGroups": "空分组"
-            },
-            "detail": {
-                "failingGroups": "需关注的路由分组",
-                "endpointType": "API 分类",
-                "healthScore": "健康分",
-                "failureCount": "近 24 小时失败",
-                "noIssues": "当前没有高优先级风险分组。"
-            }
-        },
-        "system": {
-            "description": "汇总当前版本、关键设置和 AI 路由服务池信息，保持为只读运维视角。",
-            "metrics": {
-                "channels": "渠道数",
-                "groups": "分组数",
-                "apiKeys": "API Key 数",
-                "aiRouteServices": "AI 路由服务"
-            },
-            "sections": {
-                "runtime": "运行时摘要",
-                "operations": "运维配置",
-                "services": "AI 路由服务池"
-            },
-            "fields": {
-                "version": "版本",
-                "commit": "提交",
-                "buildTime": "构建时间",
-                "databaseType": "数据库类型",
-                "publicApiBaseUrl": "公开 API 地址",
-                "proxyUrl": "代理地址",
-                "relayLogRetention": "日志保留",
-                "statsSaveInterval": "统计落盘周期",
-                "syncLlmInterval": "模型同步周期",
-                "modelInfoInterval": "价格刷新周期",
-                "importExport": "导入 / 导出",
-                "aiRouteGroup": "AI 路由目标分组",
-                "aiRouteTimeout": "AI 路由超时",
-                "aiRouteParallelism": "AI 路由并发",
-                "aiRouteMode": "AI 路由模式",
-                "legacyMode": "旧版单服务",
-                "servicePoolMode": "服务池模式",
-                "enabled": "启用",
-                "disabled": "关闭",
-                "notConfigured": "当前没有已配置的 AI 路由服务。"
-            }
-        },
-        "audit": {
-            "description": "记录管理面真正会修改状态的写操作，便于追踪谁在什么时间改了什么。",
-            "writeScope": "仅记录管理写操作",
-            "empty": "当前还没有审计记录。",
-            "list": {
-                "noMore": "没有更多审计记录了"
-            },
-            "fields": {
-                "action": "操作",
-                "target": "目标",
-                "path": "路径",
-                "createdAt": "时间",
-                "username": "用户",
-                "userId": "用户 ID",
-                "method": "方法",
-                "statusCode": "状态码"
-            },
-            "detail": {
-                "entryTitle": "审计记录 #{id}",
-                "notFound": "未找到这条审计记录。",
-                "summary": "记录摘要",
-                "emptyTarget": "未提取目标",
-                "context": "请求上下文",
-                "rawRecord": "原始记录"
-            }
+        "step": {
+          "idle": "暂无阶段",
+          "queued": "等待开始",
+          "collecting_models": "收集模型",
+          "building_batches": "构建批次",
+          "analyzing_batches": "分析批次",
+          "parsing_response": "解析响应",
+          "validating_routes": "校验路由",
+          "writing_groups": "写入分组",
+          "finalizing": "整理结果",
+          "completed": "已完成",
+          "failed": "失败",
+          "timeout": "超时"
         }
+      }
+    }
+  },
+  "ops": {
+    "title": "运维中心",
+    "subtitle": "聚合缓存、配额、健康和系统摘要。",
+    "tabs": {
+      "cache": "缓存",
+      "quota": "配额",
+      "health": "健康",
+      "system": "系统",
+      "audit": "审计"
     },
-    "user": {
-        "title": "用户管理",
-        "changeRole": "修改角色",
+    "actions": {
+      "openSettings": "前往设置",
+      "manageKeys": "前往设置管理"
+    },
+    "states": {
+      "loading": "加载中...",
+      "empty": "暂无可展示数据"
+    },
+    "cache": {
+      "description": "集中查看语义缓存配置、运行态命中情况和容量占用。",
+      "metrics": {
+        "hitRate": "命中率",
+        "currentEntries": "当前条目",
+        "ttlSeconds": "TTL",
+        "threshold": "相似度阈值"
+      },
+      "status": {
+        "configuredOn": "已启用配置",
+        "configuredOff": "配置关闭",
+        "runtimeOn": "运行中",
+        "runtimeOff": "未运行",
+        "runtimeHint": "当前语义缓存已初始化，命中率和容量数据反映实时运行态。",
+        "runtimeMissing": "当前配置已关闭或运行态未初始化，可在设置页检查语义缓存开关。"
+      },
+      "detail": {
+        "hits": "命中次数",
+        "misses": "未命中次数",
+        "maxEntries": "最大条目数",
+        "usageRate": "容量占用"
+      }
+    },
+    "quota": {
+      "description": "聚合 API Key 的限额配置、当前消耗和异常信号，不重复展示完整编辑表单。",
+      "metrics": {
+        "availableKeys": "可用密钥",
+        "limitedKeys": "有限额密钥",
+        "exhaustedKeys": "已耗尽密钥",
+        "totalMaxCost": "总成本上限"
+      },
+      "fields": {
+        "requestCount": "请求次数",
+        "totalCost": "累计成本",
+        "maxCost": "成本上限",
+        "rpm": "RPM",
+        "tpm": "TPM",
+        "supportedModels": "支持模型数",
+        "perModelQuota": "按模型配额"
+      },
+      "statuses": {
+        "open": "无限制",
+        "limited": "有限额",
+        "exhausted": "已耗尽",
+        "expired": "已过期",
+        "disabled": "已停用"
+      },
+      "empty": "当前没有可展示的 API Key 配额摘要。"
+    },
+    "health": {
+      "description": "统一查看数据库、缓存、任务配置和分组风险信号，优先暴露需要人工关注的问题。",
+      "statuses": {
+        "ok": "正常",
+        "issue": "需检查"
+      },
+      "groupStatuses": {
+        "healthy": "健康",
+        "warning": "波动",
+        "degraded": "降级",
+        "down": "不可用",
+        "empty": "空分组"
+      },
+      "cards": {
+        "database": "数据库",
+        "cache": "缓存运行态",
+        "taskRuntime": "任务配置",
+        "recentErrors": "近 24 小时错误",
+        "healthyGroups": "健康分组",
+        "warningGroups": "波动与降级分组",
+        "downGroups": "不可用分组",
+        "emptyGroups": "空分组"
+      },
+      "detail": {
+        "failingGroups": "需关注的路由分组",
+        "endpointType": "API 分类",
+        "healthScore": "健康分",
+        "failureCount": "近 24 小时失败",
+        "noIssues": "当前没有高优先级风险分组。"
+      }
+    },
+    "system": {
+      "description": "汇总当前版本、关键设置和 AI 路由服务池信息，保持为只读运维视角。",
+      "metrics": {
+        "channels": "渠道数",
+        "groups": "分组数",
+        "apiKeys": "API Key 数",
+        "aiRouteServices": "AI 路由服务"
+      },
+      "sections": {
+        "runtime": "运行时摘要",
+        "operations": "运维配置",
+        "services": "AI 路由服务池"
+      },
+      "fields": {
+        "version": "版本",
+        "commit": "提交",
+        "buildTime": "构建时间",
+        "databaseType": "数据库类型",
+        "publicApiBaseUrl": "公开 API 地址",
+        "proxyUrl": "代理地址",
+        "relayLogRetention": "日志保留",
+        "statsSaveInterval": "统计落盘周期",
+        "syncLlmInterval": "模型同步周期",
+        "modelInfoInterval": "价格刷新周期",
+        "importExport": "导入 / 导出",
+        "aiRouteGroup": "AI 路由目标分组",
+        "aiRouteTimeout": "AI 路由超时",
+        "aiRouteParallelism": "AI 路由并发",
+        "aiRouteMode": "AI 路由模式",
+        "legacyMode": "旧版单服务",
+        "servicePoolMode": "服务池模式",
+        "enabled": "启用",
+        "disabled": "关闭",
+        "notConfigured": "当前没有已配置的 AI 路由服务。"
+      }
+    },
+    "audit": {
+      "description": "记录管理面真正会修改状态的写操作，便于追踪谁在什么时间改了什么。",
+      "writeScope": "仅记录管理写操作",
+      "empty": "当前还没有审计记录。",
+      "list": {
+        "noMore": "没有更多审计记录了"
+      },
+      "fields": {
+        "action": "操作",
+        "target": "目标",
+        "path": "路径",
+        "createdAt": "时间",
+        "username": "用户",
+        "userId": "用户 ID",
+        "method": "方法",
+        "statusCode": "状态码"
+      },
+      "detail": {
+        "entryTitle": "审计记录 #{id}",
+        "notFound": "未找到这条审计记录。",
+        "summary": "记录摘要",
+        "emptyTarget": "未提取目标",
+        "context": "请求上下文",
+        "rawRecord": "原始记录"
+      }
+    }
+  },
+  "user": {
+    "title": "用户管理",
+    "changeRole": "修改角色",
+    "cancel": "取消",
+    "deleteUser": "删除用户",
+    "cannotDeletePrimaryAdmin": "不能删除主管理员",
+    "confirmDelete": "确认删除该用户吗？此操作不可撤销。",
+    "roles": {
+      "admin": "管理员",
+      "editor": "编辑者",
+      "viewer": "只读者"
+    },
+    "create": {
+      "open": "新增用户",
+      "title": "创建用户",
+      "username": "用户名",
+      "usernamePlaceholder": "请输入用户名",
+      "password": "密码",
+      "passwordPlaceholder": "请输入密码",
+      "passwordHint": "密码长度至少 12 个字符。",
+      "role": "角色",
+      "submit": "创建用户",
+      "submitting": "创建中..."
+    },
+    "toast": {
+      "created": "用户已创建",
+      "createFailed": "创建用户失败",
+      "deleted": "用户已删除",
+      "roleUpdated": "角色已更新",
+      "actionFailed": "操作失败"
+    }
+  },
+  "alert": {
+    "tabs": {
+      "rules": "规则",
+      "channels": "渠道",
+      "history": "历史"
+    },
+    "actions": {
+      "edit": "编辑",
+      "save": "保存",
+      "create": "创建",
+      "cancel": "取消"
+    },
+    "conditions": {
+      "cost_threshold": "成本阈值",
+      "error_rate": "错误率",
+      "quota_exceeded": "额度耗尽",
+      "channel_down": "渠道离线"
+    },
+    "channelTypes": {
+      "webhook": "Webhook",
+      "gotify": "Gotify",
+      "email": "邮件"
+    },
+    "rules": {
+      "title": "告警规则",
+      "new": "新建规则",
+      "confirmDelete": "确认删除该规则吗？此操作不可撤销。",
+      "cooldown": "冷却 {seconds} 秒",
+      "form": {
+        "namePlaceholder": "规则名称",
+        "thresholdPlaceholder": "阈值",
+        "cooldownPlaceholder": "冷却秒数",
+        "noChannel": "不绑定渠道"
+      }
+    },
+    "channels": {
+      "title": "通知渠道",
+      "new": "新建渠道",
+      "confirmDelete": "确认删除该通知渠道吗？此操作不可撤销。",
+      "form": {
+        "namePlaceholder": "渠道名称",
+        "urlPlaceholder": "Webhook 地址",
+        "secretPlaceholder": "密钥（可选）",
+        "gotifyServerUrl": "Gotify 服务器地址（如 https://gotify.example.com）",
+        "gotifyToken": "应用 Token",
+        "gotifyPriority": "优先级（1-10，默认 5）",
+        "emailSmtpHost": "SMTP 主机",
+        "emailSmtpPort": "SMTP 端口（默认 587）",
+        "emailUsername": "SMTP 用户名",
+        "emailPassword": "SMTP 密码",
+        "emailFrom": "发件人地址",
+        "emailTo": "收件人地址（多个用逗号分隔）",
+        "emailUseTls": "使用 TLS"
+      }
+    },
+    "history": {
+      "title": "告警历史",
+      "empty": "暂无告警历史",
+      "messages": {
+        "triggered": "告警已触发",
+        "resolved": "告警已恢复"
+      }
+    },
+    "toast": {
+      "ruleCreated": "规则已创建",
+      "ruleUpdated": "规则已更新",
+      "ruleEnabled": "规则已启用",
+      "ruleDisabled": "规则已停用",
+      "channelCreated": "渠道已创建",
+      "channelUpdated": "渠道已更新",
+      "actionFailed": "操作失败"
+    }
+  },
+  "toolbar": {
+    "popover": {
+      "ariaLabel": "视图选项",
+      "layout": "布局",
+      "sort": "排序",
+      "grid": "网格",
+      "list": "列表",
+      "nameAsc": "名称正序",
+      "nameDesc": "名称倒序",
+      "createdAsc": "时间正序",
+      "createdDesc": "时间倒序",
+      "asc": "升序",
+      "desc": "降序",
+      "filter": {
+        "title": "筛选",
+        "channel": {
+          "all": "全部渠道",
+          "enabled": "仅启用",
+          "disabled": "仅禁用"
+        },
+        "group": {
+          "all": "全部分组",
+          "withMembers": "有成员",
+          "empty": "空分组",
+          "chat": "对话",
+          "deepseek": "DeepSeek",
+          "mimo": "Mimo",
+          "responses": "对话",
+          "messages": "对话",
+          "embeddings": "Embeddings",
+          "rerank": "Rerank",
+          "moderations": "Moderations",
+          "imageGeneration": "图片生成",
+          "audioSpeech": "语音合成",
+          "audioTranscription": "音频转写",
+          "videoGeneration": "视频生成",
+          "musicGeneration": "音乐生成",
+          "search": "搜索"
+        },
+        "model": {
+          "all": "全部模型",
+          "priced": "仅收费",
+          "free": "仅免费",
+          "sort": {
+            "title": "排序方式",
+            "successRate": "按成功率",
+            "requestCount": "按调用次数"
+          }
+        }
+      }
+    }
+  },
+  "common": {
+    "copy": {
+      "button": "复制",
+      "success": "复制成功",
+      "failed": "复制失败",
+      "noContent": "无可复制内容"
+    },
+    "dialog": {
+      "open": "打开弹窗",
+      "close": "关闭弹窗"
+    },
+    "routeNotFound": "未找到路由：{route}",
+    "errorState": {
+      "title": "加载失败",
+      "message": "获取数据时出现了异常。",
+      "retry": "重试"
+    },
+    "loadingState": {
+      "message": "加载中..."
+    },
+    "errorBoundary": {
+      "title": "出现了问题",
+      "message": "发生了未预期的错误，我们已记录并正在修复。",
+      "tryAgain": "重试",
+      "reloadPage": "重新加载页面"
+    },
+    "globalErrorBoundary": {
+      "title": "严重错误",
+      "message": "应用程序遇到严重错误，无法自动恢复。",
+      "tryToRecover": "尝试恢复"
+    }
+  },
+  "home": {
+    "activity": {
+      "title": "活跃度热力图",
+      "description": "按日查看近一年的请求活跃分布，快速定位持续活跃或长期沉寂的时段。",
+      "requestCount": "请求次数",
+      "waitTime": "等待时间",
+      "totalToken": "消耗 Token",
+      "totalCost": "消耗费用",
+      "noData": "无数据"
+    },
+    "hero": {
+      "eyebrow": "个人中枢",
+      "title": "今日使用",
+      "subtitle": "",
+      "description": "",
+      "signals": {
+        "requests": "今日调用",
+        "successRate": "今日成功率",
+        "cost": "今日花费",
+        "channels": "可用渠道"
+      },
+      "metrics": {
+        "avgWait": "平均响应时延",
+        "successful": "成功调用",
+        "tokens": "消耗 Token",
+        "costPerRequest": "单次调用成本"
+      }
+    },
+    "overview": {
+      "badge": "中枢概览",
+      "title": "使用概览",
+      "description": "按周期查看调用规模、成功率、花费和覆盖情况。",
+      "empty": "当前范围内暂无概览数据",
+      "range": {
+        "7d": "7天",
+        "30d": "30天",
+        "90d": "90天"
+      },
+      "metrics": {
+        "requestCount": "请求次数",
+        "successRate": "成功率",
+        "totalTokens": "总 Token",
+        "totalCost": "总成本",
+        "providerCount": "供给源数",
+        "apiKeyCount": "API 密钥数",
+        "modelCount": "模型数",
+        "fallbackRate": "回退率"
+      }
+    },
+    "total": {
+      "requestStats": "请求统计",
+      "qualityStats": "质量统计",
+      "efficiencyStats": "效率统计",
+      "supplyStats": "供给统计",
+      "requestCount": "请求次数",
+      "timeConsumed": "消耗时间",
+      "successRate": "全局成功率",
+      "avgWaitTime": "平均请求耗时",
+      "avgCostPerRequest": "平均每请求成本",
+      "activeChannels": "活跃 Channel 数",
+      "totalToken": "消耗 Token",
+      "totalCost": "消耗费用",
+      "inputTokens": "输入 Tokens",
+      "inputCost": "输入费用",
+      "outputTokens": "输出 Tokens",
+      "outputCost": "输出费用"
+    },
+    "chart": {
+      "title": "趋势",
+      "totalRequests": "请求次数",
+      "totalCost": "消费金额",
+      "totalTokens": "Tokens 消耗",
+      "timePeriod": "时间周期",
+      "metricType": {
+        "cost": "金额",
+        "count": "次数",
+        "tokens": "Tokens",
+        "successRate": "成功率"
+      },
+      "successRate": "成功率",
+      "period": {
+        "today": "今天",
+        "last7Days": "7天",
+        "last30Days": "30天"
+      }
+    },
+    "rank": {
+      "title": "排行榜",
+      "sortByCost": "金额",
+      "sortByCount": "次数",
+      "sortByTokens": "Tokens",
+      "sortByKeyUsage": "Key 使用",
+      "loading": "加载中...",
+      "noData": "暂无排行数据",
+      "successRate": "成功率"
+    }
+  },
+  "setting": {
+    "appearance": "外观",
+    "system": "系统",
+    "theme": {
+      "label": "主题",
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
+    },
+    "language": {
+      "label": "语言",
+      "zh_hans": "简体中文",
+      "zh_hant": "繁体中文",
+      "en": "English"
+    },
+    "alertLanguage": {
+      "label": "告警发送语言",
+      "zh_hans": "简体中文",
+      "zh_hant": "繁体中文",
+      "en": "English"
+    },
+    "proxyUrl": {
+      "label": "代理地址",
+      "placeholder": "请输入代理地址"
+    },
+    "publicApiBaseUrl": {
+      "label": "公开 API 基础地址",
+      "placeholder": "请输入公开 API 基础地址",
+      "hint": "用于生成 curl 示例和引导链接；留空则不展示这些辅助信息。"
+    },
+    "statsSaveInterval": {
+      "label": "统计保存周期（分钟）",
+      "placeholder": "请输入周期（分钟）"
+    },
+    "corsAllowOrigins": {
+      "label": "CORS 跨域白名单",
+      "hint": "为空禁止跨域，* 允许所有",
+      "example": "只允许指定域名: https://example.com,https://example2.com",
+      "removeAriaLabel": "移除 {origin}"
+    },
+    "circuitBreaker": {
+      "title": "熔断器配置",
+      "threshold": {
+        "label": "熔断触发阈值（连续失败次数）",
+        "placeholder": "请输入阈值"
+      },
+      "cooldown": {
+        "label": "基础冷却时间（秒）",
+        "placeholder": "请输入冷却时间"
+      },
+      "maxCooldown": {
+        "label": "最大冷却时间（秒）",
+        "placeholder": "请输入最大冷却时间"
+      },
+      "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间"
+    },
+    "retry": {
+      "title": "重试配置",
+      "count": {
+        "label": "单个渠道最大重试次数",
+        "placeholder": "请输入重试次数"
+      },
+      "ratelimitCooldown": {
+        "label": "429 冷却时间（秒）",
+        "hint": "渠道触发上游限流后，会在该冷却时间内跳过再次尝试。",
+        "placeholder": "请输入冷却时间"
+      },
+      "maxTotalAttempts": {
+        "label": "最大总尝试次数",
+        "hint": "限制一次请求在所有候选渠道上的总转发次数，0 表示不限制。",
+        "placeholder": "请输入总尝试次数"
+      }
+    },
+    "autoStrategy": {
+      "title": "智能选择策略",
+      "hint": "配置自动渠道选择策略。样本数不足的渠道优先探索，之后根据成功率选择。",
+      "minSamples": {
+        "label": "最小样本数",
+        "hint": "使用成功率选择前的最小请求数",
+        "placeholder": "10"
+      },
+      "timeWindow": {
+        "label": "时间窗口（秒）",
+        "hint": "计算成功率的时间窗口",
+        "placeholder": "300"
+      },
+      "sampleThreshold": {
+        "label": "样本阈值",
+        "hint": "滑动窗口保留的最大样本数",
+        "placeholder": "100"
+      },
+      "latencyWeight": {
+        "label": "延迟权重（0-100）",
+        "hint": "值越大，自动策略越偏向低延迟渠道；值越小，越偏向成功率。",
+        "placeholder": "30"
+      }
+    },
+    "aiRoute": {
+      "title": "AI 路由设置",
+      "badge": "指令栖息地",
+      "group": {
+        "label": "单分组 AI 路由默认目标分组",
+        "placeholder": "请选择默认目标分组",
+        "hint": "用于兼容单分组 AI 路由模式；路由页点击“AI路由”会直接生成整张路由表。"
+      },
+      "baseUrl": {
+        "label": "AI Base URL",
+        "placeholder": "请输入 OpenAI 兼容 Base URL"
+      },
+      "apiKey": {
+        "label": "AI API Key",
+        "placeholder": "请输入 AI API Key"
+      },
+      "model": {
+        "label": "AI 模型",
+        "placeholder": "请输入用于路由分析的模型名称"
+      },
+      "timeoutSeconds": {
+        "label": "AI 超时（秒）",
+        "placeholder": "请输入单次请求超时时间",
+        "hint": "用于单次 AI 路由分析请求。模型较慢或模型列表较大时可适当调大。"
+      },
+      "parallelism": {
+        "label": "批次并发数",
+        "placeholder": "请输入大于 0 的整数",
+        "hint": "控制 AI 路由 bucket 的最大并发分析数。默认 3，可自定义更高并发；实际执行不会超过当前任务批次数。"
+      },
+      "services": {
+        "label": "AI 服务池（JSON）",
+        "placeholder": "请输入 AI 服务配置 JSON 数组",
+        "hint": "留空或 [] 时继续使用上面的单服务配置；填写 JSON 数组后会启用多服务池和失败切换。",
+        "invalid": "AI 服务池 JSON 必须是数组"
+      }
+    },
+    "semanticCache": {
+      "title": "Semantic Cache",
+      "description": "在保持当前卡片布局的前提下，配置语义缓存运行参数和独立 embedding 服务。",
+      "enabled": {
+        "label": "启用语义缓存"
+      },
+      "ttl": {
+        "label": "缓存 TTL（秒）",
+        "placeholder": "请输入 TTL 秒数",
+        "hint": "缓存条目会在该时长后过期。"
+      },
+      "threshold": {
+        "label": "相似度阈值（0-100）",
+        "placeholder": "请输入相似度阈值",
+        "hint": "值越高，命中缓存前要求的语义相似度越接近。"
+      },
+      "maxEntries": {
+        "label": "最大条目数",
+        "placeholder": "请输入最大缓存条目数",
+        "hint": "达到上限后会优先淘汰较早的缓存条目。"
+      },
+      "embedding": {
+        "title": "Embedding 服务",
+        "description": "以下配置仅用于语义缓存的 embedding 请求，不与 AI Route 共用。"
+      },
+      "baseUrl": {
+        "label": "Embedding Base URL",
+        "placeholder": "请输入 OpenAI 兼容 embedding Base URL"
+      },
+      "apiKey": {
+        "label": "Embedding API Key",
+        "placeholder": "请输入 embedding API Key"
+      },
+      "model": {
+        "label": "Embedding 模型",
+        "placeholder": "请输入 embedding 模型名称"
+      },
+      "timeoutSeconds": {
+        "label": "Embedding 超时（秒）",
+        "placeholder": "请输入 embedding 请求超时时间",
+        "hint": "仅作用于语义缓存的 embedding 请求。"
+      }
+    },
+    "pageOrder": {
+      "title": "Page Order",
+      "description": "拖拽调整顶级页面顺序，松手后立即保存为全局配置。",
+      "reset": "恢复默认顺序",
+      "hint": "这里仅保存页面顺序设置，不改当前 navbar 的实际接入逻辑。"
+    },
+    "saved": "已保存",
+    "saveFailed": "保存失败",
+    "backup": {
+      "title": "备份 / 恢复",
+      "export": {
+        "title": "导出",
+        "includeLogs": "包含日志",
+        "includeStats": "包含统计",
+        "button": "下载 JSON",
+        "exporting": "导出中...",
+        "success": "开始导出"
+      },
+      "import": {
+        "title": "导入（增量）",
+        "selected": "已选择文件",
+        "button": "导入 JSON",
+        "importing": "导入中...",
+        "noFile": "请先选择 JSON 文件",
+        "success": "导入成功",
+        "failed": "导入失败",
+        "result": "导入结果"
+      }
+    },
+    "routeGroups": {
+      "title": "路由分组",
+      "description": "一次性删除全部路由分组及其路由项。此操作不可恢复。",
+      "count": "{count, plural, =0 {当前没有路由分组} other {当前共有 # 个路由分组}}",
+      "button": "删除全部路由分组",
+      "deleting": "删除中...",
+      "confirmTitle": "确认删除全部路由分组？",
+      "confirmDescription": "这会永久删除 {count, plural, =0 {全部路由分组} other {# 个路由分组}}及其路由项。\n单分组 AI 路由默认目标分组设置也会被重置。\n此操作不可恢复。\n是否继续？",
+      "cancel": "取消",
+      "confirm": "确认全部删除",
+      "success": "已删除 {count} 个路由分组",
+      "failed": "删除路由分组失败"
+    },
+    "apiKey": {
+      "title": "API 密钥",
+      "empty": "暂无 API 密钥",
+      "add": "添加密钥",
+      "loadFailed": "加载失败",
+      "form": {
+        "name": "名称",
+        "maxCost": "最大金额",
+        "maxCostPlaceholder": "请输入金额",
+        "rateLimitRpm": {
+          "label": "速率限制（RPM）",
+          "placeholder": "每分钟请求数，0 表示无限制"
+        },
+        "rateLimitTpm": {
+          "label": "速率限制（TPM）",
+          "placeholder": "每分钟 Token 数，0 表示无限制"
+        },
+        "perModelQuota": {
+          "label": "按模型配额（JSON）",
+          "placeholder": "{\"gpt-4o\":{\"rpm\":5,\"tpm\":50000}}"
+        },
+        "unlimited": "无限制",
+        "expireAt": "过期日期",
+        "expireTimePlaceholder": "HH:mm",
+        "selectDate": "选择日期",
+        "neverExpire": "永不过期",
+        "supportedModels": "支持的模型",
+        "noModels": "暂无可选模型",
+        "modelsHint": "不选择则为无限制",
+        "enabled": "是否启用",
         "cancel": "取消",
-        "deleteUser": "删除用户",
-        "cannotDeletePrimaryAdmin": "不能删除主管理员",
-        "confirmDelete": "确认删除该用户吗？此操作不可撤销。",
-        "roles": {
-            "admin": "管理员",
-            "editor": "编辑者",
-            "viewer": "只读者"
-        },
-        "create": {
-            "open": "新增用户",
-            "title": "创建用户",
-            "username": "用户名",
-            "usernamePlaceholder": "请输入用户名",
-            "password": "密码",
-            "passwordPlaceholder": "请输入密码",
-            "passwordHint": "密码长度至少 12 个字符。",
-            "role": "角色",
-            "submit": "创建用户",
-            "submitting": "创建中..."
-        },
-        "toast": {
-            "created": "用户已创建",
-            "createFailed": "创建用户失败",
-            "deleted": "用户已删除",
-            "roleUpdated": "角色已更新",
-            "actionFailed": "操作失败"
-        }
+        "create": "创建",
+        "save": "保存",
+        "confirm": "确认"
+      },
+      "stats": {
+        "noData": "暂无统计数据",
+        "inputToken": "输入 Token",
+        "outputToken": "输出 Token",
+        "inputCost": "输入费用",
+        "outputCost": "输出费用",
+        "requestSuccess": "成功请求",
+        "requestFailed": "失败请求"
+      },
+      "actions": {
+        "viewStats": "查看统计",
+        "edit": "编辑",
+        "close": "关闭"
+      },
+      "toast": {
+        "createSuccess": "API 密钥创建成功",
+        "createError": "API 密钥创建失败",
+        "updateSuccess": "API 密钥更新成功",
+        "updateError": "API 密钥更新失败",
+        "deleteSuccess": "API 密钥删除成功",
+        "deleteError": "API 密钥删除失败"
+      }
     },
-    "alert": {
-        "tabs": {
-            "rules": "规则",
-            "channels": "渠道",
-            "history": "历史"
-        },
-        "actions": {
-            "edit": "编辑",
-            "save": "保存",
-            "create": "创建",
-            "cancel": "取消"
-        },
-        "conditions": {
-            "cost_threshold": "成本阈值",
-            "error_rate": "错误率",
-            "quota_exceeded": "额度耗尽",
-            "channel_down": "渠道离线"
-        },
-        "channelTypes": {
-            "webhook": "Webhook"
-        },
-        "rules": {
-            "title": "告警规则",
-            "new": "新建规则",
-            "confirmDelete": "确认删除该规则吗？此操作不可撤销。",
-            "cooldown": "冷却 {seconds} 秒",
-            "form": {
-                "namePlaceholder": "规则名称",
-                "thresholdPlaceholder": "阈值",
-                "cooldownPlaceholder": "冷却秒数",
-                "noChannel": "不绑定渠道"
-            }
-        },
-        "channels": {
-            "title": "通知渠道",
-            "new": "新建渠道",
-            "confirmDelete": "确认删除该通知渠道吗？此操作不可撤销。",
-            "form": {
-                "namePlaceholder": "渠道名称",
-                "urlPlaceholder": "Webhook 地址",
-                "secretPlaceholder": "密钥（可选）"
-            }
-        },
-        "history": {
-            "title": "告警历史",
-            "empty": "暂无告警历史",
-            "messages": {
-                "triggered": "告警已触发",
-                "resolved": "告警已恢复"
-            }
-        },
-        "toast": {
-            "ruleCreated": "规则已创建",
-            "ruleUpdated": "规则已更新",
-            "ruleEnabled": "规则已启用",
-            "ruleDisabled": "规则已停用",
-            "channelCreated": "渠道已创建",
-            "channelUpdated": "渠道已更新",
-            "actionFailed": "操作失败"
-        }
+    "llmPrice": {
+      "title": "模型价格",
+      "updateInterval": {
+        "label": "自动更新间隔（小时）",
+        "placeholder": "请输入间隔（小时）"
+      },
+      "manualUpdate": {
+        "label": "手动更新价格",
+        "button": "立即更新",
+        "updating": "更新中..."
+      },
+      "lastUpdate": "上次更新",
+      "neverUpdated": "从未更新",
+      "updateSuccess": "价格更新成功",
+      "updateFailed": "价格更新失败"
     },
-    "toolbar": {
-        "popover": {
-            "ariaLabel": "视图选项",
-            "layout": "布局",
-            "sort": "排序",
-            "grid": "网格",
-            "list": "列表",
-            "nameAsc": "名称正序",
-            "nameDesc": "名称倒序",
-            "createdAsc": "时间正序",
-            "createdDesc": "时间倒序",
-            "asc": "升序",
-            "desc": "降序",
-            "filter": {
-                "title": "筛选",
-                "channel": {
-                    "all": "全部渠道",
-                    "enabled": "仅启用",
-                    "disabled": "仅禁用"
-                },
-                "group": {
-                    "all": "全部分组",
-                    "withMembers": "有成员",
-                    "empty": "空分组",
-                    "chat": "对话",
-                    "deepseek": "DeepSeek",
-                    "mimo": "Mimo",
-                    "responses": "对话",
-                    "messages": "对话",
-                    "embeddings": "Embeddings",
-                    "rerank": "Rerank",
-                    "moderations": "Moderations",
-                    "imageGeneration": "图片生成",
-                    "audioSpeech": "语音合成",
-                    "audioTranscription": "音频转写",
-                    "videoGeneration": "视频生成",
-                    "musicGeneration": "音乐生成",
-                    "search": "搜索"
-                },
-                "model": {
-                    "all": "全部模型",
-                    "priced": "仅收费",
-                    "free": "仅免费",
-                    "sort": {
-                        "title": "排序方式",
-                        "successRate": "按成功率",
-                        "requestCount": "按调用次数"
-                    }
-                }
-            }
-        }
+    "llmSync": {
+      "title": "渠道同步",
+      "syncInterval": {
+        "label": "自动同步间隔（小时）",
+        "placeholder": "请输入间隔（小时）"
+      },
+      "manualSync": {
+        "label": "手动同步渠道",
+        "button": "立即同步",
+        "syncing": "同步中..."
+      },
+      "lastSync": "上次同步",
+      "neverSynced": "从未同步",
+      "syncSuccess": "渠道同步成功",
+      "syncFailed": "渠道同步失败"
     },
-    "common": {
-        "copy": {
-            "button": "复制",
-            "success": "复制成功",
-            "failed": "复制失败",
-            "noContent": "无可复制内容"
-        },
-        "dialog": {
-            "open": "打开弹窗",
-            "close": "关闭弹窗"
-        },
-        "routeNotFound": "未找到路由：{route}"
+    "account": {
+      "title": "账户设置",
+      "save": "保存",
+      "saving": "保存中...",
+      "form": {
+        "cancel": "取消",
+        "save": "保存"
+      },
+      "username": {
+        "label": "修改用户名",
+        "placeholder": "请输入新用户名",
+        "empty": "用户名不能为空",
+        "success": "用户名修改成功",
+        "failed": "用户名修改失败"
+      },
+      "password": {
+        "label": "修改密码",
+        "oldPlaceholder": "请输入当前密码",
+        "newPlaceholder": "请输入新密码",
+        "confirmPlaceholder": "请确认新密码",
+        "showOld": "显示当前密码",
+        "hideOld": "隐藏当前密码",
+        "showNew": "显示新密码",
+        "hideNew": "隐藏新密码",
+        "showConfirm": "显示确认密码",
+        "hideConfirm": "隐藏确认密码",
+        "oldEmpty": "请输入当前密码",
+        "newEmpty": "请输入新密码",
+        "mismatch": "两次输入的密码不一致",
+        "tooShort": "密码长度至少为6位",
+        "change": "修改密码",
+        "success": "密码修改成功",
+        "failed": "密码修改失败"
+      },
+      "logout": {
+        "label": "退出当前登录",
+        "button": "退出登录"
+      }
     },
-    "home": {
-        "activity": {
-            "title": "活跃度热力图",
-            "description": "按日查看近一年的请求活跃分布，快速定位持续活跃或长期沉寂的时段。",
-            "requestCount": "请求次数",
-            "waitTime": "等待时间",
-            "totalToken": "消耗 Token",
-            "totalCost": "消耗费用",
-            "noData": "无数据"
-        },
-        "hero": {
-            "eyebrow": "个人中枢",
-            "title": "今日使用",
-            "subtitle": "",
-            "description": "",
-            "signals": {
-                "requests": "今日调用",
-                "successRate": "今日成功率",
-                "cost": "今日花费",
-                "channels": "可用渠道"
-            },
-            "metrics": {
-                "avgWait": "平均响应时延",
-                "successful": "成功调用",
-                "tokens": "消耗 Token",
-                "costPerRequest": "单次调用成本"
-            }
-        },
-        "overview": {
-            "badge": "中枢概览",
-            "title": "使用概览",
-            "description": "按周期查看调用规模、成功率、花费和覆盖情况。",
-            "empty": "当前范围内暂无概览数据",
-            "range": {
-                "7d": "7天",
-                "30d": "30天",
-                "90d": "90天"
-            },
-            "metrics": {
-                "requestCount": "请求次数",
-                "successRate": "成功率",
-                "totalTokens": "总 Token",
-                "totalCost": "总成本",
-                "providerCount": "供给源数",
-                "apiKeyCount": "API 密钥数",
-                "modelCount": "模型数",
-                "fallbackRate": "回退率"
-            }
-        },
-        "total": {
-            "requestStats": "请求统计",
-            "qualityStats": "质量统计",
-            "efficiencyStats": "效率统计",
-            "supplyStats": "供给统计",
-            "requestCount": "请求次数",
-            "timeConsumed": "消耗时间",
-            "successRate": "全局成功率",
-            "avgWaitTime": "平均请求耗时",
-            "avgCostPerRequest": "平均每请求成本",
-            "activeChannels": "活跃 Channel 数",
-            "totalToken": "消耗 Token",
-            "totalCost": "消耗费用",
-            "inputTokens": "输入 Tokens",
-            "inputCost": "输入费用",
-            "outputTokens": "输出 Tokens",
-            "outputCost": "输出费用"
-        },
-        "chart": {
-            "title": "趋势",
-            "totalRequests": "请求次数",
-            "totalCost": "消费金额",
-            "totalTokens": "Tokens 消耗",
-            "timePeriod": "时间周期",
-            "metricType": {
-                "cost": "金额",
-                "count": "次数",
-                "tokens": "Tokens",
-                "successRate": "成功率"
-            },
-            "successRate": "成功率",
-            "period": {
-                "today": "今天",
-                "last7Days": "7天",
-                "last30Days": "30天"
-            }
-        },
-        "rank": {
-            "title": "排行榜",
-            "sortByCost": "金额",
-            "sortByCount": "次数",
-            "sortByTokens": "Tokens",
-            "sortByKeyUsage": "Key 使用",
-            "loading": "加载中...",
-            "noData": "暂无排行数据",
-            "successRate": "成功率"
-        }
-    },
-    "setting": {
-        "appearance": "外观",
-        "system": "系统",
-        "theme": {
-            "label": "主题",
-            "light": "浅色",
-            "dark": "深色",
-            "system": "跟随系统"
-        },
-        "language": {
-            "label": "语言",
-            "zh_hans": "简体中文",
-            "zh_hant": "繁体中文",
-            "en": "English"
-        },
-        "alertLanguage": {
-            "label": "告警发送语言",
-            "zh_hans": "简体中文",
-            "zh_hant": "繁体中文",
-            "en": "English"
-        },
-        "proxyUrl": {
-            "label": "代理地址",
-            "placeholder": "请输入代理地址"
-        },
-        "publicApiBaseUrl": {
-            "label": "公开 API 基础地址",
-            "placeholder": "请输入公开 API 基础地址",
-            "hint": "用于生成 curl 示例和引导链接；留空则不展示这些辅助信息。"
-        },
-        "statsSaveInterval": {
-            "label": "统计保存周期（分钟）",
-            "placeholder": "请输入周期（分钟）"
-        },
-        "corsAllowOrigins": {
-            "label": "CORS 跨域白名单",
-            "hint": "为空禁止跨域，* 允许所有",
-            "example": "只允许指定域名: https://example.com,https://example2.com",
-            "removeAriaLabel": "移除 {origin}"
-        },
-        "circuitBreaker": {
-            "title": "熔断器配置",
-            "threshold": {
-                "label": "熔断触发阈值（连续失败次数）",
-                "placeholder": "请输入阈值"
-            },
-            "cooldown": {
-                "label": "基础冷却时间（秒）",
-                "placeholder": "请输入冷却时间"
-            },
-            "maxCooldown": {
-                "label": "最大冷却时间（秒）",
-                "placeholder": "请输入最大冷却时间"
-            },
-            "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间"
-        },
-        "retry": {
-            "title": "重试配置",
-            "count": {
-                "label": "单个渠道最大重试次数",
-                "placeholder": "请输入重试次数"
-            },
-            "ratelimitCooldown": {
-                "label": "429 冷却时间（秒）",
-                "hint": "渠道触发上游限流后，会在该冷却时间内跳过再次尝试。",
-                "placeholder": "请输入冷却时间"
-            },
-            "maxTotalAttempts": {
-                "label": "最大总尝试次数",
-                "hint": "限制一次请求在所有候选渠道上的总转发次数，0 表示不限制。",
-                "placeholder": "请输入总尝试次数"
-            }
-        },
-        "autoStrategy": {
-            "title": "智能选择策略",
-            "hint": "配置自动渠道选择策略。样本数不足的渠道优先探索，之后根据成功率选择。",
-            "minSamples": {
-                "label": "最小样本数",
-                "hint": "使用成功率选择前的最小请求数",
-                "placeholder": "10"
-            },
-            "timeWindow": {
-                "label": "时间窗口（秒）",
-                "hint": "计算成功率的时间窗口",
-                "placeholder": "300"
-            },
-            "sampleThreshold": {
-                "label": "样本阈值",
-                "hint": "滑动窗口保留的最大样本数",
-                "placeholder": "100"
-            },
-            "latencyWeight": {
-                "label": "延迟权重（0-100）",
-                "hint": "值越大，自动策略越偏向低延迟渠道；值越小，越偏向成功率。",
-                "placeholder": "30"
-            }
-        },
-        "aiRoute": {
-            "title": "AI 路由设置",
-            "group": {
-                "label": "单分组 AI 路由默认目标分组",
-                "placeholder": "请选择默认目标分组",
-                "hint": "用于兼容单分组 AI 路由模式；路由页点击“AI路由”会直接生成整张路由表。"
-            },
-            "baseUrl": {
-                "label": "AI Base URL",
-                "placeholder": "请输入 OpenAI 兼容 Base URL"
-            },
-            "apiKey": {
-                "label": "AI API Key",
-                "placeholder": "请输入 AI API Key"
-            },
-            "model": {
-                "label": "AI 模型",
-                "placeholder": "请输入用于路由分析的模型名称"
-            },
-            "timeoutSeconds": {
-                "label": "AI 超时（秒）",
-                "placeholder": "请输入单次请求超时时间",
-                "hint": "用于单次 AI 路由分析请求。模型较慢或模型列表较大时可适当调大。"
-            },
-            "parallelism": {
-                "label": "批次并发数",
-                "placeholder": "请输入大于 0 的整数",
-                "hint": "控制 AI 路由 bucket 的最大并发分析数。默认 3，可自定义更高并发；实际执行不会超过当前任务批次数。"
-            },
-            "services": {
-                "label": "AI 服务池（JSON）",
-                "placeholder": "请输入 AI 服务配置 JSON 数组",
-                "hint": "留空或 [] 时继续使用上面的单服务配置；填写 JSON 数组后会启用多服务池和失败切换。",
-                "invalid": "AI 服务池 JSON 必须是数组"
-            }
-        },
-        "semanticCache": {
-            "title": "Semantic Cache",
-            "description": "在保持当前卡片布局的前提下，配置语义缓存运行参数和独立 embedding 服务。",
-            "enabled": {
-                "label": "启用语义缓存"
-            },
-            "ttl": {
-                "label": "缓存 TTL（秒）",
-                "placeholder": "请输入 TTL 秒数",
-                "hint": "缓存条目会在该时长后过期。"
-            },
-            "threshold": {
-                "label": "相似度阈值（0-100）",
-                "placeholder": "请输入相似度阈值",
-                "hint": "值越高，命中缓存前要求的语义相似度越接近。"
-            },
-            "maxEntries": {
-                "label": "最大条目数",
-                "placeholder": "请输入最大缓存条目数",
-                "hint": "达到上限后会优先淘汰较早的缓存条目。"
-            },
-            "embedding": {
-                "title": "Embedding 服务",
-                "description": "以下配置仅用于语义缓存的 embedding 请求，不与 AI Route 共用。"
-            },
-            "baseUrl": {
-                "label": "Embedding Base URL",
-                "placeholder": "请输入 OpenAI 兼容 embedding Base URL"
-            },
-            "apiKey": {
-                "label": "Embedding API Key",
-                "placeholder": "请输入 embedding API Key"
-            },
-            "model": {
-                "label": "Embedding 模型",
-                "placeholder": "请输入 embedding 模型名称"
-            },
-            "timeoutSeconds": {
-                "label": "Embedding 超时（秒）",
-                "placeholder": "请输入 embedding 请求超时时间",
-                "hint": "仅作用于语义缓存的 embedding 请求。"
-            }
-        },
-        "pageOrder": {
-            "title": "Page Order",
-            "description": "拖拽调整顶级页面顺序，松手后立即保存为全局配置。",
-            "reset": "恢复默认顺序",
-            "hint": "这里仅保存页面顺序设置，不改当前 navbar 的实际接入逻辑。"
-        },
-        "saved": "已保存",
-        "saveFailed": "保存失败",
-        "backup": {
-            "title": "备份 / 恢复",
-            "export": {
-                "title": "导出",
-                "includeLogs": "包含日志",
-                "includeStats": "包含统计",
-                "button": "下载 JSON",
-                "exporting": "导出中...",
-                "success": "开始导出"
-            },
-            "import": {
-                "title": "导入（增量）",
-                "selected": "已选择文件",
-                "button": "导入 JSON",
-                "importing": "导入中...",
-                "noFile": "请先选择 JSON 文件",
-                "success": "导入成功",
-                "failed": "导入失败",
-                "result": "导入结果"
-            }
-        },
-        "routeGroups": {
-            "title": "路由分组",
-            "description": "一次性删除全部路由分组及其路由项。此操作不可恢复。",
-            "count": "{count, plural, =0 {当前没有路由分组} other {当前共有 # 个路由分组}}",
-            "button": "删除全部路由分组",
-            "deleting": "删除中...",
-            "confirmTitle": "确认删除全部路由分组？",
-            "confirmDescription": "这会永久删除 {count, plural, =0 {全部路由分组} other {# 个路由分组}}及其路由项。\n单分组 AI 路由默认目标分组设置也会被重置。\n此操作不可恢复。\n是否继续？",
-            "cancel": "取消",
-            "confirm": "确认全部删除",
-            "success": "已删除 {count} 个路由分组",
-            "failed": "删除路由分组失败"
-        },
-        "apiKey": {
-            "title": "API 密钥",
-            "empty": "暂无 API 密钥",
-            "add": "添加密钥",
-            "loadFailed": "加载失败",
-            "form": {
-                "name": "名称",
-                "maxCost": "最大金额",
-                "maxCostPlaceholder": "请输入金额",
-                "rateLimitRpm": {
-                    "label": "速率限制（RPM）",
-                    "placeholder": "每分钟请求数，0 表示无限制"
-                },
-                "rateLimitTpm": {
-                    "label": "速率限制（TPM）",
-                    "placeholder": "每分钟 Token 数，0 表示无限制"
-                },
-                "perModelQuota": {
-                    "label": "按模型配额（JSON）",
-                    "placeholder": "{\"gpt-4o\":{\"rpm\":5,\"tpm\":50000}}"
-                },
-                "unlimited": "无限制",
-                "expireAt": "过期日期",
-                "expireTimePlaceholder": "HH:mm",
-                "selectDate": "选择日期",
-                "neverExpire": "永不过期",
-                "supportedModels": "支持的模型",
-                "noModels": "暂无可选模型",
-                "modelsHint": "不选择则为无限制",
-                "enabled": "是否启用",
-                "cancel": "取消",
-                "create": "创建",
-                "save": "保存",
-                "confirm": "确认"
-            },
-            "stats": {
-                "noData": "暂无统计数据",
-                "inputToken": "输入 Token",
-                "outputToken": "输出 Token",
-                "inputCost": "输入费用",
-                "outputCost": "输出费用",
-                "requestSuccess": "成功请求",
-                "requestFailed": "失败请求"
-            },
-            "actions": {
-                "viewStats": "查看统计",
-                "edit": "编辑",
-                "close": "关闭"
-            },
-            "toast": {
-                "createSuccess": "API 密钥创建成功",
-                "createError": "API 密钥创建失败",
-                "updateSuccess": "API 密钥更新成功",
-                "updateError": "API 密钥更新失败",
-                "deleteSuccess": "API 密钥删除成功",
-                "deleteError": "API 密钥删除失败"
-            }
-        },
-        "llmPrice": {
-            "title": "模型价格",
-            "updateInterval": {
-                "label": "自动更新间隔（小时）",
-                "placeholder": "请输入间隔（小时）"
-            },
-            "manualUpdate": {
-                "label": "手动更新价格",
-                "button": "立即更新",
-                "updating": "更新中..."
-            },
-            "lastUpdate": "上次更新",
-            "neverUpdated": "从未更新",
-            "updateSuccess": "价格更新成功",
-            "updateFailed": "价格更新失败"
-        },
-        "llmSync": {
-            "title": "渠道同步",
-            "syncInterval": {
-                "label": "自动同步间隔（小时）",
-                "placeholder": "请输入间隔（小时）"
-            },
-            "manualSync": {
-                "label": "手动同步渠道",
-                "button": "立即同步",
-                "syncing": "同步中..."
-            },
-            "lastSync": "上次同步",
-            "neverSynced": "从未同步",
-            "syncSuccess": "渠道同步成功",
-            "syncFailed": "渠道同步失败"
-        },
-        "account": {
-            "title": "账户设置",
-            "save": "保存",
-            "saving": "保存中...",
-            "form": {
-                "cancel": "取消",
-                "save": "保存"
-            },
-            "username": {
-                "label": "修改用户名",
-                "placeholder": "请输入新用户名",
-                "empty": "用户名不能为空",
-                "success": "用户名修改成功",
-                "failed": "用户名修改失败"
-            },
-            "password": {
-                "label": "修改密码",
-                "oldPlaceholder": "请输入当前密码",
-                "newPlaceholder": "请输入新密码",
-                "confirmPlaceholder": "请确认新密码",
-                "showOld": "显示当前密码",
-                "hideOld": "隐藏当前密码",
-                "showNew": "显示新密码",
-                "hideNew": "隐藏新密码",
-                "showConfirm": "显示确认密码",
-                "hideConfirm": "隐藏确认密码",
-                "oldEmpty": "请输入当前密码",
-                "newEmpty": "请输入新密码",
-                "mismatch": "两次输入的密码不一致",
-                "tooShort": "密码长度至少为6位",
-                "change": "修改密码",
-                "success": "密码修改成功",
-                "failed": "密码修改失败"
-            },
-            "logout": {
-                "label": "退出当前登录",
-                "button": "退出登录"
-            }
-        },
-        "info": {
-            "title": "版本信息",
-            "currentVersion": "当前版本",
-            "latestVersion": "最新版本",
-            "buildTime": "构建时间",
-            "publishedAt": "发布时间",
-            "github": "GitHub 仓库",
-            "unknown": "未知",
-            "versionMismatch": "版本不匹配",
-            "versionMismatchHint": "前端版本 ({frontend}) 与后端版本 ({backend}) 不一致，可能是浏览器缓存问题，请强制刷新页面。",
-            "forceRefresh": "强制刷新",
-            "newVersionAvailable": "发现新版本可用",
-            "newVersionAvailableHint": "请先备份数据，然后更新系统",
-            "updateNow": "立即更新",
-            "updating": "更新中...",
-            "updateSuccess": "更新成功，服务即将重启",
-            "updateFailed": "更新失败"
-        },
-        "log": {
-            "title": "日志设置",
-            "enabled": {
-                "label": "启用历史日志"
-            },
-            "keepPeriod": {
-                "label": "日志保存天数",
-                "placeholder": "请输入天数"
-            },
-            "clear": {
-                "label": "清空历史日志",
-                "button": "清空",
-                "clearing": "清空中..."
-            },
-            "clearSuccess": "日志已清空",
-            "clearFailed": "清空失败"
-        },
-        "navOrder": {
-            "title": "页面顺序与显示",
-            "description": "拖拽调整导航页面顺序，可隐藏非关键页面；设置页面固定显示。",
-            "reset": "恢复默认",
-            "resetSuccess": "页面顺序已恢复默认",
-            "visible": "显示中",
-            "hidden": "已隐藏",
-            "fixed": "固定保留",
-            "minimumVisibleHint": "最少保留 {count} 个页面；设置页面不可隐藏。",
-            "minimumVisibleError": "最少需要保留 {count} 个页面",
-            "toggleAriaLabel": "切换页面显示状态：{page}"
-        }
-    },
-    "group": {
-        "endpointType": {
-            "label": "API 分类",
-            "all": "全部",
-            "chat": "对话",
-            "deepseek": "DeepSeek",
-            "mimo": "Mimo",
-            "embeddings": "向量嵌入",
-            "rerank": "重排序",
-            "moderations": "内容审查",
-            "imageGeneration": "图片生成",
-            "audioSpeech": "语音合成",
-            "audioTranscription": "音频转写",
-            "videoGeneration": "视频生成",
-            "musicGeneration": "音乐生成",
-            "search": "搜索"
-        },
-        "toast": {
-            "created": "创建成功",
-            "createFailed": "创建失败",
-            "updated": "更新成功",
-            "updateFailed": "更新失败",
-            "deleted": "删除成功",
-            "autoGroupSuccess": "自动分组完成，已创建 {created} 个分组，跳过 {skipped} 个已存在分组",
-            "autoGroupSuccessDescription": "扫描到 {models} 个模型，识别出 {candidates} 个候选分组，创建 {created} 个，跳过 {skippedExisting} 个已存在分组，跳过 {skippedCovered} 个已覆盖模型",
-            "autoGroupFailed": "自动分组失败",
-            "aiRouteTableSuccess": "AI路由生成成功，共生成 {routes} 个模型路由，影响 {groups} 个分组，写入 {items} 个路由项",
-            "aiRouteGroupSuccess": "AI路由同步成功，共生成 {routes} 个模型路由，更新当前分组中的 {items} 个路由项",
-            "aiRouteFailed": "AI路由生成失败",
-            "aiRouteEmptyResult": "AI 路由结果为空",
-            "aiRouteMissingGroup": "请先在设置中选择单分组 AI 路由默认目标分组",
-            "removedFailedModels": "已移除检测失败模型",
-            "autoAddFailed": "自动添加失败",
-            "testAllPassed": "分组内模型均可用",
-            "testPartialFailed": "部分模型不可用",
-            "testPartialFailedDescription": "检测失败的模型建议移除",
-            "testRequestFailed": "分组检测失败",
-            "removableSuggestion": "可考虑移除"
-        },
-        "actions": {
-            "autoGroup": "自动分组",
-            "aiRoute": "AI路由",
-            "aiRouteGroup": "AI同步当前分组",
-            "aiRouteProgress": "查看进度"
-        },
-        "autoGroup": {
-            "confirmTitle": "确认自动分组",
-            "confirmDescription": "将自动扫描所有渠道模型，并根据模型归一化规则为未覆盖模型创建分组。\n不会修改已有分组，也不会删除已有分组。\n是否继续？",
-            "submit": "开始自动分组",
-            "submitting": "自动分组中..."
-        },
-        "aiRoute": {
-            "table": {
-                "confirmTitle": "确认生成整张 AI 路由表",
-                "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果批量生成整张路由表。\n已存在同名分组会同步路由项，并移除未命中的旧路由项；其他分组不会被删除。\n是否继续？",
-                "submit": "开始生成路由表",
-                "submitting": "AI路由生成中..."
-            },
-            "group": {
-                "confirmTitle": "确认 AI 同步当前分组",
-                "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果同步当前分组的路由项。\n未命中的旧路由项会被移除；相同路由项会按最新优先级和权重更新。\n是否继续？",
-                "submit": "开始同步当前分组",
-                "submitting": "AI路由同步中..."
-            },
-            "progress": {
-                "title": "AI 路由任务进度",
-                "description": {
-                    "table": "正在生成整张 AI 路由表，你可以随时关闭弹窗，稍后再回来查看。",
-                    "group": "正在同步当前分组的 AI 路由，你可以随时关闭弹窗，稍后再回来查看。"
-                },
-                "loading": "正在读取任务进度...",
-                "close": "关闭",
-                "batchProgress": "已完成 {completed}/{total} 批",
-                "lastUpdated": "状态更新时间：{time}",
-                "lastHeartbeat": "心跳时间：{time}",
-                "heartbeatStale": "后端心跳暂时未更新，可能仍在等待 AI 返回",
-                "currentBatch": "活跃批次",
-                "recentBatch": "最近活跃批次",
-                "activeBatches": "活跃批次",
-                "activeBatchCount": "{count} 个活跃批次",
-                "batchLabel": "第 {index}/{total} 批",
-                "batchCapability": "能力类型",
-                "batchModels": "本批模型数",
-                "batchChannels": "涉及渠道数",
-                "batchService": "分析服务",
-                "batchAttempt": "尝试次数",
-                "channelList": "渠道处理进度",
-                "channelSections": {
-                    "running": "当前活跃",
-                    "completed": "已完成",
-                    "pending": "待处理",
-                    "failed": "失败",
-                    "empty": {
-                        "running": "当前没有活跃渠道",
-                        "completed": "当前还没有已完成渠道",
-                        "pending": "当前没有待处理渠道",
-                        "failed": "当前没有失败渠道"
-                    }
-                },
-                "channelModels": "已处理 {completed}/{total} 个模型",
-                "result": {
-                    "groupSummary": "AI 路由同步完成，共生成 {routes} 条路由，更新 {items} 个路由项。",
-                    "tableSummary": "AI 路由表生成完成，共生成 {routes} 条路由，影响 {groups} 个分组，写入 {items} 个路由项。"
-                },
-                "status": {
-                    "queued": "排队中",
-                    "running": "执行中",
-                    "completed": "已完成",
-                    "failed": "失败",
-                    "timeout": "超时"
-                },
-                "steps": {
-                    "queued": "任务已创建",
-                    "collecting_models": "收集渠道和模型",
-                    "building_batches": "规划分析批次",
-                    "analyzing_batches": "等待 AI 分析",
-                    "parsing_response": "解析 AI 返回结果",
-                    "validating_routes": "校验候选路由",
-                    "writing_groups": "写入分组和路由项",
-                    "finalizing": "任务收尾中",
-                    "completed": "任务完成",
-                    "failed": "任务失败",
-                    "timeout": "任务超时"
-                },
-                "channelStatus": {
-                    "pending": "待处理",
-                    "running": "处理中",
-                    "completed": "已完成",
-                    "failed": "失败"
-                },
-                "batchStatus": {
-                    "running": "分析中",
-                    "parsing": "解析中",
-                    "retrying": "重试中",
-                    "failed": "失败",
-                    "completed": "已完成"
-                },
-                "summary": {
-                    "totalChannels": "总渠道数",
-                    "completedChannels": "已完成渠道",
-                    "runningChannels": "活跃渠道",
-                    "pendingChannels": "待处理渠道",
-                    "failedChannels": "失败渠道",
-                    "modelsProgress": "模型处理进度"
-                },
-                "channelFallbackName": "渠道 {id}",
-                "runtime": {
-                    "taskCreated": "AI 路由任务已创建，等待开始。",
-                    "taskCompleted": "AI 路由生成完成。",
-                    "taskTimeout": "AI 路由任务超时，请稍后重试。",
-                    "collectedModels": "已收集 {channels} 个渠道，共 {models} 个模型。",
-                    "plannedSingleBatch": "已完成批次规划，准备开始 AI 分析。",
-                    "plannedBatches": "已完成批次规划，共拆分为 {batches} 批。",
-                    "waitingBatchResult": "正在等待第 {index}/{total} 批 AI 返回结果（{endpoint}，涉及 {channels} 个渠道 / {models} 个模型）。",
-                    "parallelAnalyzing": "正在并发分析 {active} 个批次，最近启动第 {index}/{total} 批（{endpoint}，涉及 {channels} 个渠道 / {models} 个模型）。",
-                    "batchRetrying": "第 {index}/{total} 批分析失败，正在切换其他服务重试。",
-                    "batchRetryingWithReason": "第 {index}/{total} 批分析失败，正在切换其他服务重试：{reason}",
-                    "batchParsing": "AI 已返回第 {index}/{total} 批结果，正在解析和校验。",
-                    "batchCompletedWithActive": "第 {index}/{total} 批已完成，当前还有 {active} 个活跃批次。",
-                    "batchCompletedWaitingNext": "第 {index}/{total} 批已完成，等待启动下一批。",
-                    "allBatchesCompleted": "全部批次分析完成，准备校验路由结果。",
-                    "batchFailedIndexed": "第 {index}/{total} 批失败。",
-                    "batchFailedIndexedWithReason": "第 {index}/{total} 批失败：{reason}",
-                    "validatingRoutes": "正在校验 AI 返回的 {routes} 条候选路由。",
-                    "validatingRoutesGeneric": "正在校验 AI 返回的候选路由。",
-                    "writingCurrentGroup": "正在写入当前分组。",
-                    "writingNamedGroup": "正在写入分组 \"{group}\"。",
-                    "writingRoute": "正在写入第 {index}/{total} 条路由。",
-                    "writingNamedRoute": "正在写入路由 \"{route}\"（{index}/{total}）。",
-                    "finalizing": "正在收尾。",
-                    "finalizingCustom": "{message}",
-                    "channelAnalyzingEndpoint": "正在分析 {endpoint} 模型。",
-                    "channelAnalyzing": "正在分析。",
-                    "channelCompleted": "已完成。",
-                    "channelFailedWithReason": "渠道处理失败：{reason}",
-                    "partialFailure": "AI 路由部分失败，但已保留成功写入的 {success_groups} 个分组：{cause}",
-                    "channelFailed": "当前渠道处理失败。",
-                    "batchFailed": "当前批次失败。"
-                }
-            }
-        },
-        "create": {
-            "title": "创建分组",
-            "submit": "创建",
-            "submitting": "创建中..."
-        },
-        "card": {
-            "empty": "暂无规则",
-            "modelCount": "{count} 个模型",
-            "testProgressTitle": "检测进度",
-            "testProgressCount": "已完成 {completed}/{total}",
-            "testPending": "待检测",
-            "testPassed": "检测通过",
-            "testFailedTitle": "以下模型连续检测失败 3 次，可考虑移除",
-            "testAttempts": "已重试 {count} 次",
-            "testUnknownError": "未知错误",
-            "testRemovableHint": "你可以编辑该分组并移除上面这些模型。",
-            "endpointType": "API 分类：{value}"
-        },
-        "detail": {
-            "actions": {
-                "edit": "编辑",
-                "cancel": "取消",
-                "save": "保存",
-                "copyName": "复制名称",
-                "delete": "删除",
-                "confirmDelete": "确认删除",
-                "testAvailability": "检测可用功能",
-                "removeFailedModels": "移除失败模型"
-            }
-        },
-        "form": {
-            "name": "分组名称",
-            "matchRegex": "匹配正则",
-            "matchRegexPlaceholder": "留空则默认按分组名称模糊匹配",
-            "matchRegexInvalid": "正则无效",
-            "searchAriaLabel": "搜索模型",
-            "firstTokenTimeOut": "首字超时",
-            "firstTokenTimeOutHint": "单位秒，仅流式响应起效，0 表示不限制",
-            "sessionKeepTime": "会话保持",
-            "sessionKeepTimeHint": "单位秒，会话期间保持使用同一渠道，0 表示禁用",
-            "condition": {
-                "label": "条件匹配（JSON）",
-                "hint": "JSON 规则数组。留空表示始终匹配。",
-                "example": "示例：[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]",
-                "placeholder": "[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]"
-            },
-            "items": "已选模型",
-            "addItem": "添加模型",
-            "autoAdd": "自动添加",
-            "clear": "清空",
-            "selectChannel": "渠道",
-            "selectModel": "模型",
-            "endpointType": {
-                "label": "API 分类",
-                "options": {
-                    "all": "全部",
-                    "chat": "对话",
-                    "deepseek": "DeepSeek",
-                    "mimo": "Mimo",
-                    "embeddings": "Embeddings",
-                    "rerank": "Rerank",
-                    "moderations": "Moderations",
-                    "imageGeneration": "图片生成",
-                    "audioSpeech": "语音合成",
-                    "audioTranscription": "音频转写",
-                    "videoGeneration": "视频生成",
-                    "musicGeneration": "音乐生成",
-                    "search": "搜索"
-                }
-            }
-        },
-        "mode": {
-            "roundRobin": "轮询",
-            "random": "随机",
-            "failover": "故障转移",
-            "weighted": "加权分配",
-            "auto": "智能选择"
-        },
-        "capability": {
-            "chat": "对话",
-            "embeddings": "向量嵌入",
-            "rerank": "重排序",
-            "moderation": "内容审查",
-            "imageGeneration": "图像生成",
-            "audioSpeech": "语音合成",
-            "audioTranscription": "语音转写",
-            "videoGeneration": "视频生成",
-            "musicGeneration": "音乐生成",
-            "search": "搜索"
-        },
-        "empty": "暂无分组，点击左上角按钮创建",
-        "emptyState": {
-            "title": "暂无分组",
-            "description": "你可以手动新建分组，或使用自动分组 / AI路由快速生成。"
-        }
-    },
-    "model": {
-        "loading": "加载模型广场中...",
-        "empty": "当前没有匹配的模型",
-        "create": {
-            "title": "创建模型",
-            "name": "模型名称",
-            "input": "输入价格",
-            "output": "输出价格",
-            "cacheRead": "缓存读取",
-            "cacheWrite": "缓存写入",
-            "submit": "创建",
-            "submitting": "创建中..."
-        },
-        "summary": {
-            "title": "模型广场",
-            "description": "集中查看模型价格、覆盖渠道、可用 key 与运行表现，保留原有价格维护能力。",
-            "modelCount": "模型数",
-            "coverage": "覆盖渠道数",
-            "uniqueChannels": "唯一渠道数",
-            "averageLatency": "平均延迟",
-            "lastUpdate": "价格更新时间",
-            "neverUpdated": "尚未更新",
-            "refresh": "刷新价格",
-            "refreshing": "刷新中...",
-            "refreshSuccess": "价格刷新成功",
-            "refreshFailed": "价格刷新失败"
-        },
-        "toast": {
-            "updated": "模型价格已更新",
-            "updateFailed": "更新失败",
-            "deleted": "模型已删除",
-            "deleteFailed": "删除失败"
-        },
-        "card": {
-            "inputCache": "输入/缓存",
-            "outputCache": "输出/缓存",
-            "edit": "编辑",
-            "delete": "删除",
-            "requests": "请求数",
-            "channels": "渠道",
-            "keys": "Key 数",
-            "latency": "延迟",
-            "successRate": "成功率",
-            "expand": "展开详情",
-            "collapse": "收起详情"
-        },
-        "detail": {
-            "pricing": "价格信息",
-            "runtime": "运行统计",
-            "channels": "渠道明细",
-            "requestSuccess": "成功请求",
-            "requestFailed": "失败请求",
-            "noChannels": "当前没有覆盖渠道",
-            "enabled": "已启用",
-            "disabled": "已停用",
-            "keyCount": "Key"
-        },
-        "overlay": {
-            "cancel": "取消",
-            "deleting": "删除中...",
-            "confirmDelete": "确认删除",
-            "input": "输入",
-            "output": "输出",
-            "cacheRead": "缓存读取",
-            "cacheWrite": "缓存写入",
-            "save": "保存"
-        }
+    "info": {
+      "title": "版本信息",
+      "currentVersion": "当前版本",
+      "latestVersion": "最新版本",
+      "buildTime": "构建时间",
+      "publishedAt": "发布时间",
+      "github": "GitHub 仓库",
+      "unknown": "未知",
+      "versionMismatch": "版本不匹配",
+      "versionMismatchHint": "前端版本 ({frontend}) 与后端版本 ({backend}) 不一致，可能是浏览器缓存问题，请强制刷新页面。",
+      "forceRefresh": "强制刷新",
+      "newVersionAvailable": "发现新版本可用",
+      "newVersionAvailableHint": "请先备份数据，然后更新系统",
+      "updateNow": "立即更新",
+      "updating": "更新中...",
+      "updateSuccess": "更新成功，服务即将重启",
+      "updateFailed": "更新失败"
     },
     "log": {
-        "actions": {
-            "refresh": "刷新日志",
-            "refreshSuccess": "日志已刷新",
-            "refreshFailed": "日志刷新失败"
-        },
-        "list": {
-            "noMore": "没有更多日志了"
-        },
-        "card": {
-            "error": "错误",
-            "errorInfo": "错误信息",
-            "firstToken": "首字",
-            "totalTime": "总耗时",
-            "input": "输入",
-            "output": "输出",
-            "cost": "费用",
-            "requestContent": "请求内容",
-            "responseContent": "响应内容",
-            "noRequestContent": "(无请求内容)",
-            "noResponseContent": "(无响应内容)",
-            "firstTokenTime": "首字时间",
-            "tokens": "tokens",
-            "retryDetails": "重试详情",
-            "attempts": "次尝试",
-            "success": "成功",
-            "failed": "失败"
-        }
+      "title": "日志设置",
+      "enabled": {
+        "label": "启用历史日志"
+      },
+      "keepPeriod": {
+        "label": "日志保存天数",
+        "placeholder": "请输入天数"
+      },
+      "clear": {
+        "label": "清空历史日志",
+        "button": "清空",
+        "clearing": "清空中..."
+      },
+      "clearSuccess": "日志已清空",
+      "clearFailed": "清空失败"
     },
-    "channel": {
-        "card": {
-            "requestCount": "请求次数",
-            "totalCost": "总成本",
-            "toast": {
-                "enabled": "渠道已启用",
-                "disabled": "渠道已禁用"
-            }
-        },
-        "detail": {
-            "title": {
-                "edit": "编辑渠道",
-                "view": "渠道详情"
-            },
-            "sections": {
-                "requests": "请求详情",
-                "tokens": "Token 使用",
-                "costs": "成本详情",
-                "baseUrls": "Base URLs",
-                "keys": "密钥",
-                "ccSwitch": "CC Switch"
-            },
-            "noBaseUrls": "暂无 Base URL",
-            "noKeys": "暂无密钥",
-            "ccSwitch": {
-                "description": "基于当前渠道配置生成可导入到 CC Switch 的深链接。",
-                "publicApiBase": "公开 API 地址",
-                "upstreamBase": "上游地址",
-                "apiKey": "API Key",
-                "missingPublicApiBaseUrl": "请先在系统设置中填写公开 API 基础地址。",
-                "missingKey": "请先为该渠道配置至少一个已启用的 API Key。"
-            },
-            "metrics": {
-                "totalRequests": "总请求",
-                "totalToken": "总 Token",
-                "totalCost": "总成本",
-                "successRequests": "成功请求",
-                "failedRequests": "失败请求",
-                "inputToken": "输入 Token",
-                "outputToken": "输出 Token",
-                "inputCost": "输入成本",
-                "outputCost": "输出成本",
-                "avgWaitTime": "等待时间"
-            },
-            "actions": {
-                "edit": "编辑",
-                "cancel": "取消",
-                "save": "保存",
-                "saving": "保存中...",
-                "delete": "删除",
-                "confirmDelete": "确认删除",
-                "deleting": "删除中..."
-            }
-        },
-        "create": {
-            "dialogTitle": "创建新渠道",
-            "submit": "创建渠道",
-            "submitting": "创建中..."
-        },
-        "form": {
-            "add": "添加",
-            "name": "渠道名称",
-            "type": "渠道类型",
-            "baseUrls": "Base URLs",
-            "baseUrlUrl": "地址",
-            "baseUrlDelay": "延迟(ms)",
-            "advanced": "高级设置",
-            "apiKey": "API Key",
-            "customHeader": "自定义 Header",
-            "customHeaderKey": "Header Key",
-            "customHeaderValue": "Header Value",
-            "customHeaderAdd": "添加 Header",
-            "channelProxy": "渠道代理",
-            "channelProxyPlaceholder": "可选：仅对该渠道生效（覆盖全局代理）",
-            "paramOverride": "参数覆盖",
-            "paramOverridePlaceholder": "可选：JSON 字符串，用于覆盖请求参数",
-            "requestRewrite": "请求重写",
-            "requestRewriteHint": "可选：为格式更严格的上游开启兼容性请求重写",
-            "requestRewriteEnabled": "启用重写",
-            "requestRewriteProfile": "重写配置",
-            "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat 兼容",
-            "requestRewriteToolRoleStrategy": "Tool 角色策略",
-            "requestRewriteSystemMessageStrategy": "System 消息策略",
-            "requestRewriteStrategyKeep": "保留",
-            "requestRewriteStrategyStringifyToUser": "转成 User 文本",
-            "requestRewriteStrategyMerge": "合并",
-            "model": "模型",
-            "enabled": "启用",
-            "proxy": "使用代理",
-            "modelCustomPlaceholder": "自定义模型名称",
-            "modelAdd": "添加",
-            "modelRefresh": "刷新",
-            "modelRefreshSuccess": "模型列表获取成功",
-            "modelRefreshFailed": "模型列表获取失败",
-            "modelRefreshEmpty": "未获取到模型列表",
-            "modelSelected": "已选模型",
-            "modelNoSelected": "暂未选择模型",
-            "modelClearAll": "清除全部",
-            "template": {
-                "label": "内置供应商模板",
-                "hint": "一键预填常见供应商配置",
-                "options": {
-                    "openai": {
-                        "description": "OpenAI Chat 官方接口"
-                    },
-                    "openaiResponses": {
-                        "description": "OpenAI Responses API"
-                    },
-                    "anthropic": {
-                        "description": "Claude 官方接口"
-                    },
-                    "gemini": {
-                        "description": "Google Gemini 官方接口"
-                    },
-                    "deepseek": {
-                        "description": "DeepSeek OpenAI 兼容接口"
-                    },
-                    "openrouter": {
-                        "description": "OpenRouter 聚合接口"
-                    },
-                    "siliconflow": {
-                        "description": "硅基流动 OpenAI 兼容接口"
-                    },
-                    "volcengine": {
-                        "description": "火山引擎 Ark 接口"
-                    },
-                    "mimo": {
-                        "description": "小米 Mimo OpenAI 兼容接口"
-                    }
-                },
-                "descriptions": {
-                    "openai": "OpenAI Chat 官方接口。",
-                    "openaiResponses": "OpenAI Responses API 接口。",
-                    "anthropic": "Claude 官方接口。",
-                    "gemini": "Google Gemini 官方接口。",
-                    "deepseek": "DeepSeek OpenAI 兼容接口。",
-                    "openrouter": "OpenRouter 聚合接口。",
-                    "siliconflow": "硅基流动 OpenAI 兼容接口。",
-                    "volcengine": "火山引擎 Ark 接口。",
-                    "mimo": "小米 Mimo OpenAI 兼容接口。"
-                }
-            },
-            "remove": "移除",
-            "test": {
-                "button": "测试",
-                "success": "渠道测试通过",
-                "partialSuccess": "渠道测试已完成",
-                "failed": "渠道测试失败",
-                "results": "条结果",
-                "pass": "通过",
-                "fail": "失败",
-                "noRemark": "无备注",
-                "hint": "会批量测试所有已填写的端点与 Key 组合，HTTP 200 和 429 都视为通过。"
-            },
-            "typeOpenAIChat": "OpenAI Chat",
-            "typeOpenAIResponse": "OpenAI Response",
-            "typeOpenAIEmbedding": "OpenAI Embedding",
-            "typeAnthropic": "Anthropic",
-            "typeGemini": "Gemini",
-            "typeVolcengine": "火山引擎",
-            "typeMimo": "Mimo",
-            "autoSync": "自动同步",
-            "autoGroup": "自动分组",
-            "autoGroupNone": "不自动分组",
-            "autoGroupFuzzy": "模糊匹配",
-            "autoGroupExact": "准确匹配",
-            "autoGroupRegex": "正则匹配",
-            "matchRegex": "匹配正则",
-            "matchRegexPlaceholder": "可选：用于匹配请求模型名称的正则表达式",
-            "remark": "备注"
-        }
-    },
-    "errors": {
-        "invalidRequestParameters": "请求参数无效",
-        "invalidJsonFormat": "JSON 格式无效",
-        "invalidParameter": "参数无效",
-        "inputValidationFailed": "输入校验失败",
-        "resourceAlreadyExists": "资源已存在",
-        "resourceNotFound": "资源不存在",
-        "internalServer": "发生了未预期的错误",
-        "database": "数据库操作失败",
-        "authenticationFailed": "认证失败",
-        "tooManyRequests": "请求过多",
-        "permissionDenied": "权限不足",
-        "channelNotFound": "渠道不存在",
-        "groupNotFound": "分组不存在",
-        "groupTestProgressNotFound": "分组检测进度不存在",
-        "aiRouteProgressNotFound": "AI 路由进度不存在",
-        "missingProgressId": "缺少进度 ID",
-        "channelNameAlreadyExists": "渠道名称已存在",
-        "groupNameAlreadyExists": "分组名称已存在",
-        "groupDuplicateChannelModelItems": "分组内存在重复的渠道/模型项",
-        "databaseSchemaOutdated": "数据库结构已过期",
-        "databaseSchemaOutdatedRestart": "数据库结构已过期，请重启服务以应用最新迁移",
-        "upstreamServiceUnavailable": "上游服务不可用"
+    "navOrder": {
+      "title": "页面顺序与显示",
+      "description": "拖拽调整导航页面顺序，可隐藏非关键页面；设置页面固定显示。",
+      "reset": "恢复默认",
+      "resetSuccess": "页面顺序已恢复默认",
+      "visible": "显示中",
+      "hidden": "已隐藏",
+      "fixed": "固定保留",
+      "minimumVisibleHint": "最少保留 {count} 个页面；设置页面不可隐藏。",
+      "minimumVisibleError": "最少需要保留 {count} 个页面",
+      "toggleAriaLabel": "切换页面显示状态：{page}"
     }
+  },
+  "group": {
+    "endpointType": {
+      "label": "API 分类",
+      "all": "全部",
+      "chat": "对话",
+      "deepseek": "DeepSeek",
+      "mimo": "Mimo",
+      "embeddings": "向量嵌入",
+      "rerank": "重排序",
+      "moderations": "内容审查",
+      "imageGeneration": "图片生成",
+      "audioSpeech": "语音合成",
+      "audioTranscription": "音频转写",
+      "videoGeneration": "视频生成",
+      "musicGeneration": "音乐生成",
+      "search": "搜索"
+    },
+    "toast": {
+      "created": "创建成功",
+      "createFailed": "创建失败",
+      "updated": "更新成功",
+      "updateFailed": "更新失败",
+      "deleted": "删除成功",
+      "autoGroupSuccess": "自动分组完成，已创建 {created} 个分组，跳过 {skipped} 个已存在分组",
+      "autoGroupSuccessDescription": "扫描到 {models} 个模型，识别出 {candidates} 个候选分组，创建 {created} 个，跳过 {skippedExisting} 个已存在分组，跳过 {skippedCovered} 个已覆盖模型",
+      "autoGroupFailed": "自动分组失败",
+      "aiRouteTableSuccess": "AI路由生成成功，共生成 {routes} 个模型路由，影响 {groups} 个分组，写入 {items} 个路由项",
+      "aiRouteGroupSuccess": "AI路由同步成功，共生成 {routes} 个模型路由，更新当前分组中的 {items} 个路由项",
+      "aiRouteFailed": "AI路由生成失败",
+      "aiRouteEmptyResult": "AI 路由结果为空",
+      "aiRouteMissingGroup": "请先在设置中选择单分组 AI 路由默认目标分组",
+      "removedFailedModels": "已移除检测失败模型",
+      "autoAddFailed": "自动添加失败",
+      "testAllPassed": "分组内模型均可用",
+      "testPartialFailed": "部分模型不可用",
+      "testPartialFailedDescription": "检测失败的模型建议移除",
+      "testRequestFailed": "分组检测失败",
+      "removableSuggestion": "可考虑移除"
+    },
+    "actions": {
+      "autoGroup": "自动分组",
+      "aiRoute": "AI路由",
+      "aiRouteGroup": "AI同步当前分组",
+      "aiRouteProgress": "查看进度"
+    },
+    "autoGroup": {
+      "confirmTitle": "确认自动分组",
+      "confirmDescription": "将自动扫描所有渠道模型，并根据模型归一化规则为未覆盖模型创建分组。\n不会修改已有分组，也不会删除已有分组。\n是否继续？",
+      "submit": "开始自动分组",
+      "submitting": "自动分组中..."
+    },
+    "aiRoute": {
+      "table": {
+        "confirmTitle": "确认生成整张 AI 路由表",
+        "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果批量生成整张路由表。\n已存在同名分组会同步路由项，并移除未命中的旧路由项；其他分组不会被删除。\n是否继续？",
+        "submit": "开始生成路由表",
+        "submitting": "AI路由生成中..."
+      },
+      "group": {
+        "confirmTitle": "确认 AI 同步当前分组",
+        "confirmDescription": "系统会把全部模型发送给 AI 分析，并按分析结果同步当前分组的路由项。\n未命中的旧路由项会被移除；相同路由项会按最新优先级和权重更新。\n是否继续？",
+        "submit": "开始同步当前分组",
+        "submitting": "AI路由同步中..."
+      },
+      "progress": {
+        "title": "AI 路由任务进度",
+        "description": {
+          "table": "正在生成整张 AI 路由表，你可以随时关闭弹窗，稍后再回来查看。",
+          "group": "正在同步当前分组的 AI 路由，你可以随时关闭弹窗，稍后再回来查看。"
+        },
+        "loading": "正在读取任务进度...",
+        "close": "关闭",
+        "batchProgress": "已完成 {completed}/{total} 批",
+        "lastUpdated": "状态更新时间：{time}",
+        "lastHeartbeat": "心跳时间：{time}",
+        "heartbeatStale": "后端心跳暂时未更新，可能仍在等待 AI 返回",
+        "currentBatch": "活跃批次",
+        "recentBatch": "最近活跃批次",
+        "activeBatches": "活跃批次",
+        "activeBatchCount": "{count} 个活跃批次",
+        "batchLabel": "第 {index}/{total} 批",
+        "batchCapability": "能力类型",
+        "batchModels": "本批模型数",
+        "batchChannels": "涉及渠道数",
+        "batchService": "分析服务",
+        "batchAttempt": "尝试次数",
+        "channelList": "渠道处理进度",
+        "channelSections": {
+          "running": "当前活跃",
+          "completed": "已完成",
+          "pending": "待处理",
+          "failed": "失败",
+          "empty": {
+            "running": "当前没有活跃渠道",
+            "completed": "当前还没有已完成渠道",
+            "pending": "当前没有待处理渠道",
+            "failed": "当前没有失败渠道"
+          }
+        },
+        "channelModels": "已处理 {completed}/{total} 个模型",
+        "result": {
+          "groupSummary": "AI 路由同步完成，共生成 {routes} 条路由，更新 {items} 个路由项。",
+          "tableSummary": "AI 路由表生成完成，共生成 {routes} 条路由，影响 {groups} 个分组，写入 {items} 个路由项。"
+        },
+        "status": {
+          "queued": "排队中",
+          "running": "执行中",
+          "completed": "已完成",
+          "failed": "失败",
+          "timeout": "超时"
+        },
+        "steps": {
+          "queued": "任务已创建",
+          "collecting_models": "收集渠道和模型",
+          "building_batches": "规划分析批次",
+          "analyzing_batches": "等待 AI 分析",
+          "parsing_response": "解析 AI 返回结果",
+          "validating_routes": "校验候选路由",
+          "writing_groups": "写入分组和路由项",
+          "finalizing": "任务收尾中",
+          "completed": "任务完成",
+          "failed": "任务失败",
+          "timeout": "任务超时"
+        },
+        "channelStatus": {
+          "pending": "待处理",
+          "running": "处理中",
+          "completed": "已完成",
+          "failed": "失败"
+        },
+        "batchStatus": {
+          "running": "分析中",
+          "parsing": "解析中",
+          "retrying": "重试中",
+          "failed": "失败",
+          "completed": "已完成"
+        },
+        "summary": {
+          "totalChannels": "总渠道数",
+          "completedChannels": "已完成渠道",
+          "runningChannels": "活跃渠道",
+          "pendingChannels": "待处理渠道",
+          "failedChannels": "失败渠道",
+          "modelsProgress": "模型处理进度"
+        },
+        "channelFallbackName": "渠道 {id}",
+        "runtime": {
+          "taskCreated": "AI 路由任务已创建，等待开始。",
+          "taskCompleted": "AI 路由生成完成。",
+          "taskTimeout": "AI 路由任务超时，请稍后重试。",
+          "collectedModels": "已收集 {channels} 个渠道，共 {models} 个模型。",
+          "plannedSingleBatch": "已完成批次规划，准备开始 AI 分析。",
+          "plannedBatches": "已完成批次规划，共拆分为 {batches} 批。",
+          "waitingBatchResult": "正在等待第 {index}/{total} 批 AI 返回结果（{endpoint}，涉及 {channels} 个渠道 / {models} 个模型）。",
+          "parallelAnalyzing": "正在并发分析 {active} 个批次，最近启动第 {index}/{total} 批（{endpoint}，涉及 {channels} 个渠道 / {models} 个模型）。",
+          "batchRetrying": "第 {index}/{total} 批分析失败，正在切换其他服务重试。",
+          "batchRetryingWithReason": "第 {index}/{total} 批分析失败，正在切换其他服务重试：{reason}",
+          "batchParsing": "AI 已返回第 {index}/{total} 批结果，正在解析和校验。",
+          "batchCompletedWithActive": "第 {index}/{total} 批已完成，当前还有 {active} 个活跃批次。",
+          "batchCompletedWaitingNext": "第 {index}/{total} 批已完成，等待启动下一批。",
+          "allBatchesCompleted": "全部批次分析完成，准备校验路由结果。",
+          "batchFailedIndexed": "第 {index}/{total} 批失败。",
+          "batchFailedIndexedWithReason": "第 {index}/{total} 批失败：{reason}",
+          "validatingRoutes": "正在校验 AI 返回的 {routes} 条候选路由。",
+          "validatingRoutesGeneric": "正在校验 AI 返回的候选路由。",
+          "writingCurrentGroup": "正在写入当前分组。",
+          "writingNamedGroup": "正在写入分组 \"{group}\"。",
+          "writingRoute": "正在写入第 {index}/{total} 条路由。",
+          "writingNamedRoute": "正在写入路由 \"{route}\"（{index}/{total}）。",
+          "finalizing": "正在收尾。",
+          "finalizingCustom": "{message}",
+          "channelAnalyzingEndpoint": "正在分析 {endpoint} 模型。",
+          "channelAnalyzing": "正在分析。",
+          "channelCompleted": "已完成。",
+          "channelFailedWithReason": "渠道处理失败：{reason}",
+          "partialFailure": "AI 路由部分失败，但已保留成功写入的 {success_groups} 个分组：{cause}",
+          "channelFailed": "当前渠道处理失败。",
+          "batchFailed": "当前批次失败。"
+        }
+      }
+    },
+    "create": {
+      "title": "创建分组",
+      "submit": "创建",
+      "submitting": "创建中..."
+    },
+    "card": {
+      "empty": "暂无规则",
+      "modelCount": "{count} 个模型",
+      "testProgressTitle": "检测进度",
+      "testProgressCount": "已完成 {completed}/{total}",
+      "testPending": "待检测",
+      "testPassed": "检测通过",
+      "testFailedTitle": "以下模型连续检测失败 3 次，可考虑移除",
+      "testAttempts": "已重试 {count} 次",
+      "testUnknownError": "未知错误",
+      "testRemovableHint": "你可以编辑该分组并移除上面这些模型。",
+      "endpointType": "API 分类：{value}"
+    },
+    "detail": {
+      "actions": {
+        "edit": "编辑",
+        "cancel": "取消",
+        "save": "保存",
+        "copyName": "复制名称",
+        "delete": "删除",
+        "confirmDelete": "确认删除",
+        "testAvailability": "检测可用功能",
+        "removeFailedModels": "移除失败模型"
+      }
+    },
+    "form": {
+      "name": "分组名称",
+      "matchRegex": "匹配正则",
+      "matchRegexPlaceholder": "留空则默认按分组名称模糊匹配",
+      "matchRegexInvalid": "正则无效",
+      "searchAriaLabel": "搜索模型",
+      "firstTokenTimeOut": "首字超时",
+      "firstTokenTimeOutHint": "单位秒，仅流式响应起效，0 表示不限制",
+      "sessionKeepTime": "会话保持",
+      "sessionKeepTimeHint": "单位秒，会话期间保持使用同一渠道，0 表示禁用",
+      "condition": {
+        "label": "条件匹配（JSON）",
+        "hint": "JSON 规则数组。留空表示始终匹配。",
+        "example": "示例：[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]",
+        "placeholder": "[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]"
+      },
+      "items": "已选模型",
+      "addItem": "添加模型",
+      "autoAdd": "自动添加",
+      "clear": "清空",
+      "selectChannel": "渠道",
+      "selectModel": "模型",
+      "endpointType": {
+        "label": "API 分类",
+        "options": {
+          "all": "全部",
+          "chat": "对话",
+          "deepseek": "DeepSeek",
+          "mimo": "Mimo",
+          "embeddings": "Embeddings",
+          "rerank": "Rerank",
+          "moderations": "Moderations",
+          "imageGeneration": "图片生成",
+          "audioSpeech": "语音合成",
+          "audioTranscription": "音频转写",
+          "videoGeneration": "视频生成",
+          "musicGeneration": "音乐生成",
+          "search": "搜索"
+        }
+      }
+    },
+    "mode": {
+      "roundRobin": "轮询",
+      "random": "随机",
+      "failover": "故障转移",
+      "weighted": "加权分配",
+      "auto": "智能选择"
+    },
+    "capability": {
+      "chat": "对话",
+      "embeddings": "向量嵌入",
+      "rerank": "重排序",
+      "moderation": "内容审查",
+      "imageGeneration": "图像生成",
+      "audioSpeech": "语音合成",
+      "audioTranscription": "语音转写",
+      "videoGeneration": "视频生成",
+      "musicGeneration": "音乐生成",
+      "search": "搜索"
+    },
+    "empty": "暂无分组，点击左上角按钮创建",
+    "emptyState": {
+      "title": "暂无分组",
+      "description": "你可以手动新建分组，或使用自动分组 / AI路由快速生成。"
+    }
+  },
+  "model": {
+    "loading": "加载模型广场中...",
+    "empty": "当前没有匹配的模型",
+    "create": {
+      "title": "创建模型",
+      "name": "模型名称",
+      "input": "输入价格",
+      "output": "输出价格",
+      "cacheRead": "缓存读取",
+      "cacheWrite": "缓存写入",
+      "submit": "创建",
+      "submitting": "创建中..."
+    },
+    "summary": {
+      "title": "模型广场",
+      "description": "集中查看模型价格、覆盖渠道、可用 key 与运行表现，保留原有价格维护能力。",
+      "modelCount": "模型数",
+      "coverage": "覆盖渠道数",
+      "uniqueChannels": "唯一渠道数",
+      "averageLatency": "平均延迟",
+      "lastUpdate": "价格更新时间",
+      "neverUpdated": "尚未更新",
+      "refresh": "刷新价格",
+      "refreshing": "刷新中...",
+      "refreshSuccess": "价格刷新成功",
+      "refreshFailed": "价格刷新失败"
+    },
+    "toast": {
+      "updated": "模型价格已更新",
+      "updateFailed": "更新失败",
+      "deleted": "模型已删除",
+      "deleteFailed": "删除失败"
+    },
+    "card": {
+      "inputCache": "输入/缓存",
+      "outputCache": "输出/缓存",
+      "edit": "编辑",
+      "delete": "删除",
+      "requests": "请求数",
+      "channels": "渠道",
+      "keys": "Key 数",
+      "latency": "延迟",
+      "successRate": "成功率",
+      "expand": "展开详情",
+      "collapse": "收起详情"
+    },
+    "detail": {
+      "pricing": "价格信息",
+      "runtime": "运行统计",
+      "channels": "渠道明细",
+      "requestSuccess": "成功请求",
+      "requestFailed": "失败请求",
+      "noChannels": "当前没有覆盖渠道",
+      "enabled": "已启用",
+      "disabled": "已停用",
+      "keyCount": "Key"
+    },
+    "overlay": {
+      "cancel": "取消",
+      "deleting": "删除中...",
+      "confirmDelete": "确认删除",
+      "input": "输入",
+      "output": "输出",
+      "cacheRead": "缓存读取",
+      "cacheWrite": "缓存写入",
+      "save": "保存"
+    }
+  },
+  "log": {
+    "actions": {
+      "refresh": "刷新日志",
+      "refreshSuccess": "日志已刷新",
+      "refreshFailed": "日志刷新失败"
+    },
+    "list": {
+      "noMore": "没有更多日志了"
+    },
+    "card": {
+      "error": "错误",
+      "errorInfo": "错误信息",
+      "firstToken": "首字",
+      "totalTime": "总耗时",
+      "input": "输入",
+      "output": "输出",
+      "cost": "费用",
+      "requestContent": "请求内容",
+      "responseContent": "响应内容",
+      "noRequestContent": "(无请求内容)",
+      "noResponseContent": "(无响应内容)",
+      "firstTokenTime": "首字时间",
+      "tokens": "tokens",
+      "retryDetails": "重试详情",
+      "attempts": "次尝试",
+      "success": "成功",
+      "failed": "失败"
+    }
+  },
+  "channel": {
+    "card": {
+      "requestCount": "请求次数",
+      "totalCost": "总成本",
+      "toast": {
+        "enabled": "渠道已启用",
+        "disabled": "渠道已禁用"
+      }
+    },
+    "detail": {
+      "title": {
+        "edit": "编辑渠道",
+        "view": "渠道详情"
+      },
+      "sections": {
+        "requests": "请求详情",
+        "tokens": "Token 使用",
+        "costs": "成本详情",
+        "baseUrls": "Base URLs",
+        "keys": "密钥",
+        "ccSwitch": "CC Switch"
+      },
+      "noBaseUrls": "暂无 Base URL",
+      "noKeys": "暂无密钥",
+      "ccSwitch": {
+        "description": "基于当前渠道配置生成可导入到 CC Switch 的深链接。",
+        "publicApiBase": "公开 API 地址",
+        "upstreamBase": "上游地址",
+        "apiKey": "API Key",
+        "missingPublicApiBaseUrl": "请先在系统设置中填写公开 API 基础地址。",
+        "missingKey": "请先为该渠道配置至少一个已启用的 API Key。"
+      },
+      "metrics": {
+        "totalRequests": "总请求",
+        "totalToken": "总 Token",
+        "totalCost": "总成本",
+        "successRequests": "成功请求",
+        "failedRequests": "失败请求",
+        "inputToken": "输入 Token",
+        "outputToken": "输出 Token",
+        "inputCost": "输入成本",
+        "outputCost": "输出成本",
+        "avgWaitTime": "等待时间"
+      },
+      "actions": {
+        "edit": "编辑",
+        "cancel": "取消",
+        "save": "保存",
+        "saving": "保存中...",
+        "delete": "删除",
+        "confirmDelete": "确认删除",
+        "deleting": "删除中..."
+      }
+    },
+    "create": {
+      "dialogTitle": "创建新渠道",
+      "submit": "创建渠道",
+      "submitting": "创建中..."
+    },
+    "form": {
+      "add": "添加",
+      "name": "渠道名称",
+      "type": "渠道类型",
+      "baseUrls": "Base URLs",
+      "baseUrlUrl": "地址",
+      "baseUrlDelay": "延迟(ms)",
+      "advanced": "高级设置",
+      "apiKey": "API Key",
+      "customHeader": "自定义 Header",
+      "customHeaderKey": "Header Key",
+      "customHeaderValue": "Header Value",
+      "customHeaderAdd": "添加 Header",
+      "channelProxy": "渠道代理",
+      "channelProxyPlaceholder": "可选：仅对该渠道生效（覆盖全局代理）",
+      "paramOverride": "参数覆盖",
+      "paramOverridePlaceholder": "可选：JSON 字符串，用于覆盖请求参数",
+      "requestRewrite": "请求重写",
+      "requestRewriteHint": "可选：为格式更严格的上游开启兼容性请求重写",
+      "requestRewriteEnabled": "启用重写",
+      "requestRewriteProfile": "重写配置",
+      "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat 兼容",
+      "requestRewriteToolRoleStrategy": "Tool 角色策略",
+      "requestRewriteSystemMessageStrategy": "System 消息策略",
+      "requestRewriteStrategyKeep": "保留",
+      "requestRewriteStrategyStringifyToUser": "转成 User 文本",
+      "requestRewriteStrategyMerge": "合并",
+      "model": "模型",
+      "enabled": "启用",
+      "proxy": "使用代理",
+      "modelCustomPlaceholder": "自定义模型名称",
+      "modelAdd": "添加",
+      "modelRefresh": "刷新",
+      "modelRefreshSuccess": "模型列表获取成功",
+      "modelRefreshFailed": "模型列表获取失败",
+      "modelRefreshEmpty": "未获取到模型列表",
+      "modelSelected": "已选模型",
+      "modelNoSelected": "暂未选择模型",
+      "modelClearAll": "清除全部",
+      "template": {
+        "label": "内置供应商模板",
+        "hint": "一键预填常见供应商配置",
+        "options": {
+          "openai": {
+            "description": "OpenAI Chat 官方接口"
+          },
+          "openaiResponses": {
+            "description": "OpenAI Responses API"
+          },
+          "anthropic": {
+            "description": "Claude 官方接口"
+          },
+          "gemini": {
+            "description": "Google Gemini 官方接口"
+          },
+          "deepseek": {
+            "description": "DeepSeek OpenAI 兼容接口"
+          },
+          "openrouter": {
+            "description": "OpenRouter 聚合接口"
+          },
+          "siliconflow": {
+            "description": "硅基流动 OpenAI 兼容接口"
+          },
+          "volcengine": {
+            "description": "火山引擎 Ark 接口"
+          },
+          "mimo": {
+            "description": "小米 Mimo OpenAI 兼容接口"
+          }
+        },
+        "descriptions": {
+          "openai": "OpenAI Chat 官方接口。",
+          "openaiResponses": "OpenAI Responses API 接口。",
+          "anthropic": "Claude 官方接口。",
+          "gemini": "Google Gemini 官方接口。",
+          "deepseek": "DeepSeek OpenAI 兼容接口。",
+          "openrouter": "OpenRouter 聚合接口。",
+          "siliconflow": "硅基流动 OpenAI 兼容接口。",
+          "volcengine": "火山引擎 Ark 接口。",
+          "mimo": "小米 Mimo OpenAI 兼容接口。"
+        }
+      },
+      "remove": "移除",
+      "test": {
+        "button": "测试",
+        "success": "渠道测试通过",
+        "partialSuccess": "渠道测试已完成",
+        "failed": "渠道测试失败",
+        "results": "条结果",
+        "pass": "通过",
+        "fail": "失败",
+        "noRemark": "无备注",
+        "hint": "会批量测试所有已填写的端点与 Key 组合，HTTP 200 和 429 都视为通过。"
+      },
+      "typeOpenAIChat": "OpenAI Chat",
+      "typeOpenAIResponse": "OpenAI Response",
+      "typeOpenAIEmbedding": "OpenAI Embedding",
+      "typeAnthropic": "Anthropic",
+      "typeGemini": "Gemini",
+      "typeVolcengine": "火山引擎",
+      "typeMimo": "Mimo",
+      "autoSync": "自动同步",
+      "autoGroup": "自动分组",
+      "autoGroupNone": "不自动分组",
+      "autoGroupFuzzy": "模糊匹配",
+      "autoGroupExact": "准确匹配",
+      "autoGroupRegex": "正则匹配",
+      "matchRegex": "匹配正则",
+      "matchRegexPlaceholder": "可选：用于匹配请求模型名称的正则表达式",
+      "remark": "备注"
+    }
+  },
+  "errors": {
+    "invalidRequestParameters": "请求参数无效",
+    "invalidJsonFormat": "JSON 格式无效",
+    "invalidParameter": "参数无效",
+    "inputValidationFailed": "输入校验失败",
+    "resourceAlreadyExists": "资源已存在",
+    "resourceNotFound": "资源不存在",
+    "internalServer": "发生了未预期的错误",
+    "database": "数据库操作失败",
+    "authenticationFailed": "认证失败",
+    "tooManyRequests": "请求过多",
+    "permissionDenied": "权限不足",
+    "channelNotFound": "渠道不存在",
+    "groupNotFound": "分组不存在",
+    "groupTestProgressNotFound": "分组检测进度不存在",
+    "aiRouteProgressNotFound": "AI 路由进度不存在",
+    "missingProgressId": "缺少进度 ID",
+    "channelNameAlreadyExists": "渠道名称已存在",
+    "groupNameAlreadyExists": "分组名称已存在",
+    "groupDuplicateChannelModelItems": "分组内存在重复的渠道/模型项",
+    "databaseSchemaOutdated": "数据库结构已过期",
+    "databaseSchemaOutdatedRestart": "数据库结构已过期，请重启服务以应用最新迁移",
+    "upstreamServiceUnavailable": "上游服务不可用",
+    "unexpectedError": "未预期的错误"
+  }
 }

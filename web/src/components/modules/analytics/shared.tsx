@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, Loader2, Waves, Orbit } from 'lucide-react';
 import { AnimatedNumber } from '@/components/common/AnimatedNumber';
 import { cn } from '@/lib/utils';
+import { resolveRuntimeI18nMessage } from '@/lib/i18n-runtime';
 
 export function formatPercent(value: number | undefined) {
     const raw = value ?? 0;
@@ -29,7 +30,7 @@ export function getErrorMessage(error: unknown) {
     if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
         return error.message;
     }
-    return 'Unexpected error';
+    return resolveRuntimeI18nMessage('errors.unexpectedError', undefined, 'Unexpected error');
 }
 
 export function QueryState({

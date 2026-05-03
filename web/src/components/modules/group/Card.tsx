@@ -374,6 +374,10 @@ export function GroupCard({ group }: { group: Group }) {
     const totalCount = testProgress?.total ?? group.items?.length ?? 0;
     const progressValue = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
+    const [showAllMembers, setShowAllMembers] = useState(false);
+    const visibleMembers = showAllMembers ? members : members.slice(0, 6);
+    const hiddenMembersCount = Math.max(0, members.length - 6);
+
     return (
         <article className="waterhouse-island group relative flex flex-col overflow-hidden rounded-[2.1rem] border border-border/35 bg-card/60 p-4 text-card-foreground shadow-waterhouse-soft md:bg-card/58 md:shadow-waterhouse-deep md:backdrop-blur-[var(--waterhouse-shell-blur)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,color-mix(in_oklch,var(--waterhouse-highlight)_16%,transparent)_0%,transparent_26%),linear-gradient(150deg,color-mix(in_oklch,white_10%,transparent),transparent_48%,color-mix(in_oklch,var(--primary)_8%,transparent))]" />

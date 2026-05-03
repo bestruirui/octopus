@@ -141,7 +141,6 @@ function getAuthHeader(): string {
 
 function parseFilename(contentDisposition: string | null): string | null {
     if (!contentDisposition) return null;
-    // e.g. attachment; filename="octopus-export-20250101120000.json"
     const match = contentDisposition.match(/filename="([^"]+)"/i);
     return match?.[1] ?? null;
 }
@@ -226,7 +225,6 @@ export function useImportDB() {
                 throw new Error(message);
             }
 
-            // 支持后端标准 ApiResponse：{code,message,data:{...}}
             const nested = getDataField<DBImportResult>(data);
             return nested ?? (data as DBImportResult);
         },

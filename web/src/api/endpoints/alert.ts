@@ -22,6 +22,26 @@ export interface AlertNotifChannel {
     url: string;
     secret?: string;
     headers?: string;
+    config?: string;
+}
+
+export const NOTIF_CHANNEL_TYPES = ['webhook', 'gotify', 'email'] as const;
+export type NotifChannelType = (typeof NOTIF_CHANNEL_TYPES)[number];
+
+export interface GotifyConfig {
+    server_url: string;
+    token: string;
+    priority?: number;
+}
+
+export interface EmailConfig {
+    smtp_host: string;
+    smtp_port: number;
+    username: string;
+    password: string;
+    from: string;
+    to: string;
+    use_tls: boolean;
 }
 
 export interface AlertHistory {

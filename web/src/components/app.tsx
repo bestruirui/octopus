@@ -380,7 +380,7 @@ export function AppContainer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: lightweightMotion ? 0.2 : 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="waterhouse-shell relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:overflow-clip md:px-6 md:py-6"
+            className="waterhouse-shell relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
         >
             {/* Nature: 粒子背景 */}
             {!isMobile && <ParticleBackground count={35} minOpacity={0.06} maxOpacity={0.2} />}
@@ -388,7 +388,7 @@ export function AppContainer() {
             {!isMobile && <RippleEffect maxRipples={16} throttleMs={100} />}
             <NavBar />
             <main className="relative z-10 flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 md:gap-5">
-                <header className="waterhouse-canopy waterhouse-island !relative !inset-auto !z-20 !pointer-events-auto !animate-none !filter-none !opacity-100 flex flex-none flex-col gap-4 overflow-visible rounded-[2.25rem] border-border/35 bg-background/50 px-4 py-4 shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:px-6 md:py-5 lg:flex-row lg:items-center lg:gap-6">
+                <header className="waterhouse-island-fx relative z-20 flex flex-none flex-col gap-4 overflow-visible rounded-[2.25rem] border-border/35 bg-background/50 px-4 py-4 shadow-waterhouse-deep backdrop-blur-[var(--waterhouse-shell-blur)] md:px-6 md:py-5 lg:flex-row lg:items-center lg:gap-6">
                     <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
                     {!isMobile && <div className="pointer-events-none absolute -left-8 top-6 size-28 rounded-full bg-primary/10 blur-3xl" />}
                     <div className="flex min-w-0 flex-1 items-center gap-4">

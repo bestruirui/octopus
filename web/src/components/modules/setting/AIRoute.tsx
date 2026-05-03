@@ -130,7 +130,7 @@ export function SettingAIRoute() {
                         <p className="text-sm text-muted-foreground">{t('aiRoute.services.hint')}</p>
                     </div>
                     <div className="waterhouse-pod w-fit rounded-full border-border/25 bg-background/36 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-waterhouse-soft">
-                        Command Habitat
+                        {t('aiRoute.badge')}
                     </div>
                 </div>
 

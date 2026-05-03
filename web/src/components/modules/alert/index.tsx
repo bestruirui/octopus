@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { Bell, Clock, Loader, Pencil, Plus, Power, PowerOff, RefreshCw, Save, Trash2, Webhook, X } from 'lucide-react';
+import { Bell, Clock, Loader, Mail, MessageSquare, Pencil, Plus, Power, PowerOff, RefreshCw, Save, Trash2, Webhook, X } from 'lucide-react';
 import {
     useAlertRuleList,
     useCreateAlertRule,
@@ -12,8 +12,10 @@ import {
     useDeleteNotifChannel,
     useUpdateNotifChannel,
     useAlertHistory,
+    NOTIF_CHANNEL_TYPES,
     type AlertRule,
     type AlertNotifChannel,
+    type NotifChannelType,
 } from '@/api/endpoints/alert';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { Input } from '@/components/ui/input';
@@ -42,6 +44,154 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
             {children}
         </button>
     );
+}
+
+function ChannelTypeIcon({ type }: { type: string }) {
+    switch (type) {
+        case 'gotify':
+            return <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />;
+        case 'email':
+            return <Mail className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />;
+        default:
+            return <Webhook className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />;
+    }
+}
+
+function ChannelConfigFields({
+    draft,
+    onChange,
+    t,
+}: {
+    draft: AlertChannelDraft;
+    onChange: (draft: AlertChannelDraft) => void;
+    t: (key: string) => string;
+}) {
+    switch (draft.type) {
+        case 'webhook':
+            return (
+                <>
+                    <Input
+                        placeholder={t('channels.form.urlPlaceholder')}
+                        value={draft.url}
+                        onChange={(e) => onChange({ ...draft, url: e.target.value })}
+                        className="rounded-xl"
+                    />
+                    <Input
+                        placeholder={t('channels.form.secretPlaceholder')}
+                        value={draft.secret}
+                        onChange={(e) => onChange({ ...draft, secret: e.target.value })}
+                        className="rounded-xl"
+                    />
+                </>
+            );
+        case 'gotify':
+            return (
+                <>
+                    <Input
+                        placeholder={t('channels.form.gotifyServerUrl')}
+                        value={draft.gotify.server_url}
+                        onChange={(e) => onChange({ ...draft, gotify: { ...draft.gotify, server_url: e.target.value } })}
+                        className="rounded-xl"
+                    />
+                    <Input
+                        placeholder={t('channels.form.gotifyToken')}
+                        value={draft.gotify.token}
+                        onChange={(e) => onChange({ ...draft, gotify: { ...draft.gotify, token: e.target.value } })}
+                        className="rounded-xl"
+                    />
+                    <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        placeholder={t('channels.form.gotifyPriority')}
+                        value={draft.gotify.priority || ''}
+                        onChange={(e) => onChange({ ...draft, gotify: { ...draft.gotify, priority: Number(e.target.value) || undefined } })}
+                        className="rounded-xl"
+                    />
+                </>
+            );
+        case 'email':
+            return (
+                <>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <Input
+                            placeholder={t('channels.form.emailSmtpHost')}
+                            value={draft.email.smtp_host}
+                            onChange={(e) => onChange({ ...draft, email: { ...draft.email, smtp_host: e.target.value } })}
+                            className="rounded-xl"
+                        />
+                        <Input
+                            type="number"
+                            placeholder={t('channels.form.emailSmtpPort')}
+                            value={draft.email.smtp_port || ''}
+                            onChange={(e) => onChange({ ...draft, email: { ...draft.email, smtp_port: Number(e.target.value) || 587 } })}
+                            className="rounded-xl"
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <Input
+                            placeholder={t('channels.form.emailUsername')}
+                            value={draft.email.username}
+                            onChange={(e) => onChange({ ...draft, email: { ...draft.email, username: e.target.value } })}
+                            className="rounded-xl"
+                        />
+                        <Input
+                            type="password"
+                            placeholder={t('channels.form.emailPassword')}
+                            value={draft.email.password}
+                            onChange={(e) => onChange({ ...draft, email: { ...draft.email, password: e.target.value } })}
+                            className="rounded-xl"
+                        />
+                    </div>
+                    <Input
+                        placeholder={t('channels.form.emailFrom')}
+                        value={draft.email.from}
+                        onChange={(e) => onChange({ ...draft, email: { ...draft.email, from: e.target.value } })}
+                        className="rounded-xl"
+                    />
+                    <Input
+                        placeholder={t('channels.form.emailTo')}
+                        value={draft.email.to}
+                        onChange={(e) => onChange({ ...draft, email: { ...draft.email, to: e.target.value } })}
+                        className="rounded-xl"
+                    />
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={draft.email.use_tls}
+                            onChange={(e) => onChange({ ...draft, email: { ...draft.email, use_tls: e.target.checked } })}
+                            className="rounded"
+                        />
+                        {t('channels.form.emailUseTls')}
+                    </label>
+                </>
+            );
+        default:
+            return null;
+    }
+}
+
+function getChannelDescription(channel: AlertNotifChannel): string {
+    switch (channel.type) {
+        case 'gotify': {
+            try {
+                const cfg = JSON.parse(channel.config || '{}');
+                return cfg.server_url || channel.url || '';
+            } catch {
+                return channel.url || '';
+            }
+        }
+        case 'email': {
+            try {
+                const cfg = JSON.parse(channel.config || '{}');
+                return cfg.to || cfg.from || '';
+            } catch {
+                return '';
+            }
+        }
+        default:
+            return channel.url || '';
+    }
 }
 
 export function Alert() {
@@ -83,10 +233,16 @@ export function Alert() {
     };
 
     const getChannelTypeLabel = (channelType: string) => {
-        if (channelType === 'webhook') {
-            return t('channelTypes.webhook');
+        switch (channelType) {
+            case 'webhook':
+                return t('channelTypes.webhook');
+            case 'gotify':
+                return t('channelTypes.gotify');
+            case 'email':
+                return t('channelTypes.email');
+            default:
+                return channelType;
         }
-        return channelType;
     };
 
     const getHistoryMessage = (message: string, state: number) => {
@@ -125,6 +281,10 @@ export function Alert() {
     const resetChannelEdit = () => {
         setEditingChannelId(null);
         setEditingChannel(createAlertChannelDraft());
+    };
+
+    const handleChannelTypeChange = (draft: AlertChannelDraft, newType: NotifChannelType): AlertChannelDraft => {
+        return createAlertChannelDraft({ type: newType, name: draft.name, url: draft.url, secret: draft.secret, config: '' } as any);
     };
 
     const handleCreateRule = () => {
@@ -235,7 +395,7 @@ export function Alert() {
                                 >
                                     <option value={0}>{t('rules.form.noChannel')}</option>
                                     {(channels || []).map((ch) => (
-                                        <option key={ch.id} value={ch.id}>{ch.name}</option>
+                                        <option key={ch.id} value={ch.id}>{ch.name} ({getChannelTypeLabel(ch.type)})</option>
                                     ))}
                                 </select>
                                 <Input
@@ -312,7 +472,7 @@ export function Alert() {
                                                         >
                                                             <option value={0}>{t('rules.form.noChannel')}</option>
                                                             {(channels || []).map((ch) => (
-                                                                <option key={ch.id} value={ch.id}>{ch.name}</option>
+                                                                <option key={ch.id} value={ch.id}>{ch.name} ({getChannelTypeLabel(ch.type)})</option>
                                                             ))}
                                                         </select>
                                                         <Input
@@ -390,7 +550,7 @@ export function Alert() {
                 <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                            <Webhook className="h-5 w-5" />{t('channels.title')}
+                            <Bell className="h-5 w-5" />{t('channels.title')}
                         </h2>
                         <button
                             onClick={() => setShowNewChannel((prev) => !prev)}
@@ -408,18 +568,16 @@ export function Alert() {
                                 onChange={(e) => setNewChannel({ ...newChannel, name: e.target.value })}
                                 className="rounded-xl"
                             />
-                            <Input
-                                placeholder={t('channels.form.urlPlaceholder')}
-                                value={newChannel.url}
-                                onChange={(e) => setNewChannel({ ...newChannel, url: e.target.value })}
-                                className="rounded-xl"
-                            />
-                            <Input
-                                placeholder={t('channels.form.secretPlaceholder')}
-                                value={newChannel.secret}
-                                onChange={(e) => setNewChannel({ ...newChannel, secret: e.target.value })}
-                                className="rounded-xl"
-                            />
+                            <select
+                                value={newChannel.type}
+                                onChange={(e) => setNewChannel(handleChannelTypeChange(newChannel, e.target.value as NotifChannelType))}
+                                className="h-9 px-3 rounded-xl bg-background border border-border text-sm"
+                            >
+                                {NOTIF_CHANNEL_TYPES.map((ct) => (
+                                    <option key={ct} value={ct}>{getChannelTypeLabel(ct)}</option>
+                                ))}
+                            </select>
+                            <ChannelConfigFields draft={newChannel} onChange={setNewChannel} t={t} />
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleCreateChannel}
@@ -445,7 +603,7 @@ export function Alert() {
                                 <div key={channel.id} className="p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-start gap-3 min-w-0 flex-1">
-                                            <Webhook className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                                            <ChannelTypeIcon type={channel.type} />
                                             {isEditing ? (
                                                 <div className="flex-1 space-y-3">
                                                     <Input
@@ -454,18 +612,16 @@ export function Alert() {
                                                         placeholder={t('channels.form.namePlaceholder')}
                                                         className="rounded-xl"
                                                     />
-                                                    <Input
-                                                        value={editingChannel.url}
-                                                        onChange={(e) => setEditingChannel({ ...editingChannel, url: e.target.value })}
-                                                        placeholder={t('channels.form.urlPlaceholder')}
-                                                        className="rounded-xl"
-                                                    />
-                                                    <Input
-                                                        value={editingChannel.secret}
-                                                        onChange={(e) => setEditingChannel({ ...editingChannel, secret: e.target.value })}
-                                                        placeholder={t('channels.form.secretPlaceholder')}
-                                                        className="rounded-xl"
-                                                    />
+                                                    <select
+                                                        value={editingChannel.type}
+                                                        onChange={(e) => setEditingChannel(handleChannelTypeChange(editingChannel, e.target.value as NotifChannelType))}
+                                                        className="h-9 px-3 rounded-xl bg-background border border-border text-sm"
+                                                    >
+                                                        {NOTIF_CHANNEL_TYPES.map((ct) => (
+                                                            <option key={ct} value={ct}>{getChannelTypeLabel(ct)}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChannelConfigFields draft={editingChannel} onChange={setEditingChannel} t={t} />
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => handleSaveChannel(channel)}
@@ -485,7 +641,7 @@ export function Alert() {
                                                 <div>
                                                     <div className="font-medium text-sm">{channel.name}</div>
                                                     <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                                                        {getChannelTypeLabel(channel.type)} · {channel.url}
+                                                        {getChannelTypeLabel(channel.type)} · {getChannelDescription(channel)}
                                                     </div>
                                                 </div>
                                             )}
