@@ -68,6 +68,9 @@ func (i *ResponseInbound) TransformResponse(ctx context.Context, response *model
 	if response == nil {
 		return nil, fmt.Errorf("response is nil")
 	}
+	if len(response.RawResponse) > 0 {
+		return response.RawResponse, nil
+	}
 
 	// Store the response for later retrieval
 	i.storedResponse = response
@@ -701,24 +704,26 @@ func formatSSEData(data []byte) []byte {
 // Request types
 
 type ResponsesRequest struct {
-	Model             string                `json:"model"`
-	Instructions      string                `json:"instructions,omitempty"`
-	Input             ResponsesInput        `json:"input"`
-	Tools             []ResponsesTool       `json:"tools,omitempty"`
-	ToolChoice        *ResponsesToolChoice  `json:"tool_choice,omitempty"`
-	ParallelToolCalls *bool                 `json:"parallel_tool_calls,omitempty"`
-	Stream            *bool                 `json:"stream,omitempty"`
-	Text              *ResponsesTextOptions `json:"text,omitempty"`
-	Store             *bool                 `json:"store,omitempty"`
-	ServiceTier       *string               `json:"service_tier,omitempty"`
-	User              *string               `json:"user,omitempty"`
-	Metadata          map[string]string     `json:"metadata,omitempty"`
-	MaxOutputTokens   *int64                `json:"max_output_tokens,omitempty"`
-	Temperature       *float64              `json:"temperature,omitempty"`
-	TopP              *float64              `json:"top_p,omitempty"`
-	Reasoning         *ResponsesReasoning   `json:"reasoning,omitempty"`
-	Include           []string              `json:"include,omitempty"`
-	TopLogprobs       *int64                `json:"top_logprobs,omitempty"`
+	Model              string                `json:"model"`
+	Instructions       string                `json:"instructions,omitempty"`
+	Input              ResponsesInput        `json:"input"`
+	PreviousResponseID string                `json:"previous_response_id,omitempty"`
+	PromptCacheKey     string                `json:"prompt_cache_key,omitempty"`
+	Tools              []ResponsesTool       `json:"tools,omitempty"`
+	ToolChoice         *ResponsesToolChoice  `json:"tool_choice,omitempty"`
+	ParallelToolCalls  *bool                 `json:"parallel_tool_calls,omitempty"`
+	Stream             *bool                 `json:"stream,omitempty"`
+	Text               *ResponsesTextOptions `json:"text,omitempty"`
+	Store              *bool                 `json:"store,omitempty"`
+	ServiceTier        *string               `json:"service_tier,omitempty"`
+	User               *string               `json:"user,omitempty"`
+	Metadata           map[string]string     `json:"metadata,omitempty"`
+	MaxOutputTokens    *int64                `json:"max_output_tokens,omitempty"`
+	Temperature        *float64              `json:"temperature,omitempty"`
+	TopP               *float64              `json:"top_p,omitempty"`
+	Reasoning          *ResponsesReasoning   `json:"reasoning,omitempty"`
+	Include            []string              `json:"include,omitempty"`
+	TopLogprobs        *int64                `json:"top_logprobs,omitempty"`
 }
 
 type ResponsesInput struct {
@@ -953,6 +958,12 @@ func convertToInternalRequest(req *ResponsesRequest) (*model.InternalLLMRequest,
 		RawAPIFormat:        model.APIFormatOpenAIResponse,
 		TransformerMetadata: map[string]string{},
 		Include:             append([]string(nil), req.Include...),
+	}
+	if req.PreviousResponseID != "" {
+		chatReq.TransformerMetadata["previous_response_id"] = req.PreviousResponseID
+	}
+	if req.PromptCacheKey != "" {
+		chatReq.TransformerMetadata["prompt_cache_key"] = req.PromptCacheKey
 	}
 
 	if req.Input.Text == nil && len(req.Input.Items) > 0 {

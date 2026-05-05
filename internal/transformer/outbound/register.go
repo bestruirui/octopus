@@ -58,3 +58,7 @@ func Get(outboundType OutboundType) model.Outbound {
 	}
 	return nil
 }
+
+func NewOpenAICompactResponse() model.Outbound {
+	return openai.NewCompactResponseOutbound()
+}
