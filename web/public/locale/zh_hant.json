@@ -541,7 +541,11 @@
             "autoGroupRegex": "正規比對",
             "matchRegex": "匹配正規",
             "matchRegexPlaceholder": "可選：用於匹配請求模型名稱的正規表示式",
-            "remark": "備註"
+            "remark": "備註",
+            "keyModeCost": "成本最低",
+            "keyModeRoundRobin": "輪詢",
+            "keyModeWeightedRandom": "加權隨機",
+            "keyWeight": "權重"
         }
     }
 }

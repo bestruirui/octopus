@@ -91,64 +91,77 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			continue
 		}
 		if !channel.Enabled {
-			iter.Skip(channel.ID, 0, channel.Name, "channel disabled")
+			lastErr = fmt.Errorf("channel %s: disabled", channel.Name)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 
-		usedKey := channel.GetChannelKey()
-		if usedKey.ChannelKey == "" {
-			iter.Skip(channel.ID, 0, channel.Name, "no available key")
-			continue
-		}
-
-		// 熔断检查
-		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+		keys := channel.GetChannelKeys()
+		if len(keys) == 0 {
+			lastErr = fmt.Errorf("channel %s: no available key", channel.Name)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 
 		// 出站适配器
 		outAdapter := outbound.Get(channel.Type)
 		if outAdapter == nil {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
+			lastErr = fmt.Errorf("channel %s: unsupported channel type: %d", channel.Name, channel.Type)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 
 		// 类型兼容性检查
 		if internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with embedding request")
+			lastErr = fmt.Errorf("channel %s: channel type not compatible with embedding request", channel.Name)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 		if internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
-			iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with chat request")
+			lastErr = fmt.Errorf("channel %s: channel type not compatible with chat request", channel.Name)
+			iter.Skip(channel.ID, 0, channel.Name, lastErr.Error())
 			continue
 		}
 
 		// 设置实际模型
 		internalRequest.Model = item.ModelName
 
-		log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
-			requestModel, group.Mode, channel.Name, item.ModelName,
-			iter.Index()+1, iter.Len(), iter.IsSticky())
+		allCircuitBroken := true
+		for _, usedKey := range keys {
+			if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+				continue
+			}
+			allCircuitBroken = false
 
-		// 构造尝试级上下文 -- 只写变化的 4 个字段
-		ra := &relayAttempt{
-			relayRequest:         req,
-			outAdapter:           outAdapter,
-			channel:              channel,
-			usedKey:              usedKey,
-			firstTokenTimeOutSec: group.FirstTokenTimeOut,
+			log.Infof("request model %s, mode: %d, forwarding to channel: %s key: %d model: %s (attempt %d/%d, sticky=%t)",
+				requestModel, group.Mode, channel.Name, usedKey.ID, item.ModelName,
+				iter.Index()+1, iter.Len(), iter.IsSticky())
+
+			// 构造尝试级上下文 -- 只写变化的 4 个字段
+			ra := &relayAttempt{
+				relayRequest:         req,
+				outAdapter:           outAdapter,
+				channel:              channel,
+				usedKey:              usedKey,
+				firstTokenTimeOutSec: group.FirstTokenTimeOut,
+			}
+
+			result := ra.attempt()
+			if result.Success {
+				metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
+				return
+			}
+			if result.Written {
+				metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
+				return
+			}
+			lastErr = result.Err
 		}
 
-		result := ra.attempt()
-		if result.Success {
-			metrics.Save(c.Request.Context(), true, nil, iter.Attempts())
-			return
+		if allCircuitBroken {
+			iter.Skip(channel.ID, 0, channel.Name, "all keys circuit-brokered")
+			lastErr = fmt.Errorf("channel %s: all keys circuit-brokered", channel.Name)
 		}
-		if result.Written {
-			metrics.Save(c.Request.Context(), false, result.Err, iter.Attempts())
-			return
-		}
-		lastErr = result.Err
 	}
 
 	// 所有通道都失败
@@ -269,20 +282,20 @@ func (ra *relayAttempt) forward() (int, error) {
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
-			return 0, fmt.Errorf("failed to read response body: %w", err)
+			return response.StatusCode, fmt.Errorf("failed to read response body: %w", err)
 		}
-		return 0, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
+		return response.StatusCode, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
 	}
 
 	// 处理响应
 	if ra.internalRequest.Stream != nil && *ra.internalRequest.Stream {
 		if err := ra.handleStreamResponse(ctx, response); err != nil {
-			return 0, err
+			return response.StatusCode, err
 		}
 		return response.StatusCode, nil
 	}
 	if err := ra.handleResponse(ctx, response); err != nil {
-		return 0, err
+		return response.StatusCode, err
 	}
 	return response.StatusCode, nil
 }

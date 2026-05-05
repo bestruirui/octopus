@@ -46,12 +46,14 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                 id: k.id,
                 enabled: k.enabled,
                 channel_key: k.channel_key,
+                weight: k.weight,
                 status_code: k.status_code,
                 last_use_time_stamp: k.last_use_time_stamp,
                 total_cost: k.total_cost,
                 remark: k.remark,
             }))
             : [{ enabled: true, channel_key: '', remark: '' }],
+        key_mode: channel.key_mode,
         model: channel.model,
         custom_model: channel.custom_model,
         proxy: channel.proxy,
@@ -87,6 +89,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         if (formData.proxy !== channel.proxy) req.proxy = formData.proxy;
         if (formData.auto_sync !== channel.auto_sync) req.auto_sync = formData.auto_sync;
         if (formData.auto_group !== channel.auto_group) req.auto_group = formData.auto_group;
+        if (formData.key_mode !== channel.key_mode) req.key_mode = formData.key_mode;
 
         if (!headersEqual(formData.custom_header, channel.custom_header)) {
             req.custom_header = (formData.custom_header ?? [])
@@ -124,19 +127,20 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
 
         const keys_to_add = nextKeys
             .filter((k) => !k.id && k.channel_key.trim())
-            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key, remark: k.remark ?? '' }));
+            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key, weight: k.weight ?? 1, remark: k.remark ?? '' }));
 
         const keys_to_update = nextKeys
             .filter((k) => typeof k.id === 'number' && originalByID.has(k.id as number))
             .map((k) => {
                 const orig = originalByID.get(k.id as number)!;
-                const u: { id: number; enabled?: boolean; channel_key?: string; remark?: string } = { id: k.id as number };
+                const u: { id: number; enabled?: boolean; channel_key?: string; weight?: number; remark?: string } = { id: k.id as number };
                 if (k.enabled !== orig.enabled) u.enabled = k.enabled;
                 if (k.channel_key !== orig.channel_key) u.channel_key = k.channel_key;
+                if ((k.weight ?? 1) !== (orig.weight ?? 1)) u.weight = k.weight ?? 1;
                 if ((k.remark ?? '') !== orig.remark) u.remark = k.remark ?? '';
                 return Object.keys(u).length > 1 ? u : null;
             })
-            .filter((u) => u !== null) as Array<{ id: number; enabled?: boolean; channel_key?: string; remark?: string }>;
+            .filter((u) => u !== null) as Array<{ id: number; enabled?: boolean; channel_key?: string; weight?: number; remark?: string }>;
 
         if (keys_to_add.length > 0) req.keys_to_add = keys_to_add;
         if (keys_to_update.length > 0) req.keys_to_update = keys_to_update;
