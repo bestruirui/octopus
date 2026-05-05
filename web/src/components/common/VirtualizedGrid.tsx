@@ -68,7 +68,7 @@ export function VirtualizedGrid<T>({
         typeof window === 'undefined' ? 1024 : window.innerWidth
     );
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const reachEndTriggeredRef = useRef(false);
+    const reachEndTriggeredForRowCountRef = useRef<number | null>(null);
 
     useEffect(() => {
         const el = containerRef.current;
@@ -133,17 +133,21 @@ export function VirtualizedGrid<T>({
     const virtualRows = rowVirtualizer.getVirtualItems();
 
     useEffect(() => {
-        if (!onReachEnd || !reachEndEnabled || itemRowCount === 0) return;
+        if (!onReachEnd || itemRowCount === 0) {
+            reachEndTriggeredForRowCountRef.current = null;
+            return;
+        }
+        if (!reachEndEnabled) return;
 
         const lastVirtualIndex = virtualRows.length > 0 ? virtualRows[virtualRows.length - 1]!.index : -1;
         const triggerIndex = Math.max(0, itemRowCount - 1 - reachEndOffset);
         if (lastVirtualIndex < triggerIndex) {
-            reachEndTriggeredRef.current = false;
+            reachEndTriggeredForRowCountRef.current = null;
             return;
         }
-        if (reachEndTriggeredRef.current) return;
+        if (reachEndTriggeredForRowCountRef.current === itemRowCount) return;
 
-        reachEndTriggeredRef.current = true;
+        reachEndTriggeredForRowCountRef.current = itemRowCount;
         onReachEnd();
     }, [onReachEnd, reachEndEnabled, itemRowCount, reachEndOffset, virtualRows]);
 

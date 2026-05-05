@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { GroupCard } from './Card';
 import { useGroupList } from '@/api/endpoints/group';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
-import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
+import { PageWrapper } from '@/components/common/PageWrapper';
 
 export function Group() {
     const { data: groups } = useGroupList();
@@ -35,12 +35,10 @@ export function Group() {
     }, [sortedGroups, searchTerm, filter]);
 
     return (
-        <VirtualizedGrid
-            items={visibleGroups}
-            columns={{ default: 1, md: 2, lg: 3 }}
-            estimateItemHeight={520}
-            getItemKey={(group, index) => group.id ?? `group-${index}`}
-            renderItem={(group) => <GroupCard group={group} />}
-        />
+        <PageWrapper className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {visibleGroups.map((group, index) => (
+                <GroupCard key={group.id ?? `group-${index}`} group={group} />
+            ))}
+        </PageWrapper>
     );
 }

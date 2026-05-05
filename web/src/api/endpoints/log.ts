@@ -84,6 +84,26 @@ export function useClearLogs() {
 
 const logsInfiniteQueryKey = (pageSize: number) => ['logs', 'infinite', pageSize] as const;
 
+function compareRelayLogDesc(a: RelayLog, b: RelayLog) {
+    if (a.time !== b.time) return b.time - a.time;
+    return b.id - a.id;
+}
+
+function insertRealtimeLog(
+    old: InfiniteData<RelayLog[], number> | undefined,
+    log: RelayLog
+): InfiniteData<RelayLog[], number> {
+    if (!old || old.pages.length === 0) {
+        return { pages: [[log]], pageParams: [1] };
+    }
+
+    const exists = old.pages.some((page) => page?.some((item) => item.id === log.id));
+    if (exists) return old;
+
+    const firstPage = old.pages[0] ?? [];
+    return { ...old, pages: [[log, ...firstPage], ...old.pages.slice(1)] };
+}
+
 /**
  * 日志管理 Hook
  * 整合初始加载、SSE 实时推送、滚动加载更多
@@ -118,7 +138,10 @@ export function useLogs(options: { pageSize?: number } = {}) {
         },
         getNextPageParam: (lastPage, allPages) => {
             if (!lastPage || lastPage.length < pageSize) return undefined;
-            return allPages.length + 1;
+            // Realtime SSE entries are prepended to page 1, so page count alone can refetch
+            // overlapping backend pages. Advance by the raw cached item count instead.
+            const loadedLogCount = allPages.reduce((total, page) => total + (page?.length ?? 0), 0);
+            return Math.floor(loadedLogCount / pageSize) + 1;
         },
         staleTime: Infinity,
         refetchOnMount: 'always',
@@ -137,7 +160,7 @@ export function useLogs(options: { pageSize?: number } = {}) {
             }
         }
 
-        merged.sort((a, b) => b.time - a.time);
+        merged.sort(compareRelayLogDesc);
         return merged;
     }, [logsQuery.data]);
 
@@ -173,17 +196,8 @@ export function useLogs(options: { pageSize?: number } = {}) {
                         const log: RelayLog = JSON.parse(event.data);
                         queryClient.setQueryData(
                             logsInfiniteQueryKey(pageSize),
-                            (old: InfiniteData<RelayLog[], number> | undefined) => {
-                                if (!old) {
-                                    return { pages: [[log]], pageParams: [1] };
-                                }
-
-                                const exists = old.pages.some((p) => p?.some((x) => x.id === log.id));
-                                if (exists) return old;
-
-                                const firstPage = old.pages[0] ?? [];
-                                return { ...old, pages: [[log, ...firstPage], ...old.pages.slice(1)] };
-                            }
+                            (old: InfiniteData<RelayLog[], number> | undefined) =>
+                                insertRealtimeLog(old, log)
                         );
                     } catch (e) {
                         logger.error('解析日志数据失败:', e);
