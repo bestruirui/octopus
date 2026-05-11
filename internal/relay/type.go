@@ -61,6 +61,7 @@ type relayRequest struct {
 	apiKeyID        int
 	requestModel    string
 	iter            *balancer.Iterator
+	isCompact       bool
 }
 
 // relayAttempt 尝试级上下文

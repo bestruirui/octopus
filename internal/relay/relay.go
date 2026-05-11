@@ -25,6 +25,11 @@ import (
 	"github.com/tmaxmax/go-sse"
 )
 
+const (
+	ResponsesEndpointContextKey = "responses_endpoint"
+	ResponsesEndpointCompact    = "compact"
+)
+
 // Handler 处理入站请求并转发到上游服务
 func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	// 解析请求
@@ -71,6 +76,9 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		requestModel:    requestModel,
 		iter:            iter,
 	}
+	if endpoint, ok := c.Get(ResponsesEndpointContextKey); ok && endpoint == ResponsesEndpointCompact {
+		req.isCompact = true
+	}
 
 	var lastErr error
 
@@ -108,9 +116,29 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 		if iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
 			continue
 		}
+		if req.isCompact {
+			if unsupported, remaining := balancer.IsCompactUnsupported(channel.ID, item.ModelName); unsupported {
+				msg := "compact endpoint unsupported"
+				if remaining > 0 {
+					msg = fmt.Sprintf("compact endpoint unsupported, remaining cooldown: %ds", int(remaining.Seconds()))
+				}
+				iter.Skip(channel.ID, usedKey.ID, channel.Name, msg)
+				continue
+			}
+		}
 
 		// 出站适配器
 		outAdapter := outbound.Get(channel.Type)
+		if endpoint, ok := c.Get(ResponsesEndpointContextKey); ok && endpoint == ResponsesEndpointCompact {
+			if channel.Type != outbound.OutboundTypeOpenAIResponse {
+				iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel type not compatible with compact request")
+				continue
+			}
+			isOpenAIResponsesFlow := inboundType == inbound.InboundTypeOpenAIResponse && channel.Type == outbound.OutboundTypeOpenAIResponse
+			if isOpenAIResponsesFlow {
+				outAdapter = outbound.NewOpenAICompactResponse()
+			}
+		}
 		if outAdapter == nil {
 			iter.Skip(channel.ID, usedKey.ID, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
 			continue
@@ -186,8 +214,12 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 		// 熔断器：记录成功
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		balancer.RecordSmartOutcome(ra.channel.ID, ra.internalRequest.Model, true)
 		// 会话保持：更新粘性记录
 		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
+		if ra.isCompact {
+			balancer.MarkCompactSupported(ra.channel.ID, ra.internalRequest.Model)
+		}
 
 		ra.metrics.ParamOverride = paramOverrideValue(ra.channel.ParamOverride)
 
@@ -206,6 +238,10 @@ func (ra *relayAttempt) attempt() attemptResult {
 
 	// 熔断器：记录失败
 	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	balancer.RecordSmartOutcome(ra.channel.ID, ra.internalRequest.Model, false)
+	if ra.isCompact && shouldMarkCompactUnsupported(fwdErr) {
+		balancer.MarkCompactUnsupported(ra.channel.ID, ra.internalRequest.Model)
+	}
 
 	ra.metrics.ParamOverride = paramOverrideValue(ra.channel.ParamOverride)
 
@@ -218,6 +254,78 @@ func (ra *relayAttempt) attempt() attemptResult {
 		Written: written,
 		Err:     fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr),
 	}
+}
+
+func shouldMarkCompactUnsupported(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	if !isCompactCapabilityStatus(msg) {
+		return false
+	}
+	if strings.Contains(msg, "model_not_found") {
+		return true
+	}
+	if strings.Contains(msg, "not support") || strings.Contains(msg, "not supported") || strings.Contains(msg, "unsupported") {
+		return true
+	}
+	if strings.Contains(msg, "/responses/compact") {
+		return true
+	}
+	if strings.Contains(msg, "response.compaction") {
+		return true
+	}
+	if containsAny(msg, compactPayloadTooLargeIndicators...) {
+		return true
+	}
+	return false
+}
+
+var compactCapabilityStatuses = []string{
+	"upstream error: 400:",
+	"upstream error: 404:",
+	"upstream error: 405:",
+	"upstream error: 413:",
+	"upstream error: 422:",
+	"upstream error: 503:",
+}
+
+var compactPayloadTooLargeIndicators = []string{
+	"too many tokens",
+	"payload too large",
+	"request entity too large",
+}
+
+func isCompactCapabilityStatus(msg string) bool {
+	return containsAny(msg, compactCapabilityStatuses...)
+}
+
+func containsAny(msg string, patterns ...string) bool {
+	for _, p := range patterns {
+		if strings.Contains(msg, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func formatUpstreamErrorMessage(isCompact bool, requestModel, routedModel, endpointPath string, statusCode int, body []byte) string {
+	base := fmt.Sprintf("upstream error: %d: %s", statusCode, string(body))
+	if !isCompact {
+		return base
+	}
+
+	parts := []string{
+		fmt.Sprintf("request_model=%q", requestModel),
+		fmt.Sprintf("routed_model=%q", routedModel),
+		fmt.Sprintf("endpoint=%q", endpointPath),
+	}
+	bodyText := strings.ToLower(string(body))
+	if strings.Contains(bodyText, "-openai-compact") {
+		parts = append(parts, `note="upstream provider may internally map compact endpoint models to *-openai-compact aliases"`)
+	}
+	return fmt.Sprintf("%s [compact relay context: %s]", base, strings.Join(parts, ", "))
 }
 
 // parseRequest 解析并验证入站请求
@@ -308,7 +416,14 @@ func (ra *relayAttempt) forward() (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("failed to read response body: %w", err)
 		}
-		return 0, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
+		return 0, fmt.Errorf("%s", formatUpstreamErrorMessage(
+			ra.isCompact,
+			ra.requestModel,
+			ra.internalRequest.Model,
+			outboundRequest.URL.Path,
+			response.StatusCode,
+			body,
+		))
 	}
 
 	// 处理响应
