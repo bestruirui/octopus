@@ -177,6 +177,10 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 		selectFields = append(selectFields, "match_regex")
 		updates.MatchRegex = req.MatchRegex
 	}
+	if req.KeyMode != nil {
+		selectFields = append(selectFields, "key_mode")
+		updates.KeyMode = *req.KeyMode
+	}
 
 	// 只有当有字段需要更新时才执行 UPDATE
 	if len(selectFields) > 0 {
@@ -207,6 +211,9 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 			if ku.Remark != nil {
 				updates["remark"] = *ku.Remark
 			}
+			if ku.Weight != nil {
+				updates["weight"] = *ku.Weight
+			}
 			if len(updates) == 0 {
 				continue
 			}
@@ -223,10 +230,15 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 	if len(req.KeysToAdd) > 0 {
 		newKeys := make([]model.ChannelKey, 0, len(req.KeysToAdd))
 		for _, ka := range req.KeysToAdd {
+			weight := ka.Weight
+			if weight <= 0 {
+				weight = 1
+			}
 			newKeys = append(newKeys, model.ChannelKey{
 				ChannelID:  req.ID,
 				Enabled:    ka.Enabled,
 				ChannelKey: ka.ChannelKey,
+				Weight:     weight,
 				Remark:     ka.Remark,
 			})
 		}

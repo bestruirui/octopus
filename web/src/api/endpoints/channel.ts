@@ -25,6 +25,15 @@ export enum AutoGroupType {
     Regex = 3,  // 正则匹配
 }
 
+/**
+ * 多 Key 模式枚举
+ */
+export enum ChannelKeyMode {
+    Cost = 0,            // 按总成本最低
+    RoundRobin = 1,      // 轮询
+    WeightedRandom = 2,  // 加权随机
+}
+
 export type BaseUrl = {
     url: string;
     delay: number;
@@ -40,6 +49,7 @@ export type ChannelKey = {
     channel_id: number;
     enabled: boolean;
     channel_key: string;
+    weight: number;
     status_code: number;
     last_use_time_stamp: number;
     total_cost: number;
@@ -56,6 +66,7 @@ export type Channel = {
     enabled: boolean;
     base_urls: BaseUrl[];
     keys: ChannelKey[];
+    key_mode: ChannelKeyMode;
     model: string;
     custom_model: string;
     proxy: boolean;
@@ -83,7 +94,8 @@ export type CreateChannelRequest = {
     type: ChannelType;
     enabled?: boolean;
     base_urls: BaseUrl[];
-    keys: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'remark'>>;
+    keys: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'weight' | 'remark'>>;
+    key_mode?: ChannelKeyMode;
     model: string;
     custom_model?: string;
     proxy?: boolean;
@@ -104,6 +116,7 @@ export type UpdateChannelRequest = {
     type?: ChannelType;
     enabled?: boolean;
     base_urls?: BaseUrl[];
+    key_mode?: ChannelKeyMode;
     model?: string;
     custom_model?: string;
     proxy?: boolean;
@@ -114,8 +127,8 @@ export type UpdateChannelRequest = {
     param_override?: string | null;
     match_regex?: string | null;
     // keys diff
-    keys_to_add?: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'remark'>>;
-    keys_to_update?: Array<{ id: number; enabled?: boolean; channel_key?: string; remark?: string }>;
+    keys_to_add?: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'weight' | 'remark'>>;
+    keys_to_update?: Array<{ id: number; enabled?: boolean; channel_key?: string; weight?: number; remark?: string }>;
     keys_to_delete?: number[];
 };
 

@@ -5,7 +5,7 @@ import {
     MorphingDialogDescription,
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
-import { useCreateChannel, ChannelType, AutoGroupType } from '@/api/endpoints/channel';
+import { useCreateChannel, ChannelType, AutoGroupType, ChannelKeyMode } from '@/api/endpoints/channel';
 import { useTranslations } from 'next-intl';
 import { ChannelForm, type ChannelFormData } from './Form';
 
@@ -20,6 +20,7 @@ export function CreateDialogContent() {
         channel_proxy: '',
         param_override: '',
         keys: [{ enabled: true, channel_key: '', remark: '' }],
+        key_mode: ChannelKeyMode.Cost,
         model: '',
         custom_model: '',
         auto_sync: false,
@@ -38,7 +39,7 @@ export function CreateDialogContent() {
         }));
         const normalizedKeys = formData.keys
             .filter((k) => k.channel_key.trim())
-            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key, remark: k.remark ?? '' }));
+            .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key, weight: k.weight ?? 1, remark: k.remark ?? '' }));
         const normalizedHeaders = (formData.custom_header ?? [])
             .map((h) => ({ header_key: h.header_key.trim(), header_value: h.header_value }))
             .filter((h) => h.header_key && h.header_value !== '');
@@ -52,6 +53,7 @@ export function CreateDialogContent() {
                 enabled: formData.enabled,
                 base_urls: normalizedBaseUrls,
                 keys: normalizedKeys,
+                key_mode: formData.key_mode,
                 model: formData.model,
                 custom_model: formData.custom_model,
                 proxy: formData.proxy,
@@ -72,6 +74,7 @@ export function CreateDialogContent() {
                         channel_proxy: '',
                         param_override: '',
                         keys: [{ enabled: true, channel_key: '', remark: '' }],
+                        key_mode: ChannelKeyMode.Cost,
                         model: '',
                         custom_model: '',
                         auto_sync: false,

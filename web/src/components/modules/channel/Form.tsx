@@ -1,4 +1,4 @@
-import { AutoGroupType, ChannelType, type Channel, useFetchModel } from '@/api/endpoints/channel';
+import { AutoGroupType, ChannelType, ChannelKeyMode, type Channel, useFetchModel } from '@/api/endpoints/channel';
 import {
     Select,
     SelectContent,
@@ -19,6 +19,7 @@ export interface ChannelKeyFormItem {
     id?: number;
     enabled: boolean;
     channel_key: string;
+    weight?: number;
     status_code?: number;
     last_use_time_stamp?: number;
     total_cost?: number;
@@ -33,6 +34,7 @@ export interface ChannelFormData {
     channel_proxy: string;
     param_override: string;
     keys: ChannelKeyFormItem[];
+    key_mode: ChannelKeyMode;
     model: string;
     custom_model: string;
     enabled: boolean;
@@ -310,16 +312,31 @@ export function ChannelForm({
                     <label className="text-sm font-medium text-card-foreground">
                         {t('apiKey')} {formData.keys.length > 0 ? `(${formData.keys.length})` : ''}
                     </label>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleAddKey}
-                        className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
-                    >
-                        <Plus className="h-3 w-3 mr-1" />
-                        {t('add')}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Select
+                            value={String(formData.key_mode)}
+                            onValueChange={(value) => onFormDataChange({ ...formData, key_mode: Number(value) as ChannelKeyMode })}
+                        >
+                            <SelectTrigger className="rounded-xl h-7 w-auto border border-border px-3 py-0 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className='rounded-xl'>
+                                <SelectItem className='rounded-xl' value={String(ChannelKeyMode.Cost)}>{t('keyModeCost')}</SelectItem>
+                                <SelectItem className='rounded-xl' value={String(ChannelKeyMode.RoundRobin)}>{t('keyModeRoundRobin')}</SelectItem>
+                                <SelectItem className='rounded-xl' value={String(ChannelKeyMode.WeightedRandom)}>{t('keyModeWeightedRandom')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleAddKey}
+                            className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                        >
+                            <Plus className="h-3 w-3 mr-1" />
+                            {t('add')}
+                        </Button>
+                    </div>
                 </div>
                 <div className="space-y-2">
                     {(formData.keys ?? []).map((k, idx) => (
@@ -332,6 +349,16 @@ export function ChannelForm({
                                 required={idx === 0}
                                 className="rounded-xl flex-1"
                             />
+                            {formData.key_mode === ChannelKeyMode.WeightedRandom && (
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    value={k.weight ?? 1}
+                                    onChange={(e) => handleUpdateKey(idx, { weight: Math.max(1, parseInt(e.target.value) || 1) })}
+                                    placeholder={t('keyWeight')}
+                                    className="rounded-xl w-20"
+                                />
+                            )}
                             <Input
                                 type="text"
                                 value={k.remark ?? ''}
