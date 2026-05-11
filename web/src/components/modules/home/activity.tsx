@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 import dayjs from 'dayjs';
+import { useHomeViewStore } from './store';
 
 interface StatsDailyData {
     dateStr: string;
@@ -29,6 +30,8 @@ export function Activity() {
     const { data: statsDailyFormatted, isLoading } = useStatsDaily();
     const scrollRef = useRef<HTMLDivElement>(null);
     const t = useTranslations('home.activity');
+    const dateRange = useHomeViewStore((state) => state.dateRange);
+    const setDateRange = useHomeViewStore((state) => state.setDateRange);
 
     const [tooltip, setTooltip] = useState<{ day: StatsDailyData; x: number; y: number; visible: boolean } | null>(null);
 
@@ -86,6 +89,27 @@ export function Activity() {
         return () => window.removeEventListener('resize', scrollToRight);
     }, [days, isLoading, checkScroll]);
 
+    const isDateInRange = useCallback((dateStr: string): 'none' | 'start' | 'range' => {
+        if (!dateRange.from) return 'none';
+        if (!dateRange.to) return dateStr === dateRange.from ? 'start' : 'none';
+        return dateStr >= dateRange.from && dateStr <= dateRange.to ? 'range' : 'none';
+    }, [dateRange]);
+
+    const handleCellClick = useCallback((dateStr: string, shiftKey: boolean) => {
+        if (shiftKey) {
+            const current = useHomeViewStore.getState().dateRange;
+            if (current.from) {
+                const from = dateStr < current.from ? dateStr : current.from;
+                const to = dateStr < current.from ? current.from : dateStr;
+                setDateRange({ from, to });
+            } else {
+                setDateRange({ from: dateStr, to: null });
+            }
+        } else {
+            setDateRange({ from: dateStr, to: null });
+        }
+    }, [setDateRange]);
+
     return (
         <div className="rounded-3xl bg-card border-card-border border text-card-foreground custom-shadow">
             <div
@@ -108,17 +132,32 @@ export function Activity() {
                             }
 
                             const level = getActivityLevel(day.formatted?.request_count.raw ?? 0);
+                            const rangeState = isDateInRange(day.dateStr);
 
                             return (
                                 <div
                                     key={day.dateStr}
                                     className="rounded-sm transition-all cursor-pointer hover:scale-150"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCellClick(day.dateStr, e.shiftKey);
+                                    }}
                                     onMouseEnter={(e) => {
                                         const rect = e.currentTarget.getBoundingClientRect();
                                         setTooltip({ day, x: rect.left + rect.width / 2, y: rect.top, visible: true });
                                     }}
                                     onMouseLeave={() => setTooltip(prev => prev ? { ...prev, visible: false } : null)}
-                                    style={{ backgroundColor: level === 0 ? 'var(--muted)' : `color-mix(in oklch, var(--primary) ${level * 25}%, var(--muted))` }}
+                                    style={{
+                                        backgroundColor: level === 0 ? 'var(--muted)' : `color-mix(in oklch, var(--primary) ${level * 25}%, var(--muted))`,
+                                        ...(rangeState === 'start' && {
+                                            outline: '2px solid var(--primary)',
+                                            outlineOffset: '1px'
+                                        }),
+                                        ...(rangeState === 'range' && {
+                                            outline: '1.5px solid var(--primary)',
+                                            outlineOffset: '0.5px'
+                                        })
+                                    }}
                                 />
                             );
                         })}

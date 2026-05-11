@@ -21,6 +21,7 @@ export function StatsChart() {
     const setChartMetricType = useHomeViewStore((state) => state.setChartMetricType);
     const period = useHomeViewStore((state) => state.chartPeriod);
     const setChartPeriod = useHomeViewStore((state) => state.setChartPeriod);
+    const dateRange = useHomeViewStore((state) => state.dateRange);
 
     const sortedDaily = useMemo(() => {
         if (!statsDaily) return [];
@@ -33,6 +34,21 @@ export function StatsChart() {
 
     const chartData = useMemo(() => {
         const dataKey = getChartDataKey(chartMetricType);
+
+        if (dateRange.from && dateRange.to) {
+            const filteredDaily = sortedDaily.filter((stat) => {
+                return stat.date >= dateRange.from! && stat.date <= dateRange.to!;
+            });
+            return filteredDaily.map((stat) => ({
+                date: dayjs(stat.date).format('MM/DD'),
+                [dataKey]: chartMetricType === 'cost'
+                    ? stat.total_cost.raw
+                    : chartMetricType === 'count'
+                        ? (stat.request_success.raw + stat.request_failed.raw)
+                        : (stat.input_token.raw + stat.output_token.raw),
+            }));
+        }
+
         if (period === '1') {
             if (!statsHourly) return [];
             return statsHourly.map((stat) => ({
@@ -54,32 +70,34 @@ export function StatsChart() {
                         : (stat.input_token.raw + stat.output_token.raw),
             }));
         }
-    }, [sortedDaily, statsHourly, period, chartMetricType]);
+    }, [sortedDaily, statsHourly, period, chartMetricType, dateRange]);
 
     const totals = useMemo(() => {
+        if (dateRange.from && dateRange.to) {
+            const filteredDaily = sortedDaily.filter((stat) => {
+                return stat.date >= dateRange.from! && stat.date <= dateRange.to!;
+            });
+            const requests = filteredDaily.reduce((acc, stat) => acc + stat.request_success.raw + stat.request_failed.raw, 0);
+            const cost = filteredDaily.reduce((acc, stat) => acc + stat.total_cost.raw, 0);
+            const tokens = filteredDaily.reduce((acc, stat) => acc + stat.input_token.raw + stat.output_token.raw, 0);
+            return { requests, cost, tokens };
+        }
+
         if (period === '1') {
             if (!statsHourly) return { requests: 0, cost: 0, tokens: 0 };
             const requests = statsHourly.reduce((acc, stat) => acc + stat.request_count.raw, 0);
             const cost = statsHourly.reduce((acc, stat) => acc + stat.total_cost.raw, 0);
             const tokens = statsHourly.reduce((acc, stat) => acc + stat.input_token.raw + stat.output_token.raw, 0);
-            return {
-                requests,
-                cost,
-                tokens,
-            };
+            return { requests, cost, tokens };
         } else {
             const days = Number(period);
             const recentStats = sortedDaily.slice(-days);
             const requests = recentStats.reduce((acc, stat) => acc + stat.request_success.raw + stat.request_failed.raw, 0);
             const cost = recentStats.reduce((acc, stat) => acc + stat.total_cost.raw, 0);
             const tokens = recentStats.reduce((acc, stat) => acc + stat.input_token.raw + stat.output_token.raw, 0);
-            return {
-                requests,
-                cost,
-                tokens,
-            };
+            return { requests, cost, tokens };
         }
-    }, [sortedDaily, statsHourly, period]);
+    }, [sortedDaily, statsHourly, period, dateRange]);
 
     const chartConfig = useMemo(() => {
         const dataKey = getChartDataKey(chartMetricType);
@@ -93,7 +111,12 @@ export function StatsChart() {
         };
     }, [chartMetricType, t]);
 
+    const hasDateRange = !!(dateRange.from && dateRange.to);
+
     const getPeriodLabel = (p: ChartPeriod) => {
+        if (hasDateRange) {
+            return t('period.customRange');
+        }
         const labels = {
             '1': t('period.today'),
             '7': t('period.last7Days'),
@@ -164,8 +187,8 @@ export function StatsChart() {
                         </div>
                     </div>
                     <div
-                        className="flex gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={handlePeriodClick}
+                        className={`flex gap-2 text-sm transition-opacity ${hasDateRange ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}`}
+                        onClick={hasDateRange ? undefined : handlePeriodClick}
                     >
                         <div>
                             <div className="text-xs text-muted-foreground">{t('timePeriod')}</div>

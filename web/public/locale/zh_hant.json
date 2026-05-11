@@ -128,7 +128,8 @@
             "period": {
                 "today": "今天",
                 "last7Days": "7天",
-                "last30Days": "30天"
+                "last30Days": "30天",
+                "customRange": "自訂範圍"
             }
         },
         "rank": {
