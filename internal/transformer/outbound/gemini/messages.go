@@ -82,7 +82,13 @@ func (o *MessagesOutbound) TransformResponse(ctx context.Context, response *http
 	}
 
 	// Convert Gemini response to internal format
-	return convertGeminiToLLMResponse(&geminiResp, false), nil
+	internalResp := convertGeminiToLLMResponse(&geminiResp, false)
+
+	if internalResp.IsEmpty() {
+		return nil, fmt.Errorf("response content is empty")
+	}
+
+	return internalResp, nil
 }
 
 func (o *MessagesOutbound) TransformStream(ctx context.Context, eventData []byte) (*model.InternalLLMResponse, error) {

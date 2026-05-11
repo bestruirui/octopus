@@ -110,6 +110,10 @@ func (o *EmbeddingOutbound) TransformResponse(ctx context.Context, response *htt
 		Usage:         openAIResp.Usage,
 	}
 
+	if resp.IsEmpty() {
+		return nil, fmt.Errorf("response content is empty")
+	}
+
 	return resp, nil
 }
 
