@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useModelList } from '@/api/endpoints/model';
 import { ModelItem } from './Item';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
-import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
+import { PageWrapper } from '@/components/common/PageWrapper';
 
 export function Model() {
     const { data: models } = useModelList();
@@ -37,14 +37,15 @@ export function Model() {
         return byName;
     }, [sortedModels, searchTerm, filter]);
 
+    const gridClassName = layout === 'list'
+        ? 'grid grid-cols-1 gap-4'
+        : 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3';
+
     return (
-        <VirtualizedGrid
-            items={visibleModels}
-            layout={layout}
-            columns={{ default: 1, md: 2, lg: 3 }}
-            estimateItemHeight={112}
-            getItemKey={(model) => `model-${model.name}`}
-            renderItem={(model) => <ModelItem model={model} layout={layout} />}
-        />
+        <PageWrapper className={gridClassName}>
+            {visibleModels.map((model) => (
+                <ModelItem key={`model-${model.name}`} model={model} layout={layout} />
+            ))}
+        </PageWrapper>
     );
 }
