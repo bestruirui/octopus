@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/bestruirui/octopus/internal/conf"
+	"github.com/bestruirui/octopus/internal/relay/bodycache"
 	_ "github.com/bestruirui/octopus/internal/server/handlers"
 	"github.com/bestruirui/octopus/internal/server/middleware"
 	"github.com/bestruirui/octopus/internal/server/resp"
@@ -21,6 +22,13 @@ func Start() error {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// 启动时清理 Images 请求体临时文件（失败仅告警，不阻断启动）
+	tmpDir := bodycache.TmpDirFromEnv()
+	olderThan := bodycache.TmpCleanupOlderThanFromEnv()
+	if err := bodycache.CleanupOldTmpFiles(tmpDir, bodycache.TmpFilePrefix, olderThan); err != nil {
+		log.Warnf("cleanup images tmp files failed: dir=%s prefix=%s olderThan=%s err=%v", tmpDir, bodycache.TmpFilePrefix, olderThan, err)
 	}
 
 	r := gin.New()

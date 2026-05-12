@@ -191,6 +191,14 @@ type InternalLLMRequest struct {
 	// EnableThinking is used by Alibaba Qwen models to enable thinking/reasoning output.
 	EnableThinking *bool `json:"enable_thinking,omitempty"`
 
+	// Thinking is used by DeepSeek to control thinking mode.
+	// e.g., {"type": "disabled"} or {"type": "enabled", "budget_tokens": 1024}
+	Thinking json.RawMessage `json:"thinking,omitempty"`
+
+	// ChatTemplateKwargs is used by Nvidia to pass chat template kwargs.
+	// e.g., {"enable_thinking": true}
+	ChatTemplateKwargs json.RawMessage `json:"chat_template_kwargs,omitempty"`
+
 	// Specifies the processing type used for serving the request.
 	ServiceTier *string `json:"service_tier,omitempty"`
 
