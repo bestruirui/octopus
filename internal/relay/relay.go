@@ -396,6 +396,9 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 	ra.c.Header("X-Accel-Buffering", "no")
 
 	firstToken := true
+	hasEffectiveContent := false
+	pendingChunks := make([][]byte, 0, 4)
+	emptyResponseIsFailure, _ := op.SettingGetBool(dbmodel.SettingKeyEmptyResponseIsFailure)
 
 	type sseReadResult struct {
 		data string
@@ -437,6 +440,17 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 			return fmt.Errorf("first token timeout (%ds)", ra.firstTokenTimeOutSec)
 		case r, ok := <-results:
 			if !ok {
+				if !hasEffectiveContent {
+					if emptyResponseIsFailure {
+						return fmt.Errorf("empty stream response")
+					}
+					for _, pending := range pendingChunks {
+						_, _ = ra.c.Writer.Write(pending)
+					}
+					if len(pendingChunks) > 0 {
+						ra.c.Writer.Flush()
+					}
+				}
 				log.Infof("stream end")
 				return nil
 			}
@@ -445,7 +459,7 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 				return fmt.Errorf("failed to read stream event: %w", r.err)
 			}
 
-			data, err := ra.transformStreamData(ctx, r.data)
+			data, internalStream, err := ra.transformStreamData(ctx, r.data)
 			if err != nil || len(data) == 0 {
 				continue
 			}
@@ -463,31 +477,45 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 					firstTokenC = nil
 				}
 			}
+			if hasStreamResponseContent(internalStream) {
+				hasEffectiveContent = true
+			}
 
-			ra.c.Writer.Write(data)
+			if !hasEffectiveContent {
+				// 在确认有效内容前，先缓冲元数据事件，避免空流误写导致后续无法重试。
+				pendingChunks = append(pendingChunks, data)
+				continue
+			}
+
+			for _, pending := range pendingChunks {
+				_, _ = ra.c.Writer.Write(pending)
+			}
+			pendingChunks = nil
+
+			_, _ = ra.c.Writer.Write(data)
 			ra.c.Writer.Flush()
 		}
 	}
 }
 
-// transformStreamData 转换流式数据
-func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([]byte, error) {
+// transformStreamData 转换流式数据。
+func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([]byte, *model.InternalLLMResponse, error) {
 	internalStream, err := ra.outAdapter.TransformStream(ctx, []byte(data))
 	if err != nil {
 		log.Warnf("failed to transform stream: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 	if internalStream == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	inStream, err := ra.inAdapter.TransformStream(ctx, internalStream)
 	if err != nil {
 		log.Warnf("failed to transform stream: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return inStream, nil
+	return inStream, internalStream, nil
 }
 
 // handleResponse 处理非流式响应

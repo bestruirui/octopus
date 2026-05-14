@@ -22,6 +22,7 @@ export const SettingKey = {
     CircuitBreakerThreshold: 'circuit_breaker_threshold',
     CircuitBreakerCooldown: 'circuit_breaker_cooldown',
     CircuitBreakerMaxCooldown: 'circuit_breaker_max_cooldown',
+    EmptyResponseIsFailure: 'empty_response_is_failure',
 } as const;
 
 /**

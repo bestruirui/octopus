@@ -185,6 +185,13 @@
             "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
         },
         "saved": "Saved",
+        "failover": {
+            "title": "Failover",
+            "emptyResponseIsFailure": {
+                "label": "Treat Empty Response as Failure",
+                "hint": "When enabled, an empty response from an upstream channel will trigger failover to another available channel"
+            }
+        },
         "backup": {
             "title": "Backup / Restore",
             "export": {
