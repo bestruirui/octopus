@@ -16,8 +16,6 @@ import (
 type ChatOutbound struct{}
 
 func (o *ChatOutbound) TransformRequest(ctx context.Context, request *model.InternalLLMRequest, baseUrl, key string) (*http.Request, error) {
-	request.ClearHelpFields()
-
 	// Convert developer role to system role for compatibility
 	for i := range request.Messages {
 		if request.Messages[i].Role == "developer" {
