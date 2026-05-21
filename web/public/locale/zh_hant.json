@@ -337,7 +337,48 @@
             },
             "clearSuccess": "日誌已清空",
             "clearFailed": "清空失敗"
+        },
+        "totp": {
+            "title": "雙重認證 (2FA)",
+            "enabled": "已啟用",
+            "disabled": "未啟用",
+            "enableHint": "啟用雙重認證可提高帳戶安全性",
+            "enableButton": "啟用雙重認證",
+            "initializing": "初始化中...",
+            "setupStep1": "1. 請使用驗證器應用程式（如 Google Authenticator、Authy 等）掃描以下金鑰：",
+            "setupStep2": "2. 完成綁定後繼續下一步",
+            "setupStep3": "3. 請輸入驗證器應用程式中的驗證碼以完成設定",
+            "secretLabel": "金鑰",
+            "codeLabel": "驗證碼",
+            "codeLengthError": "驗證碼必須是 6 位數字",
+            "continueButton": "我已綁定，繼續",
+            "cancelButton": "取消",
+            "backButton": "返回",
+            "verifyButton": "驗證並啟用",
+            "verifying": "驗證中...",
+            "initError": "初始化失敗",
+            "enableSuccess": "雙重認證已啟用",
+            "verifyError": "驗證碼無效，請重試",
+            "disableHint": "輸入驗證碼以停用雙重認證",
+            "disableCodeLabel": "驗證碼",
+            "disableButton": "停用雙重認證",
+            "disabling": "停用中...",
+            "disableSuccess": "雙重認證已停用",
+            "disableError": "停用失敗",
+            "copySuccess": "已複製",
+            "copyFailed": "複製失敗"
         }
+    },
+    "totp": {
+        "title": "雙重認證",
+        "description": "請在驗證器應用程式中輸入此帳戶對應的動態驗證碼",
+        "codeLabel": "驗證碼",
+        "codeLengthError": "驗證碼必須是 6 位數字",
+        "genericError": "驗證失敗，請重試",
+        "verify": "驗證",
+        "verifying": "驗證中...",
+        "back": "返回登入",
+        "verifyError": "驗證碼無效，請重試"
     },
     "group": {
         "toast": {

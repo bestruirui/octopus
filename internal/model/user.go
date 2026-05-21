@@ -7,15 +7,22 @@ import (
 )
 
 type User struct {
-	ID       uint   `gorm:"primaryKey"`
-	Username string `gorm:"unique"`
-	Password string `gorm:"not null"`
+	ID          uint   `gorm:"primaryKey"`
+	Username    string `gorm:"unique"`
+	Password    string `gorm:"not null"`
+	TOTPEnabled bool   `gorm:"default:false"`
+	TOTPSecret  string `gorm:"default:''"`
 }
 
 type UserLogin struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Expire   int    `json:"expire"`
+	TOTPCode string `json:"totp_code"`
+}
+
+type UserTOTP struct {
+	Code string `json:"code"`
 }
 
 type UserChangePassword struct {

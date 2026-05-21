@@ -79,9 +79,14 @@ async function request<T>(
     // 构建请求头
     const headers = new Headers();
 
-    // 只在有 body 时设置 Content-Type
-    if (body) {
+    // 对于 POST/PUT/PATCH 方法，总是设置 Content-Type
+    // 即使没有 body，某些中间件（如 RequireJSON）也需要此头
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
         headers.set('Content-Type', 'application/json');
+        // 如果 body 为空，传入空对象作为 body
+        if (!body) {
+            body = '{}';
+        }
     }
 
     // 添加 Authorization - 从 zustand store 获取 token

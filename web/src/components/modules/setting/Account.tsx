@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useChangeUsername, useChangePassword, useAuth } from '@/api/endpoints/user';
 import { toast } from '@/components/common/Toast';
+import { SettingTOTP } from './TOTP';
 
 export function SettingAccount() {
     const t = useTranslations('setting');
@@ -76,102 +77,107 @@ export function SettingAccount() {
     };
 
     return (
-        <div className="rounded-3xl border border-border bg-card p-6 space-y-6">
-            <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
-                <User className="h-5 w-5" />
-                {t('account.title')}
-            </h2>
+        <>
+            <div className="rounded-3xl border border-border bg-card p-6 space-y-6">
+                <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    {t('account.title')}
+                </h2>
 
-            {/* 修改用户名 */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <KeyRound className="size-4" />
-                    {t('account.username.label')}
+                {/* 修改用户名 */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <KeyRound className="size-4" />
+                        {t('account.username.label')}
+                    </div>
+                    <div className="flex gap-2">
+                        <Input
+                            value={newUsername}
+                            onChange={(e) => setNewUsername(e.target.value)}
+                            placeholder={t('account.username.placeholder')}
+                            className="flex-1 rounded-xl"
+                        />
+                        <Button
+                            onClick={handleChangeUsername}
+                            disabled={changeUsername.isPending || !newUsername.trim()}
+                            className="rounded-xl"
+                        >
+                            {changeUsername.isPending ? t('account.saving') : t('account.save')}
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <Input
-                        value={newUsername}
-                        onChange={(e) => setNewUsername(e.target.value)}
-                        placeholder={t('account.username.placeholder')}
-                        className="flex-1 rounded-xl"
-                    />
-                    <Button
-                        onClick={handleChangeUsername}
-                        disabled={changeUsername.isPending || !newUsername.trim()}
-                        className="rounded-xl"
-                    >
-                        {changeUsername.isPending ? t('account.saving') : t('account.save')}
-                    </Button>
+
+                <div className="border-t border-border" />
+
+                {/* 修改密码 */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Lock className="size-4" />
+                        {t('account.password.label')}
+                    </div>
+                    <div className="space-y-2">
+                        <div className="relative">
+                            <Input
+                                type={showOldPassword ? 'text' : 'password'}
+                                value={oldPassword}
+                                onChange={(e) => setOldPassword(e.target.value)}
+                                placeholder={t('account.password.oldPlaceholder')}
+                                className="rounded-xl pr-10"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowOldPassword(!showOldPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showOldPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <Input
+                                type={showNewPassword ? 'text' : 'password'}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder={t('account.password.newPlaceholder')}
+                                className="rounded-xl pr-10"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <Input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder={t('account.password.confirmPlaceholder')}
+                                className="rounded-xl pr-10"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            </button>
+                        </div>
+                        <Button
+                            onClick={handleChangePassword}
+                            disabled={changePassword.isPending || !oldPassword || !newPassword || !confirmPassword}
+                            className="w-full rounded-xl"
+                        >
+                            {changePassword.isPending ? t('account.saving') : t('account.password.change')}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            <div className="border-t border-border" />
-
-            {/* 修改密码 */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Lock className="size-4" />
-                    {t('account.password.label')}
-                </div>
-                <div className="space-y-2">
-                    <div className="relative">
-                        <Input
-                            type={showOldPassword ? 'text' : 'password'}
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                            placeholder={t('account.password.oldPlaceholder')}
-                            className="rounded-xl pr-10"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowOldPassword(!showOldPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            {showOldPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
-                    <div className="relative">
-                        <Input
-                            type={showNewPassword ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder={t('account.password.newPlaceholder')}
-                            className="rounded-xl pr-10"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
-                    <div className="relative">
-                        <Input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder={t('account.password.confirmPlaceholder')}
-                            className="rounded-xl pr-10"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
-                    <Button
-                        onClick={handleChangePassword}
-                        disabled={changePassword.isPending || !oldPassword || !newPassword || !confirmPassword}
-                        className="w-full rounded-xl"
-                    >
-                        {changePassword.isPending ? t('account.saving') : t('account.password.change')}
-                    </Button>
-                </div>
-            </div>
-        </div>
+            {/* 2FA 设置 */}
+            <SettingTOTP />
+        </>
     );
 }
 

@@ -337,7 +337,48 @@
             },
             "clearSuccess": "日志已清空",
             "clearFailed": "清空失败"
+        },
+        "totp": {
+            "title": "双重认证 (2FA)",
+            "enabled": "已启用",
+            "disabled": "未启用",
+            "enableHint": "启用双重认证可提高账户安全性",
+            "enableButton": "启用双重认证",
+            "initializing": "初始化中...",
+            "setupStep1": "1. 请使用验证器应用（如 Google Authenticator、Authy 等）扫描以下密钥：",
+            "setupStep2": "2. 完成绑定后继续下一步",
+            "setupStep3": "3. 请输入验证器应用中的验证码以完成设置",
+            "secretLabel": "密钥",
+            "codeLabel": "验证码",
+            "codeLengthError": "验证码必须是 6 位数字",
+            "continueButton": "我已绑定，继续",
+            "cancelButton": "取消",
+            "backButton": "返回",
+            "verifyButton": "验证并启用",
+            "verifying": "验证中...",
+            "initError": "初始化失败",
+            "enableSuccess": "双重认证已启用",
+            "verifyError": "验证码无效，请重试",
+            "disableHint": "输入验证码以禁用双重认证",
+            "disableCodeLabel": "验证码",
+            "disableButton": "禁用双重认证",
+            "disabling": "禁用中...",
+            "disableSuccess": "双重认证已禁用",
+            "disableError": "禁用失败",
+            "copySuccess": "已复制",
+            "copyFailed": "复制失败"
         }
+    },
+    "totp": {
+        "title": "两步验证",
+        "description": "请在验证器应用中输入此账户对应的动态验证码",
+        "codeLabel": "验证码",
+        "codeLengthError": "验证码必须是 6 位数字",
+        "genericError": "验证失败，请重试",
+        "verify": "验证",
+        "verifying": "验证中...",
+        "back": "返回登录",
+        "verifyError": "验证码无效，请重试"
     },
     "group": {
         "toast": {

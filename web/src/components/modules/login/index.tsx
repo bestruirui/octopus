@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from "react"
-import { motion } from "motion/react"
+import { AnimatePresence, motion } from "motion/react"
 import { useTranslations } from 'next-intl'
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useLogin } from "@/api/endpoints/user"
+import { useLogin, useAuthStore } from "@/api/endpoints/user"
 import { useAPIKeyLogin } from "@/api/endpoints/apikey"
+import { TOTPVerify } from "./TOTPVerify"
 import Logo from "@/components/modules/logo"
 import { KeyRound, User } from "lucide-react"
 import {
@@ -21,14 +22,19 @@ import {
 } from "@/components/animate-ui/primitives/animate/tabs"
 
 type LoginMode = 'user' | 'apikey';
+type LoginStep = 'credentials' | 'totp';
 
 export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const t = useTranslations('login')
+  const totpTranslations = useTranslations('totp')
   const [mode, setMode] = useState<LoginMode>('user')
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [apiKey, setApiKey] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [loginStep, setLoginStep] = useState<LoginStep>('credentials')
+  const [tempToken, setTempToken] = useState<string>("")
+  const [isVerifyingTOTP, setIsVerifyingTOTP] = useState(false)
 
   const loginMutation = useLogin()
   const apiKeyLoginMutation = useAPIKeyLogin()
@@ -39,20 +45,42 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
 
     try {
       if (mode === 'user') {
-        await loginMutation.mutateAsync({
+        // 尝试使用密码登录
+        const result = await loginMutation.mutateAsync({
           username,
           password,
           expire: 86400,
         })
+
+        // 检查是否返回了 2FA 需要的响应
+        if (result && typeof result === 'object' && '2fa_required' in result && result['2fa_required']) {
+          const totpResult = result as unknown as { temp_token: string; expire_at: string };
+          setTempToken(totpResult.temp_token)
+          setLoginStep('totp')
+          return
+        }
+
+        onLoginSuccess?.()
       } else {
         await apiKeyLoginMutation.mutateAsync(apiKey)
+        onLoginSuccess?.()
       }
-
-      onLoginSuccess?.()
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : t('error.generic')
+      const errorMessage = err instanceof Error ? err.message : totpTranslations('genericError')
       setError(errorMessage)
     }
+  }
+
+  const handleTOTPVerifySuccess = (token: string, expireAt: string) => {
+    const { setAuth } = useAuthStore.getState()
+    setAuth(token, expireAt)
+    onLoginSuccess?.()
+  }
+
+  const handleBackToLogin = () => {
+    setLoginStep('credentials')
+    setTempToken("")
+    setError(null)
   }
 
   const isPending = loginMutation.isPending || apiKeyLoginMutation.isPending
@@ -60,6 +88,17 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const handleModeChange = (value: string) => {
     setMode(value as LoginMode)
     setError(null)
+  }
+
+  if (loginStep === 'totp') {
+    return (
+      <TOTPVerify
+        tempToken={tempToken}
+        onVerifySuccess={handleTOTPVerifySuccess}
+        onBack={handleBackToLogin}
+        isVerifying={isVerifyingTOTP}
+      />
+    )
   }
 
   return (

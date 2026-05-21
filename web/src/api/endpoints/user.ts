@@ -146,12 +146,21 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * 登录响应（可能是普通登录响应或 2FA 所需）
+ */
+export type LoginResponse = UserLoginResponse | {
+    '2fa_required': true;
+    temp_token: string;
+    expire_at: string;
+};
+
+/**
  * 用户登录 Hook
- * 
+ *
  * @example
  * const login = useLogin();
  * login.mutate({ username: 'admin', password: '123456', expire: 86400 });
- * 
+ *
  * if (login.isPending) return <Loading />;
  * if (login.isError) return <Error message={login.error.message} />;
  */
@@ -160,11 +169,16 @@ export function useLogin() {
 
     return useMutation({
         mutationFn: async (data: UserLoginRequest) => {
-            return apiClient.post<UserLoginResponse>('/api/v1/user/login', data);
+            return apiClient.post<LoginResponse>('/api/v1/user/login', data);
         },
         onSuccess: (data) => {
-            // 保存到 zustand store
-            setAuth(data.token, data.expire_at);
+            // 如果是 2FA 需要，不设置 auth
+            if ('2fa_required' in data && data['2fa_required']) {
+                return;
+            }
+            // 保存到 zustand store（此时 data 是 UserLoginResponse）
+            const loginData = data as UserLoginResponse;
+            setAuth(loginData.token, loginData.expire_at);
         },
         onError: (error) => {
             logger.error('登录失败:', error);

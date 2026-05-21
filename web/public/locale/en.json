@@ -337,7 +337,48 @@
             },
             "clearSuccess": "Logs cleared",
             "clearFailed": "Failed to clear logs"
+        },
+        "totp": {
+            "title": "Two-Factor Authentication (2FA)",
+            "enabled": "Enabled",
+            "disabled": "Not Enabled",
+            "enableHint": "Enable two-factor authentication to increase account security",
+            "enableButton": "Enable 2FA",
+            "initializing": "Initializing...",
+            "setupStep1": "1. Scan or enter the secret key below using an authenticator app (e.g. Google Authenticator, Authy):",
+            "setupStep2": "2. Once bound, continue to the next step",
+            "setupStep3": "3. Enter the verification code from the authenticator app to complete the setup",
+            "secretLabel": "Secret Key",
+            "codeLabel": "Verification Code",
+            "codeLengthError": "Code must be 6 digits",
+            "continueButton": "I've bound it, continue",
+            "cancelButton": "Cancel",
+            "backButton": "Back",
+            "verifyButton": "Verify & Enable",
+            "verifying": "Verifying...",
+            "initError": "Failed to initialize",
+            "enableSuccess": "Two-factor authentication enabled",
+            "verifyError": "Invalid code, please try again",
+            "disableHint": "Enter the verification code to disable two-factor authentication",
+            "disableCodeLabel": "Verification Code",
+            "disableButton": "Disable 2FA",
+            "disabling": "Disabling...",
+            "disableSuccess": "Two-factor authentication disabled",
+            "disableError": "Failed to disable",
+            "copySuccess": "Copied",
+            "copyFailed": "Copy failed"
         }
+    },
+    "totp": {
+        "title": "Two-Factor Authentication",
+        "description": "Enter the verification code from your authenticator app",
+        "codeLabel": "Verification Code",
+        "codeLengthError": "Code must be 6 digits",
+        "genericError": "Verification failed, please try again",
+        "verify": "Verify",
+        "verifying": "Verifying...",
+        "back": "Back to login",
+        "verifyError": "Invalid code, please try again"
     },
     "group": {
         "toast": {
