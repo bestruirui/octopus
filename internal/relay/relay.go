@@ -190,6 +190,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 		balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
 
 		ra.metrics.ParamOverride = paramOverrideValue(ra.channel.ParamOverride)
+		ra.metrics.ResponseOverride = paramOverrideValue(ra.channel.ResponseOverride)
 
 		return attemptResult{Success: true}
 	}
@@ -208,6 +209,7 @@ func (ra *relayAttempt) attempt() attemptResult {
 	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
 
 	ra.metrics.ParamOverride = paramOverrideValue(ra.channel.ParamOverride)
+	ra.metrics.ResponseOverride = paramOverrideValue(ra.channel.ResponseOverride)
 
 	written := ra.c.Writer.Written()
 	if written {
@@ -291,6 +293,9 @@ func (ra *relayAttempt) forward() (int, error) {
 		outboundRequest.Body = io.NopCloser(bytes.NewBuffer(modifiedBody))
 		outboundRequest.ContentLength = int64(len(modifiedBody))
 	}
+
+	// 暂存响应替换配置
+	ra.responseOverride = ra.channel.ResponseOverride
 
 	// 复制请求头
 	ra.copyHeaders(outboundRequest)
@@ -463,6 +468,15 @@ func (ra *relayAttempt) transformStreamData(ctx context.Context, data string) ([
 		return nil, err
 	}
 
+	// 应用 ResponseOverride 到流式响应（非[DONE]事件）
+	if ra.responseOverride != nil && *ra.responseOverride != "" && !bytes.HasPrefix(inStream, []byte("data: [DONE]")) {
+		if modified, err := applyJSONOverrideToSSE(inStream, *ra.responseOverride); err != nil {
+			log.Warnf("failed to apply response_override to stream: %v, using original", err)
+		} else {
+			inStream = modified
+		}
+	}
+
 	return inStream, nil
 }
 
@@ -478,6 +492,15 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 	if err != nil {
 		log.Warnf("failed to transform response: %v", err)
 		return fmt.Errorf("failed to transform inbound response: %w", err)
+	}
+
+	// 应用 ResponseOverride
+	if ra.responseOverride != nil && *ra.responseOverride != "" {
+		if modified, err := applyJSONOverride(inResponse, *ra.responseOverride); err != nil {
+			log.Warnf("failed to apply response_override: %v, using original response", err)
+		} else {
+			inResponse = modified
+		}
 	}
 
 	ra.c.Data(http.StatusOK, "application/json", inResponse)
@@ -499,4 +522,48 @@ func paramOverrideValue(ptr *string) string {
 		return ""
 	}
 	return *ptr
+}
+
+// applyJSONOverride 将 overrideStr 中的字段合并到 data JSON 中。
+// 与 ParamOverride 逻辑相同，用 maps.Copy 做顶层字段覆盖。
+func applyJSONOverride(data []byte, overrideStr string) ([]byte, error) {
+	var dataMap map[string]any
+	if err := json.Unmarshal(data, &dataMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response data: %w", err)
+	}
+
+	var override map[string]any
+	if err := json.Unmarshal([]byte(overrideStr), &override); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response_override: %w", err)
+	}
+
+	maps.Copy(dataMap, override)
+	modified, err := json.Marshal(dataMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal modified response: %w", err)
+	}
+	return modified, nil
+}
+
+// applyJSONOverrideToSSE 对 SSE 格式的数据应用 JSON 替换。
+// SSE 格式: "data: {json}\n\n"
+func applyJSONOverrideToSSE(data []byte, overrideStr string) ([]byte, error) {
+	// Strip SSE prefix and suffix
+	prefix := []byte("data: ")
+	suffix := []byte("\n\n")
+	if !bytes.HasPrefix(data, prefix) || !bytes.HasSuffix(data, suffix) {
+		return nil, fmt.Errorf("unexpected SSE format")
+	}
+
+	jsonPart := bytes.TrimSuffix(data[len(prefix):], suffix)
+	modifiedJSON, err := applyJSONOverride(jsonPart, overrideStr)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]byte, 0, len(prefix)+len(modifiedJSON)+len(suffix))
+	result = append(result, prefix...)
+	result = append(result, modifiedJSON...)
+	result = append(result, suffix...)
+	return result, nil
 }

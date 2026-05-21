@@ -27,10 +27,11 @@ type Channel struct {
 	Proxy         bool                  `json:"proxy" gorm:"default:false"`
 	AutoSync      bool                  `json:"auto_sync" gorm:"default:false"`
 	AutoGroup     AutoGroupType         `json:"auto_group" gorm:"default:0"`
-	CustomHeader  []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
-	ParamOverride *string               `json:"param_override"`
-	ChannelProxy  *string               `json:"channel_proxy"`
-	Stats         *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
+	CustomHeader     []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
+	ParamOverride    *string               `json:"param_override"`
+	ResponseOverride *string               `json:"response_override"`
+	ChannelProxy     *string               `json:"channel_proxy"`
+	Stats            *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
 	MatchRegex    *string               `json:"match_regex"`
 }
 
@@ -67,10 +68,11 @@ type ChannelUpdateRequest struct {
 	Proxy         *bool                  `json:"proxy,omitempty"`
 	AutoSync      *bool                  `json:"auto_sync,omitempty"`
 	AutoGroup     *AutoGroupType         `json:"auto_group,omitempty"`
-	CustomHeader  *[]CustomHeader        `json:"custom_header,omitempty"`
-	ChannelProxy  *string                `json:"channel_proxy,omitempty"`
-	ParamOverride *string                `json:"param_override,omitempty"`
-	MatchRegex    *string                `json:"match_regex,omitempty"`
+	CustomHeader     *[]CustomHeader        `json:"custom_header,omitempty"`
+	ChannelProxy     *string                `json:"channel_proxy,omitempty"`
+	ParamOverride    *string                `json:"param_override,omitempty"`
+	ResponseOverride *string                `json:"response_override,omitempty"`
+	MatchRegex       *string                `json:"match_regex,omitempty"`
 
 	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
 	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`

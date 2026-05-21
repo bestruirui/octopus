@@ -34,6 +34,9 @@ type RelayMetrics struct {
 
 	// 参数覆盖
 	ParamOverride string
+
+	// 响应覆盖
+	ResponseOverride string
 }
 
 func NewRelayMetrics(apiKeyID int, requestModel string, req *transformerModel.InternalLLMRequest) *RelayMetrics {
@@ -198,7 +201,17 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 				insert := fmt.Sprintf(`"usage":{"cache_creation_input_tokens":%d,`, m.InternalResponse.Usage.CacheCreationInputTokens)
 				respJSON = []byte(strings.Replace(respStr, old, insert, 1))
 			}
-			relayLog.ResponseContent = string(respJSON)
+			// 应用 ResponseOverride 到日志中的响应内容
+			if m.ResponseOverride != "" {
+				if finalResp, err := applyJSONOverride(respJSON, m.ResponseOverride); err != nil {
+					log.Warnf("failed to apply response_override to log: %v, using original response", err)
+					relayLog.ResponseContent = string(respJSON)
+				} else {
+					relayLog.ResponseContent = string(finalResp)
+				}
+			} else {
+				relayLog.ResponseContent = string(respJSON)
+			}
 		}
 	}
 

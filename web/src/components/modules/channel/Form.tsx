@@ -32,6 +32,7 @@ export interface ChannelFormData {
     custom_header: Channel['custom_header'];
     channel_proxy: string;
     param_override: string;
+    response_override: string;
     keys: ChannelKeyFormItem[];
     model: string;
     custom_model: string;
@@ -571,6 +572,19 @@ export function ChannelForm({
                                 value={formData.param_override}
                                 onChange={(e) => onFormDataChange({ ...formData, param_override: e.target.value })}
                                 placeholder={t('paramOverridePlaceholder')}
+                                className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label htmlFor={`${idPrefix}-response-override`} className="text-sm font-medium text-card-foreground">
+                                {t('responseOverride')}
+                            </label>
+                            <textarea
+                                id={`${idPrefix}-response-override`}
+                                value={formData.response_override}
+                                onChange={(e) => onFormDataChange({ ...formData, response_override: e.target.value })}
+                                placeholder={t('responseOverridePlaceholder')}
                                 className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                         </div>

@@ -515,6 +515,8 @@
             "channelProxyPlaceholder": "可选：仅对该渠道生效（覆盖全局代理）",
             "paramOverride": "参数覆盖",
             "paramOverridePlaceholder": "可选：JSON 字符串，用于覆盖请求参数",
+            "responseOverride": "响应覆盖",
+            "responseOverridePlaceholder": "可选：JSON 字符串，用于覆盖响应的字段",
             "model": "模型",
             "enabled": "启用",
             "proxy": "使用代理",

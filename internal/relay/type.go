@@ -71,6 +71,7 @@ type relayAttempt struct {
 	channel              *dbmodel.Channel
 	usedKey              dbmodel.ChannelKey
 	firstTokenTimeOutSec int
+	responseOverride     *string // 响应JSON替换，用于替换最终返回给客户端的响应
 }
 
 // attemptResult 封装单次尝试的结果
