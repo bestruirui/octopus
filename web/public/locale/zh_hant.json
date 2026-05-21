@@ -533,6 +533,7 @@
             "typeAnthropic": "Anthropic",
             "typeGemini": "Gemini",
             "typeVolcengine": "火山引擎",
+            "typeAstraflow": "Astraflow (UCloud)",
             "autoSync": "自動同步",
             "autoGroup": "自動分組",
             "autoGroupNone": "不自動分組",
