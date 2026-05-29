@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\vbkkk\\\\Documents\\\\GitHub\\\\octopus\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(xargs wc -l)",
+      "Bash(go doc *)",
+      "Bash(findstr /i \"Rerank rerank RequestType Format\")",
+      "Bash(dir \"C:\\\\Users\\\\vbkkk\\\\Documents\\\\GitHub\\\\\" 2>&1)",
+      "Bash(go build *)"
+    ]
+  }
+}

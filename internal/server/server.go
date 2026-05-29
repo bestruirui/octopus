@@ -60,6 +60,7 @@ func registerRelayRoutes(r *gin.Engine) {
 	v1.POST("/responses", middleware.RequireJSON(), relay.Handler(llm.APIFormatOpenAIResponse))
 	v1.POST("/messages", middleware.RequireJSON(), relay.Handler(llm.APIFormatAnthropicMessage))
 	v1.POST("/embeddings", middleware.RequireJSON(), relay.Handler(llm.APIFormatOpenAIEmbedding))
+	v1.POST("/rerank", middleware.RequireJSON(), relay.RerankHandler())
 	v1.POST("/images/generations", middleware.RequireJSON(), relay.Handler(llm.APIFormatOpenAIImageGeneration))
 	v1.POST("/images/edits", relay.Handler(llm.APIFormatOpenAIImageEdit))
 	v1.POST("/images/variations", relay.Handler(llm.APIFormatOpenAIImageVariation))

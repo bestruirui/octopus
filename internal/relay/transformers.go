@@ -46,7 +46,6 @@ func newOutbound(channelType llm.APIFormat, request *llm.Request, baseURL, key s
 	case llm.RequestTypeEmbedding:
 		switch channelType {
 		case llm.APIFormatOpenAIChatCompletion,
-			llm.APIFormatOpenAIResponse,
 			llm.APIFormatOpenAIEmbedding:
 			return openai.NewOutboundTransformer(baseURL, key)
 		case llm.APIFormatGeminiContents:
