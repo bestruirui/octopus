@@ -174,6 +174,7 @@ All configuration options can be overridden via environment variables using the 
 | `OCTOPUS_IMAGES_BODY_MAX_MB` | Images request body maximum size. Requests above this limit are rejected (optional, default 256) |
 | `OCTOPUS_IMAGES_BODY_TMP_DIR` | Images request body temporary directory (optional, default `./cache`) |
 | `OCTOPUS_IMAGES_BODY_TMP_CLEANUP_HOURS` | Startup cleanup threshold for temporary files (optional, default 24) |
+| `OCTOPUS_RETURN_4XX_STATUS` | if true, allow to return 4xx status codes (optional, default false) |
 
 ## 📸 Screenshots
 

@@ -115,7 +115,7 @@ func (r *relayRun) run() {
 			return
 		}
 
-		if os.Getenv("RETURN_4XX_STATUS") == "true" && statusCode >= 400 && statusCode < 500 {
+		if os.Getenv("OCTOPUS_RETURN_4XX_STATUS") == "true" && statusCode >= 400 && statusCode < 500 {
 			r.metrics.Save(ctx, false, err, r.iter.Attempts())
 			resp.Error(r.c, statusCode, err.Error())
 			return
