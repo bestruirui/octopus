@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -104,7 +105,7 @@ func (r *relayRun) run() {
 			continue
 		}
 
-		written, err := attempt.run()
+		written, statusCode, err := attempt.run()
 		if err == nil {
 			r.metrics.Save(ctx, true, nil, r.iter.Attempts())
 			return
@@ -113,6 +114,13 @@ func (r *relayRun) run() {
 			r.metrics.Save(ctx, false, err, r.iter.Attempts())
 			return
 		}
+
+		if os.Getenv("RETURN_MAX_CONTEXT_ERROR") == "true" && statusCode >= 400 && statusCode < 500 {
+			r.metrics.Save(ctx, false, err, r.iter.Attempts())
+			resp.Error(r.c, statusCode, err.Error())
+			return
+		}
+
 		lastErr = err
 	}
 
@@ -168,7 +176,7 @@ func (r *relayRun) prepareAttempt() (*relayAttempt, error) {
 }
 
 // run 统一管理一次通道尝试的完整生命周期。
-func (ra *relayAttempt) run() (bool, error) {
+func (ra *relayAttempt) run() (bool, int, error) {
 	span := ra.iter.StartAttempt(ra.channel.ID, ra.usedKey.ID, ra.channel.Name)
 
 	upstreamStatusCode, fwdErr := ra.forward()
@@ -189,7 +197,7 @@ func (ra *relayAttempt) run() (bool, error) {
 		})
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
 		balancer.SetSticky(ra.metrics.APIKeyID, ra.metrics.RequestModel, ra.channel.ID, ra.usedKey.ID)
-		return false, nil
+		return false, upstreamStatusCode, nil
 	}
 
 	op.ChannelKeyUpdate(ra.usedKey)
@@ -200,7 +208,7 @@ func (ra *relayAttempt) run() (bool, error) {
 	})
 	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
 
-	return ra.c.Writer.Written(), fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr)
+	return ra.c.Writer.Written(), upstreamStatusCode, fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr)
 }
 
 // parseRequest 解析并验证入站请求
