@@ -34,7 +34,7 @@ export function CreateDialogContent() {
                     />
                 </header>
             </MorphingDialogTitle>
-            <MorphingDialogDescription className="flex-1 min-h-0 overflow-hidden">
+            <MorphingDialogDescription className="flex-1 min-h-0">
                 <GroupEditor
                     submitText={t('create.submit')}
                     submittingText={t('create.submitting')}

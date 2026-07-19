@@ -3,12 +3,20 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Layers, GripVertical, X, Trash2 } from 'lucide-react';
 import {
-    DragDropContext,
-    Draggable,
-    Droppable,
-    type DraggableProvided,
-    type DropResult,
-} from '@hello-pangea/dnd';
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+    arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { getModelIcon } from '@/lib/model-icons';
@@ -22,17 +30,10 @@ export interface SelectedMember extends LLMChannel {
     weight?: number;
 }
 
-function reorderList<T>(list: T[], startIndex: number, endIndex: number): T[] {
-    const result = [...list];
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
-    return result;
-}
-
 type MemberItemDnd = {
-    innerRef: DraggableProvided['innerRef'];
-    draggableProps: DraggableProvided['draggableProps'];
-    dragHandleProps: DraggableProvided['dragHandleProps'];
+    setNodeRef: (element: HTMLElement | null) => void;
+    style: React.CSSProperties;
+    dragHandleProps: Record<string, any>;
     isDragging: boolean;
 };
 
@@ -63,25 +64,15 @@ function MemberItem({
 
     return (
         <div
-            // DnD libraries provide imperative refs/props; the hook lint rule (`react-hooks/refs`)
-            // flags this pattern, but it's safe and required for correct drag behavior.
-            // eslint-disable-next-line react-hooks/refs
-            ref={dnd.innerRef}
-            // eslint-disable-next-line react-hooks/refs
-            {...dnd.draggableProps}
+            ref={dnd.setNodeRef}
             className={cn('rounded-lg grid transition-[grid-template-rows] duration-200', isRemoving ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]')}
-            // eslint-disable-next-line react-hooks/refs
-            style={{
-                /* eslint-disable-next-line react-hooks/refs */
-                ...(dnd.draggableProps?.style ?? {}),
-                /* eslint-disable-next-line react-hooks/refs */
-                ...(dnd.isDragging ? { zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' } : null),
-            }}
+            style={dnd.style}
         >
             <div className={cn(
                 'flex items-center gap-2 rounded-lg bg-background border border-border/50 px-2.5 py-2 select-none transition-opacity duration-200 relative overflow-hidden',
                 isRemoving && 'opacity-0',
-                isDisabled && 'opacity-60 grayscale'
+                isDisabled && 'opacity-60 grayscale',
+                dnd.isDragging && 'z-50 shadow-lg'
             )}>
                 <span className={cn(
                     'size-5 rounded-md text-xs font-bold grid place-items-center shrink-0',
@@ -97,7 +88,6 @@ function MemberItem({
                             ? 'cursor-grab active:cursor-grabbing hover:bg-muted/60'
                             : 'cursor-grab active:cursor-grabbing hover:bg-muted'
                     )}
-                    // eslint-disable-next-line react-hooks/refs
                     {...dnd.dragHandleProps}
                 >
                     <GripVertical className="size-3.5 text-muted-foreground" />
@@ -230,6 +220,9 @@ export function MemberList({
     const prevMemberCountRef = useRef<number>(0);
     const hasMountedRef = useRef(false);
 
+    // Track drag state to apply z-index fix
+    const [isDragging, setIsDragging] = useState(false);
+
     const visibleCount = members.filter((m) => !removingIds.has(m.id)).length;
     const isEmpty = visibleCount === 0;
     const t = useTranslations('group');
@@ -262,20 +255,88 @@ export function MemberList({
         prevMemberCountRef.current = members.length;
     }, [members.length, autoScrollOnAdd]);
 
-    const handleDragEnd = (result: DropResult) => {
-        try {
-            const { destination, source } = result;
-            if (!destination) return;
-            if (destination.index === source.index) return;
-
-            const next = reorderList(members, source.index, destination.index);
-            onReorder(next);
-            onDrop?.(next);
-        } finally {
-            // Ensure drag lifecycle always finishes, even when drop is canceled.
+    const handleDragEnd = (event: DragEndEvent) => {
+        setIsDragging(false);
+        const { active, over } = event;
+        if (!over) {
             onDragFinish?.();
+            return;
         }
+
+        if (active.id === over.id) {
+            onDragFinish?.();
+            return;
+        }
+
+        const oldIndex = members.findIndex((m) => m.id === active.id);
+        const newIndex = members.findIndex((m) => m.id === over.id);
+
+        if (oldIndex === -1 || newIndex === -1) {
+            onDragFinish?.();
+            return;
+        }
+
+        const next = arrayMove(members, oldIndex, newIndex);
+        onReorder(next);
+        onDrop?.(next);
+        onDragFinish?.();
     };
+
+    const handleDragStart = () => {
+        setIsDragging(true);
+        onDragStart?.();
+    };
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        })
+    );
+
+    const memberIds = members.map((m) => m.id);
+
+    function SortableMemberItem({
+        member,
+        index,
+    }: {
+        member: SelectedMember;
+        index: number;
+    }) {
+        const {
+            attributes,
+            listeners,
+            setNodeRef,
+            transform,
+            transition,
+            isDragging: isSortDragging,
+        } = useSortable({ id: member.id });
+
+        const style: React.CSSProperties = {
+            transform: CSS.Transform.toString(transform),
+            transition,
+        };
+
+        return (
+            <MemberItem
+                member={member}
+                onRemove={onRemove}
+                onWeightChange={onWeightChange}
+                isRemoving={removingIds.has(member.id)}
+                index={index}
+                showWeight={showWeight}
+                showConfirmDelete={showConfirmDelete}
+                layoutScope={layoutScope}
+                dnd={{
+                    setNodeRef,
+                    style,
+                    dragHandleProps: { ...attributes, ...listeners },
+                    isDragging: isSortDragging,
+                }}
+            />
+        );
+    }
 
     return (
         <div className="relative h-full min-h-0">
@@ -290,56 +351,34 @@ export function MemberList({
                 <span className="text-sm">{t('card.empty')}</span>
             </div>
 
-            <div
-                className={cn(
+            <div className={cn(
                     'h-full overflow-y-auto transition-opacity duration-200',
                     isEmpty ? 'opacity-0' : 'opacity-100'
                 )}
                 ref={scrollContainerRef}
+                style={isDragging ? { overflow: 'visible' } : undefined}
             >
-                <DragDropContext
-                    onDragStart={() => onDragStart?.()}
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                 >
-                    <Droppable droppableId={`members-${layoutScope}`}>
-                        {(droppableProvided) => (
-                            <div
-                                ref={droppableProvided.innerRef}
-                                {...droppableProvided.droppableProps}
-                                className="p-2 flex flex-col space-y-1.5"
-                            >
-                                {members.map((member, index) => (
-                                    <Draggable
-                                        key={member.id}
-                                        draggableId={member.id}
-                                        index={index}
-                                        isDragDisabled={removingIds.has(member.id)}
-                                    >
-                                        {(draggableProvided, snapshot) => (
-                                            <MemberItem
-                                                member={member}
-                                                onRemove={onRemove}
-                                                onWeightChange={onWeightChange}
-                                                isRemoving={removingIds.has(member.id)}
-                                                index={index}
-                                                showWeight={showWeight}
-                                                showConfirmDelete={showConfirmDelete}
-                                                layoutScope={layoutScope}
-                                                dnd={{
-                                                    innerRef: draggableProvided.innerRef,
-                                                    draggableProps: draggableProvided.draggableProps,
-                                                    dragHandleProps: draggableProvided.dragHandleProps,
-                                                    isDragging: snapshot.isDragging,
-                                                }}
-                                            />
-                                        )}
-                                    </Draggable>
-                                ))}
-                                {droppableProvided.placeholder}
-                            </div>
-                        )}
-                    </Droppable>
-                </DragDropContext>
+                    <SortableContext
+                        items={memberIds}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div className="p-2 flex flex-col space-y-1.5">
+                            {members.map((member, index) => (
+                                <SortableMemberItem
+                                    key={member.id}
+                                    member={member}
+                                    index={index}
+                                />
+                            ))}
+                        </div>
+                    </SortableContext>
+                </DndContext>
             </div>
         </div>
     );
