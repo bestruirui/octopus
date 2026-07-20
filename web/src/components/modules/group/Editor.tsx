@@ -251,7 +251,7 @@ export function GroupEditor({
 }) {
     const t = useTranslations('group');
     const { data: modelChannels = [] } = useModelChannelList();
-    const [showForm, setShowForm] = useState(false);
+    const [showForm, setShowForm] = useState(true);
     const [showSort, setShowSort] = useState(false);
 
     const [groupName, setGroupName] = useState(initial?.name ?? '');
@@ -438,7 +438,7 @@ export function GroupEditor({
             )}
 
             {/* Main content: ModelList fills all space */}
-            <div className="flex-1 min-h-0 flex flex-col gap-1">
+            <div className="flex-1 min-h-0 flex flex-col gap-1 mt-2">
                 <div className="flex-1 min-h-0">
                     <ModelPickerSection
                         modelChannels={modelChannels}

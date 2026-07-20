@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/utils/log"
 	"github.com/bestruirui/octopus/internal/utils/snowflake"
+	"gorm.io/gorm"
 )
 
 const relayLogMaxSize = 20
@@ -95,7 +97,20 @@ func relayLogFlushToDB(ctx context.Context) error {
 	flushedUpto := len(batch)
 	relayLogCacheLock.Unlock()
 
-	result := db.GetDB().WithContext(ctx).Create(&batch)
+	// 重试机制：SQLite 高并发下可能 SQLITE_BUSY，最多重试 3 次
+	var result *gorm.DB
+	for attempt := 0; attempt < 3; attempt++ {
+		result = db.GetDB().WithContext(ctx).Create(&batch)
+		if result.Error == nil {
+			break
+		}
+		// 非 busy 错误直接返回
+		if !strings.Contains(result.Error.Error(), "database is locked") {
+			return result.Error
+		}
+		log.Warnf("relay log flush attempt %d failed (database locked), retrying...", attempt+1)
+		time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond)
+	}
 	if result.Error != nil {
 		return result.Error
 	}
@@ -184,7 +199,8 @@ func relayLogCleanup(ctx context.Context) error {
 	}
 
 	if keepPeriod <= 0 {
-		return nil
+		// 默认保留 7 天，防止无限增长
+		keepPeriod = 7
 	}
 
 	cutoffTime := time.Now().Add(-time.Duration(keepPeriod) * 24 * time.Hour).Unix()

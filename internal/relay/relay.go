@@ -240,6 +240,16 @@ func (ra *relayAttempt) forward() (int, error) {
 		return 0, fmt.Errorf("missing raw request")
 	}
 
+	// 首字超时：对流式请求，用 context.WithTimeout 覆盖整个请求周期
+	// （等待响应头 + 等待首字），而不仅仅是 writeStream 中等待首字
+	isStream := ra.internalRequest.Stream != nil && *ra.internalRequest.Stream
+	firstTokenTimeoutSec := ra.group.FirstTokenTimeOut
+	if isStream && firstTokenTimeoutSec > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(firstTokenTimeoutSec)*time.Second)
+		defer cancel()
+	}
+
 	httpClient, err := helper.ChannelHttpClient(ra.channel)
 	if err != nil {
 		log.Warnf("failed to get http client: %v", err)
@@ -256,6 +266,11 @@ func (ra *relayAttempt) forward() (int, error) {
 		).
 		Process(ctx, ra.internalRequest.RawRequest)
 	if err != nil {
+		// 检查是否是首字超时导致的 context 取消
+		if isStream && firstTokenTimeoutSec > 0 && errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			log.Warnf("first token timeout (%ds) while waiting for response or first token, switching channel", firstTokenTimeoutSec)
+			return 0, fmt.Errorf("first token timeout (%ds)", firstTokenTimeoutSec)
+		}
 		return relayMiddleware.upstreamStatusCode, err
 	}
 	if result == nil {

@@ -87,12 +87,13 @@ func initSQLite(path string, config *gorm.Config) (*gorm.DB, error) {
 	params := []string{
 		"_journal_mode=WAL",
 		"_synchronous=NORMAL",
-		"_cache_size=10000",
-		"_busy_timeout=5000",
+		"_cache_size=20000",
+		"_busy_timeout=30000", // 增加到 30s，避免高并发下 SQLITE_BUSY
 		"_foreign_keys=ON",
 		"_auto_vacuum=INCREMENTAL",
 		"_mmap_size=268435456",
 		"_locking_mode=NORMAL",
+		"_temp_store=MEMORY",
 	}
 	return gorm.Open(sqlite.Open(path+"?"+strings.Join(params, "&")), config)
 }

@@ -254,14 +254,14 @@ export function GroupCard({ group }: { group: Group }) {
 
                 <div className="flex items-center gap-1 shrink-0">
                     <MorphingDialog>
-                        <MorphingDialogTrigger className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground">
-                            <Tooltip side="top" sideOffset={10} align="center">
-                                <TooltipTrigger asChild>
+                        <Tooltip side="top" sideOffset={10} align="center">
+                            <TooltipTrigger asChild>
+                                <MorphingDialogTrigger className="p-1.5 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground">
                                     <Pencil className="size-4" />
-                                </TooltipTrigger>
-                                <TooltipContent>{t('detail.actions.edit')}</TooltipContent>
-                            </Tooltip>
-                        </MorphingDialogTrigger>
+                                </MorphingDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('detail.actions.edit')}</TooltipContent>
+                        </Tooltip>
 
                         <MorphingDialogContainer>
                             <MorphingDialogContent className="relative w-screen max-w-full md:max-w-4xl bg-card text-card-foreground flex flex-col overflow-visible" style={{ height: '100dvh', maxHeight: '100dvh' }}>
