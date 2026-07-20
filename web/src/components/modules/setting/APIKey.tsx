@@ -89,9 +89,13 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         expire_at: apiKey?.expire_at,
         max_cost: apiKey?.max_cost,
         supported_models: apiKey?.supported_models,
+        rate_limit_rpm: apiKey?.rate_limit_rpm,
     }));
     const [maxCostInput, setMaxCostInput] = useState(() =>
         apiKey?.max_cost != null ? String(apiKey.max_cost) : ''
+    );
+    const [rateLimitInput, setRateLimitInput] = useState(() =>
+        apiKey?.rate_limit_rpm != null && apiKey.rate_limit_rpm > 0 ? String(apiKey.rate_limit_rpm) : ''
     );
     const [expireTime, setExpireTime] = useState(() => {
         if (apiKey?.expire_at) {
@@ -112,6 +116,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
     const expireDate = parseExpireDate(form.expire_at);
     const neverExpire = !form.expire_at;
     const isUnlimitedCost = maxCostInput.trim() === '';
+    const isUnlimitedRate = rateLimitInput.trim() === '';
 
     const expireLabel = neverExpire
         ? t('apiKey.form.neverExpire')
@@ -160,6 +165,18 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         updateForm({ max_cost: undefined });
     }, [updateForm]);
 
+    const handleRateLimitChange = useCallback((val: string) => {
+        const normalized = val.replace(/[^\d]/g, '');
+        setRateLimitInput(normalized);
+        const num = parseInt(normalized, 10);
+        updateForm({ rate_limit_rpm: Number.isFinite(num) && num > 0 ? num : undefined });
+    }, [updateForm]);
+
+    const handleClearRateLimit = useCallback(() => {
+        setRateLimitInput('');
+        updateForm({ rate_limit_rpm: undefined });
+    }, [updateForm]);
+
     const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name.trim()) return;
@@ -203,6 +220,37 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                         className={cn(
                             'h-9 px-3 rounded-xl border text-sm transition-colors shrink-0',
                             isUnlimitedCost
+                                ? 'bg-primary text-primary-foreground border-primary/30'
+                                : 'border-border bg-muted/20 text-foreground hover:bg-muted/30',
+                            isPending && 'opacity-50 cursor-not-allowed'
+                        )}
+                    >
+                        {t('apiKey.form.unlimited')}
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid gap-1 text-xs text-muted-foreground">
+                {t('apiKey.form.rateLimit')}
+                <div className="flex items-center gap-2">
+                    <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder={t('apiKey.form.rateLimitPlaceholder')}
+                        value={rateLimitInput}
+                        onChange={(e) => handleRateLimitChange(e.target.value)}
+                        className="h-9 text-sm rounded-xl flex-1"
+                        disabled={isPending}
+                    />
+                    <span className="text-xs text-muted-foreground shrink-0">req/min</span>
+                    <button
+                        type="button"
+                        onClick={handleClearRateLimit}
+                        disabled={isPending}
+                        aria-pressed={isUnlimitedRate}
+                        className={cn(
+                            'h-9 px-3 rounded-xl border text-sm transition-colors shrink-0',
+                            isUnlimitedRate
                                 ? 'bg-primary text-primary-foreground border-primary/30'
                                 : 'border-border bg-muted/20 text-foreground hover:bg-muted/30',
                             isPending && 'opacity-50 cursor-not-allowed'

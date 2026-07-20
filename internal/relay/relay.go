@@ -136,6 +136,19 @@ func (r *relayRun) prepareAttempt() (*relayAttempt, error) {
 		return nil, nil
 	}
 
+	// 主动探活判定为 unhealthy 时跳过，避免把流量打到已知挂掉的上游
+	if health := balancer.GetChannelHealth(channel.ID); health.Status == balancer.HealthUnhealthy {
+		msg := "channel unhealthy"
+		if health.LastProbeError != "" {
+			msg = fmt.Sprintf("channel unhealthy: %s", health.LastProbeError)
+		}
+		if health.CircuitOpen && health.CircuitRemain > 0 {
+			msg = fmt.Sprintf("%s (circuit remain %ds)", msg, health.CircuitRemain)
+		}
+		r.iter.Skip(channel.ID, 0, channel.Name, msg)
+		return nil, nil
+	}
+
 	usedKey := channel.GetChannelKey()
 	if usedKey.ChannelKey == "" {
 		r.iter.Skip(channel.ID, 0, channel.Name, "no available key")

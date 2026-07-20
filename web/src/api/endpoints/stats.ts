@@ -182,3 +182,75 @@ export function useStatsAPIKey() {
         refetchOnMount: 'always',
     });
 }
+
+/** 渠道健康状态 */
+export type ChannelHealthStatus = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+
+export interface ChannelHealth {
+    channel_id: number;
+    channel_name: string;
+    status: ChannelHealthStatus;
+    last_probe_time: number;
+    last_probe_ok: boolean;
+    last_probe_delay: number;
+    last_probe_error?: string;
+    fail_streak: number;
+    circuit_open: boolean;
+    circuit_remain_sec?: number;
+    base_url?: string;
+}
+
+export interface ChannelRealtimeItem {
+    channel_id: number;
+    channel_name: string;
+    enabled: boolean;
+    stats: StatsMetrics;
+    health: ChannelHealth;
+    success_rate: number;
+    avg_latency_ms: number;
+    total_cost: number;
+}
+
+export interface RealtimeSummary {
+    healthy_count: number;
+    degraded_count: number;
+    unhealthy_count: number;
+    unknown_count: number;
+    success_rate: number;
+    avg_latency_ms: number;
+    total_cost: number;
+    request_count: number;
+}
+
+export interface RealtimeDashboard {
+    generated_at: number;
+    today: StatsDaily;
+    hourly: StatsHourly[];
+    total: StatsTotal;
+    channels: ChannelRealtimeItem[];
+    summary: RealtimeSummary;
+}
+
+/** 实时看板（含渠道健康 + 成功率 + 延迟 + 费用） */
+export function useRealtimeDashboard() {
+    return useQuery({
+        queryKey: ['stats', 'realtime'],
+        queryFn: async () => {
+            return apiClient.get<RealtimeDashboard>('/api/v1/stats/realtime');
+        },
+        refetchInterval: 10000,
+        refetchOnMount: 'always',
+    });
+}
+
+/** 渠道健康列表 */
+export function useChannelHealth() {
+    return useQuery({
+        queryKey: ['stats', 'health'],
+        queryFn: async () => {
+            return apiClient.get<ChannelHealth[]>('/api/v1/stats/health');
+        },
+        refetchInterval: 15000,
+        refetchOnMount: 'always',
+    });
+}
