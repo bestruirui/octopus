@@ -7,6 +7,7 @@ import (
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/price"
+	"github.com/bestruirui/octopus/internal/relay/balancer"
 	"github.com/bestruirui/octopus/internal/utils/log"
 )
 
@@ -36,6 +37,11 @@ func Init() {
 
 	// 注册基础URL延迟任务
 	Register(TaskBaseUrlDelay, 1*time.Hour, true, ChannelBaseUrlDelayTask)
+
+	// 健康分选路开关（默认 true，可前端热更新）
+	if v, err := op.SettingGetBool(model.SettingKeyHealthScoreRouting); err == nil {
+		balancer.SetHealthScoreRouting(v)
+	}
 
 	// 渠道健康探活：间隔/开关均来自 setting，前端可热更新
 	probeEnabled := true

@@ -59,7 +59,9 @@ func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transforme
 	}
 
 	apiKeyID := c.GetInt("api_key_id")
-	iter := balancer.NewIterator(group, apiKeyID, internalRequest.Model)
+	// 语义/复杂度 soft-bias（默认关）→ 分组策略 → 健康分 re-rank → 粘性
+	biasedItems := SemanticBiasCandidates(group.Items, ClassifyComplexity(internalRequest))
+	iter := balancer.NewIteratorWithCandidates(group, apiKeyID, internalRequest.Model, biasedItems)
 	if iter.Len() == 0 {
 		err := errors.New("no available channel")
 		resp.Error(c, http.StatusServiceUnavailable, err.Error())
@@ -191,16 +193,18 @@ func (ra *relayAttempt) run() (bool, error) {
 	ra.usedKey.StatusCode = upstreamStatusCode
 	ra.usedKey.LastUseTimeStamp = time.Now().Unix()
 
+	latencyMS := span.Duration().Milliseconds()
 	if fwdErr == nil {
 		ra.usedKey.TotalCost += ra.metrics.Stats.InputCost + ra.metrics.Stats.OutputCost
 		op.ChannelKeyUpdate(ra.usedKey)
 
 		span.End(dbmodel.AttemptSuccess, "")
 		op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
-			WaitTime:       span.Duration().Milliseconds(),
+			WaitTime:       latencyMS,
 			RequestSuccess: 1,
 		})
 		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		balancer.RecordLatency(ra.channel.ID, latencyMS, true)
 		balancer.SetSticky(ra.metrics.APIKeyID, ra.metrics.RequestModel, ra.channel.ID, ra.usedKey.ID)
 		return false, nil
 	}
@@ -208,10 +212,11 @@ func (ra *relayAttempt) run() (bool, error) {
 	op.ChannelKeyUpdate(ra.usedKey)
 	span.End(dbmodel.AttemptFailed, fwdErr.Error())
 	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
-		WaitTime:      span.Duration().Milliseconds(),
+		WaitTime:      latencyMS,
 		RequestFailed: 1,
 	})
 	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	balancer.RecordLatency(ra.channel.ID, latencyMS, false)
 
 	return ra.c.Writer.Written(), fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr)
 }
@@ -350,6 +355,7 @@ func (ra *relayAttempt) applyChannelRequestOptions(outboundRequest *httpclient.R
 }
 
 // writeStream 把 pipeline 输出的客户端格式流写回请求方，并保留首 token 超时切换通道的行为。
+// 内存优化：不再无限累积全部 SSE 事件；仅保留有限 cap 用于日志聚合，长流只保留尾部+usage 相关事件。
 func (ra *relayAttempt) writeStream(ctx context.Context, clientStream streams.Stream[*httpclient.StreamEvent]) error {
 	if clientStream == nil {
 		return fmt.Errorf("empty pipeline stream")
@@ -361,8 +367,21 @@ func (ra *relayAttempt) writeStream(ctx context.Context, clientStream streams.St
 	ra.c.Header("Connection", "keep-alive")
 	ra.c.Header("X-Accel-Buffering", "no")
 
+	// 流式日志保留上限（默认 32 事件 / 64KB），防止长对话把事件列表撑到 MB 级
+	maxEvents := 32
+	maxBytes := 64 * 1024
+	if v, err := op.SettingGetInt(dbmodel.SettingKeyStreamLogMaxEvents); err == nil {
+		maxEvents = v
+	}
+	if v, err := op.SettingGetInt(dbmodel.SettingKeyStreamLogMaxBytes); err == nil {
+		maxBytes = v
+	}
+
 	firstToken := true
 	responseEvents := make([]*httpclient.StreamEvent, 0, 8)
+	var retainedBytes int
+	droppedForLog := false
+
 	type sseReadResult struct {
 		event *httpclient.StreamEvent
 		err   error
@@ -415,6 +434,40 @@ func (ra *relayAttempt) writeStream(ctx context.Context, clientStream streams.St
 		}()
 	}
 
+	// retainEvent 有上限地保留事件：优先保留可能含 usage 的尾部事件
+	retainEvent := func(ev *httpclient.StreamEvent) {
+		if maxEvents == 0 || maxBytes == 0 {
+			// 0 = 完全不保留，只透传
+			droppedForLog = true
+			return
+		}
+		sz := len(ev.Data)
+		// 超 cap：丢弃最旧，保留最新（usage 通常在末尾）
+		for (len(responseEvents) >= maxEvents || retainedBytes+sz > maxBytes) && len(responseEvents) > 0 {
+			droppedForLog = true
+			old := responseEvents[0]
+			retainedBytes -= len(old.Data)
+			if retainedBytes < 0 {
+				retainedBytes = 0
+			}
+			responseEvents = responseEvents[1:]
+		}
+		// 单事件就超过 cap：仍保留最后一个（截断语义：日志不完整但 usage 尽量在）
+		if sz > maxBytes && len(responseEvents) == 0 {
+			// 保留指针但不计入过大 body；聚合器拿到也只是尽力
+			responseEvents = append(responseEvents, ev)
+			retainedBytes = sz
+			droppedForLog = true
+			return
+		}
+		if len(responseEvents) < maxEvents && retainedBytes+sz <= maxBytes {
+			responseEvents = append(responseEvents, ev)
+			retainedBytes += sz
+		} else {
+			droppedForLog = true
+		}
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -438,6 +491,10 @@ func (ra *relayAttempt) writeStream(ctx context.Context, clientStream streams.St
 					log.Warnf("failed to aggregate stream response for log: %v", err)
 					return nil
 				}
+				if droppedForLog {
+					// 标记日志被截断，避免误以为完整响应
+					log.Debugf("stream log truncated: retained_events=%d retained_bytes=%d", len(responseEvents), retainedBytes)
+				}
 				ra.metrics.InternalResponse = responseBody
 				ra.metrics.RecordUsage(meta.Usage)
 				return nil
@@ -450,8 +507,8 @@ func (ra *relayAttempt) writeStream(ctx context.Context, clientStream streams.St
 			if r.event == nil || len(r.event.Data) == 0 {
 				continue
 			}
-			// 这里只临时保存 pipeline 已经转换好的客户端格式事件，正常结束后聚合成最终响应体用于日志；不会把分片逐条落库。
-			responseEvents = append(responseEvents, r.event)
+			// 有上限保留，正常结束后聚合成最终响应体用于日志；不会无限膨胀。
+			retainEvent(r.event)
 			if firstToken {
 				ra.metrics.FirstTokenTime = time.Now()
 				firstToken = false
@@ -467,6 +524,7 @@ func (ra *relayAttempt) writeStream(ctx context.Context, clientStream streams.St
 				}
 			}
 
+			// 立即透传写回客户端并 Flush（零缓冲转发）
 			ra.c.SSEvent(r.event.Type, r.event.Data)
 			ra.c.Writer.Flush()
 		}

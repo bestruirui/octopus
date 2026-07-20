@@ -33,6 +33,15 @@ export const SettingKey = {
     HealthProbeDegradeMS: 'health_probe_degrade_ms',
     HealthProbeTripOnFail: 'health_probe_trip_on_fail',
     HealthDashboardRefresh: 'health_dashboard_refresh',
+    // 流式 / 健康分 / 语义 / 混沌
+    StreamLogMaxEvents: 'stream_log_max_events',
+    StreamLogMaxBytes: 'stream_log_max_bytes',
+    HealthScoreRouting: 'health_score_routing',
+    SemanticRouteEnabled: 'semantic_route_enabled',
+    ChaosEnabled: 'chaos_enabled',
+    ChaosDelayMS: 'chaos_delay_ms',
+    ChaosErrorRate: 'chaos_error_rate',
+    ChaosDropRate: 'chaos_drop_rate',
 } as const;
 
 /**

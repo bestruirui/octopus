@@ -410,6 +410,40 @@
         "label": "立即探活一次",
         "success": "已触发探活，稍后刷新看板查看结果"
       }
+    },
+    "advancedRouting": {
+      "title": "高级选路",
+      "hint": "不新增分组模式，只在现有轮询/随机/故障迁移/加权之上 soft re-rank。健康分默认开；语义路由默认关。",
+      "saved": "已保存",
+      "healthScore": {
+        "label": "健康分选路",
+        "tip": "综合探活状态 + 被动 EWMA 延迟 + 成功率，把更健康的渠道提前。Failover 仍尊重 Priority 主序。"
+      },
+      "semantic": {
+        "label": "语义/复杂度路由",
+        "tip": "规则版（不嵌 embedding）：复杂请求（长文本/写代码）把 Weight 更高的渠道提前。与加权模式不重复——加权是全局概率，这里按本次请求内容临时 bias。"
+      },
+      "stream": {
+        "title": "流式日志内存上限",
+        "maxEvents": "最多保留事件数",
+        "maxEventsTip": "0=不保留完整流（只透传+usage）。默认 32，长对话只保留尾部避免 MB 级抖动。",
+        "maxBytes": "最多保留字节",
+        "maxBytesTip": "0=不保留。默认 65536（64KB）。超限丢弃最旧事件，usage 通常在末尾。"
+      }
+    },
+    "chaos": {
+      "title": "混沌工程",
+      "hint": "主动注入故障验证熔断/探活/故障迁移是否按预期工作。默认全关，勿在生产常开。",
+      "saved": "已保存",
+      "warning": "混沌已开启！/v1 请求可能被延迟、随机 503 或直接断开。测完请立刻关掉。",
+      "enabled": "启用混沌注入",
+      "enabledTip": "仅作用于 /v1 转发路径。",
+      "delayMs": "注入延迟 (ms)",
+      "delayMsTip": "每个请求额外等待的毫秒数，0=不延迟。",
+      "errorRate": "错误率 (%)",
+      "errorRateTip": "随机返回 503 的百分比，0-100。",
+      "dropRate": "丢包率 (%)",
+      "dropRateTip": "直接断开连接（无响应体）的百分比，模拟网络掐断。"
     }
   },
   "group": {

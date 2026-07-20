@@ -10,6 +10,7 @@ import (
 
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
+	"github.com/bestruirui/octopus/internal/relay/balancer"
 	"github.com/bestruirui/octopus/internal/server/middleware"
 	"github.com/bestruirui/octopus/internal/server/resp"
 	"github.com/bestruirui/octopus/internal/server/router"
@@ -100,6 +101,8 @@ func setSetting(c *gin.Context) {
 			}
 			task.UpdateOrRegister(task.TaskChannelHealth, time.Duration(sec)*time.Second, true, task.ChannelHealthProbeTask)
 		}
+	case model.SettingKeyHealthScoreRouting:
+		balancer.SetHealthScoreRouting(setting.Value == "true")
 	}
 	resp.Success(c, setting)
 }

@@ -32,6 +32,22 @@ const (
 	SettingKeyHealthProbeDegradeMS     SettingKey = "health_probe_degrade_ms"     // 延迟超过多少 ms 判 degraded
 	SettingKeyHealthProbeTripOnFail    SettingKey = "health_probe_trip_on_fail"   // 探活失败是否强制打开熔断 true/false
 	SettingKeyHealthDashboardRefresh   SettingKey = "health_dashboard_refresh"    // 前端看板刷新间隔（秒）
+
+	// 流式内存优化
+	SettingKeyStreamLogMaxEvents SettingKey = "stream_log_max_events" // 流式日志最多保留事件数（0=不保留完整流，仅 usage）
+	SettingKeyStreamLogMaxBytes  SettingKey = "stream_log_max_bytes"  // 流式日志最多保留字节
+
+	// 健康分选路（被动 EWMA，不新增分组模式，只在现有候选上重排）
+	SettingKeyHealthScoreRouting SettingKey = "health_score_routing" // true/false
+
+	// 轻量语义路由（规则复杂度，不嵌 embedding）
+	SettingKeySemanticRouteEnabled SettingKey = "semantic_route_enabled" // true/false
+
+	// 混沌工程
+	SettingKeyChaosEnabled   SettingKey = "chaos_enabled"    // true/false
+	SettingKeyChaosDelayMS   SettingKey = "chaos_delay_ms"   // 注入延迟 ms
+	SettingKeyChaosErrorRate SettingKey = "chaos_error_rate" // 0-100 百分比，随机返回 503
+	SettingKeyChaosDropRate  SettingKey = "chaos_drop_rate"  // 0-100 百分比，直接断开（无响应体）
 )
 
 // 探活方式常量
@@ -72,6 +88,21 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyHealthProbeDegradeMS, Value: "5000"},
 		{Key: SettingKeyHealthProbeTripOnFail, Value: "false"}, // 默认不强制熔断，避免误杀
 		{Key: SettingKeyHealthDashboardRefresh, Value: "15"},
+
+		// 流式：默认保留最多 32 个事件 / 64KB 用于日志聚合，避免长对话 MB 级抖动
+		{Key: SettingKeyStreamLogMaxEvents, Value: "32"},
+		{Key: SettingKeyStreamLogMaxBytes, Value: "65536"},
+
+		// 健康分选路默认开：degraded 往后排，不改变分组模式
+		{Key: SettingKeyHealthScoreRouting, Value: "true"},
+		// 语义路由默认关：需要时再开
+		{Key: SettingKeySemanticRouteEnabled, Value: "false"},
+
+		// 混沌工程默认全关
+		{Key: SettingKeyChaosEnabled, Value: "false"},
+		{Key: SettingKeyChaosDelayMS, Value: "0"},
+		{Key: SettingKeyChaosErrorRate, Value: "0"},
+		{Key: SettingKeyChaosDropRate, Value: "0"},
 	}
 }
 
@@ -81,7 +112,9 @@ func (s *Setting) Validate() error {
 		SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown, SettingKeyCircuitBreakerMaxCooldown,
 		SettingKeyHealthProbeInterval, SettingKeyHealthProbeTimeout,
 		SettingKeyHealthProbeFailThreshold, SettingKeyHealthProbeDegradeMS,
-		SettingKeyHealthDashboardRefresh, SettingKeyStatsSaveInterval:
+		SettingKeyHealthDashboardRefresh, SettingKeyStatsSaveInterval,
+		SettingKeyStreamLogMaxEvents, SettingKeyStreamLogMaxBytes,
+		SettingKeyChaosDelayMS, SettingKeyChaosErrorRate, SettingKeyChaosDropRate:
 		v, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("%s must be an integer", s.Key)
@@ -111,9 +144,26 @@ func (s *Setting) Validate() error {
 			if v < 3 || v > 600 {
 				return fmt.Errorf("health_dashboard_refresh must be 3-600 seconds")
 			}
+		case SettingKeyStreamLogMaxEvents:
+			if v < 0 || v > 10000 {
+				return fmt.Errorf("stream_log_max_events must be 0-10000")
+			}
+		case SettingKeyStreamLogMaxBytes:
+			if v < 0 || v > 16*1024*1024 {
+				return fmt.Errorf("stream_log_max_bytes must be 0-16777216")
+			}
+		case SettingKeyChaosDelayMS:
+			if v < 0 || v > 30000 {
+				return fmt.Errorf("chaos_delay_ms must be 0-30000")
+			}
+		case SettingKeyChaosErrorRate, SettingKeyChaosDropRate:
+			if v < 0 || v > 100 {
+				return fmt.Errorf("%s must be 0-100", s.Key)
+			}
 		}
 		return nil
-	case SettingKeyRelayLogKeepEnabled, SettingKeyHealthProbeEnabled, SettingKeyHealthProbeTripOnFail:
+	case SettingKeyRelayLogKeepEnabled, SettingKeyHealthProbeEnabled, SettingKeyHealthProbeTripOnFail,
+		SettingKeyHealthScoreRouting, SettingKeySemanticRouteEnabled, SettingKeyChaosEnabled:
 		if s.Value != "true" && s.Value != "false" {
 			return fmt.Errorf("%s must be true or false", s.Key)
 		}

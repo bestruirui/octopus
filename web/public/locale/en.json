@@ -410,6 +410,40 @@
         "label": "Probe now",
         "success": "Probe started — refresh dashboard shortly"
       }
+    },
+    "advancedRouting": {
+      "title": "Advanced Routing",
+      "hint": "No new group modes — soft re-rank on top of round-robin/random/failover/weighted. Health score on by default; semantic routing off.",
+      "saved": "Saved",
+      "healthScore": {
+        "label": "Health-score routing",
+        "tip": "Blend probe status + passive EWMA latency + success rate to prefer healthier channels. Failover still respects Priority."
+      },
+      "semantic": {
+        "label": "Semantic/complexity routing",
+        "tip": "Rule-based (no embedding): complex requests (long text / coding) prefer higher-Weight channels. Does not replace Weighted mode."
+      },
+      "stream": {
+        "title": "Stream log memory cap",
+        "maxEvents": "Max retained events",
+        "maxEventsTip": "0 = pass-through only (no full stream for logs). Default 32; long chats keep only the tail.",
+        "maxBytes": "Max retained bytes",
+        "maxBytesTip": "0 = none. Default 65536. Overflow drops oldest events; usage is usually at the end."
+      }
+    },
+    "chaos": {
+      "title": "Chaos Engineering",
+      "hint": "Inject faults to verify circuit breaker / probe / failover. Off by default — never leave on in production.",
+      "saved": "Saved",
+      "warning": "Chaos is ON! /v1 requests may be delayed, randomly 503'd, or dropped. Turn off after testing.",
+      "enabled": "Enable chaos injection",
+      "enabledTip": "Only applies to /v1 relay paths.",
+      "delayMs": "Injected delay (ms)",
+      "delayMsTip": "Extra wait per request; 0 = none.",
+      "errorRate": "Error rate (%)",
+      "errorRateTip": "Chance of returning 503; 0-100.",
+      "dropRate": "Drop rate (%)",
+      "dropRateTip": "Chance of hard-closing the connection (no body)."
     }
   },
   "group": {

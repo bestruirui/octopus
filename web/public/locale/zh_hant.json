@@ -410,6 +410,40 @@
         "label": "立即探活一次",
         "success": "已觸發探活，稍後重新整理看板查看結果"
       }
+    },
+    "advancedRouting": {
+      "title": "高級選路",
+      "hint": "不新增分組模式，只在現有輪詢/隨機/故障遷移/加權之上 soft re-rank。健康分預設開；語義路由預設關。",
+      "saved": "已儲存",
+      "healthScore": {
+        "label": "健康分選路",
+        "tip": "綜合探活狀態 + 被動 EWMA 延遲 + 成功率，把更健康的渠道提前。Failover 仍尊重 Priority 主序。"
+      },
+      "semantic": {
+        "label": "語義/複雜度路由",
+        "tip": "規則版（不嵌 embedding）：複雜請求（長文本/寫程式）把 Weight 更高的渠道提前。與加權模式不重複。"
+      },
+      "stream": {
+        "title": "串流日誌記憶體上限",
+        "maxEvents": "最多保留事件數",
+        "maxEventsTip": "0=不保留完整流（只透傳+usage）。預設 32。",
+        "maxBytes": "最多保留位元組",
+        "maxBytesTip": "0=不保留。預設 65536（64KB）。"
+      }
+    },
+    "chaos": {
+      "title": "混沌工程",
+      "hint": "主動注入故障驗證熔斷/探活/故障遷移。預設全關，勿在生產常開。",
+      "saved": "已儲存",
+      "warning": "混沌已開啟！/v1 請求可能被延遲、隨機 503 或直接斷開。測完請立刻關掉。",
+      "enabled": "啟用混沌注入",
+      "enabledTip": "僅作用於 /v1 轉發路徑。",
+      "delayMs": "注入延遲 (ms)",
+      "delayMsTip": "每個請求額外等待的毫秒數，0=不延遲。",
+      "errorRate": "錯誤率 (%)",
+      "errorRateTip": "隨機回傳 503 的百分比，0-100。",
+      "dropRate": "丟包率 (%)",
+      "dropRateTip": "直接斷開連線（無回應體）的百分比。"
     }
   },
   "group": {

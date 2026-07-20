@@ -55,8 +55,8 @@ func Close() error {
 }
 
 func registerRelayRoutes(r *gin.Engine) {
-	// APIKeyAuth 鉴权 + RateLimit 令牌桶限流（RPM 由 API Key 配置，0=不限）
-	v1 := r.Group("/v1", middleware.APIKeyAuth(), middleware.RateLimit())
+	// APIKeyAuth 鉴权 + RateLimit 令牌桶限流 + Chaos 混沌注入（默认关）
+	v1 := r.Group("/v1", middleware.APIKeyAuth(), middleware.RateLimit(), middleware.Chaos())
 	v1.POST("/chat/completions", middleware.RequireJSON(), relay.Handler(llm.APIFormatOpenAIChatCompletion))
 	v1.POST("/responses", middleware.RequireJSON(), relay.Handler(llm.APIFormatOpenAIResponse))
 	v1.POST("/messages", middleware.RequireJSON(), relay.Handler(llm.APIFormatAnthropicMessage))

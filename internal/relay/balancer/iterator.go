@@ -21,10 +21,19 @@ type Iterator struct {
 }
 
 // NewIterator 创建负载均衡迭代器
-// 自动处理：策略排序 + 粘性通道提前
+// 自动处理：策略排序 + 健康分 soft re-rank + 粘性通道提前
 func NewIterator(group model.Group, apiKeyID int, requestModel string) *Iterator {
+	return NewIteratorWithCandidates(group, apiKeyID, requestModel, group.Items)
+}
+
+// NewIteratorWithCandidates 允许调用方先做语义 bias 再进入迭代
+func NewIteratorWithCandidates(group model.Group, apiKeyID int, requestModel string, items []model.GroupItem) *Iterator {
 	b := GetBalancer(group.Mode)
-	candidates := b.Candidates(group.Items)
+	candidates := b.Candidates(items)
+
+	// 健康分 soft re-rank：不新增 GroupMode，只在现有候选上微调
+	// Failover 仍尊重 Priority 主序
+	candidates = ReorderByHealthScore(candidates, group.Mode)
 
 	stickyIdx := -1
 	if group.SessionKeepTime > 0 {
