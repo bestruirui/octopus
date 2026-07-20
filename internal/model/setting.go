@@ -27,8 +27,9 @@ const (
 	SettingKeyHealthProbeTimeout       SettingKey = "health_probe_timeout"        // 单次探活超时（秒）
 	SettingKeyHealthProbeMethod        SettingKey = "health_probe_method"         // auto|models|head|chat|custom
 	SettingKeyHealthProbePath          SettingKey = "health_probe_path"           // custom 方法时的相对路径，如 /v1/chat/completions
-	SettingKeyHealthProbeModel         SettingKey = "health_probe_model"          // chat 探活用的模型名（兼容 sub2api 等中转）
+	// 注意：chat 探活模型名不再用全局 setting——直接取渠道 Model/CustomModel 列表，避免与渠道编辑重复
 	SettingKeyHealthProbeFailThreshold SettingKey = "health_probe_fail_threshold" // 连续失败多少次才判 unhealthy
+	SettingKeyNetObsMode               SettingKey = "net_obs_mode"               // auto|go|ebpf 网络观测后端
 	SettingKeyHealthProbeDegradeMS     SettingKey = "health_probe_degrade_ms"     // 延迟超过多少 ms 判 degraded
 	SettingKeyHealthProbeTripOnFail    SettingKey = "health_probe_trip_on_fail"   // 探活失败是否强制打开熔断 true/false
 	SettingKeyHealthDashboardRefresh   SettingKey = "health_dashboard_refresh"    // 前端看板刷新间隔（秒）
@@ -83,11 +84,12 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyHealthProbeTimeout, Value: "8"},
 		{Key: SettingKeyHealthProbeMethod, Value: HealthProbeMethodAuto},
 		{Key: SettingKeyHealthProbePath, Value: ""},
-		{Key: SettingKeyHealthProbeModel, Value: "gpt-4o-mini"},
 		{Key: SettingKeyHealthProbeFailThreshold, Value: "3"},
 		{Key: SettingKeyHealthProbeDegradeMS, Value: "5000"},
 		{Key: SettingKeyHealthProbeTripOnFail, Value: "false"}, // 默认不强制熔断，避免误杀
 		{Key: SettingKeyHealthDashboardRefresh, Value: "15"},
+		// 网络观测：auto=优先 eBPF（失败回落 Go），go=纯应用层，ebpf=强制内核态
+		{Key: SettingKeyNetObsMode, Value: "auto"},
 
 		// 流式：默认保留最多 32 个事件 / 64KB 用于日志聚合，避免长对话 MB 级抖动
 		{Key: SettingKeyStreamLogMaxEvents, Value: "32"},
@@ -178,9 +180,18 @@ func (s *Setting) Validate() error {
 		default:
 			return fmt.Errorf("health_probe_method must be one of: auto, models, head, chat, custom")
 		}
-	case SettingKeyHealthProbePath, SettingKeyHealthProbeModel:
+	case SettingKeyHealthProbePath:
 		// 任意字符串均可
 		return nil
+	case SettingKeyNetObsMode:
+		m := strings.ToLower(strings.TrimSpace(s.Value))
+		switch m {
+		case "auto", "go", "ebpf":
+			s.Value = m
+			return nil
+		default:
+			return fmt.Errorf("net_obs_mode must be one of: auto, go, ebpf")
+		}
 	case SettingKeyProxyURL:
 		if s.Value == "" {
 			return nil

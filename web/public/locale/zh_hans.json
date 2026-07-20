@@ -389,7 +389,8 @@
       },
       "model": {
         "label": "chat 探活模型名",
-        "placeholder": "gpt-4o-mini"
+        "placeholder": "",
+        "hint": "chat 探活自动使用各渠道「模型 / 自定义模型」列表中的第一个模型，无需在此重复填写。"
       },
       "failThreshold": {
         "label": "连续失败阈值",
@@ -429,6 +430,15 @@
         "maxEventsTip": "0=不保留完整流（只透传+usage）。默认 32，长对话只保留尾部避免 MB 级抖动。",
         "maxBytes": "最多保留字节",
         "maxBytesTip": "0=不保留。默认 65536（64KB）。超限丢弃最旧事件，usage 通常在末尾。"
+      },
+      "netObs": {
+        "label": "网络观测后端",
+        "tip": "auto=优先 eBPF（失败回落 Go 应用层），go=纯 Go，ebpf=强制内核态。容器无 CAP_BPF 时 auto 会回落。",
+        "options": {
+          "auto": "auto（推荐）",
+          "go": "纯 Go",
+          "ebpf": "强制 eBPF"
+        }
       }
     },
     "chaos": {

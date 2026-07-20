@@ -389,7 +389,8 @@
       },
       "model": {
         "label": "Chat probe model",
-        "placeholder": "gpt-4o-mini"
+        "placeholder": "",
+        "hint": "Chat probes use the first model from each channel's model/custom_model list — no global override needed."
       },
       "failThreshold": {
         "label": "Fail streak threshold",
@@ -429,6 +430,15 @@
         "maxEventsTip": "0 = pass-through only (no full stream for logs). Default 32; long chats keep only the tail.",
         "maxBytes": "Max retained bytes",
         "maxBytesTip": "0 = none. Default 65536. Overflow drops oldest events; usage is usually at the end."
+      },
+      "netObs": {
+        "label": "Network observation backend",
+        "tip": "auto=prefer eBPF (fallback to Go), go=pure Go, ebpf=force kernel. auto falls back when CAP_BPF is missing.",
+        "options": {
+          "auto": "auto (recommended)",
+          "go": "pure Go",
+          "ebpf": "force eBPF"
+        }
       }
     },
     "chaos": {

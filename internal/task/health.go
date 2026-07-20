@@ -15,6 +15,7 @@ import (
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/relay/balancer"
 	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/bestruirui/octopus/internal/utils/xstrings"
 )
 
 // ChannelHealthProbeTask 主动探活所有已启用渠道。
@@ -78,19 +79,17 @@ func ChannelHealthProbeTask() {
 }
 
 type probeConfig struct {
-	Method       string
-	Path         string
-	Model        string
-	TimeoutSec   int
-	TripOnFail   bool
-	FailThresh   int
-	DegradeMS    int
+	Method     string
+	Path       string
+	TimeoutSec int
+	TripOnFail bool
+	FailThresh int
+	DegradeMS  int
 }
 
 func loadProbeConfig() probeConfig {
 	cfg := probeConfig{
 		Method:     model.HealthProbeMethodAuto,
-		Model:      "gpt-4o-mini",
 		TimeoutSec: 8,
 		TripOnFail: false,
 		FailThresh: 3,
@@ -101,9 +100,6 @@ func loadProbeConfig() probeConfig {
 	}
 	if v, err := op.SettingGetString(model.SettingKeyHealthProbePath); err == nil {
 		cfg.Path = strings.TrimSpace(v)
-	}
-	if v, err := op.SettingGetString(model.SettingKeyHealthProbeModel); err == nil && v != "" {
-		cfg.Model = strings.TrimSpace(v)
 	}
 	if v, err := op.SettingGetInt(model.SettingKeyHealthProbeTimeout); err == nil && v > 0 {
 		cfg.TimeoutSec = v
@@ -120,6 +116,19 @@ func loadProbeConfig() probeConfig {
 	// 同步阈值到健康状态判定
 	balancer.SetHealthThresholds(cfg.FailThresh, cfg.DegradeMS)
 	return cfg
+}
+
+// pickProbeModel 从渠道已配置的 model/custom_model 列表取探活模型，不再用全局 setting。
+// 优先 CustomModel（用户手动指定），其次 Model（同步列表），都没有则空串（chat 探活跳过）。
+func pickProbeModel(channel *model.Channel) string {
+	if channel == nil {
+		return ""
+	}
+	names := xstrings.SplitTrimCompact(",", channel.CustomModel, channel.Model)
+	if len(names) == 0 {
+		return ""
+	}
+	return names[0]
 }
 
 func probeChannel(ctx context.Context, channel *model.Channel, cfg probeConfig) {
@@ -147,7 +156,10 @@ func probeChannel(ctx context.Context, channel *model.Channel, cfg probeConfig) 
 		apiKey = k.ChannelKey
 	}
 
-	delay, probeErr := doProbe(ctx, &client, baseURL, apiKey, string(channel.Type), cfg)
+	// 探活模型：渠道自己的 model 列表，不再读全局 health_probe_model
+	probeModel := pickProbeModel(channel)
+
+	delay, probeErr := doProbe(ctx, &client, baseURL, apiKey, string(channel.Type), cfg, probeModel)
 	ok := probeErr == nil
 
 	errMsg := ""
@@ -162,7 +174,7 @@ func probeChannel(ctx context.Context, channel *model.Channel, cfg probeConfig) 
 		if delay > 0 {
 			updateBaseURLDelay(channel, baseURL, delay)
 		}
-		log.Debugf("health probe ok: channel=%s delay=%dms method=%s", channel.Name, delay, cfg.Method)
+		log.Debugf("health probe ok: channel=%s delay=%dms method=%s model=%s", channel.Name, delay, cfg.Method, probeModel)
 	} else {
 		// 默认只记录失败，不强制熔断；连续失败达到阈值后由 buildHealth 判 unhealthy 跳过
 		// 仅当用户显式开启 trip_on_fail 时才 ForceTrip
@@ -177,7 +189,7 @@ func probeChannel(ctx context.Context, channel *model.Channel, cfg probeConfig) 
 	}
 }
 
-func doProbe(ctx context.Context, client *http.Client, baseURL, apiKey, channelType string, cfg probeConfig) (int, error) {
+func doProbe(ctx context.Context, client *http.Client, baseURL, apiKey, channelType string, cfg probeConfig, probeModel string) (int, error) {
 	base := strings.TrimRight(baseURL, "/")
 	method := cfg.Method
 
@@ -187,7 +199,10 @@ func doProbe(ctx context.Context, client *http.Client, baseURL, apiKey, channelT
 	case model.HealthProbeMethodHead:
 		return probeHead(ctx, client, base, apiKey)
 	case model.HealthProbeMethodChat:
-		return probeChat(ctx, client, base, apiKey, channelType, cfg.Model)
+		if probeModel == "" {
+			return 0, fmt.Errorf("chat probe: channel has no model/custom_model configured")
+		}
+		return probeChat(ctx, client, base, apiKey, channelType, probeModel)
 	case model.HealthProbeMethodCustom:
 		path := cfg.Path
 		if path == "" {
@@ -201,16 +216,16 @@ func doProbe(ctx context.Context, client *http.Client, baseURL, apiKey, channelT
 		// 级联策略（参考 NewAPI / One API 社区实践 + sub2api 兼容）：
 		// 1) models 列表（标准兼容）
 		// 2) HEAD/GET base（中转不返回 models 也能通）
-		// 3) 若配置了模型名且有 key，再试一次 chat（最准但最贵，仅作最后手段）
+		// 3) 若渠道配置了模型名且有 key，再试一次 chat（最准但最贵，仅作最后手段）
 		if delay, err := probeModels(ctx, client, base, apiKey); err == nil {
 			return delay, nil
 		}
 		if delay, err := probeHead(ctx, client, base, apiKey); err == nil {
 			return delay, nil
 		}
-		// auto 下 chat 作为最后手段：很多 sub2api 中转 base 和 models 都挂了但 chat 还能通
-		if apiKey != "" && cfg.Model != "" {
-			if delay, err := probeChat(ctx, client, base, apiKey, channelType, cfg.Model); err == nil {
+		// auto 下 chat 作为最后手段：用渠道自己的模型列表
+		if apiKey != "" && probeModel != "" {
+			if delay, err := probeChat(ctx, client, base, apiKey, channelType, probeModel); err == nil {
 				return delay, nil
 			}
 		}
@@ -296,7 +311,7 @@ func probeChat(ctx context.Context, client *http.Client, base, apiKey, channelTy
 		return 0, fmt.Errorf("chat probe requires api key")
 	}
 	if modelName == "" {
-		modelName = "gpt-4o-mini"
+		return 0, fmt.Errorf("chat probe requires a model from channel model/custom_model")
 	}
 
 	// 根据渠道类型选路径和 body

@@ -162,6 +162,21 @@ export function SettingAdvancedRouting() {
                     value={getBool(SettingKey.SemanticRouteEnabled, false)}
                     onChange={(v) => save(SettingKey.SemanticRouteEnabled, String(v))}
                 />
+                <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                        <Label className="text-sm font-medium">{t('netObs.label')}</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t('netObs.tip')}</p>
+                    </div>
+                    <select
+                        className="w-36 h-8 rounded-xl border border-input bg-transparent px-2 text-sm"
+                        value={get(SettingKey.NetObsMode, 'auto') || 'auto'}
+                        onChange={(e) => save(SettingKey.NetObsMode, e.target.value)}
+                    >
+                        <option value="auto">{t('netObs.options.auto')}</option>
+                        <option value="go">{t('netObs.options.go')}</option>
+                        <option value="ebpf">{t('netObs.options.ebpf')}</option>
+                    </select>
+                </div>
             </div>
 
             <div className="pt-2 border-t border-border space-y-4">

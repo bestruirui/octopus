@@ -28,11 +28,12 @@ export const SettingKey = {
     HealthProbeTimeout: 'health_probe_timeout',
     HealthProbeMethod: 'health_probe_method',
     HealthProbePath: 'health_probe_path',
-    HealthProbeModel: 'health_probe_model',
+    // chat 探活模型已改为使用渠道 model/custom_model，不再有全局 health_probe_model
     HealthProbeFailThreshold: 'health_probe_fail_threshold',
     HealthProbeDegradeMS: 'health_probe_degrade_ms',
     HealthProbeTripOnFail: 'health_probe_trip_on_fail',
     HealthDashboardRefresh: 'health_dashboard_refresh',
+    NetObsMode: 'net_obs_mode',
     // 流式 / 健康分 / 语义 / 混沌
     StreamLogMaxEvents: 'stream_log_max_events',
     StreamLogMaxBytes: 'stream_log_max_bytes',

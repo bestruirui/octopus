@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/bestruirui/octopus/internal/conf"
 	"github.com/bestruirui/octopus/internal/db"
+	"github.com/bestruirui/octopus/internal/netobs"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/server"
 	"github.com/bestruirui/octopus/internal/task"
@@ -46,6 +47,10 @@ var startCmd = &cobra.Command{
 			return
 		}
 		shutdown.Register(server.Close)
+
+		// 网络观测：interface + runtime 选择（auto/go/ebpf）
+		netobs.InitNetObserver()
+		shutdown.Register(netobs.StopNetObserver)
 
 		task.Init()
 		go task.RUN()

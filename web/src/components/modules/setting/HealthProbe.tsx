@@ -6,7 +6,6 @@ import {
     Activity,
     Clock,
     Gauge,
-    Hash,
     HelpCircle,
     Route,
     ShieldAlert,
@@ -31,7 +30,6 @@ export function SettingHealthProbe() {
     const [timeout, setTimeoutSec] = useState('8');
     const [method, setMethod] = useState('auto');
     const [path, setPath] = useState('');
-    const [model, setModel] = useState('gpt-4o-mini');
     const [failThresh, setFailThresh] = useState('3');
     const [degradeMs, setDegradeMs] = useState('5000');
     const [tripOnFail, setTripOnFail] = useState('false');
@@ -42,7 +40,6 @@ export function SettingHealthProbe() {
     const initTimeout = useRef('');
     const initMethod = useRef('');
     const initPath = useRef('');
-    const initModel = useRef('');
     const initFailThresh = useRef('');
     const initDegradeMs = useRef('');
     const initTripOnFail = useRef('');
@@ -57,7 +54,6 @@ export function SettingHealthProbe() {
         const to = get(SettingKey.HealthProbeTimeout, '8');
         const m = get(SettingKey.HealthProbeMethod, 'auto');
         const p = get(SettingKey.HealthProbePath, '');
-        const mo = get(SettingKey.HealthProbeModel, 'gpt-4o-mini');
         const ft = get(SettingKey.HealthProbeFailThreshold, '3');
         const dm = get(SettingKey.HealthProbeDegradeMS, '5000');
         const tf = get(SettingKey.HealthProbeTripOnFail, 'false');
@@ -69,7 +65,6 @@ export function SettingHealthProbe() {
             setTimeoutSec(to);
             setMethod(m);
             setPath(p);
-            setModel(mo);
             setFailThresh(ft);
             setDegradeMs(dm);
             setTripOnFail(tf);
@@ -80,7 +75,6 @@ export function SettingHealthProbe() {
         initTimeout.current = to;
         initMethod.current = m;
         initPath.current = p;
-        initModel.current = mo;
         initFailThresh.current = ft;
         initDegradeMs.current = dm;
         initTripOnFail.current = tf;
@@ -232,22 +226,8 @@ export function SettingHealthProbe() {
             )}
 
             {(method === 'chat' || method === 'auto') && (
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <Hash className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-sm font-medium">{t('healthProbe.model.label')}</span>
-                    </div>
-                    <Input
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        onBlur={() =>
-                            handleSave(SettingKey.HealthProbeModel, model, initModel.current, () => {
-                                initModel.current = model;
-                            })
-                        }
-                        placeholder={t('healthProbe.model.placeholder')}
-                        className="w-48 rounded-xl"
-                    />
+                <div className="rounded-xl bg-muted/40 border border-border px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+                    {t('healthProbe.model.hint')}
                 </div>
             )}
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bestruirui/octopus/internal/model"
+	"github.com/bestruirui/octopus/internal/netobs"
 	"github.com/bestruirui/octopus/internal/op"
 	"github.com/bestruirui/octopus/internal/relay/balancer"
 	"github.com/bestruirui/octopus/internal/server/middleware"
@@ -66,16 +67,20 @@ func getChannelHealth(c *gin.Context) {
 	interval, _ := op.SettingGetInt(model.SettingKeyHealthProbeInterval)
 	enabled, _ := op.SettingGetBool(model.SettingKeyHealthProbeEnabled)
 	tripOnFail, _ := op.SettingGetBool(model.SettingKeyHealthProbeTripOnFail)
+	netObsMode, _ := op.SettingGetString(model.SettingKeyNetObsMode)
+	netObsBackend := netobs.BackendName()
 
 	resp.Success(c, gin.H{
 		"channels": list,
 		"config": gin.H{
-			"enabled":        enabled,
-			"interval_sec":   interval,
-			"method":         method,
-			"fail_threshold": failThresh,
-			"degrade_ms":     degradeMS,
-			"trip_on_fail":   tripOnFail,
+			"enabled":         enabled,
+			"interval_sec":    interval,
+			"method":          method,
+			"fail_threshold":  failThresh,
+			"degrade_ms":      degradeMS,
+			"trip_on_fail":    tripOnFail,
+			"net_obs_mode":    netObsMode,
+			"net_obs_backend": netObsBackend,
 		},
 	})
 }
