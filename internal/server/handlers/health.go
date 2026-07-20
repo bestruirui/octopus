@@ -67,8 +67,7 @@ func getChannelHealth(c *gin.Context) {
 	interval, _ := op.SettingGetInt(model.SettingKeyHealthProbeInterval)
 	enabled, _ := op.SettingGetBool(model.SettingKeyHealthProbeEnabled)
 	tripOnFail, _ := op.SettingGetBool(model.SettingKeyHealthProbeTripOnFail)
-	netObsMode, _ := op.SettingGetString(model.SettingKeyNetObsMode)
-	netObsBackend := netobs.BackendName()
+	netSt := netobs.GetStatus()
 
 	resp.Success(c, gin.H{
 		"channels": list,
@@ -79,8 +78,10 @@ func getChannelHealth(c *gin.Context) {
 			"fail_threshold":  failThresh,
 			"degrade_ms":      degradeMS,
 			"trip_on_fail":    tripOnFail,
-			"net_obs_mode":    netObsMode,
-			"net_obs_backend": netObsBackend,
+			"net_obs_mode":    netSt.Mode,
+			"net_obs_backend": netSt.Backend,
+			"net_obs_active":  netSt.Active,
+			"connect_hits":    netSt.ConnectHits,
 		},
 	})
 }
@@ -96,12 +97,13 @@ func triggerHealthProbe(c *gin.Context) {
 
 // realtimeDashboard 聚合今日 + 小时 + 渠道健康，给首页看板用
 type realtimeDashboard struct {
-	GeneratedAt int64                    `json:"generated_at"`
-	Today       model.StatsDaily         `json:"today"`
-	Hourly      []model.StatsHourly      `json:"hourly"`
-	Total       model.StatsTotal         `json:"total"`
-	Channels    []channelRealtimeItem    `json:"channels"`
-	Summary     realtimeSummary          `json:"summary"`
+	GeneratedAt int64                 `json:"generated_at"`
+	Today       model.StatsDaily      `json:"today"`
+	Hourly      []model.StatsHourly   `json:"hourly"`
+	Total       model.StatsTotal      `json:"total"`
+	Channels    []channelRealtimeItem `json:"channels"`
+	Summary     realtimeSummary       `json:"summary"`
+	NetObs      netobs.Status         `json:"net_obs"`
 }
 
 type channelRealtimeItem struct {
@@ -202,5 +204,6 @@ func getRealtimeDashboard(c *gin.Context) {
 		Total:       total,
 		Channels:    items,
 		Summary:     sum,
+		NetObs:      netobs.GetStatus(),
 	})
 }

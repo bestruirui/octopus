@@ -229,6 +229,12 @@ export interface RealtimeDashboard {
     total: StatsTotal;
     channels: ChannelRealtimeItem[];
     summary: RealtimeSummary;
+    net_obs?: {
+        mode: string;
+        backend: string;
+        active: boolean;
+        connect_hits?: number;
+    };
 }
 
 /** 实时看板（含渠道健康 + 成功率 + 延迟 + 费用）

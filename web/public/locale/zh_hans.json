@@ -438,7 +438,8 @@
           "auto": "auto（推荐）",
           "go": "纯 Go",
           "ebpf": "强制 eBPF"
-        }
+        },
+        "runtimeHint": "切换后需重启进程才生效。实际后端见首页健康看板角标（Go / eBPF）。"
       }
     },
     "chaos": {

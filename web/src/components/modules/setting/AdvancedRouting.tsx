@@ -177,6 +177,10 @@ export function SettingAdvancedRouting() {
                         <option value="ebpf">{t('netObs.options.ebpf')}</option>
                     </select>
                 </div>
+                {/* 运行时实际后端由健康 API 返回，这里只提示切换后需重启进程生效 */}
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {t('netObs.runtimeHint')}
+                </p>
             </div>
 
             <div className="pt-2 border-t border-border space-y-4">

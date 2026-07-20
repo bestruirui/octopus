@@ -57,3 +57,5 @@ func (g *GoObserver) Active() bool {
 	defer g.mu.Unlock()
 	return g.started
 }
+
+func (g *GoObserver) ConnectHits() uint64 { return 0 }

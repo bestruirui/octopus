@@ -4,20 +4,22 @@ package netobs
 
 import (
 	"fmt"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
 )
 
-// EBPFObserver 内核态 TCP 观测后端（仅 -tags ebpf 时编译）。
-// 依赖：github.com/cilium/ebpf、CAP_BPF、/sys/fs/bpf。
+// EBPFObserver 内核态观测后端（-tags ebpf 时编译）。
+// 依赖：github.com/cilium/ebpf、CAP_BPF/CAP_PERFMON、/sys/fs/bpf、BTF。
 //
-// 当前为可运行骨架：加载 + 挂载 tracepoint 框架已就绪，
-// map 读取循环与 channel↔IP 关联可按需扩展。
+// 当前最小可运行探针：sys_enter_connect 计数。
+// ChannelRTTMS / ChannelRetransRate 仍返回 0，等 map 关联 channel 后再接 EWMA。
 
-//go:generate bpf2go -cc clang tcp_conn ./bpf/tcp_conn.c -- -I/usr/include
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -cflags "-O2 -g -Wall" tcpConn ./bpf/tcp_conn.c -- -I/usr/include
 
 type EBPFObserver struct {
 	mu       sync.Mutex
@@ -27,6 +29,9 @@ type EBPFObserver struct {
 	channels map[int]string
 	rttStore sync.Map
 	retrans  sync.Map
+
+	hits     uint64
+	lastRead time.Time
 }
 
 func NewEBPFObserver() *EBPFObserver {
@@ -36,8 +41,9 @@ func NewEBPFObserver() *EBPFObserver {
 func (e *EBPFObserver) Name() string { return "ebpf" }
 
 func (e *EBPFObserver) Available() bool {
-	if err := rlimit.RemoveMemlock(); err != nil {
-		return false
+	_ = rlimit.RemoveMemlock()
+	if _, err := os.Stat("/sys/kernel/btf/vmlinux"); err != nil {
+		// no BTF: still try later, but mark available so Start can report real error
 	}
 	return true
 }
@@ -48,17 +54,65 @@ func (e *EBPFObserver) Start() error {
 	if e.started {
 		return nil
 	}
-	if err := rlimit.RemoveMemlock(); err != nil {
-		return fmt.Errorf("ebpf: remove memlock: %w", err)
+
+	_ = rlimit.RemoveMemlock()
+
+	spec, err := loadTcpConn()
+	if err != nil {
+		return fmt.Errorf("ebpf: load spec: %w", err)
 	}
 
-	// 若尚未 bpf2go 生成，loadTcpConn 不存在——此处用空 collection 占位。
-	// 真正上线时：bpf2go 生成 loadTcpConn()，然后：
-	//   coll, err := loadTcpConnObjects(nil, nil)
-	//   link.Tracepoint("sock", "inet_sock_set_state", coll.TcpConnect, nil)
-	//
-	// 当前返回明确错误，让 auto 模式回落 Go，而不是 silent fake。
-	return fmt.Errorf("ebpf: BPF object not generated yet (run go generate ./internal/netobs with -tags ebpf)")
+	coll, err := ebpf.NewCollection(spec)
+	if err != nil {
+		return fmt.Errorf("ebpf: new collection: %w", err)
+	}
+	e.coll = coll
+
+	prog := coll.Programs[tcpConnProgHandleConnect]
+	if prog == nil {
+		coll.Close()
+		return fmt.Errorf("ebpf: program handle_connect not found")
+	}
+
+	l, err := link.Tracepoint("syscalls", "sys_enter_connect", prog, nil)
+	if err != nil {
+		coll.Close()
+		return fmt.Errorf("ebpf: attach sys_enter_connect: %w", err)
+	}
+	e.links = append(e.links, l)
+
+	e.started = true
+	e.lastRead = time.Now()
+
+	go e.readLoop()
+
+	return nil
+}
+
+func (e *EBPFObserver) readLoop() {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		e.mu.Lock()
+		active := e.started
+		e.mu.Unlock()
+		if !active {
+			return
+		}
+
+		m := e.coll.Maps[tcpConnMapConnectHits]
+		if m != nil {
+			var key uint32
+			var val uint64
+			if err := m.Lookup(&key, &val); err == nil {
+				e.mu.Lock()
+				e.hits = val
+				e.lastRead = time.Now()
+				e.mu.Unlock()
+			}
+		}
+		<-ticker.C
+	}
 }
 
 func (e *EBPFObserver) Stop() error {
@@ -102,4 +156,11 @@ func (e *EBPFObserver) Active() bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.started
+}
+
+// ConnectHits 返回 sys_enter_connect 累计次数
+func (e *EBPFObserver) ConnectHits() uint64 {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.hits
 }

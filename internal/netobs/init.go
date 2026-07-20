@@ -21,6 +21,7 @@ func InitNetObserver() {
 	if v, err := op.SettingGetString(model.SettingKeyNetObsMode); err == nil && v != "" {
 		mode = strings.ToLower(strings.TrimSpace(v))
 	}
+	currentMode = mode
 
 	var obs NetworkObserver
 
@@ -60,8 +61,11 @@ func InitNetObserver() {
 		}
 	}
 
-	if err := obs.Start(); err != nil {
-		log.Errorf("netobs: observer start failed: %v", err)
+	// tryEBPF 已 Start；GoObserver 需在此 Start
+	if !obs.Active() {
+		if err := obs.Start(); err != nil {
+			log.Errorf("netobs: observer start failed: %v", err)
+		}
 	}
 	SetObserver(obs)
 }

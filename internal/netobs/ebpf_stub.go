@@ -27,3 +27,4 @@ func (e *EBPFObserver) ChannelRTTMS(_ int) float64       { return 0 }
 func (e *EBPFObserver) ChannelRetransRate(_ int) float64 { return 0 }
 func (e *EBPFObserver) ObserveChannel(_ int, _ string)   {}
 func (e *EBPFObserver) Active() bool                     { return false }
+func (e *EBPFObserver) ConnectHits() uint64              { return 0 }

@@ -438,7 +438,8 @@
           "auto": "auto (recommended)",
           "go": "pure Go",
           "ebpf": "force eBPF"
-        }
+        },
+        "runtimeHint": "Restart required after change. Live backend shows on home health badge (Go / eBPF)."
       }
     },
     "chaos": {

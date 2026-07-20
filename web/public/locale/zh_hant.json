@@ -438,7 +438,8 @@
           "auto": "auto（推薦）",
           "go": "純 Go",
           "ebpf": "強制 eBPF"
-        }
+        },
+        "runtimeHint": "切換後需重啟進程才生效。實際後端見首頁健康看板角標（Go / eBPF）。"
       }
     },
     "chaos": {

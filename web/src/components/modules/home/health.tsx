@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Activity, AlertTriangle, CheckCircle2, HelpCircle, Timer, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, HelpCircle, Timer, XCircle, Cpu } from 'lucide-react';
 import { useRealtimeDashboard, type ChannelHealthStatus } from '@/api/endpoints/stats';
 import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { formatMoney, formatTime } from '@/lib/utils';
@@ -51,6 +51,27 @@ export function HealthBoard() {
                     <Activity className="w-4 h-4 text-primary" />
                     <h3 className="font-semibold text-base">{t('title')}</h3>
                     <span className="text-[10px] text-muted-foreground">/{refreshSec}s</span>
+                    {data?.net_obs && (
+                        <span
+                            className={cn(
+                                'inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border',
+                                data.net_obs.backend === 'ebpf'
+                                    ? 'bg-violet-500/10 text-violet-500 border-violet-500/20'
+                                    : 'bg-muted text-muted-foreground border-border',
+                            )}
+                            title={
+                                data.net_obs.backend === 'ebpf'
+                                    ? `eBPF active · connect_hits=${data.net_obs.connect_hits ?? 0}`
+                                    : `Go observer · mode=${data.net_obs.mode}`
+                            }
+                        >
+                            <Cpu className="w-3 h-3" />
+                            {data.net_obs.backend === 'ebpf' ? 'eBPF' : 'Go'}
+                            {data.net_obs.backend === 'ebpf' && typeof data.net_obs.connect_hits === 'number' && (
+                                <span className="tabular-nums opacity-80">·{data.net_obs.connect_hits}</span>
+                            )}
+                        </span>
+                    )}
                 </div>
                 {summary && (
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

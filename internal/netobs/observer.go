@@ -33,6 +33,9 @@ type NetworkObserver interface {
 
 	// Active 后端是否正在运行
 	Active() bool
+
+	// ConnectHits 返回 connect 探针累计次数（go 后端为 0）
+	ConnectHits() uint64
 }
 
 // 全局实例
