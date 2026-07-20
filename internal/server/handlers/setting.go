@@ -77,6 +77,29 @@ func setSetting(c *gin.Context) {
 			return
 		}
 		task.Update(string(setting.Key), time.Duration(hours)*time.Hour)
+	case model.SettingKeyHealthProbeInterval:
+		// 探活间隔热更新：0 表示禁用任务
+		sec, err := strconv.Atoi(setting.Value)
+		if err != nil {
+			resp.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if sec <= 0 {
+			task.Update(task.TaskChannelHealth, 0)
+		} else {
+			// 若任务此前被关掉，Update 找不到时需重新注册
+			task.UpdateOrRegister(task.TaskChannelHealth, time.Duration(sec)*time.Second, true, task.ChannelHealthProbeTask)
+		}
+	case model.SettingKeyHealthProbeEnabled:
+		if setting.Value == "false" {
+			task.Update(task.TaskChannelHealth, 0)
+		} else {
+			sec := 120
+			if v, err := op.SettingGetInt(model.SettingKeyHealthProbeInterval); err == nil && v > 0 {
+				sec = v
+			}
+			task.UpdateOrRegister(task.TaskChannelHealth, time.Duration(sec)*time.Second, true, task.ChannelHealthProbeTask)
+		}
 	}
 	resp.Success(c, setting)
 }

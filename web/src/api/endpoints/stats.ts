@@ -231,26 +231,30 @@ export interface RealtimeDashboard {
     summary: RealtimeSummary;
 }
 
-/** 实时看板（含渠道健康 + 成功率 + 延迟 + 费用） */
-export function useRealtimeDashboard() {
+/** 实时看板（含渠道健康 + 成功率 + 延迟 + 费用）
+ *  refreshSec: 看板刷新间隔（秒），由前端设置 health_dashboard_refresh 控制
+ */
+export function useRealtimeDashboard(refreshSec = 15) {
+    const intervalMs = Math.max(3, refreshSec) * 1000;
     return useQuery({
         queryKey: ['stats', 'realtime'],
         queryFn: async () => {
             return apiClient.get<RealtimeDashboard>('/api/v1/stats/realtime');
         },
-        refetchInterval: 10000,
+        refetchInterval: intervalMs,
         refetchOnMount: 'always',
     });
 }
 
 /** 渠道健康列表 */
-export function useChannelHealth() {
+export function useChannelHealth(refreshSec = 15) {
+    const intervalMs = Math.max(3, refreshSec) * 1000;
     return useQuery({
         queryKey: ['stats', 'health'],
         queryFn: async () => {
             return apiClient.get<ChannelHealth[]>('/api/v1/stats/health');
         },
-        refetchInterval: 15000,
+        refetchInterval: intervalMs,
         refetchOnMount: 'always',
     });
 }

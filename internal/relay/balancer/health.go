@@ -3,6 +3,7 @@ package balancer
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bestruirui/octopus/internal/utils/log"
@@ -46,7 +47,33 @@ type probeRecord struct {
 
 var (
 	healthStore sync.Map // channelID(int) -> *probeRecord
+
+	// 可配置阈值（由探活任务/设置热更新）
+	// failThreshold: 连续失败多少次判 unhealthy，默认 3
+	// degradeMS: 延迟超过多少 ms 判 degraded，默认 5000
+	failThreshold atomic.Int64
+	degradeMS     atomic.Int64
 )
+
+func init() {
+	failThreshold.Store(3)
+	degradeMS.Store(5000)
+}
+
+// SetHealthThresholds 热更新健康判定阈值
+func SetHealthThresholds(failThresh, degradeLatencyMS int) {
+	if failThresh > 0 {
+		failThreshold.Store(int64(failThresh))
+	}
+	if degradeLatencyMS > 0 {
+		degradeMS.Store(int64(degradeLatencyMS))
+	}
+}
+
+// GetHealthThresholds 供 API 返回当前配置
+func GetHealthThresholds() (failThresh, degradeLatencyMS int) {
+	return int(failThreshold.Load()), int(degradeMS.Load())
+}
 
 // UpdateProbeResult 由探活任务写入
 func UpdateProbeResult(channelID int, channelName, baseURL string, ok bool, delayMS int, errMsg string) {
@@ -141,12 +168,22 @@ func buildHealth(rec *probeRecord) ChannelHealth {
 	h.CircuitOpen = circuitOpen
 	h.CircuitRemain = remain
 
+	ft := int(failThreshold.Load())
+	if ft < 1 {
+		ft = 3
+	}
+	dms := int(degradeMS.Load())
+	if dms < 1 {
+		dms = 5000
+	}
+
 	switch {
 	case circuitOpen:
 		h.Status = HealthUnhealthy
-	case !rec.OK || rec.FailStreak >= 2:
+	case !rec.OK && rec.FailStreak >= ft:
+		// 连续失败达到阈值才 unhealthy（避免一次抖动误杀）
 		h.Status = HealthUnhealthy
-	case rec.FailStreak == 1 || rec.DelayMS > 3000:
+	case !rec.OK || rec.FailStreak > 0 || rec.DelayMS > dms:
 		h.Status = HealthDegraded
 	case rec.OK:
 		h.Status = HealthHealthy
@@ -156,8 +193,8 @@ func buildHealth(rec *probeRecord) ChannelHealth {
 	return h
 }
 
-// ForceTrip 探活失败时强制打开熔断（keyID=0, model="__probe__"）
-// 与请求路径的连续失败计数解耦：探活确认挂掉就立刻熔断，不必再等 5 次真实请求失败。
+// ForceTrip 探活确认挂掉时强制打开熔断（keyID=0, model="__probe__"）
+// 默认探活失败不调用此函数；仅 health_probe_trip_on_fail=true 时启用。
 func ForceTrip(channelID int, reason string) {
 	key := circuitKey(channelID, 0, "__probe__")
 	entry := getOrCreateEntry(key)

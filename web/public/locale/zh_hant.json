@@ -353,6 +353,63 @@
       },
       "clearSuccess": "日誌已清空",
       "clearFailed": "清空失敗"
+    },
+    "healthProbe": {
+      "title": "渠道健康探活",
+      "hint": "主動探測上游可用性。所有參數可熱更新。預設偏保守：失敗不強制熔斷，連續失敗達閾值才標記不健康。相容 sub2api 等不回傳 /v1/models 的中轉站。",
+      "bool": {
+        "true": "開啟",
+        "false": "關閉"
+      },
+      "enabled": {
+        "label": "啟用主動探活"
+      },
+      "interval": {
+        "label": "探活間隔（秒）",
+        "placeholder": "120"
+      },
+      "timeout": {
+        "label": "單次超時（秒）",
+        "placeholder": "8"
+      },
+      "method": {
+        "label": "探活方式",
+        "hint": "auto：models→head→chat 級聯（推薦，相容中轉）\nmodels：僅 GET /v1/models\nhead：僅 HEAD/GET base_url（最輕量）\nchat：POST 最小 chat 請求（最準，適合 sub2api 號池）\ncustom：自訂路徑",
+        "options": {
+          "auto": "智慧級聯 (auto)",
+          "models": "模型列表 (models)",
+          "head": "連通性 (head)",
+          "chat": "對話探測 (chat)",
+          "custom": "自訂路徑 (custom)"
+        }
+      },
+      "path": {
+        "label": "自訂探活路徑",
+        "placeholder": "/v1/chat/completions"
+      },
+      "model": {
+        "label": "chat 探活模型名",
+        "placeholder": "gpt-4o-mini"
+      },
+      "failThreshold": {
+        "label": "連續失敗閾值",
+        "placeholder": "3"
+      },
+      "degradeMs": {
+        "label": "降級延遲閾值（ms）",
+        "placeholder": "5000"
+      },
+      "tripOnFail": {
+        "label": "探活失敗強制熔斷"
+      },
+      "dashboardRefresh": {
+        "label": "看板刷新間隔（秒）",
+        "placeholder": "15"
+      },
+      "probeNow": {
+        "label": "立即探活一次",
+        "success": "已觸發探活，稍後重新整理看板查看結果"
+      }
     }
   },
   "group": {

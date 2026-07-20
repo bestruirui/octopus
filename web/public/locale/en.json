@@ -353,6 +353,63 @@
       },
       "clearSuccess": "Logs cleared",
       "clearFailed": "Failed to clear logs"
+    },
+    "healthProbe": {
+      "title": "Channel Health Probe",
+      "hint": "Actively probe upstream availability. All params are hot-reloadable. Defaults are conservative: no forced trip on failure; only mark unhealthy after consecutive failures. Compatible with sub2api and relays that don't return /v1/models.",
+      "bool": {
+        "true": "On",
+        "false": "Off"
+      },
+      "enabled": {
+        "label": "Enable active probe"
+      },
+      "interval": {
+        "label": "Probe interval (sec)",
+        "placeholder": "120"
+      },
+      "timeout": {
+        "label": "Probe timeout (sec)",
+        "placeholder": "8"
+      },
+      "method": {
+        "label": "Probe method",
+        "hint": "auto: models→head→chat cascade (recommended)\nmodels: GET /v1/models only\nhead: HEAD/GET base_url (lightest)\nchat: minimal chat request (most accurate, for sub2api pools)\ncustom: custom path",
+        "options": {
+          "auto": "Cascade (auto)",
+          "models": "Models list",
+          "head": "Connectivity (head)",
+          "chat": "Chat probe",
+          "custom": "Custom path"
+        }
+      },
+      "path": {
+        "label": "Custom probe path",
+        "placeholder": "/v1/chat/completions"
+      },
+      "model": {
+        "label": "Chat probe model",
+        "placeholder": "gpt-4o-mini"
+      },
+      "failThreshold": {
+        "label": "Fail streak threshold",
+        "placeholder": "3"
+      },
+      "degradeMs": {
+        "label": "Degrade latency (ms)",
+        "placeholder": "5000"
+      },
+      "tripOnFail": {
+        "label": "Force trip on probe fail"
+      },
+      "dashboardRefresh": {
+        "label": "Dashboard refresh (sec)",
+        "placeholder": "15"
+      },
+      "probeNow": {
+        "label": "Probe now",
+        "success": "Probe started — refresh dashboard shortly"
+      }
     }
   },
   "group": {

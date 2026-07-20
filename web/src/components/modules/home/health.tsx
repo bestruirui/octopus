@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Activity, AlertTriangle, CheckCircle2, HelpCircle, Timer, XCircle } from 'lucide-react';
 import { useRealtimeDashboard, type ChannelHealthStatus } from '@/api/endpoints/stats';
+import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { formatMoney, formatTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +16,14 @@ const statusStyle: Record<ChannelHealthStatus, { icon: typeof CheckCircle2; colo
 };
 
 export function HealthBoard() {
-    const { data, isLoading } = useRealtimeDashboard();
+    const { data: settings } = useSettingList();
+    const refreshSec = useMemo(() => {
+        const raw = settings?.find((s) => s.key === SettingKey.HealthDashboardRefresh)?.value;
+        const n = raw ? parseInt(raw, 10) : 15;
+        return Number.isFinite(n) && n >= 3 ? n : 15;
+    }, [settings]);
+
+    const { data, isLoading } = useRealtimeDashboard(refreshSec);
     const t = useTranslations('home.health');
 
     const channels = data?.channels ?? [];
@@ -42,6 +50,7 @@ export function HealthBoard() {
                 <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-primary" />
                     <h3 className="font-semibold text-base">{t('title')}</h3>
+                    <span className="text-[10px] text-muted-foreground">/{refreshSec}s</span>
                 </div>
                 {summary && (
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

@@ -22,6 +22,17 @@ export const SettingKey = {
     CircuitBreakerThreshold: 'circuit_breaker_threshold',
     CircuitBreakerCooldown: 'circuit_breaker_cooldown',
     CircuitBreakerMaxCooldown: 'circuit_breaker_max_cooldown',
+    // 渠道健康探活（全部可前端自定义）
+    HealthProbeEnabled: 'health_probe_enabled',
+    HealthProbeInterval: 'health_probe_interval',
+    HealthProbeTimeout: 'health_probe_timeout',
+    HealthProbeMethod: 'health_probe_method',
+    HealthProbePath: 'health_probe_path',
+    HealthProbeModel: 'health_probe_model',
+    HealthProbeFailThreshold: 'health_probe_fail_threshold',
+    HealthProbeDegradeMS: 'health_probe_degrade_ms',
+    HealthProbeTripOnFail: 'health_probe_trip_on_fail',
+    HealthDashboardRefresh: 'health_dashboard_refresh',
 } as const;
 
 /**

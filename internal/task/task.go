@@ -77,6 +77,34 @@ func Update(name string, interval time.Duration) {
 	}
 }
 
+// UpdateOrRegister 热更新间隔；若任务不存在则重新注册并启动
+// 用于探活开关从关→开、或进程启动时 disabled 后来又启用的场景
+func UpdateOrRegister(name string, interval time.Duration, runOnStart bool, fn func()) {
+	if interval <= 0 {
+		Update(name, 0)
+		return
+	}
+
+	tasksMu.RLock()
+	_, exists := tasks[name]
+	tasksMu.RUnlock()
+
+	if exists {
+		Update(name, interval)
+		return
+	}
+
+	// 重新注册并立即启动
+	Register(name, interval, runOnStart, fn)
+	tasksMu.RLock()
+	entry, ok := tasks[name]
+	tasksMu.RUnlock()
+	if ok {
+		go runTask(entry)
+		log.Infof("task %s re-registered with interval %v", name, interval)
+	}
+}
+
 // RUN 启动所有注册的任务
 func RUN() {
 	tasksMu.RLock()

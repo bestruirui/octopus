@@ -11,6 +11,7 @@ import (
 	"github.com/bestruirui/octopus/internal/server/middleware"
 	"github.com/bestruirui/octopus/internal/server/resp"
 	"github.com/bestruirui/octopus/internal/server/router"
+	"github.com/bestruirui/octopus/internal/task"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,12 +24,16 @@ func init() {
 				Handle(getChannelHealth),
 		).
 		AddRoute(
+			router.NewRoute("/health/probe", http.MethodPost).
+				Handle(triggerHealthProbe),
+		).
+		AddRoute(
 			router.NewRoute("/realtime", http.MethodGet).
 				Handle(getRealtimeDashboard),
 		)
 }
 
-// getChannelHealth 返回所有渠道的探活/熔断健康状态
+// getChannelHealth 返回所有渠道的探活/熔断健康状态 + 当前生效配置
 func getChannelHealth(c *gin.Context) {
 	list := balancer.ListChannelHealth()
 
@@ -55,7 +60,33 @@ func getChannelHealth(c *gin.Context) {
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].ChannelID < list[j].ChannelID
 	})
-	resp.Success(c, list)
+
+	failThresh, degradeMS := balancer.GetHealthThresholds()
+	method, _ := op.SettingGetString(model.SettingKeyHealthProbeMethod)
+	interval, _ := op.SettingGetInt(model.SettingKeyHealthProbeInterval)
+	enabled, _ := op.SettingGetBool(model.SettingKeyHealthProbeEnabled)
+	tripOnFail, _ := op.SettingGetBool(model.SettingKeyHealthProbeTripOnFail)
+
+	resp.Success(c, gin.H{
+		"channels": list,
+		"config": gin.H{
+			"enabled":        enabled,
+			"interval_sec":   interval,
+			"method":         method,
+			"fail_threshold": failThresh,
+			"degrade_ms":     degradeMS,
+			"trip_on_fail":   tripOnFail,
+		},
+	})
+}
+
+// triggerHealthProbe 手动触发一次全量探活（异步），设置页/看板「立即探活」按钮用
+func triggerHealthProbe(c *gin.Context) {
+	go task.ChannelHealthProbeTask()
+	resp.Success(c, gin.H{
+		"message": "probe started",
+		"at":      time.Now().Unix(),
+	})
 }
 
 // realtimeDashboard 聚合今日 + 小时 + 渠道健康，给首页看板用

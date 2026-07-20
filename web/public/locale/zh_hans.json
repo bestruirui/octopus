@@ -353,6 +353,63 @@
       },
       "clearSuccess": "日志已清空",
       "clearFailed": "清空失败"
+    },
+    "healthProbe": {
+      "title": "渠道健康探活",
+      "hint": "主动探测上游可用性。所有参数可热更新。默认偏保守：失败不强制熔断，连续失败达阈值才标记不健康。兼容 sub2api 等不返回 /v1/models 的中转站。",
+      "bool": {
+        "true": "开启",
+        "false": "关闭"
+      },
+      "enabled": {
+        "label": "启用主动探活"
+      },
+      "interval": {
+        "label": "探活间隔（秒）",
+        "placeholder": "120"
+      },
+      "timeout": {
+        "label": "单次超时（秒）",
+        "placeholder": "8"
+      },
+      "method": {
+        "label": "探活方式",
+        "hint": "auto：models→head→chat 级联（推荐，兼容中转）\nmodels：仅 GET /v1/models\nhead：仅 HEAD/GET base_url（最轻量）\nchat：POST 最小 chat 请求（最准，适合 sub2api 号池）\ncustom：自定义路径",
+        "options": {
+          "auto": "智能级联 (auto)",
+          "models": "模型列表 (models)",
+          "head": "连通性 (head)",
+          "chat": "对话探测 (chat)",
+          "custom": "自定义路径 (custom)"
+        }
+      },
+      "path": {
+        "label": "自定义探活路径",
+        "placeholder": "/v1/chat/completions"
+      },
+      "model": {
+        "label": "chat 探活模型名",
+        "placeholder": "gpt-4o-mini"
+      },
+      "failThreshold": {
+        "label": "连续失败阈值",
+        "placeholder": "3"
+      },
+      "degradeMs": {
+        "label": "降级延迟阈值（ms）",
+        "placeholder": "5000"
+      },
+      "tripOnFail": {
+        "label": "探活失败强制熔断"
+      },
+      "dashboardRefresh": {
+        "label": "看板刷新间隔（秒）",
+        "placeholder": "15"
+      },
+      "probeNow": {
+        "label": "立即探活一次",
+        "success": "已触发探活，稍后刷新看板查看结果"
+      }
     }
   },
   "group": {

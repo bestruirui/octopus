@@ -37,8 +37,20 @@ func Init() {
 	// 注册基础URL延迟任务
 	Register(TaskBaseUrlDelay, 1*time.Hour, true, ChannelBaseUrlDelayTask)
 
-	// 渠道健康探活：每 2 分钟主动探测一次，失败写入健康状态并触发熔断
-	Register(TaskChannelHealth, 2*time.Minute, true, ChannelHealthProbeTask)
+	// 渠道健康探活：间隔/开关均来自 setting，前端可热更新
+	probeEnabled := true
+	if v, err := op.SettingGetBool(model.SettingKeyHealthProbeEnabled); err == nil {
+		probeEnabled = v
+	}
+	probeIntervalSec := 120
+	if v, err := op.SettingGetInt(model.SettingKeyHealthProbeInterval); err == nil && v > 0 {
+		probeIntervalSec = v
+	}
+	if probeEnabled && probeIntervalSec > 0 {
+		Register(TaskChannelHealth, time.Duration(probeIntervalSec)*time.Second, true, ChannelHealthProbeTask)
+	} else {
+		log.Infof("channel health probe not registered: enabled=%v interval=%ds", probeEnabled, probeIntervalSec)
+	}
 
 	// 注册LLM同步任务
 	syncLLMIntervalHours, err := op.SettingGetInt(model.SettingKeySyncLLMInterval)
