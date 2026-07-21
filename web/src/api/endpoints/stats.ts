@@ -209,6 +209,11 @@ export interface ChannelRealtimeItem {
     success_rate: number;
     avg_latency_ms: number;
     total_cost: number;
+    kernel_rtt_ms: number;
+    kernel_fail_rate: number;
+    kernel_status: string;
+    kernel_hint: string;
+    kernel_impact: string;
 }
 
 export interface RealtimeSummary {

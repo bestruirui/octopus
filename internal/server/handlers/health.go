@@ -107,14 +107,19 @@ type realtimeDashboard struct {
 }
 
 type channelRealtimeItem struct {
-	ChannelID      int                     `json:"channel_id"`
-	ChannelName    string                  `json:"channel_name"`
-	Enabled        bool                    `json:"enabled"`
-	Stats          model.StatsMetrics      `json:"stats"`
-	Health         balancer.ChannelHealth  `json:"health"`
-	SuccessRate    float64                 `json:"success_rate"`     // 0-100
-	AvgLatencyMS   float64                 `json:"avg_latency_ms"`   // wait_time / request_count
-	TotalCost      float64                 `json:"total_cost"`
+	ChannelID       int                     `json:"channel_id"`
+	ChannelName     string                  `json:"channel_name"`
+	Enabled         bool                    `json:"enabled"`
+	Stats           model.StatsMetrics      `json:"stats"`
+	Health          balancer.ChannelHealth  `json:"health"`
+	SuccessRate     float64                 `json:"success_rate"`      // 0-100
+	AvgLatencyMS    float64                 `json:"avg_latency_ms"`    // wait_time / request_count
+	TotalCost       float64                 `json:"total_cost"`
+	KernelRTTMS     float64                 `json:"kernel_rtt_ms"`     // eBPF 观测的建连时延（ms），无数据 = 0
+	KernelFailRate  float64                 `json:"kernel_fail_rate"`  // eBPF 观测的建连失败率 [0,1]，无数据 = 0
+	KernelStatus    string                  `json:"kernel_status"`     // good / slow / poor / idle
+	KernelHint      string                  `json:"kernel_hint"`      // 人话结论
+	KernelImpact    string                  `json:"kernel_impact"`    // 对选路的影响
 }
 
 type realtimeSummary struct {
@@ -158,15 +163,25 @@ func getRealtimeDashboard(c *gin.Context) {
 		}
 		cost := stats.InputCost + stats.OutputCost
 
+		// eBPF per-channel 内核指标 → 状态 + 人话结论 + 选路影响
+		kRTT := netobs.GetObserver().ChannelRTTMS(ch.ID)
+		kFail := netobs.GetObserver().ChannelRetransRate(ch.ID)
+		kStatus, kHint, kImpact := kernelPathVerdict(kRTT, kFail)
+
 		items = append(items, channelRealtimeItem{
-			ChannelID:    ch.ID,
-			ChannelName:  ch.Name,
-			Enabled:      ch.Enabled,
-			Stats:        stats.StatsMetrics,
-			Health:       health,
-			SuccessRate:  successRate,
-			AvgLatencyMS: avgLatency,
-			TotalCost:    cost,
+			ChannelID:      ch.ID,
+			ChannelName:    ch.Name,
+			Enabled:        ch.Enabled,
+			Stats:          stats.StatsMetrics,
+			Health:         health,
+			SuccessRate:    successRate,
+			AvgLatencyMS:   avgLatency,
+			TotalCost:      cost,
+			KernelRTTMS:    kRTT,
+			KernelFailRate: kFail,
+			KernelStatus:   kStatus,
+			KernelHint:     kHint,
+			KernelImpact:   kImpact,
 		})
 
 		switch health.Status {
@@ -206,4 +221,46 @@ func getRealtimeDashboard(c *gin.Context) {
 		Summary:     sum,
 		NetObs:      netobs.GetStatus(),
 	})
+}
+
+// kernelPathVerdict 把 eBPF 裸指标转成：状态 + 人话结论 + 选路影响
+// 阈值对齐 ewma.go soft-bias 逻辑：
+//   RTT  < 100ms  → 畅通
+//   RTT  100-500  → 偏慢
+//   RTT  > 500    → 拥堵
+//   fail > 5%     → 不稳
+//   fail > 20%    → 差
+//   全 0          → idle（尚无样本 / 非 eBPF）
+func kernelPathVerdict(rttMS, failRate float64) (status, hint, impact string) {
+	if rttMS <= 0 && failRate <= 0 {
+		return "idle", "暂无内核路径数据", "不影响选路"
+	}
+
+	// 失败率优先（比延迟更致命）
+	if failRate >= 0.20 {
+		return "poor",
+			"上游建连经常失败，网络路径不稳",
+			"系统已自动降低此渠道优先级"
+	}
+	if failRate >= 0.05 {
+		return "slow",
+			"上游偶有建连失败，路径略不稳定",
+			"系统已轻微降低此渠道优先级"
+	}
+
+	// 按 RTT 分级
+	switch {
+	case rttMS >= 500:
+		return "poor",
+			"上游建连很慢，网络拥堵或跨洲链路",
+			"系统已自动降低此渠道优先级"
+	case rttMS >= 100:
+		return "slow",
+			"上游建连偏慢，高峰期可能更明显",
+			"系统已轻微降低此渠道优先级"
+	default:
+		return "good",
+			"上游网络畅通，建连快速稳定",
+			"优先保留此渠道"
+	}
 }

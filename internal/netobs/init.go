@@ -1,6 +1,7 @@
 package netobs
 
 import (
+	"context"
 	"strings"
 
 	"github.com/bestruirui/octopus/internal/model"
@@ -68,6 +69,40 @@ func InitNetObserver() {
 		}
 	}
 	SetObserver(obs)
+
+	// 注册已启用的渠道上游地址供 eBPF 关联（纯 Go 后端 ObserveChannel 无害，仅记录）
+	syncChannelsWithObserver(obs)
+}
+
+// syncChannelsWithObserver 将当前缓存中已启用的渠道注册到观测后端。
+// Repeatable: 纯 Go 后端 ObserveChannel 仅记录；eBPF 后端解析 host 并关联 map。
+func syncChannelsWithObserver(obs NetworkObserver) {
+	if obs == nil {
+		return
+	}
+	channels, err := op.ChannelList(context.Background())
+	if err != nil {
+		return
+	}
+	for _, ch := range channels {
+		if !ch.Enabled {
+			continue
+		}
+		if base := ch.GetBaseUrl(); base != "" {
+			obs.ObserveChannel(ch.ID, base)
+		}
+	}
+	log.Infof("netobs: registered %d enabled channels", len(channels))
+}
+
+// SyncChannels refreshes channel → observer registration. Call after channel
+// create/update/refresh. Safe no-op if observer not initialized.
+func SyncChannels() {
+	obs := GetObserver()
+	if obs == nil {
+		return
+	}
+	syncChannelsWithObserver(obs)
 }
 
 // StopNetObserver 关闭当前网络观测后端

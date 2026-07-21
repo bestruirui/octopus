@@ -8,17 +8,41 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"structs"
 
 	"github.com/cilium/ebpf"
 )
+
+type tcpConnHostKey struct {
+	_     structs.HostLayout
+	Daddr uint32
+	Dport uint16
+	Pad   uint16
+}
+
+type tcpConnHostStat struct {
+	_            structs.HostLayout
+	Connects     uint64
+	Fails        uint64
+	LatencySumNs uint64
+	LatencyCount uint64
+}
+
+type tcpConnInflightVal struct {
+	_    structs.HostLayout
+	Key  tcpConnHostKey
+	TsNs uint64
+}
 
 // Names of all BPF objects in the ELF.
 //
 // Used for safe lookups in a Collection or CollectionSpec.
 const (
-	tcpConnMapConnectHits    = "connect_hits"
-	tcpConnMapHostHits       = "host_hits"
-	tcpConnProgHandleConnect = "handle_connect"
+	tcpConnMapConnectHits         = "connect_hits"
+	tcpConnMapHostStats           = "host_stats"
+	tcpConnMapInflight            = "inflight"
+	tcpConnProgHandleConnectEnter = "handle_connect_enter"
+	tcpConnProgHandleConnectExit  = "handle_connect_exit"
 )
 
 // loadTcpConn returns the embedded CollectionSpec for tcpConn.
@@ -63,7 +87,8 @@ type tcpConnSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type tcpConnProgramSpecs struct {
-	HandleConnect *ebpf.ProgramSpec `ebpf:"handle_connect"`
+	HandleConnectEnter *ebpf.ProgramSpec `ebpf:"handle_connect_enter"`
+	HandleConnectExit  *ebpf.ProgramSpec `ebpf:"handle_connect_exit"`
 }
 
 // tcpConnMapSpecs contains maps before they are loaded into the kernel.
@@ -71,7 +96,8 @@ type tcpConnProgramSpecs struct {
 // It can be passed ebpf.CollectionSpec.Assign.
 type tcpConnMapSpecs struct {
 	ConnectHits *ebpf.MapSpec `ebpf:"connect_hits"`
-	HostHits    *ebpf.MapSpec `ebpf:"host_hits"`
+	HostStats   *ebpf.MapSpec `ebpf:"host_stats"`
+	Inflight    *ebpf.MapSpec `ebpf:"inflight"`
 }
 
 // tcpConnVariableSpecs contains global variables before they are loaded into the kernel.
@@ -101,13 +127,15 @@ func (o *tcpConnObjects) Close() error {
 // It can be passed to loadTcpConnObjects or ebpf.CollectionSpec.LoadAndAssign.
 type tcpConnMaps struct {
 	ConnectHits *ebpf.Map `ebpf:"connect_hits"`
-	HostHits    *ebpf.Map `ebpf:"host_hits"`
+	HostStats   *ebpf.Map `ebpf:"host_stats"`
+	Inflight    *ebpf.Map `ebpf:"inflight"`
 }
 
 func (m *tcpConnMaps) Close() error {
 	return _TcpConnClose(
 		m.ConnectHits,
-		m.HostHits,
+		m.HostStats,
+		m.Inflight,
 	)
 }
 
@@ -121,12 +149,14 @@ type tcpConnVariables struct {
 //
 // It can be passed to loadTcpConnObjects or ebpf.CollectionSpec.LoadAndAssign.
 type tcpConnPrograms struct {
-	HandleConnect *ebpf.Program `ebpf:"handle_connect"`
+	HandleConnectEnter *ebpf.Program `ebpf:"handle_connect_enter"`
+	HandleConnectExit  *ebpf.Program `ebpf:"handle_connect_exit"`
 }
 
 func (p *tcpConnPrograms) Close() error {
 	return _TcpConnClose(
-		p.HandleConnect,
+		p.HandleConnectEnter,
+		p.HandleConnectExit,
 	)
 }
 

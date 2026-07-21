@@ -2,5 +2,13 @@ data
 build
 static/out/*
 !static/out/README.md
-.vscodeoctopus-custom
+.vscode
+octopus-custom
+octopus-custom-*
 octopus-original
+dist/
+data.db
+data.db.*
+*.db
+concurrency_test.sh
+write_test.sh

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bestruirui/octopus/internal/model"
+	"github.com/bestruirui/octopus/internal/netobs"
 )
 
 // 被动延迟 EWMA：真实请求成功/失败后更新，用于健康分选路。
@@ -110,6 +111,18 @@ func ChannelScore(channelID int) float64 {
 			base += (rate - 0.8) * 50
 		}
 	}
+
+	// Soft kernel/path bias from netobs (eBPF). Pure Go / no samples → all zeros → no impact.
+	// Milder than L7 EWMA so HTTP truth still dominates. Does not replace GroupMode.
+	if obs := netobs.GetObserver(); obs != nil && obs.Active() {
+		if rtt := obs.ChannelRTTMS(channelID); rtt > 0 {
+			base -= math.Min(15, rtt/200.0)
+		}
+		if rr := obs.ChannelRetransRate(channelID); rr > 0 {
+			base -= math.Min(20, rr*40)
+		}
+	}
+
 	if base < 0 {
 		return 0
 	}

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Activity, AlertTriangle, CheckCircle2, HelpCircle, Timer, XCircle, Cpu } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, HelpCircle, Timer, XCircle, Cpu, Network, Zap } from 'lucide-react';
 import { useRealtimeDashboard, type ChannelHealthStatus } from '@/api/endpoints/stats';
 import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { formatMoney, formatTime } from '@/lib/utils';
@@ -51,28 +51,15 @@ export function HealthBoard() {
                     <Activity className="w-4 h-4 text-primary" />
                     <h3 className="font-semibold text-base">{t('title')}</h3>
                     <span className="text-[10px] text-muted-foreground">/{refreshSec}s</span>
-                    {data?.net_obs && (
-                        <span
-                            className={cn(
-                                'inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border',
-                                data.net_obs.backend === 'ebpf'
-                                    ? 'bg-violet-500/10 text-violet-500 border-violet-500/20'
-                                    : 'bg-muted text-muted-foreground border-border',
-                            )}
-                            title={
-                                data.net_obs.backend === 'ebpf'
-                                    ? `eBPF active · connect_hits=${data.net_obs.connect_hits ?? 0}`
-                                    : `Go observer · mode=${data.net_obs.mode}`
-                            }
-                        >
-                            <Cpu className="w-3 h-3" />
-                            {data.net_obs.backend === 'ebpf' ? 'eBPF' : 'Go'}
-                            {data.net_obs.backend === 'ebpf' && typeof data.net_obs.connect_hits === 'number' && (
-                                <span className="tabular-nums opacity-80">·{data.net_obs.connect_hits}</span>
-                            )}
-                        </span>
-                    )}
                 </div>
+                {data?.net_obs && (
+                    <NetObsBadge
+                        backend={data.net_obs.backend}
+                        active={data.net_obs.active}
+                        mode={data.net_obs.mode}
+                        connectHits={data.net_obs.connect_hits}
+                    />
+                )}
                 {summary && (
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
@@ -149,6 +136,15 @@ export function HealthBoard() {
                                                 {ch.health.last_probe_error}
                                             </span>
                                         )}
+                                        {ch.kernel_status && ch.kernel_status !== 'idle' && (
+                                            <KernelPathChip
+                                                status={ch.kernel_status}
+                                                hint={ch.kernel_hint}
+                                                impact={ch.kernel_impact}
+                                                rttMs={ch.kernel_rtt_ms}
+                                                failRate={ch.kernel_fail_rate}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0 space-y-0.5">
@@ -169,5 +165,130 @@ export function HealthBoard() {
                 </div>
             )}
         </div>
+    );
+}
+
+// ─── NetObs status badge ───────────────────────────────────────────
+// Renders a prominent pill on the health board title row showing the
+// active network-observation backend (eBPF / Go / none) with live
+// connect-hit counter when eBPF is running.
+function NetObsBadge({
+    backend,
+    active,
+    mode,
+    connectHits,
+}: {
+    backend: string;
+    active: boolean;
+    mode: string;
+    connectHits?: number;
+}) {
+    const isEBPF = backend === 'ebpf' && active;
+    const isGo = backend === 'go' && active;
+
+    if (isEBPF) {
+        return (
+            <span
+                className={cn(
+                    'inline-flex items-center gap-1.5 text-xs font-semibold',
+                    'px-2.5 py-1 rounded-lg border',
+                    'bg-violet-500/15 text-violet-600 dark:text-violet-400',
+                    'border-violet-500/30',
+                    'shadow-sm shadow-violet-500/10',
+                )}
+                title={`eBPF kernel probe active · mode=${mode} · connect_hits=${connectHits ?? 0}`}
+            >
+                <Zap className="w-3.5 h-3.5" />
+                <span>eBPF</span>
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-normal opacity-80">
+                    <Network className="w-3 h-3" />
+                    {typeof connectHits === 'number'
+                        ? connectHits.toLocaleString()
+                        : '0'}
+                </span>
+            </span>
+        );
+    }
+
+    if (isGo) {
+        return (
+            <span
+                className={cn(
+                    'inline-flex items-center gap-1.5 text-xs font-medium',
+                    'px-2.5 py-1 rounded-lg border',
+                    'bg-muted text-muted-foreground border-border',
+                )}
+                title={`Go observer · mode=${mode}`}
+            >
+                <Cpu className="w-3.5 h-3.5" />
+                <span>Go</span>
+            </span>
+        );
+    }
+
+    // offline / none
+    return (
+        <span
+            className={cn(
+                'inline-flex items-center gap-1.5 text-xs',
+                'px-2.5 py-1 rounded-lg border',
+                'bg-muted/50 text-muted-foreground/60 border-border/50',
+            )}
+            title="Network observer offline"
+        >
+            <Network className="w-3.5 h-3.5" />
+            <span>NetObs off</span>
+        </span>
+    );
+}
+
+// ─── KernelPathChip ────────────────────────────────────────────────
+// 专业级状态芯片：人话结论 + 悬停展开裸指标 + 选路影响
+// 状态 = good(green) / slow(amber) / poor(red) / idle(无数据)
+// 参考 GitHub/Grafana 面板设计：状态点 + 一句话 + 次级说明
+function KernelPathChip({
+    status,
+    hint,
+    impact,
+    rttMs,
+    failRate,
+}: {
+    status: string;
+    hint: string;
+    impact: string;
+    rttMs: number;
+    failRate: number;
+}) {
+    const config: Record<string, { color: string; bg: string; label: string }> = {
+        good: { color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', label: '畅通' },
+        slow: { color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', label: '偏慢' },
+        poor: { color: 'text-red-600 dark:text-red-400', bg: 'bg-red-500/10', label: '拥堵' },
+        idle: { color: 'text-muted-foreground', bg: 'bg-muted/40', label: '待观测' },
+    };
+    const c = config[status] ?? config.idle;
+
+    // 裸指标文本（悬停时显示）
+    const metricStr =
+        rttMs > 0 || failRate > 0
+            ? `kRTT ${rttMs.toFixed(0)}ms · fail ${(failRate * 100).toFixed(1)}%`
+            : '';
+
+    return (
+        <span
+            className={cn(
+                'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium',
+                'border border-transparent hover:border-current/20 cursor-default',
+                c.bg, c.color,
+            )}
+            title={`${hint}\n${metricStr ? metricStr + ' · ' : ''}${impact}`}
+        >
+            {/* 状态指示点 */}
+            <span className={cn('w-1.5 h-1.5 rounded-full', status === 'good' ? 'bg-emerald-500' : status === 'slow' ? 'bg-amber-500' : 'bg-red-500')} />
+            <span>{c.label}</span>
+            {/* 裸指标次级显示（小字，仅 good 时不显示） */}
+            {status !== 'good' && metricStr && (
+                <span className="opacity-60 font-normal">· {metricStr}</span>
+            )}
+        </span>
     );
 }
