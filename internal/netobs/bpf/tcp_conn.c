@@ -16,6 +16,13 @@ char LICENSE[] SEC("license") = "Dual BSD/GPL";
 #define AF_INET 2
 #endif
 
+#ifndef EINPROGRESS
+#define EINPROGRESS 115
+#endif
+#ifndef EALREADY
+#define EALREADY 114
+#endif
+
 struct host_key {
 	__u32 daddr; /* network byte order */
 	__u16 dport; /* network byte order */
@@ -154,11 +161,17 @@ int handle_connect_exit(struct exit_connect_args *ctx)
 	}
 
 	__sync_fetch_and_add(&st->connects, 1);
-	if (ctx->ret < 0)
+
+	// Non-blocking connect returns -EINPROGRESS/-EALREADY when the
+	// connection has been queued; these are NOT failures — the kernel
+	// will complete the handshake asynchronously.
+	if (ctx->ret < 0 && ctx->ret != -EINPROGRESS && ctx->ret != -EALREADY)
 		__sync_fetch_and_add(&st->fails, 1);
 
 	now = bpf_ktime_get_ns();
-	if (now > iv->ts_ns) {
+	// Only measure latency for blocking (synchronous) success.
+	// EINPROGRESS returns immediately; the real RTT hasn't happened yet.
+	if (ctx->ret == 0 && now > iv->ts_ns) {
 		dt = now - iv->ts_ns;
 		/* ignore absurd outliers (> 30s) */
 		if (dt < 30000000000ULL) {

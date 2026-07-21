@@ -254,7 +254,9 @@ func (e *EBPFObserver) ChannelRTTMS(channelID int) float64 {
 }
 
 // ChannelRetransRate returns connect fail rate [0,1] as a soft proxy for path
-// quality. True TCP retransmit ratio can replace this later without interface change.
+// quality. The BPF probe excludes non-blocking -EINPROGRESS/-EALREADY (which
+// are NOT failures), so this reflects genuine connection errors only.
+// True TCP retransmit ratio can replace this later without interface change.
 func (e *EBPFObserver) ChannelRetransRate(channelID int) float64 {
 	v, ok := e.failRate.Load(channelID)
 	if !ok {
