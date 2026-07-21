@@ -77,6 +77,28 @@ func RecordLatency(channelID int, latencyMS int64, success bool) {
 	_ = time.Now() // keep import if needed later
 }
 
+// GetLatencyMS returns L7 EWMA latency in ms for the channel, or 0 if unknown.
+func GetLatencyMS(channelID int) float64 {
+	if v, ok := latencyStore.Load(channelID); ok {
+		s := v.(*latencySample)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return s.ewmaMS
+	}
+	return 0
+}
+
+// GetLatencySamples returns L7 sample count for confidence display.
+func GetLatencySamples(channelID int) (success, fail uint64) {
+	if v, ok := latencyStore.Load(channelID); ok {
+		s := v.(*latencySample)
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return s.success, s.fail
+	}
+	return 0, 0
+}
+
 // ChannelScore 0~100，越高越好。综合：探活状态 + 被动 EWMA + 成功率
 func ChannelScore(channelID int) float64 {
 	h := GetChannelHealth(channelID)
@@ -118,8 +140,13 @@ func ChannelScore(channelID int) float64 {
 		if rtt := obs.ChannelRTTMS(channelID); rtt > 0 {
 			base -= math.Min(15, rtt/200.0)
 		}
+		// 真·TCP 重传：丢包信号
 		if rr := obs.ChannelRetransRate(channelID); rr > 0 {
 			base -= math.Min(20, rr*40)
+		}
+		// 建连失败（syscall + 异步握手）
+		if fr := obs.ChannelFailRate(channelID); fr > 0 {
+			base -= math.Min(20, fr*40)
 		}
 	}
 

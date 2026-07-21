@@ -211,9 +211,14 @@ export interface ChannelRealtimeItem {
     total_cost: number;
     kernel_rtt_ms: number;
     kernel_fail_rate: number;
+    kernel_retrans_rate: number;
     kernel_status: string;
     kernel_hint: string;
     kernel_impact: string;
+    l7_rtt_ms: number;
+    probe_rtt_ms: number;
+    rtt_samples: number;
+    rtt_source: string;
 }
 
 export interface RealtimeSummary {

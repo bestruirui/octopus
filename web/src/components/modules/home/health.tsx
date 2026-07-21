@@ -143,6 +143,9 @@ export function HealthBoard() {
                                                 impact={ch.kernel_impact}
                                                 rttMs={ch.kernel_rtt_ms}
                                                 failRate={ch.kernel_fail_rate}
+                                                retransRate={ch.kernel_retrans_rate ?? 0}
+                                                rttSource={ch.rtt_source}
+                                                rttSamples={ch.rtt_samples}
                                             />
                                         )}
                                     </div>
@@ -252,12 +255,18 @@ function KernelPathChip({
     impact,
     rttMs,
     failRate,
+    retransRate,
+    rttSource,
+    rttSamples,
 }: {
     status: string;
     hint: string;
     impact: string;
     rttMs: number;
     failRate: number;
+    retransRate: number;
+    rttSource?: string;
+    rttSamples?: number;
 }) {
     const config: Record<string, { color: string; bg: string; label: string }> = {
         good: { color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', label: '畅通' },
@@ -267,10 +276,30 @@ function KernelPathChip({
     };
     const c = config[status] ?? config.idle;
 
-    // 裸指标文本（悬停时显示）
+    // 来源徽标
+    const sourceLabel: Record<string, string> = {
+        kernel: 'k',
+        l7: 'L7',
+        probe: 'P',
+    };
+    const sourceBadge = rttSource && rttSource !== 'none' ? sourceLabel[rttSource] || rttSource : null;
+
+    // 来源中英文名
+    const sourceName: Record<string, string> = {
+        kernel: '内核 BPF',
+        l7: '真实请求 EWMA',
+        probe: '健康探测',
+    };
+    const sourceTitle = rttSource && rttSource !== 'none'
+        ? `来源: ${sourceName[rttSource] || rttSource}${rttSamples ? ` (${rttSamples} 样本)` : ''}`
+        : '';
+
+    // 裸指标：有数据就显示。RTT=0 表示测不到（非阻塞 connect），显示 n/a。
+    // fail = 建连失败（syscall + 异步握手）；rtx = 真·TCP 重传
+    const rttLabel = rttMs > 0 ? `kRTT ${rttMs.toFixed(0)}ms` : 'kRTT n/a';
     const metricStr =
-        rttMs > 0 || failRate > 0
-            ? `kRTT ${rttMs.toFixed(0)}ms · fail ${(failRate * 100).toFixed(1)}%`
+        status !== 'idle'
+            ? `${rttLabel} · 建连失败 ${(failRate * 100).toFixed(1)}% · 重传 ${(retransRate * 100).toFixed(1)}%`
             : '';
 
     return (
@@ -280,14 +309,22 @@ function KernelPathChip({
                 'border border-transparent hover:border-current/20 cursor-default',
                 c.bg, c.color,
             )}
-            title={`${hint}\n${metricStr ? metricStr + ' · ' : ''}${impact}`}
+            title={`${hint}\\n${metricStr ? metricStr + ' · ' : ''}${impact}\\n${sourceTitle ? sourceTitle : ''}`}
         >
             {/* 状态指示点 */}
             <span className={cn('w-1.5 h-1.5 rounded-full', status === 'good' ? 'bg-emerald-500' : status === 'slow' ? 'bg-amber-500' : 'bg-red-500')} />
             <span>{c.label}</span>
-            {/* 裸指标次级显示（小字，仅 good 时不显示） */}
-            {status !== 'good' && metricStr && (
-                <span className="opacity-60 font-normal">· {metricStr}</span>
+            {/* 来源徽标 */}
+            {sourceBadge && (
+                <span className="text-[10px] font-normal opacity-50 ml-0.5" title={sourceTitle}>
+                    [{sourceBadge}]
+                </span>
+            )}
+            {/* 裸指标次级显示 */}
+            {metricStr && (
+                <span className="text-[10px] font-normal opacity-60 tabular-nums">
+                    {metricStr}
+                </span>
             )}
         </span>
     );

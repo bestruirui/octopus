@@ -46,6 +46,16 @@ func (g *GoObserver) ChannelRetransRate(channelID int) float64 {
 	return 0
 }
 
+func (g *GoObserver) ChannelFailRate(channelID int) float64 {
+	// Go 版无建连失败统计
+	return 0
+}
+
+func (g *GoObserver) ChannelHasSample(channelID int) bool {
+	// 纯 Go 无内核样本；延迟由 L7 EWMA 覆盖
+	return false
+}
+
 func (g *GoObserver) ObserveChannel(channelID int, upstreamHost string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()

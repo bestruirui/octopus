@@ -116,10 +116,17 @@ type channelRealtimeItem struct {
 	AvgLatencyMS    float64                 `json:"avg_latency_ms"`    // wait_time / request_count
 	TotalCost       float64                 `json:"total_cost"`
 	KernelRTTMS     float64                 `json:"kernel_rtt_ms"`     // eBPF 观测的建连时延（ms），无数据 = 0
-	KernelFailRate  float64                 `json:"kernel_fail_rate"`  // eBPF 观测的建连失败率 [0,1]，无数据 = 0
+	KernelFailRate  float64                 `json:"kernel_fail_rate"`  // 建连失败率 [0,1]：syscall + 异步握手失败
+	KernelRetransRate float64               `json:"kernel_retrans_rate"` // 真·TCP 重传率 [0,1]
 	KernelStatus    string                  `json:"kernel_status"`     // good / slow / poor / idle
 	KernelHint      string                  `json:"kernel_hint"`      // 人话结论
 	KernelImpact    string                  `json:"kernel_impact"`    // 对选路的影响
+	
+	// 多源 RTT 数据（方案 A：标注来源）
+	L7RTTMS         float64                 `json:"l7_rtt_ms"`         // L7 EWMA 延迟（真实请求）
+	ProbeRTTMS      int                     `json:"probe_rtt_ms"`      // 健康探测延迟
+	RTTSamples      int                     `json:"rtt_samples"`       // 样本数（方案 C：置信度）
+	RTTSource       string                  `json:"rtt_source"`        // kernel / l7 / probe / none
 }
 
 type realtimeSummary struct {
@@ -165,23 +172,69 @@ func getRealtimeDashboard(c *gin.Context) {
 
 		// eBPF per-channel 内核指标 → 状态 + 人话结论 + 选路影响
 		kRTT := netobs.GetObserver().ChannelRTTMS(ch.ID)
-		kFail := netobs.GetObserver().ChannelRetransRate(ch.ID)
-		kStatus, kHint, kImpact := kernelPathVerdict(kRTT, kFail)
+		kFail := netobs.GetObserver().ChannelFailRate(ch.ID)
+		kRetrans := netobs.GetObserver().ChannelRetransRate(ch.ID)
+		// Non-blocking connect (EINPROGRESS) cannot measure handshake RTT —
+		// eBPF often returns 0 even when path is HK ~70ms+. Fall back to:
+		// 1) L7 EWMA (real request/probe latency)
+		// 2) last health probe delay
+		// Fail/retrans stay kernel-true.
+		// 方案 A+C：标注来源 + 置信度
+		rttSource := "kernel"
+		l7RTT := 0.0
+		l7OK, l7Fail := uint64(0), uint64(0)
+		if l7 := balancer.GetLatencyMS(ch.ID); l7 > 0 {
+			l7RTT = l7
+			l7OK, l7Fail = balancer.GetLatencySamples(ch.ID)
+		}
+		probeRTT := health.LastProbeDelay
+		if kRTT <= 0 {
+			if l7RTT > 0 {
+				kRTT = l7RTT
+				rttSource = "l7"
+			} else if probeRTT > 0 {
+				kRTT = float64(probeRTT)
+				rttSource = "probe"
+			}
+		}
+		// 确定置信度样本数
+		rttSamples := 0
+		switch rttSource {
+		case "kernel":
+			if obs := netobs.GetObserver(); obs != nil {
+				rttSamples = int(obs.ConnectHits())
+			}
+		case "l7":
+			rttSamples = int(l7OK + l7Fail)
+		case "probe":
+			rttSamples = 1
+		}
+		// 若未回填且无数据但 eBPF 活跃 → source=none，让 verdict 自行判断
+		if rttSource == "kernel" && kRTT <= 0 {
+			rttSource = "none"
+		}
+		// verdict: fail 优先，其次 retrans，再 RTT
+		kStatus, kHint, kImpact := kernelPathVerdict(ch.ID, kRTT, kFail, kRetrans)
 
 		items = append(items, channelRealtimeItem{
-			ChannelID:      ch.ID,
-			ChannelName:    ch.Name,
-			Enabled:        ch.Enabled,
-			Stats:          stats.StatsMetrics,
-			Health:         health,
-			SuccessRate:    successRate,
-			AvgLatencyMS:   avgLatency,
-			TotalCost:      cost,
-			KernelRTTMS:    kRTT,
-			KernelFailRate: kFail,
-			KernelStatus:   kStatus,
-			KernelHint:     kHint,
-			KernelImpact:   kImpact,
+			ChannelID:         ch.ID,
+			ChannelName:       ch.Name,
+			Enabled:           ch.Enabled,
+			Stats:             stats.StatsMetrics,
+			Health:            health,
+			SuccessRate:       successRate,
+			AvgLatencyMS:      avgLatency,
+			TotalCost:         cost,
+			KernelRTTMS:       kRTT,
+			KernelFailRate:    kFail,
+			KernelRetransRate: kRetrans,
+			KernelStatus:      kStatus,
+			KernelHint:        kHint,
+			KernelImpact:      kImpact,
+			L7RTTMS:           l7RTT,
+			ProbeRTTMS:        probeRTT,
+			RTTSamples:        rttSamples,
+			RTTSource:         rttSource,
 		})
 
 		switch health.Status {
@@ -228,15 +281,24 @@ func getRealtimeDashboard(c *gin.Context) {
 //   RTT  < 100ms  → 畅通
 //   RTT  100-500  → 偏慢
 //   RTT  > 500    → 拥堵
-//   fail > 5%     → 不稳
-//   fail > 20%    → 差
-//   全 0          → idle（尚无样本 / 非 eBPF）
-func kernelPathVerdict(rttMS, failRate float64) (status, hint, impact string) {
-	if rttMS <= 0 && failRate <= 0 {
+//   fail > 5%     → 不稳；fail > 20% → 差
+//   retrans > 5%  → 丢包/重传偏高；> 20% → 严重
+//   全 0          → 若有内核样本/eBPF 活跃 → good；否则 idle
+func kernelPathVerdict(channelID int, rttMS, failRate, retransRate float64) (status, hint, impact string) {
+	if rttMS <= 0 && failRate <= 0 && retransRate <= 0 {
+		if obs := netobs.GetObserver(); obs != nil {
+			// Per-channel sample (fail=0 stored) or global eBPF activity:
+			// non-blocking connects yield RTT=0 + fail=0 which is HEALTHY, not idle.
+			if obs.ChannelHasSample(channelID) || (obs.Active() && obs.ConnectHits() > 0) {
+				return "good",
+					"上游网络正常（未观测到建连失败/重传）",
+					"优先保留此渠道"
+			}
+		}
 		return "idle", "暂无内核路径数据", "不影响选路"
 	}
 
-	// 失败率优先（比延迟更致命）
+	// 建连失败率优先（比延迟更致命）
 	if failRate >= 0.20 {
 		return "poor",
 			"上游建连经常失败，网络路径不稳",
@@ -245,6 +307,18 @@ func kernelPathVerdict(rttMS, failRate float64) (status, hint, impact string) {
 	if failRate >= 0.05 {
 		return "slow",
 			"上游偶有建连失败，路径略不稳定",
+			"系统已轻微降低此渠道优先级"
+	}
+
+	// 真·TCP 重传（丢包信号）
+	if retransRate >= 0.20 {
+		return "poor",
+			"上游 TCP 重传很高，链路丢包严重",
+			"系统已自动降低此渠道优先级"
+	}
+	if retransRate >= 0.05 {
+		return "slow",
+			"上游偶有 TCP 重传，链路略有丢包",
 			"系统已轻微降低此渠道优先级"
 	}
 

@@ -25,8 +25,16 @@ type NetworkObserver interface {
 	// ChannelRTTMS 返回渠道最近 RTT（毫秒），无数据返回 0
 	ChannelRTTMS(channelID int) float64
 
-	// ChannelRetransRate 返回渠道 TCP 重传率（0~1），无数据返回 0
+	// ChannelRetransRate 返回渠道 TCP 重传率（0~1），无数据返回 0。
+	// 真·重传：sockops RETRANS_CB 计数 / RTT 样本数。
 	ChannelRetransRate(channelID int) float64
+
+	// ChannelFailRate 返回建连失败率（0~1），无数据返回 0。
+	// 含：syscall 同步失败 + 异步握手失败（SYN_SENT→CLOSE）。
+	ChannelFailRate(channelID int) float64
+
+	// ChannelHasSample 是否有该渠道的内核样本（区分「无数据」与「fail=0/RTT=0」）
+	ChannelHasSample(channelID int) bool
 
 	// ObserveChannel 标记某渠道的上游地址（eBPF 按此过滤；Go 版忽略）
 	ObserveChannel(channelID int, upstreamHost string)

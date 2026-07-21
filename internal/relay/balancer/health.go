@@ -99,6 +99,12 @@ func UpdateProbeResult(channelID int, channelName, baseURL string, ok bool, dela
 		At:          time.Now(),
 		FailStreak:  streak,
 	})
+
+	// Feed probe latency into EWMA so board kRTT can fall back to real RTT
+	// when eBPF non-blocking connect cannot measure handshake time.
+	if delayMS > 0 {
+		RecordLatency(channelID, int64(delayMS), ok)
+	}
 }
 
 // GetChannelHealth 返回单个渠道健康状态
