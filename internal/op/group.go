@@ -3,6 +3,7 @@ package op
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/bestruirui/octopus/internal/db"
 	"github.com/bestruirui/octopus/internal/model"
@@ -23,10 +24,13 @@ func GroupList(ctx context.Context) ([]model.Group, error) {
 }
 
 func GroupListModel(ctx context.Context) ([]string, error) {
-	models := []string{}
+	models := make([]string, 0, groupCache.Len())
 	for _, group := range groupCache.GetAll() {
 		models = append(models, group.Name)
 	}
+	// groupCache.GetAll() returns a map; sort so /v1/models and API key
+	// model listings are stable and easy to scan.
+	sort.Strings(models)
 	return models, nil
 }
 
