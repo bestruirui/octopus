@@ -1,5 +1,37 @@
-data
-build
+# Binary files
+*.exe
+*.exe~
+
+# Log files
+*.log
+
+# Dependencies
+web/package-lock.json
+web/node_modules/
+
+# Build outputs
 static/out/*
 !static/out/README.md
-.vscode
+web/out/
+web/.next/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+_test*.py
+_check*.py
+_db_check.py
+_list_tables.py
+_quick_test.py
+
+# Data directory
+data/
+build/
