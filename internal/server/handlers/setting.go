@@ -144,12 +144,30 @@ func importDB(c *gin.Context) {
 	resp.Success(c, result)
 }
 
+// legacyChannelTypeMap maps old numeric channel type values (v0.9.28 and earlier)
+// to the current string APIFormat values.
+var legacyChannelTypeMap = map[float64]string{
+	0: "openai/chat_completions",
+	1: "openai/responses",
+	2: "anthropic/messages",
+	3: "gemini/contents",
+	4: "doubao",
+	5: "openai/embeddings",
+}
+
 func decodeDBDump(body []byte, dump *model.DBDump) error {
 	if dump == nil {
 		return json.Unmarshal(body, &struct{}{})
 	}
 
+	// First try normal unmarshal
 	if err := json.Unmarshal(body, dump); err != nil {
+		// If it fails, try legacy format: convert numeric channel types to strings
+		if strings.Contains(err.Error(), "channels.type") {
+			if legacyErr := decodeDBDumpLegacy(body, dump); legacyErr == nil {
+				return nil
+			}
+		}
 		return err
 	}
 
@@ -178,4 +196,34 @@ func decodeDBDump(body []byte, dump *model.DBDump) error {
 	}
 
 	return nil
+}
+
+// decodeDBDumpLegacy handles import from older versions where channel type was numeric.
+func decodeDBDumpLegacy(body []byte, dump *model.DBDump) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return err
+	}
+
+	// Fix channels type field if present
+	if channelsRaw, ok := raw["channels"]; ok {
+		var channels []map[string]json.RawMessage
+		if err := json.Unmarshal(channelsRaw, &channels); err == nil {
+			for _, ch := range channels {
+				if typeRaw, ok := ch["type"]; ok {
+					var numVal float64
+					if json.Unmarshal(typeRaw, &numVal) == nil {
+						if strVal, mapped := legacyChannelTypeMap[numVal]; mapped {
+							ch["type"], _ = json.Marshal(strVal)
+						}
+					}
+				}
+			}
+			fixedChannels, _ := json.Marshal(channels)
+			raw["channels"] = fixedChannels
+		}
+	}
+
+	fixedBody, _ := json.Marshal(raw)
+	return json.Unmarshal(fixedBody, dump)
 }

@@ -47,6 +47,7 @@
         "home": "Home",
         "channel": "Channel",
         "group": "Group",
+        "route": "Route",
         "key": "Key",
         "model": "Price",
         "log": "Log",
@@ -222,6 +223,9 @@
                 "supportedModels": "Supported Models",
                 "noModels": "No models available",
                 "modelsHint": "Leave empty for unlimited",
+                "supportedRoutes": "Supported Routes",
+                "noRoutes": "No routes available",
+                "routesHint": "Routes take priority over models when both are set",
                 "enabled": "Enabled",
                 "cancel": "Cancel",
                 "create": "Create",
@@ -389,6 +393,55 @@
             "weighted": "Weighted"
         },
         "empty": "No groups yet, click the button above to create one"
+    },
+    "route": {
+        "toast": {
+            "created": "Created successfully",
+            "createFailed": "Create failed",
+            "updated": "Updated successfully",
+            "updateFailed": "Update failed",
+            "deleted": "Deleted successfully",
+            "deleteFailed": "Delete failed"
+        },
+        "create": {
+            "title": "Create Route",
+            "submit": "Create",
+            "submitting": "Creating..."
+        },
+        "detail": {
+            "actions": {
+                "edit": "Edit",
+                "cancel": "Cancel",
+                "save": "Save",
+                "delete": "Delete",
+                "confirmDelete": "Confirm Delete"
+            },
+            "primaryGroup": "Primary Group",
+            "dispatchGroup": "Dispatch Group",
+            "workGroups": "Work Groups"
+        },
+        "editor": {
+            "name": "Route Name",
+            "namePlaceholder": "Enter route name",
+            "primaryGroup": "Primary Group",
+            "dispatchGroup": "Dispatch Group",
+            "dispatchHint": "Optional: LLM group to analyze requests and dispatch to work groups",
+            "selectGroup": "Select a group",
+            "noDispatch": "None",
+            "description": "Description",
+            "descriptionPlaceholder": "Optional route description",
+            "cancel": "Cancel",
+            "submit": "Save",
+            "submitting": "Saving...",
+            "workGroups": "Work Groups",
+            "addWorkGroup": "Add Work Group",
+            "category": "Category",
+            "categoryPlaceholder": "e.g. coding, tool, image",
+            "keywords": "Keywords",
+            "keywordsPlaceholder": "Comma-separated, e.g. python,java",
+            "noWorkGroups": "No work groups"
+        },
+        "empty": "No routes yet, click the button above to create one"
     },
     "model": {
         "create": {

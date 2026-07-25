@@ -32,6 +32,10 @@ type RelayMetrics struct {
 
 	// 参数覆盖
 	ParamOverride string
+
+	// 分派信息（由 RouteResolve 填充，saveLog 写入日志）
+	DispatchGroup  string // 分派分组名（空=关键词匹配，非空=dispatch LLM 或兜底）
+	DispatchResult string // 分派结果描述
 }
 
 func (m *RelayMetrics) RecordUsage(usage *llm.Usage) {
@@ -154,6 +158,10 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	if err != nil {
 		relayLog.Error = err.Error()
 	}
+
+	// 分派信息
+	relayLog.DispatchGroup = m.DispatchGroup
+	relayLog.DispatchResult = m.DispatchResult
 
 	if logErr := op.RelayLogAdd(ctx, relayLog); logErr != nil {
 		log.Warnf("failed to save relay log: %v", logErr)

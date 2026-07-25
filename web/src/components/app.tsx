@@ -130,6 +130,21 @@ export function AppContainer() {
                             );
                             break;
                         }
+                        case 'route': {
+                            prefetches.push(
+                                queryClient.prefetchQuery({
+                                    queryKey: ['routes', 'list'],
+                                    queryFn: async () => apiClient.get('/api/v1/route/list'),
+                                })
+                            );
+                            prefetches.push(
+                                queryClient.prefetchQuery({
+                                    queryKey: ['groups', 'list'],
+                                    queryFn: async () => apiClient.get('/api/v1/group/list'),
+                                })
+                            );
+                            break;
+                        }
                         case 'model': {
                             prefetches.push(
                                 queryClient.prefetchQuery({

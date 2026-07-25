@@ -43,9 +43,21 @@ func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
 	if !ok {
 		return model.Group{}, fmt.Errorf("group not found")
 	}
+	return filterEnabledItems(group), nil
+}
+
+func GroupGetEnabled(id int, ctx context.Context) (model.Group, error) {
+	group, ok := groupCache.Get(id)
+	if !ok {
+		return model.Group{}, fmt.Errorf("group not found")
+	}
+	return filterEnabledItems(group), nil
+}
+
+func filterEnabledItems(group model.Group) model.Group {
 	if len(group.Items) == 0 {
 		group.Items = nil
-		return group, nil
+		return group
 	}
 
 	enabledItems := make([]model.GroupItem, 0, len(group.Items))
@@ -57,11 +69,11 @@ func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {
 		enabledItems = append(enabledItems, item)
 	}
 	group.Items = enabledItems
-	return group, nil
+	return group
 }
 
 func GroupCreate(group *model.Group, ctx context.Context) error {
-	if err := db.GetDB().WithContext(ctx).Create(group).Error; err != nil {
+	if err := db.GetDB().WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(group).Error; err != nil {
 		return err
 	}
 	groupCache.Set(group.ID, *group)
@@ -146,7 +158,7 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 		}
 	}
 
-	// 批量新增 items
+	// 批量新增 items (upsert: 已存在则跳过)
 	if len(req.ItemsToAdd) > 0 {
 		newItems := make([]model.GroupItem, len(req.ItemsToAdd))
 		for i, item := range req.ItemsToAdd {
@@ -158,7 +170,7 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 				Weight:    item.Weight,
 			}
 		}
-		if err := tx.Create(&newItems).Error; err != nil {
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&newItems).Error; err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to create items: %w", err)
 		}
@@ -356,7 +368,9 @@ func GroupItemList(groupID int, ctx context.Context) ([]model.GroupItem, error) 
 func groupRefreshCache(ctx context.Context) error {
 	groups := []model.Group{}
 	if err := db.GetDB().WithContext(ctx).
-		Preload("Items").
+		Preload("Items", func(db *gorm.DB) *gorm.DB {
+			return db.Order("priority ASC")
+		}).
 		Find(&groups).Error; err != nil {
 		return err
 	}
@@ -370,7 +384,9 @@ func groupRefreshCache(ctx context.Context) error {
 func groupRefreshCacheByID(id int, ctx context.Context) error {
 	var group model.Group
 	if err := db.GetDB().WithContext(ctx).
-		Preload("Items").
+		Preload("Items", func(db *gorm.DB) *gorm.DB {
+			return db.Order("priority ASC")
+		}).
 		First(&group, id).Error; err != nil {
 		return err
 	}
@@ -385,7 +401,9 @@ func groupRefreshCacheByIDs(ids []int, ctx context.Context) error {
 	}
 	var groups []model.Group
 	if err := db.GetDB().WithContext(ctx).
-		Preload("Items").
+		Preload("Items", func(db *gorm.DB) *gorm.DB {
+			return db.Order("priority ASC")
+		}).
 		Where("id IN ?", ids).
 		Find(&groups).Error; err != nil {
 		return err

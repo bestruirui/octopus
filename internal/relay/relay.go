@@ -52,13 +52,57 @@ func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transforme
 		}
 	}
 
-	group, err := op.GroupGetEnabledMap(internalRequest.Model, c.Request.Context())
-	if err != nil {
-		resp.Error(c, http.StatusNotFound, "model not found")
-		return nil, err
-	}
+	// 提取用户消息内容用于关键词匹配
+	userContent := extractUserContent(internalRequest.Messages)
 
 	apiKeyID := c.GetInt("api_key_id")
+
+	// 优先检查是否匹配路由（通过 SupportedRoutes），否则走原分组逻辑
+	supportedRoutes := c.GetString("supported_routes")
+	var group dbmodel.Group
+	var route *dbmodel.Route
+	var dispatchGroup string
+	var dispatchResult string
+	var dispatchCallInfo op.DispatchCallInfo
+
+	if supportedRoutes != "" {
+		routeNames := strings.Split(supportedRoutes, ",")
+		for _, name := range routeNames {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+			// 尝试通过路由名称匹配
+			route, err = op.RouteGetByName(name, c.Request.Context())
+			if err == nil {
+				var result op.RouteResult
+				result, err = op.RouteResolve(route.ID, internalRequest.Model, userContent, c.Request.Context())
+				if err == nil {
+					group = result.Group
+					dispatchGroup = result.DispatchGroup
+					dispatchResult = result.DispatchResult
+					dispatchCallInfo = result.DispatchCall
+					break
+				}
+			}
+			route = nil // 重置以便下次循环
+		}
+	}
+
+	// dispatch LLM 调用成功时，写入独立的 dispatch 日志（通过 op.RelayLogAdd 复用已有日志机制）
+	if dispatchCallInfo.ChannelID > 0 && dispatchCallInfo.ChannelName != "" {
+		go writeDispatchLog(dispatchCallInfo, apiKeyID, c.Request.Context())
+	}
+
+	// 未匹配到路由，走原分组逻辑
+	if route == nil {
+		group, err = op.GroupGetEnabledMap(internalRequest.Model, c.Request.Context())
+		if err != nil {
+			resp.Error(c, http.StatusNotFound, "model not found")
+			return nil, err
+		}
+	}
+
 	iter := balancer.NewIterator(group, apiKeyID, internalRequest.Model)
 	if iter.Len() == 0 {
 		err := errors.New("no available channel")
@@ -71,14 +115,17 @@ func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transforme
 		inAdapter:       inAdapter,
 		internalRequest: internalRequest,
 		metrics: &RelayMetrics{
-			APIKeyID:        apiKeyID,
-			RequestModel:    internalRequest.Model,
-			ActualModel:     internalRequest.Model,
-			StartTime:       time.Now(),
-			InternalRequest: internalRequest,
+			APIKeyID:         apiKeyID,
+			RequestModel:     internalRequest.Model,
+			ActualModel:      internalRequest.Model,
+			StartTime:        time.Now(),
+			InternalRequest:  internalRequest,
+			DispatchGroup:    dispatchGroup,
+			DispatchResult:   dispatchResult,
 		},
 		iter:  iter,
 		group: group,
+		route: route,
 	}, nil
 }
 
@@ -155,8 +202,12 @@ func (r *relayRun) prepareAttempt() (*relayAttempt, error) {
 	r.internalRequest.Model = item.ModelName
 	r.metrics.ActualModel = item.ModelName
 	r.metrics.ParamOverride = ""
-	log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
-		r.metrics.RequestModel, r.group.Mode, channel.Name, item.ModelName,
+	routeInfo := ""
+	if r.route != nil {
+		routeInfo = fmt.Sprintf(", route: %s", r.route.Name)
+	}
+	log.Infof("request model %s, mode: %d%s, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
+		r.metrics.RequestModel, r.group.Mode, routeInfo, channel.Name, item.ModelName,
 		r.iter.Index()+1, r.iter.Len(), r.iter.IsSticky())
 
 	return &relayAttempt{
@@ -499,4 +550,44 @@ func (in *parsedRequestInbound) TransformRequest(ctx context.Context, request *h
 	// relay 已经为选路解析过请求；pipeline 入口复用该结果，避免每次通道尝试再次解析同一份 body。
 	in.request.RawRequest = request
 	return in.request, nil
+}
+
+// extractUserContent 从消息列表中提取所有 user 角色的消息内容，拼接为一个字符串
+func extractUserContent(messages []llm.Message) string {
+	var sb strings.Builder
+	for _, m := range messages {
+		if m.Role == "user" {
+			if m.Content.Content != nil {
+				sb.WriteString(*m.Content.Content)
+				sb.WriteString(" ")
+			}
+		}
+	}
+	return strings.TrimSpace(sb.String())
+}
+
+// writeDispatchLog 将 dispatch LLM 调用信息写入 relay_logs（复用 op.RelayLogAdd）
+func writeDispatchLog(info op.DispatchCallInfo, apiKeyID int, ctx context.Context) {
+	relayLog := dbmodel.RelayLog{
+		Time:             info.StartTime.Unix(),
+		RequestModelName: info.ModelName,
+		ChannelId:        info.ChannelID,
+		ChannelName:      info.ChannelName,
+		ActualModelName:  info.ModelName,
+		UseTime:          int(info.Duration.Milliseconds()),
+		RequestContent:   info.RequestJSON,
+		ResponseContent:  info.ResponseJSON,
+		DispatchGroup:    "dispatch_llm",
+		DispatchResult:   "dispatch LLM call",
+		TotalAttempts:    1,
+		Attempts:         []dbmodel.ChannelAttempt{{ChannelID: info.ChannelID, ChannelName: info.ChannelName, ModelName: info.ModelName, Status: dbmodel.AttemptSuccess, Duration: int(info.Duration.Milliseconds())}},
+	}
+	if apiKeyID > 0 {
+		if apiKey, getErr := op.APIKeyGet(apiKeyID, ctx); getErr == nil {
+			relayLog.RequestAPIKeyName = apiKey.Name
+		}
+	}
+	if logErr := op.RelayLogAdd(context.WithoutCancel(ctx), relayLog); logErr != nil {
+		log.Warnf("failed to save dispatch LLM log: %v", logErr)
+	}
 }

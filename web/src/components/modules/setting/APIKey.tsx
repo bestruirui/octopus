@@ -24,6 +24,7 @@ import {
     type APIKey,
 } from '@/api/endpoints/apikey';
 import { useGroupList } from '@/api/endpoints/group';
+import { useRouteList } from '@/api/endpoints/route';
 import { useStatsAPIKey } from '@/api/endpoints/stats';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/common/Toast';
@@ -82,6 +83,7 @@ interface APIKeyFormProps {
 function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKeyFormProps) {
     const t = useTranslations('setting');
     const { data: groups = [] } = useGroupList();
+    const { data: routes = [] } = useRouteList();
 
     const [form, setForm] = useState<Omit<APIKey, 'id' | 'api_key'>>(() => ({
         name: apiKey?.name ?? '',
@@ -89,6 +91,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         expire_at: apiKey?.expire_at,
         max_cost: apiKey?.max_cost,
         supported_models: apiKey?.supported_models,
+        supported_routes: apiKey?.supported_routes,
     }));
     const [maxCostInput, setMaxCostInput] = useState(() =>
         apiKey?.max_cost != null ? String(apiKey.max_cost) : ''
@@ -310,6 +313,43 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                     )}
                 </div>
                 <div className="text-[11px] text-muted-foreground/80">{t('apiKey.form.modelsHint')}</div>
+            </div>
+
+            <div className="grid gap-1">
+                <div className="text-xs text-muted-foreground">{t('apiKey.form.supportedRoutes')}</div>
+                <div className="max-h-40 overflow-auto rounded-xl p-2">
+                    {routes.length === 0 ? (
+                        <div className="text-xs text-muted-foreground py-2 text-center">
+                            {t('apiKey.form.noRoutes')}
+                        </div>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {routes.map((r) => {
+                                const checked = hasModel(form.supported_routes, r.name);
+                                return (
+                                    <button
+                                        key={r.name}
+                                        type="button"
+                                        disabled={isPending}
+                                        onClick={() => updateForm({ supported_routes: toggleModel(form.supported_routes, r.name) })}
+                                        className="text-left disabled:opacity-50"
+                                    >
+                                        <Badge
+                                            variant={checked ? 'default' : 'outline'}
+                                            className={cn(
+                                                'cursor-pointer select-none',
+                                                !checked && 'bg-background/40 hover:bg-background/70'
+                                            )}
+                                        >
+                                            {r.name}
+                                        </Badge>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+                <div className="text-[11px] text-muted-foreground/80">{t('apiKey.form.routesHint')}</div>
             </div>
 
             <div className="flex items-center justify-between pt-1">

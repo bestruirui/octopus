@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useNavStore, type NavItem } from '@/components/modules/navbar';
 import { CreateDialogContent as ChannelCreateContent } from '@/components/modules/channel/Create';
 import { CreateDialogContent as GroupCreateContent } from '@/components/modules/group/Create';
+import { CreateDialogContent as RouteCreateContent } from '@/components/modules/route/Create';
 import { CreateDialogContent as ModelCreateContent } from '@/components/modules/model/Create';
 import { useTranslations } from 'next-intl';
 import { useSearchStore } from './search-store';
@@ -55,6 +56,8 @@ function CreateDialogContent({ activeItem }: { activeItem: ToolbarPage }) {
             return <ChannelCreateContent />;
         case 'group':
             return <GroupCreateContent />;
+        case 'route':
+            return <RouteCreateContent />;
         case 'model':
             return <ModelCreateContent />;
     }
@@ -86,6 +89,8 @@ export function Toolbar() {
     if (!toolbarItem) return null;
     const showLayoutOptions = toolbarItem !== 'group';
     const showCombinedSortOptions = toolbarItem === 'channel' || toolbarItem === 'group';
+    const showFilterOptions = toolbarItem !== 'route';
+    const showSortOptions = toolbarItem !== 'route';
 
     const channelFilterLabelKeys: Record<ChannelFilter, string> = {
         all: 'popover.filter.channel.all',
@@ -240,6 +245,7 @@ export function Toolbar() {
                                 </div>
                             )}
 
+                            {showSortOptions && (
                             <div className="grid gap-2">
                                 <p className="text-xs font-medium text-muted-foreground">{t('popover.sort')}</p>
                                 {showCombinedSortOptions ? (
@@ -296,7 +302,9 @@ export function Toolbar() {
                                     </div>
                                 )}
                             </div>
+                            )}
 
+                            {showFilterOptions && (
                             <div className="grid gap-2">
                                 <p className="text-xs font-medium text-muted-foreground">{t('popover.filter.title')}</p>
                                 <div className="grid gap-2">
@@ -317,6 +325,7 @@ export function Toolbar() {
                                     ))}
                                 </div>
                             </div>
+                            )}
                         </div>
                     </PopoverContent>
                 </Popover>

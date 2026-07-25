@@ -47,6 +47,7 @@
         "home": "主页",
         "channel": "渠道",
         "group": "分组",
+        "route": "路由",
         "key": "密钥",
         "model": "价格",
         "log": "日志",
@@ -222,6 +223,9 @@
                 "supportedModels": "支持的模型",
                 "noModels": "暂无可选模型",
                 "modelsHint": "不选择则为无限制",
+                "supportedRoutes": "支持的路由",
+                "noRoutes": "暂无可用路由",
+                "routesHint": "路由优先于模型，同时设置时优先使用路由",
                 "enabled": "是否启用",
                 "cancel": "取消",
                 "create": "创建",
@@ -389,6 +393,55 @@
             "weighted": "加权分配"
         },
         "empty": "暂无分组，点击左上角按钮创建"
+    },
+    "route": {
+        "toast": {
+            "created": "创建成功",
+            "createFailed": "创建失败",
+            "updated": "更新成功",
+            "updateFailed": "更新失败",
+            "deleted": "删除成功",
+            "deleteFailed": "删除失败"
+        },
+        "create": {
+            "title": "创建路由",
+            "submit": "创建",
+            "submitting": "创建中..."
+        },
+        "detail": {
+            "actions": {
+                "edit": "编辑",
+                "cancel": "取消",
+                "save": "保存",
+                "delete": "删除",
+                "confirmDelete": "确认删除"
+            },
+            "primaryGroup": "主分组",
+            "dispatchGroup": "分派分组",
+            "workGroups": "工作分组"
+        },
+        "editor": {
+            "name": "路由名称",
+            "namePlaceholder": "输入路由名称",
+            "primaryGroup": "主分组",
+            "dispatchGroup": "分派分组",
+            "dispatchHint": "可选：用于分析请求并指派工作分组的分组",
+            "selectGroup": "选择分组",
+            "noDispatch": "无",
+            "description": "描述",
+            "descriptionPlaceholder": "可选的路由描述",
+            "cancel": "取消",
+            "submit": "保存",
+            "submitting": "保存中...",
+            "workGroups": "工作分组",
+            "addWorkGroup": "添加工作分组",
+            "category": "分类",
+            "categoryPlaceholder": "如 coding、tool、image",
+            "keywords": "关键词",
+            "keywordsPlaceholder": "逗号分隔，如 python,java",
+            "noWorkGroups": "暂无工作分组"
+        },
+        "empty": "暂无路由，点击左上角按钮创建"
     },
     "model": {
         "create": {

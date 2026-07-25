@@ -78,6 +78,9 @@ func APIKeyAuth() gin.HandlerFunc {
 		c.Set("request_type", requestType)
 		c.Set("supported_models", apiKeyObj.SupportedModels)
 		c.Set("api_key_id", apiKeyObj.ID)
+		if apiKeyObj.SupportedRoutes != "" {
+			c.Set("supported_routes", apiKeyObj.SupportedRoutes)
+		}
 		c.Next()
 	}
 }

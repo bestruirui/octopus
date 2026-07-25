@@ -16,6 +16,7 @@ type relayRun struct {
 	metrics         *RelayMetrics
 	iter            *balancer.Iterator
 	group           dbmodel.Group
+	route           *dbmodel.Route // 可选，当 API Key 绑定了路由时有值
 }
 
 // relayAttempt 保存一次上游通道尝试的状态。

@@ -250,6 +250,73 @@ The program automatically appends API paths based on channel type. You only need
 
 ---
 
+## 🚦 Route Management (Routing Layer)
+
+Routes provide an intelligent routing layer **between external API calls and Groups**. A Route maps an external model name to a **primary group** (fallback), with optional **dispatch group** (LLM-based classification) and multiple **work groups** (keyword-based routing).
+
+### Core Concepts
+
+- **Route name** = the model name exposed to external callers (e.g., `think`, `gpt-4o-router`)
+- When calling the API, set `model` parameter to the **route name**
+- The route internally routes requests through three priority paths:
+
+### Three Routing Paths (Priority Order)
+
+| Priority | Path | Description |
+|----------|------|-------------|
+| ① | **Keyword Match** | Checks user message against work group keywords/descriptions → routes to matching work group |
+| ② | **Dispatch LLM** | Uses dispatch group's LLM to classify the request → routes to classified work group |
+| ③ | **Primary Fallback** | Falls back to primary group if both above fail or return invalid group |
+
+### Route Configuration
+
+A Route consists of:
+- **Primary Group** (required): Fallback group when dispatch fails
+- **Dispatch Group** (optional): Group containing a small/fast LLM for request classification
+- **Work Groups** (multiple): Groups with `description` + `keywords` for keyword matching
+
+### Example Configuration
+
+```
+Route "think" (external model name: think)
+├── Primary Group: main (gpt-4o, claude-3.5-sonnet, etc.)  ← fallback
+├── Dispatch Group: lite (sensenova-6.7-flash, agnes-2.0-flash)  ← LLM classifier
+└── Work Groups:
+    ├── coding (keywords: "code", "编程", "Python", "Go", "function"...)
+    ├── analysis (keywords: "analysis", "分析", "analyze", "review"...)
+    ├── document (keywords: "document", "文档", "readme", "spec"...)
+    └── tool-use (keywords: "tool", "工具", "function", "api"...)
+```
+
+### Request Flow Example
+
+```
+Client: POST /v1/chat/completions { model: "think", messages: [...] }
+                │
+                ▼
+Route "think" matched
+                │
+                ├─► Keyword "分析" in message? ──Yes──► Group "analysis" ──► Channel A
+                │      │
+                │      No
+                │      ▼
+                ├─► Dispatch LLM (lite group) classifies: "coding" ──Yes──► Group "coding" ──► Channel B
+                │      │
+                │      No / Invalid
+                │      ▼
+                └─► Fallback to Primary Group "main" ──► Channel C
+```
+
+### Benefits
+
+- **Intelligent routing**: Different request types automatically go to specialized groups
+- **Cost optimization**: Simple requests use cheap/fast models; complex requests use powerful models
+- **Specialization**: Coding tasks → coding-optimized models; Analysis → reasoning models
+- **Zero client changes**: Clients just use the route name as model; routing is transparent
+
+---
+
+
 ### 📁 Group Management
 
 Groups aggregate multiple channels into a unified external model name.

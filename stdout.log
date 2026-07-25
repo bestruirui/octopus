@@ -1,0 +1,143 @@
+[36m[1m
+ ██████╗  ██████╗████████╗ ██████╗ ██████╗ ██╗   ██╗███████╗
+██╔═══██╗██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██║   ██║██╔════╝
+██║   ██║██║        ██║   ██║   ██║██████╔╝██║   ██║███████╗
+██║   ██║██║        ██║   ██║   ██║██╔═══╝ ██║   ██║╚════██║
+╚██████╔╝╚██████╗   ██║   ╚██████╔╝██║     ╚██████╔╝███████║
+ ╚═════╝  ╚═════╝   ╚═╝    ╚═════╝ ╚═╝      ╚═════╝ ╚══════╝
+[0m[34m[1m          🚀 octopus - all ai service in one place
+[0m[2m────────────────────────────────────────────────────────────
+[0m[2mVersion:    [0m [32mdev[0m
+[2mCommit:     [0m [33munknown[0m
+[2mBuild Time: [0m [34munknown[0m
+[2mBuilt By:   [0m [35mbestrui[0m
+[2mRepo:       [0m [36mhttps://github.com/bestruirui/octopus[0m
+[2m════════════════════════════════════════════════════════════
+[0m2026-07-25T21:09:44+08:00	INFO	conf/config.go:50	Using config file: C:\work\git\myoctopus\data\config.json
+2026-07-25T21:09:44+08:00	INFO	cmd/start.go:52	Program started, press Ctrl+C to exit
+2026-07-25T21:09:57+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:09:57+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/11, sticky=false)
+2026-07-25T21:09:59+08:00	WARN	helper/channel.go:46	failed to get url delay (channel=9): Head "http://192.168.0.77:11434/v1": dial tcp 192.168.0.77:11434: connectex: No connection could be made because the target machine actively refused it.
+2026-07-25T21:09:59+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=1629ms, input_token=10, output_token=51, input_cost=0.000001, output_cost=0.000014, total_cost=0.000016, attempts=1
+2026-07-25T21:10:00+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:10:00+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/11, sticky=true)
+2026-07-25T21:10:01+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=1519ms, input_token=9, output_token=51, input_cost=0.000001, output_cost=0.000014, total_cost=0.000016, attempts=1
+2026-07-25T21:10:02+08:00	INFO	op/route.go:344	route resolve: dispatch LLM starting for route=think, model=think
+2026-07-25T21:10:02+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=hunyuan model=hunyuan-lite failed: dispatch LLM returned status 400: {"error":{"id":"835ecaf536ff738d029cfd472f41c3f2","message":"该模型已下线，请根据迁移指南前往TokenHub平台体验最新模型服务。（详见：https://cloud.tencent.com/document/product/1729/131925）","type":"runtime_error","param":null,"code":"2030"}}
+2026-07-25T21:10:03+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:10:03+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:10:03+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:10:03+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:10:05+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 16
+2026-07-25T21:10:05+08:00	INFO	op/route_dispatch.go:100	dispatch LLM selected work group: Analysis (group_id=16) via channel=agnes-ai
+2026-07-25T21:10:05+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/11, sticky=true)
+2026-07-25T21:10:07+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=1318ms, input_token=11, output_token=51, input_cost=0.000002, output_cost=0.000014, total_cost=0.000016, attempts=1
+2026-07-25T21:10:08+08:00	INFO	op/route.go:344	route resolve: dispatch LLM starting for route=think, model=think
+2026-07-25T21:10:08+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=hunyuan model=hunyuan-lite failed: dispatch LLM returned status 400: {"error":{"id":"e5ba89f904612eebb11f466a6f732e5a","message":"该模型已下线，请根据迁移指南前往TokenHub平台体验最新模型服务。（详见：https://cloud.tencent.com/document/product/1729/131925）","type":"runtime_error","param":null,"code":"2030"}}
+2026-07-25T21:10:08+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:10:08+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:10:09+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:10:09+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:10:09+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 15
+2026-07-25T21:10:09+08:00	INFO	op/route_dispatch.go:100	dispatch LLM selected work group: coding (group_id=15) via channel=agnes-ai
+2026-07-25T21:10:09+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-8B (attempt 1/36, sticky=false)
+2026-07-25T21:10:09+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-4B (attempt 2/36, sticky=false)
+2026-07-25T21:10:10+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: openround model: qwen/qwen3-coder:free (attempt 3/36, sticky=false)
+2026-07-25T21:10:10+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: qwen/qwen3-next-80b-a3b-instruct (attempt 4/36, sticky=false)
+2026-07-25T21:10:58+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=true, duration=48451ms, input_token=14, output_token=50, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=4
+2026-07-25T21:10:59+08:00	INFO	op/route.go:344	route resolve: dispatch LLM starting for route=think, model=think
+2026-07-25T21:10:59+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=hunyuan model=hunyuan-lite failed: dispatch LLM returned status 400: {"error":{"id":"cca2ffa1e778ddf1d54940b410f24930","message":"该模型已下线，请根据迁移指南前往TokenHub平台体验最新模型服务。（详见：https://cloud.tencent.com/document/product/1729/131925）","type":"runtime_error","param":null,"code":"2030"}}
+2026-07-25T21:10:59+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:10:59+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:11:00+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:11:00+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:11:01+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 15
+2026-07-25T21:11:01+08:00	INFO	op/route_dispatch.go:100	dispatch LLM selected work group: coding (group_id=15) via channel=agnes-ai
+2026-07-25T21:11:01+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: qwen/qwen3-next-80b-a3b-instruct (attempt 1/36, sticky=true)
+2026-07-25T21:12:03+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=true, duration=62025ms, input_token=16, output_token=50, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=1
+2026-07-25T21:12:04+08:00	INFO	op/route.go:344	route resolve: dispatch LLM starting for route=think, model=think
+2026-07-25T21:12:04+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=hunyuan model=hunyuan-lite failed: dispatch LLM returned status 400: {"error":{"id":"187feb75c56b2cc4a08132474898af48","message":"该模型已下线，请根据迁移指南前往TokenHub平台体验最新模型服务。（详见：https://cloud.tencent.com/document/product/1729/131925）","type":"runtime_error","param":null,"code":"2030"}}
+2026-07-25T21:12:05+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:12:05+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:12:05+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:12:05+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:12:06+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 15
+2026-07-25T21:12:06+08:00	INFO	op/route_dispatch.go:100	dispatch LLM selected work group: coding (group_id=15) via channel=agnes-ai
+2026-07-25T21:12:06+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: qwen/qwen3-next-80b-a3b-instruct (attempt 1/36, sticky=true)
+2026-07-25T21:12:51+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=true, duration=45414ms, input_token=13, output_token=50, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=1
+2026-07-25T21:12:52+08:00	INFO	op/route.go:344	route resolve: dispatch LLM starting for route=think, model=think
+2026-07-25T21:12:52+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=hunyuan model=hunyuan-lite failed: dispatch LLM returned status 400: {"error":{"id":"47bac5bb15866dcbeac17b175392d2f1","message":"该模型已下线，请根据迁移指南前往TokenHub平台体验最新模型服务。（详见：https://cloud.tencent.com/document/product/1729/131925）","type":"runtime_error","param":null,"code":"2030"}}
+2026-07-25T21:12:52+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:12:52+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:12:53+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:12:53+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:12:54+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 16
+2026-07-25T21:12:54+08:00	INFO	op/route_dispatch.go:100	dispatch LLM selected work group: Analysis (group_id=16) via channel=agnes-ai
+2026-07-25T21:12:54+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: deepseek-ai/deepseek-v4-pro (attempt 1/11, sticky=true)
+2026-07-25T21:14:52+08:00	INFO	relay/relay.go:139	request context canceled, stopping retry
+2026-07-25T21:14:52+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=false, duration=118008ms, input_token=0, output_token=0, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=1
+2026-07-25T21:14:53+08:00	INFO	op/route.go:338	route resolve: dispatch cache hit for route=think → llm: coding(15)
+2026-07-25T21:14:53+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-8B (attempt 1/36, sticky=false)
+2026-07-25T21:14:53+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-4B (attempt 2/36, sticky=false)
+2026-07-25T21:14:53+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: openround model: qwen/qwen3-coder:free (attempt 3/36, sticky=false)
+2026-07-25T21:14:55+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: qwen/qwen3-next-80b-a3b-instruct (attempt 4/36, sticky=false)
+2026-07-25T21:15:11+08:00	INFO	relay/relay.go:139	request context canceled, stopping retry
+2026-07-25T21:15:11+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=false, duration=18486ms, input_token=0, output_token=0, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=4
+2026-07-25T21:16:42+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:16:42+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/11, sticky=false)
+2026-07-25T21:16:45+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=3061ms, input_token=92, output_token=201, input_cost=0.000013, output_cost=0.000056, total_cost=0.000069, attempts=1
+2026-07-25T21:16:47+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:16:47+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/11, sticky=true)
+2026-07-25T21:16:49+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=2649ms, input_token=31, output_token=201, input_cost=0.000004, output_cost=0.000056, total_cost=0.000061, attempts=1
+2026-07-25T21:16:50+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:16:50+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/11, sticky=true)
+2026-07-25T21:16:53+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=3066ms, input_token=28, output_token=201, input_cost=0.000004, output_cost=0.000056, total_cost=0.000060, attempts=1
+2026-07-25T21:16:54+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:16:54+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/11, sticky=true)
+2026-07-25T21:16:57+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=2882ms, input_token=29, output_token=201, input_cost=0.000004, output_cost=0.000056, total_cost=0.000060, attempts=1
+2026-07-25T21:16:58+08:00	INFO	op/route.go:344	route resolve: dispatch LLM starting for route=think, model=think
+2026-07-25T21:16:58+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=hunyuan model=hunyuan-lite failed: dispatch LLM returned status 400: {"error":{"id":"a87cdabbd3f88fb225074e38703a8419","message":"该模型已下线，请根据迁移指南前往TokenHub平台体验最新模型服务。（详见：https://cloud.tencent.com/document/product/1729/131925）","type":"runtime_error","param":null,"code":"2030"}}
+2026-07-25T21:16:59+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:16:59+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:16:59+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:16:59+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:17:01+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 15
+2026-07-25T21:17:01+08:00	INFO	op/route_dispatch.go:100	dispatch LLM selected work group: coding (group_id=15) via channel=agnes-ai
+2026-07-25T21:17:01+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-8B (attempt 1/36, sticky=false)
+2026-07-25T21:17:01+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-4B (attempt 2/36, sticky=false)
+2026-07-25T21:17:01+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: openround model: qwen/qwen3-coder:free (attempt 3/36, sticky=false)
+2026-07-25T21:17:03+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: qwen/qwen3-next-80b-a3b-instruct (attempt 4/36, sticky=false)
+2026-07-25T21:18:02+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=true, duration=60714ms, input_token=30, output_token=200, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=4
+2026-07-25T21:18:03+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:18:03+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: deepseek-ai/deepseek-v4-pro (attempt 1/11, sticky=true)
+2026-07-25T21:20:03+08:00	INFO	relay/relay.go:139	request context canceled, stopping retry
+2026-07-25T21:20:03+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=false, duration=120011ms, input_token=0, output_token=0, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=1
+2026-07-25T21:20:04+08:00	INFO	op/route.go:344	route resolve: dispatch LLM starting for route=think, model=think
+2026-07-25T21:20:04+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=hunyuan model=hunyuan-lite failed: dispatch LLM returned status 400: {"error":{"id":"6ae050675c2117c025c1d4eff13971e7","message":"该模型已下线，请根据迁移指南前往TokenHub平台体验最新模型服务。（详见：https://cloud.tencent.com/document/product/1729/131925）","type":"runtime_error","param":null,"code":"2030"}}
+2026-07-25T21:20:04+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:20:04+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:20:05+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 
+2026-07-25T21:20:05+08:00	WARN	op/route_dispatch.go:89	dispatch LLM try channel=sensenova model=sensenova-6.7-flash-lite failed: failed to parse group ID from dispatch response: ""
+2026-07-25T21:20:08+08:00	INFO	op/route_dispatch.go:273	dispatch LLM raw response: 15
+2026-07-25T21:20:08+08:00	INFO	op/route_dispatch.go:100	dispatch LLM selected work group: coding (group_id=15) via channel=agnes-ai
+2026-07-25T21:20:08+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-8B (attempt 1/36, sticky=false)
+2026-07-25T21:20:08+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: modelscope model: Qwen/Qwen3-Embedding-4B (attempt 2/36, sticky=false)
+2026-07-25T21:20:08+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: openround model: qwen/qwen3-coder:free (attempt 3/36, sticky=false)
+2026-07-25T21:20:13+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: nvidia-qq model: qwen/qwen3-next-80b-a3b-instruct (attempt 4/36, sticky=false)
+2026-07-25T21:21:05+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=13(nvidia-qq), success=true, duration=57864ms, input_token=30, output_token=200, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=4
+2026-07-25T21:27:49+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:27:49+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/2, sticky=false)
+2026-07-25T21:27:53+08:00	INFO	relay/relay.go:444	client disconnected, stopping stream
+2026-07-25T21:27:53+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=3998ms, input_token=0, output_token=0, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=1
+2026-07-25T21:27:53+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:27:53+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/2, sticky=true)
+2026-07-25T21:27:54+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:27:54+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/2, sticky=true)
+2026-07-25T21:27:56+08:00	INFO	relay/relay.go:453	stream end
+2026-07-25T21:27:56+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=2605ms, input_token=89975, output_token=63, input_cost=0.011794, output_cost=0.000018, total_cost=0.011811, attempts=1
+2026-07-25T21:27:56+08:00	INFO	op/route.go:325	route resolve: keyword matched group=Analysis (group_id=16)
+2026-07-25T21:27:56+08:00	INFO	relay/relay.go:209	request model think, mode: 3, route: think, forwarding to channel: sensenova model: deepseek-v4-flash (attempt 1/2, sticky=true)
+2026-07-25T21:28:14+08:00	INFO	relay/relay.go:444	client disconnected, stopping stream
+2026-07-25T21:28:14+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=18157ms, input_token=0, output_token=0, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=1
+2026-07-25T21:28:41+08:00	INFO	relay/relay.go:444	client disconnected, stopping stream
+2026-07-25T21:28:41+08:00	INFO	relay/metrics.go:100	relay complete: model=think, channel=10(sensenova), success=true, duration=47770ms, input_token=0, output_token=0, input_cost=0.000000, output_cost=0.000000, total_cost=0.000000, attempts=1
