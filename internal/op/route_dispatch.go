@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -24,16 +25,15 @@ type dispatchRequest struct {
 }
 
 type dispatchMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role      string `json:"role"`
+	Content   string `json:"content"`
+	Reasoning string `json:"reasoning"`
 }
 
 // dispatchResponse 分派 LLM 响应体
 type dispatchResponse struct {
 	Choices []struct {
-		Message struct {
-			Content string `json:"content"`
-		} `json:"message"`
+		Message dispatchMessage `json:"message"`
 	} `json:"choices"`
 }
 
@@ -47,10 +47,11 @@ type DispatchCallInfo struct {
 	ResponseJSON string // 完整响应体 JSON（供日志展示）
 	Duration     time.Duration
 	StartTime    time.Time
+	Attempts     []model.ChannelAttempt // 所有通道尝试记录（含跳过/失败）
 }
 
 // RouteDispatch 调用分派分组的 LLM 分析请求，返回应处理的工作分组
-// 遍历所有可用 channel 直到成功，而非仅尝试一个
+// 简单遍历分派分组的通道，逐个尝试直到成功
 // 返回：目标分组、分派分组名、分派结果描述、调用信息、错误
 func RouteDispatch(route *model.Route, requestModel string, requestContent string, ctx context.Context) (model.Group, string, string, DispatchCallInfo, error) {
 	var emptyInfo DispatchCallInfo
@@ -68,28 +69,94 @@ func RouteDispatch(route *model.Route, requestModel string, requestContent strin
 		return model.Group{}, "", "", emptyInfo, fmt.Errorf("dispatch group has no enabled items")
 	}
 
-	// 获取分派分组名称
 	dispatchGroupName := dispatchGroup.Name
 
-	// 2. 构建 prompt（system + user 两个消息，包含用户消息内容）
+	// 2. 构建 prompt
 	systemMsg, userMsg := buildDispatchPrompt(route.WorkGroups, requestModel, requestContent)
 
-	// 3. 收集所有可用 channel+key 组合，逐个尝试
-	candidates := collectDispatchCandidates(dispatchGroup)
-	if len(candidates) == 0 {
-		return model.Group{}, dispatchGroupName, "", emptyInfo, fmt.Errorf("no usable channel in dispatch group")
-	}
+	// 3. 按优先级排序通道（升序：数字越小优先级越高），逐个尝试
+	candidates := make([]model.GroupItem, len(dispatchGroup.Items))
+	copy(candidates, dispatchGroup.Items)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Priority < candidates[j].Priority
+	})
 
 	var lastErr error
 	var lastCallInfo DispatchCallInfo
-	for _, c := range candidates {
-		groupID, callInfo, err := callDispatchLLM(c.channel, c.key, c.model, systemMsg, userMsg, ctx)
-		lastCallInfo = callInfo
+	var allAttempts []model.ChannelAttempt
+	for _, item := range candidates {
+		channel, err := ChannelGet(item.ChannelID, ctx)
 		if err != nil {
-			log.Warnf("dispatch LLM try channel=%s model=%s failed: %v", c.channel.Name, c.model, err)
+			log.Warnf("dispatch: channel %d not found: %v", item.ChannelID, err)
+			allAttempts = append(allAttempts, model.ChannelAttempt{
+				ChannelID:   item.ChannelID,
+				ChannelName: fmt.Sprintf("channel_%d", item.ChannelID),
+				Status:      model.AttemptSkipped,
+				Msg:         fmt.Sprintf("channel not found: %v", err),
+			})
 			lastErr = err
 			continue
 		}
+		if !channel.Enabled {
+			log.Warnf("dispatch: channel %s (id=%d) disabled, skip", channel.Name, channel.ID)
+			allAttempts = append(allAttempts, model.ChannelAttempt{
+				ChannelID:   channel.ID,
+				ChannelName: channel.Name,
+				Status:      model.AttemptSkipped,
+				Msg:         "channel disabled",
+			})
+			continue
+		}
+		usedKey := channel.GetChannelKey()
+		if usedKey.ChannelKey == "" {
+			log.Warnf("dispatch: channel %s (id=%d) has no available key, skip", channel.Name, channel.ID)
+			allAttempts = append(allAttempts, model.ChannelAttempt{
+				ChannelID:   channel.ID,
+				ChannelName: channel.Name,
+				Status:      model.AttemptSkipped,
+				Msg:         "no available key",
+			})
+			continue
+		}
+
+		itemModel := strings.TrimSpace(item.ModelName)
+		if itemModel == "" {
+			itemModel = getModelName(channel)
+		}
+		if itemModel == "" {
+			log.Warnf("dispatch: channel %s (id=%d) has no usable model name, skip", channel.Name, channel.ID)
+			allAttempts = append(allAttempts, model.ChannelAttempt{
+				ChannelID:   channel.ID,
+				ChannelName: channel.Name,
+				Status:      model.AttemptSkipped,
+				Msg:         "no usable model name",
+			})
+			continue
+		}
+
+		groupID, callInfo, err := callDispatchLLM(channel, &usedKey, itemModel, systemMsg, userMsg, ctx)
+		lastCallInfo = callInfo
+		if err != nil {
+			log.Warnf("dispatch LLM try channel=%s model=%s failed: %v", channel.Name, itemModel, err)
+			allAttempts = append(allAttempts, model.ChannelAttempt{
+				ChannelID:   channel.ID,
+				ChannelName: channel.Name,
+				ModelName:   itemModel,
+				Status:      model.AttemptFailed,
+				Duration:    int(callInfo.Duration.Milliseconds()),
+				Msg:         err.Error(),
+			})
+			lastErr = err
+			continue
+		}
+		// 成功调用
+		allAttempts = append(allAttempts, model.ChannelAttempt{
+			ChannelID:   channel.ID,
+			ChannelName: channel.Name,
+			ModelName:   itemModel,
+			Status:      model.AttemptSuccess,
+			Duration:    int(callInfo.Duration.Milliseconds()),
+		})
 
 		// 4. 查找目标工作分组
 		for _, wg := range route.WorkGroups {
@@ -97,50 +164,23 @@ func RouteDispatch(route *model.Route, requestModel string, requestContent strin
 				targetGroup, err := GroupGetEnabled(wg.GroupID, ctx)
 				if err == nil && len(targetGroup.Items) > 0 {
 					dispatchDesc := fmt.Sprintf("llm: %s(%d)", wg.Category, wg.GroupID)
-					log.Infof("dispatch LLM selected work group: %s (group_id=%d) via channel=%s", wg.Category, wg.GroupID, c.channel.Name)
-					return targetGroup, dispatchGroupName, dispatchDesc, callInfo, nil
+					log.Infof("dispatch LLM selected work group: %s (group_id=%d) via channel=%s", wg.Category, wg.GroupID, channel.Name)
+					callInfo.Attempts = allAttempts
+				return targetGroup, dispatchGroupName, dispatchDesc, callInfo, nil
 				}
 				break
 			}
 		}
 		lastErr = fmt.Errorf("dispatch LLM returned unknown group_id: %d", groupID)
-		log.Warnf("dispatch LLM returned unknown group_id=%d from channel=%s", groupID, c.channel.Name)
+		log.Warnf("dispatch LLM returned unknown group_id=%d from channel=%s", groupID, channel.Name)
 	}
 
-	return model.Group{}, dispatchGroupName, "", lastCallInfo, fmt.Errorf("dispatch LLM failed after %d attempts: %w", len(candidates), lastErr)
-}
-
-type dispatchCandidate struct {
-	channel *model.Channel
-	key     *model.ChannelKey
-	model   string // group_item.model_name 优先于 channel.Model
-}
-
-// collectDispatchCandidates 收集所有可用的 channel+key 组合
-// 优先使用 group_item 的 model_name，而非 channel.Model
-func collectDispatchCandidates(group model.Group) []dispatchCandidate {
-	var candidates []dispatchCandidate
-	for _, item := range group.Items {
-		ch, ok := channelCache.Get(item.ChannelID)
-		if !ok || !ch.Enabled {
-			continue
-		}
-		// 优先使用 group_item 的 model_name
-		itemModel := strings.TrimSpace(item.ModelName)
-		if itemModel == "" {
-			itemModel = getModelName(&ch)
-		}
-		if itemModel == "" {
-			continue
-		}
-		chCopy := ch
-		for _, k := range chCopy.Keys {
-			if k.Enabled && k.ChannelKey != "" {
-				candidates = append(candidates, dispatchCandidate{channel: &chCopy, key: &k, model: itemModel})
-			}
-		}
-	}
-	return candidates
+	return model.Group{}, dispatchGroupName, "", DispatchCallInfo{
+		ChannelID:   lastCallInfo.ChannelID,
+		ChannelName: lastCallInfo.ChannelName,
+		Attempts:    allAttempts,
+		StartTime:   lastCallInfo.StartTime,
+	}, fmt.Errorf("dispatch LLM failed: %w", lastErr)
 }
 
 // getModelName 从 channel 获取可用的模型名（取 Model 列表第一个，或 CustomModel）
@@ -226,14 +266,14 @@ func callDispatchLLM(channel *model.Channel, key *model.ChannelKey, modelName st
 			{Role: "user", Content: userMsg},
 		},
 		Temperature: 0,
-		MaxTokens:   10,
+		MaxTokens:   512,
 	}
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
 		return 0, emptyInfo, fmt.Errorf("failed to marshal dispatch request: %w", err)
 	}
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{Timeout: 30 * time.Second}
 
 	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -270,6 +310,12 @@ func callDispatchLLM(channel *model.Channel, key *model.ChannelKey, modelName st
 	}
 
 	content := strings.TrimSpace(dispatchResp.Choices[0].Message.Content)
+	if content == "" {
+		content = strings.TrimSpace(dispatchResp.Choices[0].Message.Reasoning)
+		log.Infof("dispatch LLM content empty, fallback to reasoning: %s", content)
+	}
+	// Strip <think>...</think> tags if present (reasoning models wrap output)
+	content = stripThinkingTags(content)
 	log.Infof("dispatch LLM raw response: %s", content)
 
 	callInfo := DispatchCallInfo{
@@ -293,6 +339,21 @@ func callDispatchLLM(channel *model.Channel, key *model.ChannelKey, modelName st
 	}
 
 	return groupID, callInfo, nil
+}
+
+// stripThinkingTags 移除 <think>...</think> 标签
+func stripThinkingTags(s string) string {
+	for {
+		start := strings.Index(s, "<think>")
+		if start == -1 {
+			return s
+		}
+		end := strings.Index(s[start:], "</think>")
+		if end == -1 {
+			return s
+		}
+		s = strings.TrimSpace(s[:start] + s[start+end+7:])
+	}
 }
 
 // extractNumber 从字符串中提取第一个连续数字

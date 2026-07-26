@@ -256,7 +256,7 @@ Routes provide an intelligent routing layer **between external API calls and Gro
 
 ### Core Concepts
 
-- **Route name** = the model name exposed to external callers (e.g., `think`, `gpt-4o-router`)
+- **Route name** = the model name exposed to external callers (e.g., `think`, `smart-router`)
 - When calling the API, set `model` parameter to the **route name**
 - The route internally routes requests through three priority paths:
 
@@ -279,8 +279,8 @@ A Route consists of:
 
 ```
 Route "think" (external model name: think)
-├── Primary Group: main (gpt-4o, claude-3.5-sonnet, etc.)  ← fallback
-├── Dispatch Group: lite (sensenova-6.7-flash, agnes-2.0-flash)  ← LLM classifier
+├── Primary Group: main (alpha-chat, beta-reason, etc.)  ← fallback
+├── Dispatch Group: lite (gamma-lite, delta-flash)  ← LLM classifier
 └── Work Groups:
     ├── coding (keywords: "code", "编程", "Python", "Go", "function"...)
     ├── analysis (keywords: "analysis", "分析", "analyze", "review"...)
@@ -385,7 +385,7 @@ import os
 
 client = OpenAI(   
     base_url="http://127.0.0.1:8080/v1",   
-    api_key="sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg", 
+    api_key="sk-octopus-YOUR_API_KEY_HERE", 
 )
 completion = client.chat.completions.create(
     model="octopus-openai",  # Use the correct group name
@@ -404,7 +404,7 @@ Edit `~/.claude/settings.json`
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:8080",
-    "ANTHROPIC_AUTH_TOKEN": "sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg",
+    "ANTHROPIC_AUTH_TOKEN": "sk-octopus-YOUR_API_KEY_HERE",
     "API_TIMEOUT_MS": "3000000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "ANTHROPIC_MODEL": "octopus-sonnet-4-5",
@@ -434,7 +434,7 @@ Edit `~/.codex/auth.json`
 
 ```json
 {
-  "OPENAI_API_KEY": "sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg"
+  "OPENAI_API_KEY": "sk-octopus-YOUR_API_KEY_HERE"
 }
 ```
 

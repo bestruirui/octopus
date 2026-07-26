@@ -45,7 +45,9 @@ func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transforme
 	}
 
 	if supportedModels := c.GetString("supported_models"); supportedModels != "" {
-		if !slices.Contains(strings.Split(supportedModels, ","), internalRequest.Model) {
+		supportedRoutes := c.GetString("supported_routes")
+		// 当 API Key 配置了路由时，跳过模型名检查（路由的 dispatch 系统自行处理模型路由）
+		if supportedRoutes == "" && !slices.Contains(strings.Split(supportedModels, ","), internalRequest.Model) {
 			err := errors.New("model not supported")
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return nil, err
@@ -91,7 +93,7 @@ func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transforme
 
 	// dispatch LLM 调用成功时，写入独立的 dispatch 日志（通过 op.RelayLogAdd 复用已有日志机制）
 	if dispatchCallInfo.ChannelID > 0 && dispatchCallInfo.ChannelName != "" {
-		go writeDispatchLog(dispatchCallInfo, apiKeyID, c.Request.Context())
+		go writeDispatchLog(dispatchCallInfo, apiKeyID, internalRequest.Model, c.Request.Context())
 	}
 
 	// 未匹配到路由，走原分组逻辑
@@ -552,25 +554,24 @@ func (in *parsedRequestInbound) TransformRequest(ctx context.Context, request *h
 	return in.request, nil
 }
 
-// extractUserContent 从消息列表中提取所有 user 角色的消息内容，拼接为一个字符串
+// extractUserContent 从消息列表中提取最后一条 user 角色的消息内容
+// dispatch 只需要当前轮次的用户输入来判断路由，不需要拼接历史消息
 func extractUserContent(messages []llm.Message) string {
-	var sb strings.Builder
-	for _, m := range messages {
-		if m.Role == "user" {
-			if m.Content.Content != nil {
-				sb.WriteString(*m.Content.Content)
-				sb.WriteString(" ")
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role == "user" {
+			if messages[i].Content.Content != nil {
+				return strings.TrimSpace(*messages[i].Content.Content)
 			}
 		}
 	}
-	return strings.TrimSpace(sb.String())
+	return ""
 }
 
 // writeDispatchLog 将 dispatch LLM 调用信息写入 relay_logs（复用 op.RelayLogAdd）
-func writeDispatchLog(info op.DispatchCallInfo, apiKeyID int, ctx context.Context) {
+func writeDispatchLog(info op.DispatchCallInfo, apiKeyID int, requestModel string, ctx context.Context) {
 	relayLog := dbmodel.RelayLog{
 		Time:             info.StartTime.Unix(),
-		RequestModelName: info.ModelName,
+		RequestModelName: requestModel,
 		ChannelId:        info.ChannelID,
 		ChannelName:      info.ChannelName,
 		ActualModelName:  info.ModelName,
@@ -579,8 +580,8 @@ func writeDispatchLog(info op.DispatchCallInfo, apiKeyID int, ctx context.Contex
 		ResponseContent:  info.ResponseJSON,
 		DispatchGroup:    "dispatch_llm",
 		DispatchResult:   "dispatch LLM call",
-		TotalAttempts:    1,
-		Attempts:         []dbmodel.ChannelAttempt{{ChannelID: info.ChannelID, ChannelName: info.ChannelName, ModelName: info.ModelName, Status: dbmodel.AttemptSuccess, Duration: int(info.Duration.Milliseconds())}},
+		TotalAttempts:    len(info.Attempts),
+		Attempts:         info.Attempts,
 	}
 	if apiKeyID > 0 {
 		if apiKey, getErr := op.APIKeyGet(apiKeyID, ctx); getErr == nil {

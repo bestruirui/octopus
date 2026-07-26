@@ -70,6 +70,11 @@ func RelayLogUnsubscribe(ch chan model.RelayLog) {
 }
 
 func notifySubscribers(relayLog model.RelayLog) {
+	// 分派 LLM 日志不推送给 UI（独立存储，不混入工作日志流）
+	if relayLog.DispatchGroup == "dispatch_llm" {
+		return
+	}
+
 	relayLogSubscribersLock.RLock()
 	defer relayLogSubscribersLock.RUnlock()
 
@@ -242,7 +247,7 @@ func RelayLogList(ctx context.Context, startTime, endTime *int, page, pageSize i
 				dbOffset = offset - cacheCount
 			}
 
-			query := db.GetDB().WithContext(ctx)
+			query := db.GetDB().WithContext(ctx).Model(&model.RelayLog{})
 			if hasTimeFilter {
 				query = query.Where("time >= ? AND time <= ?", *startTime, *endTime)
 			}

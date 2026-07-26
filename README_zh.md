@@ -257,7 +257,7 @@ http://localhost:3000
 
 ### 核心概念
 
-- **路由名称** = 对外暴露的模型名称（如 `think`、`gpt-4o-router`）
+- **路由名称** = 对外暴露的模型名称（如 `think`、`smart-router`）
 - 调用 API 时，将请求中的 `model` 参数设置为**路由名称**
 - 路由内部通过三条优先级路径路由请求：
 
@@ -280,8 +280,8 @@ http://localhost:3000
 
 ```
 路由 "think" (对外模型名称: think)
-├── 主分组: main (gpt-4o, claude-3.5-sonnet 等)  ← 兜底
-├── 分派分组: lite (sensenova-6.7-flash, agnes-2.0-flash)  ← LLM 分类器
+├── 主分组: main (alpha-chat, beta-reason 等)  ← 兜底
+├── 分派分组: lite (gamma-lite, delta-flash)  ← LLM 分类器
 └── 工作分组:
     ├── coding (关键词: "code", "编程", "Python", "Go", "function"...)
     ├── analysis (关键词: "analysis", "分析", "analyze", "review"...)
@@ -387,7 +387,7 @@ import os
 
 client = OpenAI(   
     base_url="http://127.0.0.1:8080/v1",   
-    api_key="sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg", 
+    api_key="sk-octopus-YOUR_API_KEY_HERE", 
 )
 completion = client.chat.completions.create(
     model="octopus-openai",  // 填写正确的分组名称
@@ -406,7 +406,7 @@ print(completion.choices[0].message.content)
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:8080",
-    "ANTHROPIC_AUTH_TOKEN": "sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg",
+    "ANTHROPIC_AUTH_TOKEN": "sk-octopus-YOUR_API_KEY_HERE",
     "API_TIMEOUT_MS": "3000000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "ANTHROPIC_MODEL": "octopus-sonnet-4-5",
@@ -435,7 +435,7 @@ base_url = "http://127.0.0.1:8080/v1"
 
 ```json
 {
-  "OPENAI_API_KEY": "sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg"
+  "OPENAI_API_KEY": "sk-octopus-YOUR_API_KEY_HERE"
 }
 ```
 
