@@ -307,8 +307,19 @@ http://localhost:3000
 
 > ⚠️ **重要提示**：退出程序时，请使用正常的关闭方式（如 `Ctrl+C` 或发送 `SIGTERM` 信号），以确保内存中的统计数据能正确写入数据库。**请勿使用 `kill -9` 等强制终止方式**，否则可能导致统计数据丢失。
 
+**Tailscale Funnel：**
 
+Octopus 可以在 **设置 → Tailscale Funnel** 中通过系统已安装的 Tailscale CLI 暴露本地 API。
 
+使用前准备：
+
+1. 安装 Tailscale，并确保 Octopus 进程可以找到 `tailscale` CLI。
+2. 修改默认的 `admin/admin` 密码，执行 `tailscale login` 登录，并确保当前 tailnet 已允许使用 Funnel。
+3. 在设置页点击 **启动 Funnel**，页面会显示公网地址和 API 地址（`<公网地址>/v1`）。
+
+该功能只调用 `tailscale funnel --bg`，不会自动安装 Tailscale，也不会索取 sudo 密码。默认管理员凭据仍为 admin/admin 时，功能会拒绝启动。HTTPS 443 上已有 Serve/Funnel 配置时会提示冲突，不会执行 reset 覆盖配置。如果二进制文件不在 `PATH` 中，可设置 `OCTOPUS_TAILSCALE_BIN=/path/to/tailscale`。
+
+> ⚠️ Funnel 会将已认证的 Octopus 服务发布到公网。请保持认证开启，不要不必要地分享地址或 API 密钥。
 
 ## 🔌 客户端接入
 
