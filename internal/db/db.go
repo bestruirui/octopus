@@ -61,6 +61,7 @@ func InitDB(dbType, dsn string, debug bool) error {
 		&model.LLMInfo{},
 		&model.APIKey{},
 		&model.Setting{},
+		&model.CircuitBreaker{},
 		&model.StatsTotal{},
 		&model.StatsDaily{},
 		&model.StatsHourly{},

@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"context"
+	"time"
+
 	"github.com/bestruirui/octopus/internal/conf"
 	"github.com/bestruirui/octopus/internal/db"
 	"github.com/bestruirui/octopus/internal/op"
+	"github.com/bestruirui/octopus/internal/relay/balancer"
 	"github.com/bestruirui/octopus/internal/server"
 	"github.com/bestruirui/octopus/internal/task"
 	"github.com/bestruirui/octopus/internal/utils/log"
@@ -35,6 +39,15 @@ var startCmd = &cobra.Command{
 			return
 		}
 		shutdown.Register(op.SaveCache)
+
+		// 加载持久化的熔断器状态（手动禁用、熔断中记录等）
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if err := balancer.Init(ctx); err != nil {
+			cancel()
+			log.Errorf("circuit breaker init error: %v", err)
+			return
+		}
+		cancel()
 
 		if err := op.UserInit(); err != nil {
 			log.Errorf("user init error: %v", err)

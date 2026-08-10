@@ -50,6 +50,7 @@
         "key": "Key",
         "model": "Price",
         "log": "Log",
+        "circuit": "Circuit",
         "setting": "Setting"
     },
     "toolbar": {
@@ -167,22 +168,6 @@
             "label": "CORS Allowed Origins",
             "hint": "Empty = deny all, * = allow all",
             "example": "Only allow specific domains: https://example.com,https://example2.com"
-        },
-        "circuitBreaker": {
-            "title": "Circuit Breaker",
-            "threshold": {
-                "label": "Failure Threshold (consecutive failures)",
-                "placeholder": "Enter threshold"
-            },
-            "cooldown": {
-                "label": "Base Cooldown (seconds)",
-                "placeholder": "Enter cooldown in seconds"
-            },
-            "maxCooldown": {
-                "label": "Max Cooldown (seconds)",
-                "placeholder": "Enter max cooldown in seconds"
-            },
-            "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
         },
         "saved": "Saved",
         "backup": {
@@ -388,7 +373,51 @@
             "failover": "Failover",
             "weighted": "Weighted"
         },
+        "health": {
+            "channelDisabled": "The provider channel is disabled",
+            "tripped": "Circuit breaker tripped ({error})",
+            "manualDisabled": "This model has been manually disabled"
+        },
         "empty": "No groups yet, click the button above to create one"
+    },
+    "circuit": {
+        "config": {
+            "title": "Circuit Breaker",
+            "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown",
+            "threshold": {
+                "label": "Failure Threshold (consecutive failures)",
+                "placeholder": "Enter threshold"
+            },
+            "cooldown": {
+                "label": "Base Cooldown (seconds)",
+                "placeholder": "Enter cooldown in seconds"
+            },
+            "maxCooldown": {
+                "label": "Max Cooldown (seconds)",
+                "placeholder": "Enter max cooldown in seconds"
+            },
+            "saved": "Saved"
+        },
+        "manage": {
+            "title": "Breaker States (Channel × Model)",
+            "empty": "No circuit breaker records yet",
+            "channel": "Channel",
+            "model": "Model",
+            "status": "Status",
+            "statusTripped": "Tripped",
+            "statusHalfOpen": "Half-Open",
+            "statusClosed": "OK",
+            "statusManualDisabled": "Disabled",
+            "lastErrorTime": "Last Error Time",
+            "lastError": "Last Error",
+            "actions": "Actions",
+            "enable": "Enable",
+            "disable": "Disable",
+            "reset": "Reset",
+            "enabledToast": "Model enabled",
+            "disabledToast": "Model disabled",
+            "resetToast": "Circuit breaker reset"
+        }
     },
     "model": {
         "create": {

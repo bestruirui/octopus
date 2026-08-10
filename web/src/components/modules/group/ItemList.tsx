@@ -13,6 +13,7 @@ import { getModelIcon } from '@/lib/model-icons';
 import type { LLMChannel } from '@/api/endpoints/model';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
 import { useTranslations } from 'use-intl';
+import { modelHealth, type ModelHealthState } from './utils';
 
 export interface SelectedMember extends LLMChannel {
     id: string;
@@ -57,7 +58,21 @@ function MemberItem({
 }) {
     const { Avatar: ModelAvatar } = getModelIcon(member.name);
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const isDisabled = member.enabled === false;
+    const t = useTranslations('group');
+    const health = modelHealth(member);
+    const isDisabled = health !== 'ok';
+    const healthHint = health === 'channel-disabled' ? t('health.channelDisabled')
+        : health === 'tripped' ? t('health.tripped', { error: member.breaker_last_error || '' })
+        : health === 'manual-disabled' ? t('health.manualDisabled')
+        : '';
+
+    const rowClass = cn(
+        'flex items-center gap-2 rounded-lg bg-background border border-border/50 px-2.5 py-2 select-none transition-opacity duration-200 relative overflow-hidden',
+        isRemoving && 'opacity-0',
+        health === 'channel-disabled' && 'opacity-60 grayscale',
+        health === 'tripped' && 'opacity-50 border-red-500/40',
+        health === 'manual-disabled' && 'opacity-30'
+    );
 
     return (
         <div
@@ -76,11 +91,7 @@ function MemberItem({
                 ...(dnd.isDragging ? { zIndex: 50, boxShadow: '0 8px 32px rgba(0,0,0,0.15)' } : null),
             }}
         >
-            <div className={cn(
-                'flex items-center gap-2 rounded-lg bg-background border border-border/50 px-2.5 py-2 select-none transition-opacity duration-200 relative overflow-hidden',
-                isRemoving && 'opacity-0',
-                isDisabled && 'opacity-60 grayscale'
-            )}>
+            <div className={rowClass}>
                 <span className={cn(
                     'size-5 rounded-md text-xs font-bold grid place-items-center shrink-0',
                     isDisabled ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
@@ -109,11 +120,17 @@ function MemberItem({
                     <Tooltip side="top" sideOffset={10} align="start">
                         <TooltipTrigger className={cn(
                             'text-sm font-medium truncate leading-tight',
-                            isDisabled && 'text-muted-foreground'
+                            isDisabled && 'text-muted-foreground',
+                            health === 'manual-disabled' && 'line-through'
                         )}>
                             {member.name}
                         </TooltipTrigger>
-                        <TooltipContent key={member.name}>{member.name}</TooltipContent>
+                        <TooltipContent key={member.name}>
+                            <div className="flex flex-col gap-1">
+                                <span>{member.name}</span>
+                                {healthHint && <span className="text-xs opacity-80">{healthHint}</span>}
+                            </div>
+                        </TooltipContent>
                     </Tooltip>
                     <span className="text-[10px] text-muted-foreground truncate leading-tight">{member.channel_name}</span>
                 </div>

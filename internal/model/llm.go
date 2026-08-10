@@ -17,6 +17,12 @@ type LLMChannel struct {
 	Enabled     bool   `json:"enabled"`
 	ChannelID   int    `json:"channel_id"`
 	ChannelName string `json:"channel_name"`
+
+	// 熔断器状态（用于分组界面区分展示：熔断中 / 手动禁用 / 正常）
+	BreakerState          int    `json:"breaker_state"`
+	BreakerManualDisabled bool   `json:"breaker_manual_disabled"`
+	BreakerLastErrorTime  int64  `json:"breaker_last_error_time"`
+	BreakerLastError      string `json:"breaker_last_error"`
 }
 
 type GeminiModel struct {

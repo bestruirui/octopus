@@ -303,6 +303,12 @@ func ChannelDel(id int, ctx context.Context) error {
 		return fmt.Errorf("failed to delete channel stats: %w", err)
 	}
 
+	// 删除熔断器记录
+	if err := tx.Where("channel_id = ?", id).Delete(&model.CircuitBreaker{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete circuit breakers: %w", err)
+	}
+
 	// 删除渠道
 	if err := tx.Delete(&model.Channel{}, id).Error; err != nil {
 		tx.Rollback()
@@ -334,18 +340,37 @@ func ChannelDel(id int, ctx context.Context) error {
 
 func ChannelLLMList(ctx context.Context) ([]model.LLMChannel, error) {
 	models := []model.LLMChannel{}
+
+	// 加载熔断器状态，用于分组界面区分展示（熔断中 / 手动禁用）
+	breakerRecords, err := CircuitBreakerList(ctx)
+	if err != nil {
+		log.Warnf("failed to load circuit breakers for llm channel list: %v", err)
+		breakerRecords = nil
+	}
+	breakerByKey := make(map[string]model.CircuitBreaker, len(breakerRecords))
+	for _, r := range breakerRecords {
+		breakerByKey[fmt.Sprintf("%d:%s", r.ChannelID, r.ModelName)] = r
+	}
+
 	for _, channel := range channelCache.GetAll() {
 		modelNames := xstrings.SplitTrimCompact(",", channel.Model, channel.CustomModel)
 		for _, modelName := range modelNames {
 			if modelName == "" {
 				continue
 			}
-			models = append(models, model.LLMChannel{
+			llmChannel := model.LLMChannel{
 				Name:        modelName,
 				Enabled:     channel.Enabled,
 				ChannelID:   channel.ID,
 				ChannelName: channel.Name,
-			})
+			}
+			if cb, ok := breakerByKey[fmt.Sprintf("%d:%s", channel.ID, modelName)]; ok {
+				llmChannel.BreakerState = cb.State
+				llmChannel.BreakerManualDisabled = cb.ManualDisabled
+				llmChannel.BreakerLastErrorTime = cb.LastErrorTime
+				llmChannel.BreakerLastError = cb.LastError
+			}
+			models = append(models, llmChannel)
 		}
 	}
 	return models, nil

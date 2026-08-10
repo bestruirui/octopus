@@ -27,6 +27,14 @@ export interface LLMChannel {
     enabled: boolean;
     channel_id: number;
     channel_name: string;
+    /** 熔断器状态：0=正常 1=熔断中 2=半开 */
+    breaker_state?: number;
+    /** 手动禁用（管理员显式关闭） */
+    breaker_manual_disabled?: boolean;
+    /** 上次报错时间（Unix 秒） */
+    breaker_last_error_time?: number;
+    /** 上次报错信息 */
+    breaker_last_error?: string;
 }
 
 /**

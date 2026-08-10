@@ -50,6 +50,7 @@
         "key": "密钥",
         "model": "价格",
         "log": "日志",
+        "circuit": "熔断",
         "setting": "设置"
     },
     "toolbar": {
@@ -167,22 +168,6 @@
             "label": "CORS 跨域白名单",
             "hint": "为空禁止跨域，* 允许所有",
             "example": "只允许指定域名: https://example.com,https://example2.com"
-        },
-        "circuitBreaker": {
-            "title": "熔断器配置",
-            "threshold": {
-                "label": "熔断触发阈值（连续失败次数）",
-                "placeholder": "请输入阈值"
-            },
-            "cooldown": {
-                "label": "基础冷却时间（秒）",
-                "placeholder": "请输入冷却时间"
-            },
-            "maxCooldown": {
-                "label": "最大冷却时间（秒）",
-                "placeholder": "请输入最大冷却时间"
-            },
-            "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间"
         },
         "saved": "已保存",
         "backup": {
@@ -388,7 +373,51 @@
             "failover": "故障转移",
             "weighted": "加权分配"
         },
+        "health": {
+            "channelDisabled": "所属渠道(Provider)未启用",
+            "tripped": "该模型已被熔断（{error}）",
+            "manualDisabled": "该模型已被手动禁用"
+        },
         "empty": "暂无分组，点击左上角按钮创建"
+    },
+    "circuit": {
+        "config": {
+            "title": "熔断器配置",
+            "hint": "当渠道连续失败达到阈值后触发熔断，冷却时间按指数退避增长，上限为最大冷却时间",
+            "threshold": {
+                "label": "熔断触发阈值（连续失败次数）",
+                "placeholder": "请输入阈值"
+            },
+            "cooldown": {
+                "label": "基础冷却时间（秒）",
+                "placeholder": "请输入冷却时间"
+            },
+            "maxCooldown": {
+                "label": "最大冷却时间（秒）",
+                "placeholder": "请输入最大冷却时间"
+            },
+            "saved": "已保存"
+        },
+        "manage": {
+            "title": "熔断状态管理（渠道 × 模型）",
+            "empty": "暂无熔断记录",
+            "channel": "渠道",
+            "model": "模型",
+            "status": "状态",
+            "statusTripped": "熔断中",
+            "statusHalfOpen": "半开试探",
+            "statusClosed": "正常",
+            "statusManualDisabled": "已禁用",
+            "lastErrorTime": "上次报错时间",
+            "lastError": "报错信息",
+            "actions": "操作",
+            "enable": "启用",
+            "disable": "禁用",
+            "reset": "取消熔断",
+            "enabledToast": "已启用该模型",
+            "disabledToast": "已禁用该模型",
+            "resetToast": "已取消熔断"
+        }
     },
     "model": {
         "create": {

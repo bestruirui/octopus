@@ -86,20 +86,39 @@ export function GroupCard({ group }: { group: Group }) {
         });
         return map;
     }, [modelChannels]);
+    // 熔断器状态（熔断中 / 手动禁用），用于分组列表中的状态展示
+    const breakerByKey = useMemo(() => {
+        const map = new Map<string, { breaker_state?: number; breaker_manual_disabled?: boolean; breaker_last_error?: string }>();
+        modelChannels.forEach((mc) => {
+            map.set(modelChannelKey(mc.channel_id, mc.name), {
+                breaker_state: mc.breaker_state,
+                breaker_manual_disabled: mc.breaker_manual_disabled,
+                breaker_last_error: mc.breaker_last_error,
+            });
+        });
+        return map;
+    }, [modelChannels]);
 
     const displayMembers = useMemo((): SelectedMember[] =>
         [...(group.items || [])]
             .sort((a, b) => a.priority - b.priority)
-            .map((item) => ({
-                id: modelChannelKey(item.channel_id, item.model_name),
-                name: item.model_name,
-                enabled: enabledByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? true,
-                channel_id: item.channel_id,
-                channel_name: channelNameByKey.get(modelChannelKey(item.channel_id, item.model_name)) ?? `Channel ${item.channel_id}`,
-                item_id: item.id,
-                weight: item.weight,
-            })),
-        [group.items, channelNameByKey, enabledByKey]
+            .map((item) => {
+                const key = modelChannelKey(item.channel_id, item.model_name);
+                const breaker = breakerByKey.get(key);
+                return {
+                    id: key,
+                    name: item.model_name,
+                    enabled: enabledByKey.get(key) ?? true,
+                    channel_id: item.channel_id,
+                    channel_name: channelNameByKey.get(key) ?? `Channel ${item.channel_id}`,
+                    breaker_state: breaker?.breaker_state,
+                    breaker_manual_disabled: breaker?.breaker_manual_disabled,
+                    breaker_last_error: breaker?.breaker_last_error,
+                    item_id: item.id,
+                    weight: item.weight,
+                };
+            }),
+        [group.items, channelNameByKey, enabledByKey, breakerByKey]
     );
 
     useEffect(() => {

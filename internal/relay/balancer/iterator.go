@@ -95,20 +95,22 @@ func (it *Iterator) Skip(channelID, channelKeyID int, channelName, msg string) {
 }
 
 // SkipCircuitBreak 检查熔断状态，若已熔断自动记录（含剩余冷却时间）并返回 true
-func (it *Iterator) SkipCircuitBreak(channelID, channelKeyID int, channelName string) bool {
+func (it *Iterator) SkipCircuitBreak(channelID int, channelName string) bool {
 	modelName := it.candidates[it.index].ModelName
-	tripped, remaining := IsTripped(channelID, channelKeyID, modelName)
+	tripped, remaining := IsTripped(channelID, modelName)
 	if !tripped {
 		return false
 	}
 	msg := "circuit breaker tripped"
-	if remaining > 0 {
+	if IsManualDisabled(channelID, modelName) {
+		msg = "model manually disabled"
+	} else if remaining > 0 {
 		msg = fmt.Sprintf("circuit breaker tripped, remaining cooldown: %ds", int(remaining.Seconds()))
 	}
 	it.count++
 	it.attempts = append(it.attempts, model.ChannelAttempt{
 		ChannelID:    channelID,
-		ChannelKeyID: channelKeyID,
+		ChannelKeyID: 0,
 		ChannelName:  channelName,
 		ModelName:    modelName,
 		AttemptNum:   it.count,

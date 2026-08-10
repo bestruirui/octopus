@@ -12,7 +12,7 @@ import { getModelIcon } from '@/lib/model-icons';
 import type { GroupMode } from '@/api/endpoints/group';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
-import { matchesGroupName, memberKey, normalizeKey, MODE_LABELS } from './utils';
+import { matchesGroupName, memberKey, modelHealth, normalizeKey, MODE_LABELS } from './utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/animate-ui/components/animate/tooltip';
 import { HelpCircle } from 'lucide-react';
 
@@ -133,20 +133,50 @@ function ModelPickerSection({
                                         {channel.models.map((m) => {
                                             const isSelected = selectedKeys.has(memberKey(m));
                                             const { Avatar } = getModelIcon(m.name);
+                                            const health = modelHealth(m);
+                                            const unavailable = isSelected || health !== 'ok';
+                                            const healthHint = health === 'channel-disabled' ? t('health.channelDisabled')
+                                                : health === 'tripped' ? t('health.tripped', { error: m.breaker_last_error || '' })
+                                                : health === 'manual-disabled' ? t('health.manualDisabled')
+                                                : '';
                                             return (
                                                 <button
                                                     key={memberKey(m)}
                                                     type="button"
-                                                    onClick={() => !isSelected && onAdd(m)}
-                                                    disabled={isSelected}
+                                                    onClick={() => !unavailable && onAdd(m)}
+                                                    disabled={unavailable}
                                                     className={cn(
                                                         'w-full flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-background px-2.5 py-2 text-left transition-colors',
-                                                        isSelected ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted'
+                                                        isSelected && 'opacity-60 cursor-not-allowed',
+                                                        health === 'channel-disabled' && 'opacity-50 grayscale',
+                                                        health === 'tripped' && 'opacity-50 border-red-500/40',
+                                                        health === 'manual-disabled' && 'opacity-30',
+                                                        !unavailable && 'hover:bg-muted'
                                                     )}
                                                 >
                                                     <span className="flex items-center gap-2 min-w-0">
                                                         <Avatar size={16} />
-                                                        <span className="text-sm font-medium truncate">{m.name}</span>
+                                                        <span className={cn(
+                                                            'text-sm font-medium truncate',
+                                                            health === 'manual-disabled' && 'line-through',
+                                                            health !== 'ok' && 'text-muted-foreground'
+                                                        )}>
+                                                            {m.name}
+                                                        </span>
+                                                        {health !== 'ok' && healthHint && (
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <span className="shrink-0 size-3.5 text-muted-foreground cursor-help" title={healthHint}>
+                                                                            <HelpCircle className="size-3.5" />
+                                                                        </span>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent className="max-w-xs">
+                                                                        {healthHint}
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        )}
                                                     </span>
 
                                                     <span className="shrink-0 text-muted-foreground">

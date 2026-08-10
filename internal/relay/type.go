@@ -25,4 +25,8 @@ type relayAttempt struct {
 	outAdapter transformer.Outbound
 	channel    *dbmodel.Channel
 	usedKey    dbmodel.ChannelKey
+
+	// 最近一次上游请求失败时的原始状态码与错误体（用于熔断判定）。
+	upstreamStatusCode int
+	upstreamErrBody    string
 }

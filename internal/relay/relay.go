@@ -141,7 +141,7 @@ func (r *relayRun) prepareAttempt() (*relayAttempt, error) {
 		r.iter.Skip(channel.ID, 0, channel.Name, "no available key")
 		return nil, nil
 	}
-	if r.iter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name) {
+	if r.iter.SkipCircuitBreak(channel.ID, channel.Name) {
 		return nil, nil
 	}
 
@@ -187,7 +187,7 @@ func (ra *relayAttempt) run() (bool, error) {
 			WaitTime:       span.Duration().Milliseconds(),
 			RequestSuccess: 1,
 		})
-		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		balancer.RecordSuccess(ra.channel.ID, ra.internalRequest.Model)
 		balancer.SetSticky(ra.metrics.APIKeyID, ra.metrics.RequestModel, ra.channel.ID, ra.usedKey.ID)
 		return false, nil
 	}
@@ -198,7 +198,12 @@ func (ra *relayAttempt) run() (bool, error) {
 		WaitTime:      span.Duration().Milliseconds(),
 		RequestFailed: 1,
 	})
-	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	// 优先使用上游返回的错误体识别额度耗尽等场景；缺失时退回完整错误信息。
+	errMsg := ra.upstreamErrBody
+	if errMsg == "" {
+		errMsg = fwdErr.Error()
+	}
+	balancer.RecordFailure(ra.channel.ID, ra.internalRequest.Model, ra.channel.Name, ra.upstreamStatusCode, errMsg)
 
 	return ra.c.Writer.Written(), fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr)
 }
@@ -472,8 +477,12 @@ func (m *relayPipelineMiddleware) OnOutboundRawRequest(ctx context.Context, requ
 func (m *relayPipelineMiddleware) OnOutboundRawError(ctx context.Context, err error) {
 	var upstreamErr *httpclient.Error
 	if errors.As(err, &upstreamErr) {
-		// pipeline 会把上游错误转换成统一错误返回；这里在转换前记录原始 HTTP 状态码，用于渠道 key 的后续调度决策。
+		// pipeline 会把上游错误转换成统一错误返回；这里在转换前记录原始 HTTP 状态码和错误体，用于熔断判定。
 		m.upstreamStatusCode = upstreamErr.StatusCode
+		m.attempt.upstreamStatusCode = upstreamErr.StatusCode
+		if len(upstreamErr.Body) > 0 {
+			m.attempt.upstreamErrBody = string(upstreamErr.Body)
+		}
 	}
 }
 

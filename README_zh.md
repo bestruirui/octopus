@@ -64,8 +64,8 @@ git clone https://github.com/bestruirui/octopus.git
 cd octopus
 # 构建前端
 cd web && pnpm install && pnpm run build && cd ..
-# 移动前端产物到 static 目录
-mv web/out static/
+# 移动前端产物到 static 目录（已在vite.config.ts中配置）
+# mv web/out static/
 # 启动后端服务
 go run main.go start 
 ```
