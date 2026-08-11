@@ -18,22 +18,23 @@ const (
 const ChannelTypeDoubao llm.APIFormat = "doubao"
 
 type Channel struct {
-	ID            int            `json:"id" gorm:"primaryKey"`
-	Name          string         `json:"name" gorm:"unique;not null"`
-	Type          llm.APIFormat  `json:"type"`
-	Enabled       bool           `json:"enabled" gorm:"default:true"`
-	BaseUrls      []BaseUrl      `json:"base_urls" gorm:"serializer:json"`
-	Keys          []ChannelKey   `json:"keys" gorm:"foreignKey:ChannelID"`
-	Model         string         `json:"model"`
-	CustomModel   string         `json:"custom_model"`
-	Proxy         bool           `json:"proxy" gorm:"default:false"`
-	AutoSync      bool           `json:"auto_sync" gorm:"default:false"`
-	AutoGroup     AutoGroupType  `json:"auto_group" gorm:"default:0"`
-	CustomHeader  []CustomHeader `json:"custom_header" gorm:"serializer:json"`
-	ParamOverride *string        `json:"param_override"`
-	ChannelProxy  *string        `json:"channel_proxy"`
-	Stats         *StatsChannel  `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
-	MatchRegex    *string        `json:"match_regex"`
+	ID                int            `json:"id" gorm:"primaryKey"`
+	Name              string         `json:"name" gorm:"unique;not null"`
+	Type              llm.APIFormat  `json:"type"`
+	Enabled           bool           `json:"enabled" gorm:"default:true"`
+	BaseUrls          []BaseUrl      `json:"base_urls" gorm:"serializer:json"`
+	Keys              []ChannelKey   `json:"keys" gorm:"foreignKey:ChannelID"`
+	Model             string         `json:"model"`
+	CustomModel       string         `json:"custom_model"`
+	Proxy             bool           `json:"proxy" gorm:"default:false"`
+	AutoSync          bool           `json:"auto_sync" gorm:"default:false"`
+	AutoGroup         AutoGroupType  `json:"auto_group" gorm:"default:0"`
+	CustomHeader      []CustomHeader `json:"custom_header" gorm:"serializer:json"`
+	ParamOverride     *string        `json:"param_override"`
+	NativePassthrough bool           `json:"native_passthrough" gorm:"default:false"`
+	ChannelProxy      *string        `json:"channel_proxy"`
+	Stats             *StatsChannel  `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
+	MatchRegex        *string        `json:"match_regex"`
 }
 
 type BaseUrl struct {
@@ -59,20 +60,21 @@ type ChannelKey struct {
 
 // ChannelUpdateRequest 渠道更新请求 - 仅包含变更的数据
 type ChannelUpdateRequest struct {
-	ID            int             `json:"id" binding:"required"`
-	Name          *string         `json:"name,omitempty"`
-	Type          *llm.APIFormat  `json:"type,omitempty"`
-	Enabled       *bool           `json:"enabled,omitempty"`
-	BaseUrls      *[]BaseUrl      `json:"base_urls,omitempty"`
-	Model         *string         `json:"model,omitempty"`
-	CustomModel   *string         `json:"custom_model,omitempty"`
-	Proxy         *bool           `json:"proxy,omitempty"`
-	AutoSync      *bool           `json:"auto_sync,omitempty"`
-	AutoGroup     *AutoGroupType  `json:"auto_group,omitempty"`
-	CustomHeader  *[]CustomHeader `json:"custom_header,omitempty"`
-	ChannelProxy  *string         `json:"channel_proxy,omitempty"`
-	ParamOverride *string         `json:"param_override,omitempty"`
-	MatchRegex    *string         `json:"match_regex,omitempty"`
+	ID                int             `json:"id" binding:"required"`
+	Name              *string         `json:"name,omitempty"`
+	Type              *llm.APIFormat  `json:"type,omitempty"`
+	Enabled           *bool           `json:"enabled,omitempty"`
+	BaseUrls          *[]BaseUrl      `json:"base_urls,omitempty"`
+	Model             *string         `json:"model,omitempty"`
+	CustomModel       *string         `json:"custom_model,omitempty"`
+	Proxy             *bool           `json:"proxy,omitempty"`
+	AutoSync          *bool           `json:"auto_sync,omitempty"`
+	AutoGroup         *AutoGroupType  `json:"auto_group,omitempty"`
+	CustomHeader      *[]CustomHeader `json:"custom_header,omitempty"`
+	ChannelProxy      *string         `json:"channel_proxy,omitempty"`
+	ParamOverride     *string         `json:"param_override,omitempty"`
+	NativePassthrough *bool           `json:"native_passthrough,omitempty"`
+	MatchRegex        *string         `json:"match_regex,omitempty"`
 
 	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
 	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`

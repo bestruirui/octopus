@@ -25,10 +25,13 @@ type RelayMetrics struct {
 	// 请求和最终响应体；InternalResponse 保存实际写回客户端或流式聚合后的 body，不再强制转换成 llm.Response。
 	InternalRequest  *llm.Request
 	InternalResponse []byte
+	RawRequestBody   []byte
 
 	// 统计指标
-	ActualModel string
-	Stats       model.StatsMetrics
+	ActualModel    string
+	Stats          model.StatsMetrics
+	CachedToken    int64
+	ReasoningToken int64
 
 	// 参数覆盖
 	ParamOverride string
@@ -42,14 +45,18 @@ func (m *RelayMetrics) RecordUsage(usage *llm.Usage) {
 	// usage 已由 axonhub/llm 标准化；octopus 仍使用本地模型价格表计算成本，所以这里只做用量落点和价格换算。
 	m.Stats.InputToken = usage.PromptTokens
 	m.Stats.OutputToken = usage.CompletionTokens
+	tokenDetails := usage.PromptTokensDetails
+	if tokenDetails == nil {
+		tokenDetails = &llm.PromptTokensDetails{}
+	}
+	m.CachedToken = tokenDetails.CachedTokens
+	if usage.CompletionTokensDetails != nil {
+		m.ReasoningToken = usage.CompletionTokensDetails.ReasoningTokens
+	}
 
 	modelPrice := price.GetLLMPrice(m.ActualModel)
 	if modelPrice == nil {
 		return
-	}
-	tokenDetails := usage.PromptTokensDetails
-	if tokenDetails == nil {
-		tokenDetails = &llm.PromptTokensDetails{}
 	}
 	// 缓存读、缓存写和普通输入的单价不同；如果上游返回的缓存明细超过总输入 token，就退回按全部输入 token 计费，避免出现负成本。
 	nonCachedTokens := usage.PromptTokens - tokenDetails.CachedTokens - tokenDetails.WriteCachedTokens
@@ -161,6 +168,9 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 }
 
 func (m *RelayMetrics) requestContent() string {
+	if len(m.RawRequestBody) > 0 {
+		return string(m.RawRequestBody)
+	}
 	if m.InternalRequest == nil {
 		return ""
 	}

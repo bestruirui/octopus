@@ -30,7 +30,7 @@ import (
 func Handler(inboundType llm.APIFormat) gin.HandlerFunc {
 	inAdapter := newInbound(inboundType)
 	return func(c *gin.Context) {
-		run, err := newRelayRun(c, inboundType, inAdapter)
+		run, err := newRelayRun(c, inboundType, inAdapter, nil)
 		if err != nil {
 			return
 		}
@@ -38,44 +38,78 @@ func Handler(inboundType llm.APIFormat) gin.HandlerFunc {
 	}
 }
 
-func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transformer.Inbound) (*relayRun, error) {
-	internalRequest, err := parseRequest(c, inboundType, inAdapter)
-	if err != nil {
-		return nil, err
+func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transformer.Inbound, passthrough *PassthroughOptions) (*relayRun, error) {
+	var (
+		internalRequest *llm.Request
+		rawRequest      *httpclient.Request
+		requestModel    string
+		requestParsed   bool
+		err             error
+	)
+
+	if inboundType == llm.APIFormatOpenAIResponse || passthrough != nil {
+		rawRequest, requestModel, err = parseRoutingRequest(c, passthrough == nil || passthrough.ExtractModel)
+		if err != nil {
+			return nil, err
+		}
+		internalRequest = &llm.Request{
+			Model:       requestModel,
+			RequestType: llm.RequestTypeChat,
+			RawRequest:  rawRequest,
+		}
+	} else {
+		internalRequest, err = parseRequest(c, inboundType, inAdapter)
+		if err != nil {
+			return nil, err
+		}
+		rawRequest = internalRequest.RawRequest
+		requestModel = internalRequest.Model
+		requestParsed = true
 	}
 
 	if supportedModels := c.GetString("supported_models"); supportedModels != "" {
-		if !slices.Contains(strings.Split(supportedModels, ","), internalRequest.Model) {
+		if !slices.Contains(strings.Split(supportedModels, ","), requestModel) {
 			err := errors.New("model not supported")
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return nil, err
 		}
 	}
 
-	group, err := op.GroupGetEnabledMap(internalRequest.Model, c.Request.Context())
+	group, err := op.GroupGetEnabledMap(requestModel, c.Request.Context())
 	if err != nil {
 		resp.Error(c, http.StatusNotFound, "model not found")
 		return nil, err
 	}
 
 	apiKeyID := c.GetInt("api_key_id")
-	iter := balancer.NewIterator(group, apiKeyID, internalRequest.Model)
+	iter := balancer.NewIterator(group, apiKeyID, requestModel)
 	if iter.Len() == 0 {
 		err := errors.New("no available channel")
 		resp.Error(c, http.StatusServiceUnavailable, err.Error())
 		return nil, err
 	}
 
+	var rawRequestBody []byte
+	if inboundType == llm.APIFormatOpenAIResponse || passthrough != nil {
+		rawRequestBody = append([]byte(nil), rawRequest.Body...)
+	}
+
 	return &relayRun{
 		c:               c,
+		inboundType:     inboundType,
 		inAdapter:       inAdapter,
 		internalRequest: internalRequest,
+		requestParsed:   requestParsed,
+		rawRequest:      rawRequest,
+		requestModel:    requestModel,
+		passthrough:     passthrough,
 		metrics: &RelayMetrics{
 			APIKeyID:        apiKeyID,
-			RequestModel:    internalRequest.Model,
-			ActualModel:     internalRequest.Model,
+			RequestModel:    requestModel,
+			ActualModel:     requestModel,
 			StartTime:       time.Now(),
 			InternalRequest: internalRequest,
+			RawRequestBody:  rawRequestBody,
 		},
 		iter:  iter,
 		group: group,
@@ -98,6 +132,10 @@ func (r *relayRun) run() {
 		attempt, err := r.prepareAttempt()
 		if err != nil {
 			lastErr = err
+			if r.c.Writer.Written() {
+				r.metrics.Save(ctx, false, err, r.iter.Attempts())
+				return
+			}
 			continue
 		}
 		if attempt == nil {
@@ -145,26 +183,73 @@ func (r *relayRun) prepareAttempt() (*relayAttempt, error) {
 		return nil, nil
 	}
 
-	outAdapter, err := newOutbound(channel.Type, r.internalRequest, channel.GetBaseUrl(), usedKey.ChannelKey)
-	if err != nil {
-		r.iter.Skip(channel.ID, usedKey.ID, channel.Name, err.Error())
+	native := r.nativePassthroughEnabled(channel)
+	if r.passthrough != nil && !native {
+		r.iter.Skip(channel.ID, usedKey.ID, channel.Name, "channel does not support OpenAI native passthrough")
 		return nil, nil
 	}
 
-	// 每次尝试都把客户端模型改成本次候选的实际上游模型；重试时会被下一候选覆盖。
-	r.internalRequest.Model = item.ModelName
+	var outAdapter transformer.Outbound
+	if !native {
+		internalRequest, parseErr := r.ensureInternalRequest()
+		if parseErr != nil {
+			r.iter.Skip(channel.ID, usedKey.ID, channel.Name, parseErr.Error())
+			statusCode := http.StatusInternalServerError
+			if errors.Is(parseErr, transformer.ErrInvalidRequest) {
+				statusCode = http.StatusBadRequest
+			}
+			resp.Error(r.c, statusCode, parseErr.Error())
+			return nil, parseErr
+		}
+		outAdapter, err = newOutbound(channel.Type, internalRequest, channel.GetBaseUrl(), usedKey.ChannelKey)
+		if err != nil {
+			r.iter.Skip(channel.ID, usedKey.ID, channel.Name, err.Error())
+			return nil, nil
+		}
+		internalRequest.Model = item.ModelName
+	}
+
 	r.metrics.ActualModel = item.ModelName
 	r.metrics.ParamOverride = ""
-	log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
+	log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t, native=%t)",
 		r.metrics.RequestModel, r.group.Mode, channel.Name, item.ModelName,
-		r.iter.Index()+1, r.iter.Len(), r.iter.IsSticky())
+		r.iter.Index()+1, r.iter.Len(), r.iter.IsSticky(), native)
 
 	return &relayAttempt{
-		relayRun:   r,
-		outAdapter: outAdapter,
-		channel:    channel,
-		usedKey:    usedKey,
+		relayRun:      r,
+		outAdapter:    outAdapter,
+		channel:       channel,
+		usedKey:       usedKey,
+		native:        native,
+		upstreamModel: item.ModelName,
 	}, nil
+}
+
+func (r *relayRun) nativePassthroughEnabled(channel *dbmodel.Channel) bool {
+	if channel == nil || !channel.NativePassthrough || channel.Type != llm.APIFormatOpenAIResponse {
+		return false
+	}
+	return r.inboundType == llm.APIFormatOpenAIResponse || r.passthrough != nil
+}
+
+func (r *relayRun) ensureInternalRequest() (*llm.Request, error) {
+	if r.requestParsed {
+		return r.internalRequest, nil
+	}
+	if r.inAdapter == nil {
+		return nil, fmt.Errorf("unsupported inbound type: %s", r.inboundType)
+	}
+	request, err := r.inAdapter.TransformRequest(r.c.Request.Context(), r.rawRequest)
+	if err != nil {
+		return nil, err
+	}
+	if request.RawRequest == nil {
+		request.RawRequest = r.rawRequest
+	}
+	r.internalRequest = request
+	r.metrics.InternalRequest = request
+	r.requestParsed = true
+	return request, nil
 }
 
 // run 统一管理一次通道尝试的完整生命周期。
@@ -179,26 +264,26 @@ func (ra *relayAttempt) run() (bool, error) {
 	ra.usedKey.LastUseTimeStamp = time.Now().Unix()
 
 	if fwdErr == nil {
-		ra.usedKey.TotalCost += ra.metrics.Stats.InputCost + ra.metrics.Stats.OutputCost
-		op.ChannelKeyUpdate(ra.usedKey)
+		costDelta := ra.metrics.Stats.InputCost + ra.metrics.Stats.OutputCost
+		op.ChannelKeyUpdate(ra.usedKey, costDelta)
 
 		span.End(dbmodel.AttemptSuccess, "")
 		op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
 			WaitTime:       span.Duration().Milliseconds(),
 			RequestSuccess: 1,
 		})
-		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+		balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.upstreamModel)
 		balancer.SetSticky(ra.metrics.APIKeyID, ra.metrics.RequestModel, ra.channel.ID, ra.usedKey.ID)
 		return false, nil
 	}
 
-	op.ChannelKeyUpdate(ra.usedKey)
+	op.ChannelKeyUpdate(ra.usedKey, 0)
 	span.End(dbmodel.AttemptFailed, fwdErr.Error())
 	op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
 		WaitTime:      span.Duration().Milliseconds(),
 		RequestFailed: 1,
 	})
-	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+	balancer.RecordFailure(ra.channel.ID, ra.usedKey.ID, ra.upstreamModel)
 
 	return ra.c.Writer.Written(), fmt.Errorf("channel %s failed: %v", ra.channel.Name, fwdErr)
 }
@@ -235,6 +320,9 @@ func parseRequest(c *gin.Context, inboundType llm.APIFormat, inAdapter transform
 
 // forward 转发请求到上游服务
 func (ra *relayAttempt) forward() (int, error) {
+	if ra.native {
+		return ra.forwardPassthrough()
+	}
 	ctx := ra.c.Request.Context()
 	if ra.internalRequest.RawRequest == nil {
 		return 0, fmt.Errorf("missing raw request")

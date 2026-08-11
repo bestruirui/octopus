@@ -515,6 +515,8 @@
             "channelProxyPlaceholder": "Optional: proxy for this channel (overrides global proxy)",
             "paramOverride": "Param Override",
             "paramOverridePlaceholder": "Optional: JSON string to override request params",
+            "nativePassthrough": "OpenAI/Codex native passthrough",
+            "nativePassthroughHint": "Preserves raw OpenAI Responses fields and SSE events while retaining Octopus routing, failover, logging, and usage accounting.",
             "model": "Model",
             "enabled": "Enabled",
             "proxy": "Use Proxy",

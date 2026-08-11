@@ -19,6 +19,7 @@ export function CreateDialogContent() {
         custom_header: [],
         channel_proxy: '',
         param_override: '',
+        native_passthrough: false,
         keys: [{ enabled: true, channel_key: '', remark: '' }],
         model: '',
         custom_model: '',
@@ -60,6 +61,7 @@ export function CreateDialogContent() {
                 custom_header: normalizedHeaders,
                 channel_proxy: channelProxy,
                 param_override: paramOverride,
+                native_passthrough: formData.native_passthrough,
                 match_regex: formData.match_regex.trim(),
             },
             {
@@ -71,6 +73,7 @@ export function CreateDialogContent() {
                         custom_header: [],
                         channel_proxy: '',
                         param_override: '',
+                        native_passthrough: false,
                         keys: [{ enabled: true, channel_key: '', remark: '' }],
                         model: '',
                         custom_model: '',

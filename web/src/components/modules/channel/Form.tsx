@@ -32,6 +32,7 @@ export interface ChannelFormData {
     custom_header: Channel['custom_header'];
     channel_proxy: string;
     param_override: string;
+    native_passthrough: boolean;
     keys: ChannelKeyFormItem[];
     model: string;
     custom_model: string;
@@ -587,6 +588,17 @@ export function ChannelForm({
                     <span className="text-sm font-medium text-card-foreground">{t('enabled')}</span>
                 </label>
                 <div className="flex items-center gap-6">
+                    {formData.type === ChannelType.OpenAIResponse && (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <Switch
+                                checked={formData.native_passthrough}
+                                onCheckedChange={(checked) => onFormDataChange({ ...formData, native_passthrough: checked })}
+                            />
+                            <span className="text-sm text-card-foreground" title={t('nativePassthroughHint')}>
+                                {t('nativePassthrough')}
+                            </span>
+                        </label>
+                    )}
                     <label className="flex items-center gap-2 cursor-pointer">
                         <Switch
                             checked={formData.proxy}

@@ -515,6 +515,8 @@
             "channelProxyPlaceholder": "可选：仅对该渠道生效（覆盖全局代理）",
             "paramOverride": "参数覆盖",
             "paramOverridePlaceholder": "可选：JSON 字符串，用于覆盖请求参数",
+            "nativePassthrough": "OpenAI/Codex 原生透传",
+            "nativePassthroughHint": "保留 OpenAI Responses 原始字段和 SSE 事件，同时继续使用 Octopus 路由、故障转移、日志与用量统计。",
             "model": "模型",
             "enabled": "启用",
             "proxy": "使用代理",
