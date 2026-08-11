@@ -26,6 +26,14 @@ type RelayMetrics struct {
 	InternalRequest  *llm.Request
 	InternalResponse []byte
 
+	// 原始客户端请求（用于日志第一栏展示），在选路前快照，避免被每次通道尝试覆盖。
+	OriginalRequestType   string
+	OriginalRequestFormat string
+	OriginalRequestBody   []byte
+
+	// 上游渠道 API 格式（最后一次尝试使用的渠道）
+	UpstreamFormat string
+
 	// 统计指标
 	ActualModel string
 	Stats       model.StatsMetrics
@@ -148,6 +156,10 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	}
 
 	relayLog.RequestContent = m.requestContent()
+	relayLog.RequestFormat = m.UpstreamFormat
+	relayLog.OriginalRequestType = m.OriginalRequestType
+	relayLog.OriginalRequestFormat = m.OriginalRequestFormat
+	relayLog.OriginalRequestContent = string(m.OriginalRequestBody)
 	if len(m.InternalResponse) > 0 {
 		relayLog.ResponseContent = string(m.InternalResponse)
 	}

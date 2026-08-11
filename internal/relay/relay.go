@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -66,16 +67,34 @@ func newRelayRun(c *gin.Context, inboundType llm.APIFormat, inAdapter transforme
 		return nil, err
 	}
 
+	// 选路前快照原始客户端请求，供日志展示用户/agent 发来的原始请求体。
+	// 之后 parsedRequestInbound 会在每次通道尝试时覆盖 internalRequest.RawRequest。
+	originalFormat := internalRequest.APIFormat
+	if originalFormat == "" {
+		originalFormat = inboundType
+	}
+	var originalBody []byte
+	if internalRequest.RawRequest != nil {
+		if len(internalRequest.RawRequest.JSONBody) > 0 {
+			originalBody = internalRequest.RawRequest.JSONBody
+		} else {
+			originalBody = internalRequest.RawRequest.Body
+		}
+	}
+
 	return &relayRun{
 		c:               c,
 		inAdapter:       inAdapter,
 		internalRequest: internalRequest,
 		metrics: &RelayMetrics{
-			APIKeyID:        apiKeyID,
-			RequestModel:    internalRequest.Model,
-			ActualModel:     internalRequest.Model,
-			StartTime:       time.Now(),
-			InternalRequest: internalRequest,
+			APIKeyID:              apiKeyID,
+			RequestModel:          internalRequest.Model,
+			ActualModel:           internalRequest.Model,
+			StartTime:             time.Now(),
+			InternalRequest:       internalRequest,
+			OriginalRequestType:   internalRequest.RequestType.String(),
+			OriginalRequestFormat: originalFormat.String(),
+			OriginalRequestBody:   originalBody,
 		},
 		iter:  iter,
 		group: group,
@@ -154,6 +173,7 @@ func (r *relayRun) prepareAttempt() (*relayAttempt, error) {
 	// 每次尝试都把客户端模型改成本次候选的实际上游模型；重试时会被下一候选覆盖。
 	r.internalRequest.Model = item.ModelName
 	r.metrics.ActualModel = item.ModelName
+	r.metrics.UpstreamFormat = channel.Type.String()
 	r.metrics.ParamOverride = ""
 	log.Infof("request model %s, mode: %d, forwarding to channel: %s model: %s (attempt %d/%d, sticky=%t)",
 		r.metrics.RequestModel, r.group.Mode, channel.Name, item.ModelName,
@@ -222,6 +242,10 @@ func parseRequest(c *gin.Context, inboundType llm.APIFormat, inAdapter transform
 		return nil, err
 	}
 
+	// 在入站转换前修正非标准请求：部分 agent/客户端会发送 OpenAI 新增的 developer 角色消息，
+	// 而多数上游渠道并不识别该角色，统一在原始请求阶段把 developer 降级为 system 以保证全渠道兼容。
+	normalizeInboundRoles(httpRequest)
+
 	internalRequest, err := inAdapter.TransformRequest(c.Request.Context(), httpRequest)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
@@ -236,6 +260,59 @@ func parseRequest(c *gin.Context, inboundType llm.APIFormat, inAdapter transform
 	}
 
 	return internalRequest, nil
+}
+
+// normalizeInboundRoles 在入站转换前修正客户端请求里的非标准角色。
+// 部分 agent/客户端会发送 OpenAI 新增的 developer 角色消息（如 openai/chat_completions 中
+// messages 里的 role=developer、responses 中 input 里的 role=developer），而多数上游渠道并不
+// 识别该角色，导致转发失败。这里统一把 developer 降级为 system，保证全渠道兼容。
+// 只处理 JSON 请求体；非 JSON（如 multipart 图片编辑）直接跳过。
+func normalizeInboundRoles(req *httpclient.Request) {
+	body := req.Body
+	if len(req.JSONBody) > 0 {
+		body = req.JSONBody
+	}
+	if len(body) == 0 || body[0] != '{' {
+		return
+	}
+
+	// 用 UseNumber 保留数字精度，避免 map 往返序列化时把大整数变成浮点数。
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.UseNumber()
+	var payload map[string]any
+	if err := dec.Decode(&payload); err != nil {
+		return
+	}
+
+	changed := false
+	for _, field := range []string{"messages", "input"} {
+		items, ok := payload[field].([]any)
+		if !ok {
+			continue
+		}
+		for _, item := range items {
+			msg, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if msg["role"] == "developer" {
+				msg["role"] = "system"
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return
+	}
+
+	normalized, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	if len(req.JSONBody) > 0 {
+		req.JSONBody = normalized
+	}
+	req.Body = normalized
 }
 
 // forward 转发请求到上游服务

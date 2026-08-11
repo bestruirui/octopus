@@ -40,7 +40,11 @@ export interface RelayLog {
     ftut: number;                // 首字时间(毫秒)
     use_time: number;            // 总用时(毫秒)
     cost: number;                // 消耗费用
-    request_content: string;     // 请求内容
+    request_content: string;     // 请求内容（转发给上游的内部请求）
+    request_format?: string;     // 上游渠道 API 格式
+    original_request_type?: string;   // 原始请求类型（chat/embedding 等）
+    original_request_format?: string; // 原始请求 API 格式
+    original_request_content?: string; // 原始请求内容（客户端发来的请求体）
     response_content: string;    // 响应内容
     error: string;               // 错误信息
     attempts?: ChannelAttempt[]; // 所有尝试记录

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useTranslations } from 'use-intl';
 import {
     Zap,
@@ -10,6 +10,10 @@ import {
     Power,
     PowerOff,
     TriangleAlert,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    Search,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -30,7 +34,7 @@ export function Circuit() {
     const t = useTranslations('circuit');
 
     return (
-        <PageWrapper className="columns-1 gap-4 pb-24 *:mb-4 *:break-inside-avoid">
+        <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain space-y-4 pb-24 md:pb-4">
             <CircuitConfigCard />
             <CircuitBreakerTable />
         </PageWrapper>
@@ -157,6 +161,12 @@ function CircuitBreakerTable() {
     const manual = useCircuitBreakerManual();
     const reset = useCircuitBreakerReset();
 
+    const [errorFilter, setErrorFilter] = useState('');
+    const [sortConfig, setSortConfig] = useState<{
+        key: 'channel_name' | 'model_name' | 'state' | 'last_error_time';
+        direction: 'asc' | 'desc';
+    } | null>(null);
+
     const formatErrorTime = (sec: number) => {
         if (!sec) return '--';
         const d = new Date(sec * 1000);
@@ -184,6 +194,53 @@ function CircuitBreakerTable() {
         );
     };
 
+    const handleSort = (key: typeof sortConfig extends infer T ? T extends { key: infer K } ? K : never : never) => {
+        setSortConfig(prev => {
+            if (prev?.key === key) {
+                if (prev.direction === 'asc') return { key, direction: 'desc' };
+                return null;
+            }
+            return { key, direction: 'asc' };
+        });
+    };
+
+    const getSortIcon = (key: typeof sortConfig extends infer T ? T extends { key: infer K } ? K : never : never) => {
+        if (sortConfig?.key !== key) return <ArrowUpDown className="ml-1 h-3.5 w-3.5 inline" />;
+        return sortConfig.direction === 'asc'
+            ? <ArrowUp className="ml-1 h-3.5 w-3.5 inline" />
+            : <ArrowDown className="ml-1 h-3.5 w-3.5 inline" />;
+    };
+
+    const filteredAndSortedRecords = useMemo(() => {
+        let filtered = records;
+        if (errorFilter.trim()) {
+            const filterLower = errorFilter.toLowerCase();
+            filtered = records.filter(r =>
+                r.last_error?.toLowerCase().includes(filterLower)
+            );
+        }
+
+        if (!sortConfig) return filtered;
+
+        return [...filtered].sort((a, b) => {
+            const { key, direction } = sortConfig;
+            const multiplier = direction === 'asc' ? 1 : -1;
+
+            if (key === 'last_error_time') {
+                return ((a[key] || 0) - (b[key] || 0)) * multiplier;
+            }
+            if (key === 'state') {
+                return ((a[key] || 0) - (b[key] || 0)) * multiplier;
+            }
+
+            const aVal = (a[key] || '').toLowerCase();
+            const bVal = (b[key] || '').toLowerCase();
+            if (aVal < bVal) return -1 * multiplier;
+            if (aVal > bVal) return 1 * multiplier;
+            return 0;
+        });
+    }, [records, errorFilter, sortConfig]);
+
     return (
         <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
@@ -191,25 +248,57 @@ function CircuitBreakerTable() {
                 {t('title')}
             </h2>
 
-            {records.length === 0 ? (
+            <div className="flex items-center gap-2">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Filter by error message..."
+                        value={errorFilter}
+                        onChange={(e) => setErrorFilter(e.target.value)}
+                        className="pl-9 rounded-xl"
+                    />
+                </div>
+            </div>
+
+            {filteredAndSortedRecords.length === 0 ? (
                 <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
-                    {t('empty')}
+                    {errorFilter ? 'No matching records' : t('empty')}
                 </div>
             ) : (
                 <div className="rounded-2xl border border-border/70 overflow-x-auto">
                     <Table className="table-fixed">
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[16%]">{t('channel')}</TableHead>
-                                <TableHead className="w-[18%]">{t('model')}</TableHead>
-                                <TableHead className="w-[18%]">{t('status')}</TableHead>
-                                <TableHead className="w-[16%]">{t('lastErrorTime')}</TableHead>
+                                <TableHead
+                                    className="w-[16%] cursor-pointer hover:bg-muted/50 select-none"
+                                    onClick={() => handleSort('channel_name')}
+                                >
+                                    {t('channel')}{getSortIcon('channel_name')}
+                                </TableHead>
+                                <TableHead
+                                    className="w-[18%] cursor-pointer hover:bg-muted/50 select-none"
+                                    onClick={() => handleSort('model_name')}
+                                >
+                                    {t('model')}{getSortIcon('model_name')}
+                                </TableHead>
+                                <TableHead
+                                    className="w-[18%] cursor-pointer hover:bg-muted/50 select-none"
+                                    onClick={() => handleSort('state')}
+                                >
+                                    {t('status')}{getSortIcon('state')}
+                                </TableHead>
+                                <TableHead
+                                    className="w-[16%] cursor-pointer hover:bg-muted/50 select-none"
+                                    onClick={() => handleSort('last_error_time')}
+                                >
+                                    {t('lastErrorTime')}{getSortIcon('last_error_time')}
+                                </TableHead>
                                 <TableHead className="w-[18%]">{t('lastError')}</TableHead>
                                 <TableHead className="text-right w-[14%]">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {records.map((r) => {
+                            {filteredAndSortedRecords.map((r) => {
                                 const tripping = !r.manual_disabled && r.state === 1;
                                 const halfOpen = !r.manual_disabled && r.state === 2;
                                 return (

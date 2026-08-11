@@ -6,8 +6,6 @@
 
 **为个人打造的简单、美观、优雅的 LLM API 聚合与负载均衡服务**
 
-简体中文 | [English](README.md)
-
 </div>
 
 
@@ -23,6 +21,7 @@
 - 📊 **数据统计** - 全面的请求统计、Token 消耗、费用追踪
 - 🎨 **优雅界面** - 简洁美观的 Web 管理面板
 - 🗄️ **多数据库支持** - 支持 SQLite、MySQL、PostgreSQL
+- 🛡️ **熔断保护** - 额度耗尽或连续失败自动触发熔断，粒度支持渠道+模型，持久化到数据库，独立管理页面
 
 
 ## 🚀 快速开始
@@ -64,10 +63,10 @@ git clone https://github.com/bestruirui/octopus.git
 cd octopus
 # 构建前端
 cd web && pnpm install && pnpm run build && cd ..
-# 移动前端产物到 static 目录（已在vite.config.ts中配置）
-# mv web/out static/
+# 移动前端产物到 static 目录
+mv web/out static/
 # 启动后端服务
-go run main.go start 
+go run main.go start
 ```
 
 > 💡 **提示**：前端构建产物会被嵌入到 Go 二进制文件中，所以必须先构建前端再启动后端。
@@ -186,11 +185,13 @@ http://localhost:3000
 <td align="center"><b>首页</b></td>
 <td align="center"><b>渠道</b></td>
 <td align="center"><b>分组</b></td>
+<td align="center"><b>熔断</b></td>
 </tr>
 <tr>
 <td><img src="web/public/screenshot/desktop-home.png" alt="首页" width="400"></td>
 <td><img src="web/public/screenshot/desktop-channel.png" alt="渠道" width="400"></td>
 <td><img src="web/public/screenshot/desktop-group.png" alt="分组" width="400"></td>
+<td><img src="web/public/screenshot/desktop-circuit.png" alt="熔断" width="400"></td>
 </tr>
 <tr>
 <td align="center"><b>价格</b></td>
@@ -213,6 +214,7 @@ http://localhost:3000
 <td align="center"><b>首页</b></td>
 <td align="center"><b>渠道</b></td>
 <td align="center"><b>分组</b></td>
+<td align="center"><b>熔断</b></td>
 <td align="center"><b>价格</b></td>
 <td align="center"><b>日志</b></td>
 <td align="center"><b>设置</b></td>
@@ -221,6 +223,7 @@ http://localhost:3000
 <td><img src="web/public/screenshot/mobile-home.png" alt="移动端首页" width="140"></td>
 <td><img src="web/public/screenshot/mobile-channel.png" alt="移动端渠道" width="140"></td>
 <td><img src="web/public/screenshot/mobile-group.png" alt="移动端分组" width="140"></td>
+<td><img src="web/public/screenshot/mobile-circuit.png" alt="移动端熔断" width="140"></td>
 <td><img src="web/public/screenshot/mobile-price.png" alt="移动端价格" width="140"></td>
 <td><img src="web/public/screenshot/mobile-log.png" alt="移动端日志" width="140"></td>
 <td><img src="web/public/screenshot/mobile-setting.png" alt="移动端设置" width="140"></td>
@@ -270,6 +273,25 @@ http://localhost:3000
 | ⚖️ **加权分配** | 根据渠道设置的权重比例分配请求 |
 
 > 💡 **示例**：创建分组名称为 `gpt-4o`，将多个供应商的 GPT-4o 渠道加入该分组，即可通过统一的 `model: gpt-4o` 访问所有渠道。
+
+---
+
+### 🛡️ 熔断管理
+
+系统提供智能熔断保护机制，保障服务稳定性。
+
+**触发条件：**
+- 渠道额度耗尽
+- 连续请求失败达到阈值
+
+**熔断粒度：**
+- 按 **渠道+模型** 组合维度进行熔断
+- 熔断状态持久化到数据库，重启不丢失
+
+**管理方式：**
+- 自动熔断：系统根据规则自动触发
+- 手动管理：可在「熔断」页面手动启用/禁用/取消熔断
+- 独立页面：专门的熔断管理页面，表格全宽展示
 
 ---
 

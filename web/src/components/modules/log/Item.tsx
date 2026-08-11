@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin, KeyRound } from 'lucide-react';
+import { Clock, Cpu, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin, KeyRound, User } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
@@ -179,6 +179,19 @@ function DeferredJsonContent({ content, fallbackText }: { content: string | unde
                 </motion.pre>
             )}
         </AnimatePresence>
+    );
+}
+
+function TypeBadge({ type, className }: { type?: string; className?: string }) {
+    if (!type) return null;
+    return (
+        <Badge
+            variant="outline"
+            className={cn("max-w-[150px] shrink-0 px-1.5 py-0 text-[10px] font-mono truncate", className)}
+            title={type}
+        >
+            {type}
+        </Badge>
     );
 }
 
@@ -420,14 +433,29 @@ export function LogCard({ log }: { log: RelayLog }) {
                                     </div>
                                 )}
                                 <div className="flex-1 min-h-0 overflow-hidden">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-0">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full min-h-0">
+                                        <div className="flex flex-col rounded-2xl border border-border bg-muted/30 overflow-hidden min-h-0">
+                                            <div className="flex items-center gap-2 px-3 md:px-4 py-2.5 md:py-3 border-b border-border bg-muted/50 shrink-0">
+                                                <User className="size-4 text-sky-500" />
+                                                <span className="text-sm font-medium text-card-foreground">{t('originalRequest')}</span>
+                                                <div className="ml-auto flex items-center gap-1.5 min-w-0">
+                                                    <TypeBadge type={log.original_request_format ?? log.original_request_type} />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 overflow-auto min-h-0">
+                                                <DeferredJsonContent content={log.original_request_content} fallbackText={t('noOriginalRequest')} />
+                                            </div>
+                                        </div>
                                         <div className="flex flex-col rounded-2xl border border-border bg-muted/30 overflow-hidden min-h-0">
                                             <div className="flex items-center gap-2 px-3 md:px-4 py-2.5 md:py-3 border-b border-border bg-muted/50 shrink-0">
                                                 <Send className="size-4 text-green-500" />
-                                                <span className="text-sm font-medium text-card-foreground">{t('requestContent')}</span>
-                                                <Badge variant="secondary" className="ml-auto text-xs">
-                                                    {log.input_tokens.toLocaleString()} {t('tokens')}
-                                                </Badge>
+                                                <span className="text-sm font-medium text-card-foreground">{t('upstreamRequest')}</span>
+                                                <div className="ml-auto flex items-center gap-1.5 min-w-0">
+                                                    <TypeBadge type={log.request_format} />
+                                                    <Badge variant="secondary" className="shrink-0 text-xs">
+                                                        {log.input_tokens.toLocaleString()} {t('tokens')}
+                                                    </Badge>
+                                                </div>
                                             </div>
                                             <div className="flex-1 overflow-auto min-h-0">
                                                 <DeferredJsonContent content={log.request_content} fallbackText={t('noRequestContent')} />
