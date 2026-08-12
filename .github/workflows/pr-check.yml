@@ -50,7 +50,7 @@ jobs:
         run: go test -mod=mod ./...
 
       - name: Go build
-        run: CGO_ENABLED=0 go build -mod=mod -buildmode=exe -tags=jsoniter -o build/octopus ./cmd/start.go
+        run: CGO_ENABLED=0 go build -mod=mod -buildmode=exe -tags=jsoniter -o build/octopus .
 
       - name: Frontend build
         working-directory: web
