@@ -5,6 +5,7 @@ type StatsMetrics struct {
 	OutputToken    int64   `json:"output_token" gorm:"bigint"`
 	InputCost      float64 `json:"input_cost" gorm:"type:real"`
 	OutputCost     float64 `json:"output_cost" gorm:"type:real"`
+	CallCost       float64 `json:"call_cost" gorm:"type:real"`
 	WaitTime       int64   `json:"wait_time" gorm:"bigint"`
 	RequestSuccess int64   `json:"request_success" gorm:"bigint"`
 	RequestFailed  int64   `json:"request_failed" gorm:"bigint"`
@@ -49,6 +50,7 @@ func (s *StatsMetrics) Add(delta StatsMetrics) {
 	s.OutputToken += delta.OutputToken
 	s.InputCost += delta.InputCost
 	s.OutputCost += delta.OutputCost
+	s.CallCost += delta.CallCost
 	s.WaitTime += delta.WaitTime
 	s.RequestSuccess += delta.RequestSuccess
 	s.RequestFailed += delta.RequestFailed

@@ -15,6 +15,7 @@ export interface APIKey {
     enabled: boolean;
     expire_at?: number; // Unix 时间戳（秒），不传表示永不过期
     max_cost?: number; // 不传表示无限制
+    requests_per_minute?: number; // 不传表示不限速
     supported_models?: string; // 不传表示支持所有模型
 }
 
@@ -68,7 +69,8 @@ export function useAPIKeyDashboardStats() {
                 total_token: formatCount(data.stats.input_token + data.stats.output_token),
                 input_cost: formatMoney(data.stats.input_cost),
                 output_cost: formatMoney(data.stats.output_cost),
-                total_cost: formatMoney(data.stats.input_cost + data.stats.output_cost),
+                call_cost: formatMoney(data.stats.call_cost),
+                total_cost: formatMoney(data.stats.input_cost + data.stats.output_cost + data.stats.call_cost),
                 wait_time: formatTime(data.stats.wait_time),
                 request_success: formatCount(data.stats.request_success),
                 request_failed: formatCount(data.stats.request_failed),
@@ -214,7 +216,8 @@ export function useAPIKeyStats() {
             total_token: formatCount(data.input_token + data.output_token),
             input_cost: formatMoney(data.input_cost),
             output_cost: formatMoney(data.output_cost),
-            total_cost: formatMoney(data.input_cost + data.output_cost),
+            call_cost: formatMoney(data.call_cost),
+            total_cost: formatMoney(data.input_cost + data.output_cost + data.call_cost),
             wait_time: formatTime(data.wait_time),
             request_success: formatCount(data.request_success),
             request_failed: formatCount(data.request_failed),

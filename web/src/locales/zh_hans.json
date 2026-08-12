@@ -215,6 +215,8 @@
                 "name": "名称",
                 "maxCost": "最大金额",
                 "maxCostPlaceholder": "请输入金额",
+                "requestsPerMinute": "每分钟请求数",
+                "requestsPerMinutePlaceholder": "留空表示不限速",
                 "unlimited": "无限制",
                 "expireAt": "过期日期",
                 "selectDate": "选择日期",
@@ -398,6 +400,7 @@
             "output": "输出价格",
             "cacheRead": "缓存读取",
             "cacheWrite": "缓存写入",
+            "call": "单次价格",
             "submit": "创建",
             "submitting": "创建中..."
         },
@@ -421,6 +424,7 @@
             "output": "输出",
             "cacheRead": "缓存读取",
             "cacheWrite": "缓存写入",
+            "call": "单次价格",
             "save": "保存"
         }
     },

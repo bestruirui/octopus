@@ -32,6 +32,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
         output: model.output.toString(),
         cache_read: model.cache_read.toString(),
         cache_write: model.cache_write.toString(),
+        call: model.call.toString(),
     }));
 
     const updateModel = useUpdateModel();
@@ -62,6 +63,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
             output: model.output.toString(),
             cache_read: model.cache_read.toString(),
             cache_write: model.cache_write.toString(),
+            call: model.call.toString(),
         });
         // Ensure first open already has anchor geometry so layout animation can run.
         updateOverlayRect();
@@ -79,6 +81,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
             output: parseFloat(editValues.output) || 0,
             cache_read: parseFloat(editValues.cache_read) || 0,
             cache_write: parseFloat(editValues.cache_write) || 0,
+            call: parseFloat(editValues.call) || 0,
         }, {
             onSuccess: () => {
                 closeEdit();

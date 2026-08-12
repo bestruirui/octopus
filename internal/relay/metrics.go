@@ -34,6 +34,13 @@ type RelayMetrics struct {
 	ParamOverride string
 }
 
+func successfulCallCost(success bool, configured float64) float64 {
+	if !success {
+		return 0
+	}
+	return configured
+}
+
 func (m *RelayMetrics) RecordUsage(usage *llm.Usage) {
 	if usage == nil {
 		return
@@ -60,10 +67,19 @@ func (m *RelayMetrics) RecordUsage(usage *llm.Usage) {
 		float64(tokenDetails.WriteCachedTokens)*modelPrice.CacheWrite +
 		float64(nonCachedTokens)*modelPrice.Input) * 1e-6
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
+	m.Stats.CallCost = modelPrice.Call
 }
 
 func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attempts []model.ChannelAttempt) {
 	duration := time.Since(m.StartTime)
+	callCost := successfulCallCost(success, m.Stats.CallCost)
+	if success {
+		if callCost == 0 {
+			if modelPrice := price.GetLLMPrice(m.ActualModel); modelPrice != nil {
+				callCost = modelPrice.Call
+			}
+		}
+	}
 
 	globalStats := model.StatsMetrics{
 		WaitTime:    duration.Milliseconds(),
@@ -71,6 +87,7 @@ func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attemp
 		OutputToken: m.Stats.OutputToken,
 		InputCost:   m.Stats.InputCost,
 		OutputCost:  m.Stats.OutputCost,
+		CallCost:    callCost,
 	}
 	if success {
 		globalStats.RequestSuccess = 1
@@ -90,17 +107,18 @@ func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attemp
 			OutputToken: m.Stats.OutputToken,
 			InputCost:   m.Stats.InputCost,
 			OutputCost:  m.Stats.OutputCost,
+			CallCost:    callCost,
 		})
 	}
 
 	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d",
 		m.RequestModel, channelID, channelName, success, duration.Milliseconds(),
 		m.Stats.InputToken, m.Stats.OutputToken,
-		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost,
+		m.Stats.InputCost, m.Stats.OutputCost, m.Stats.InputCost+m.Stats.OutputCost+callCost,
 		len(attempts))
 
 	// 客户端断开或请求上下文取消后仍要保存最终审计日志，因此持久化阶段主动脱离请求取消信号。
-	m.saveLog(context.WithoutCancel(ctx), err, duration, attempts, channelID, channelName)
+	m.saveLog(context.WithoutCancel(ctx), err, duration, attempts, channelID, channelName, callCost)
 }
 
 func finalChannel(attempts []model.ChannelAttempt) (int, string) {
@@ -119,7 +137,7 @@ func finalChannel(attempts []model.ChannelAttempt) (int, string) {
 	return lastID, lastName
 }
 
-func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration, attempts []model.ChannelAttempt, channelID int, channelName string) {
+func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Duration, attempts []model.ChannelAttempt, channelID int, channelName string, callCost float64) {
 	relayLog := model.RelayLog{
 		Time:             m.StartTime.Unix(),
 		RequestModelName: m.RequestModel,
@@ -141,10 +159,10 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 	}
 
 	// 用量
-	if m.Stats.InputToken > 0 || m.Stats.OutputToken > 0 {
+	if m.Stats.InputToken > 0 || m.Stats.OutputToken > 0 || callCost > 0 {
 		relayLog.InputTokens = int(m.Stats.InputToken)
 		relayLog.OutputTokens = int(m.Stats.OutputToken)
-		relayLog.Cost = m.Stats.InputCost + m.Stats.OutputCost
+		relayLog.Cost = m.Stats.InputCost + m.Stats.OutputCost + callCost
 	}
 
 	relayLog.RequestContent = m.requestContent()

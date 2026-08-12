@@ -215,6 +215,8 @@
                 "name": "名稱",
                 "maxCost": "最大金額",
                 "maxCostPlaceholder": "請輸入金額",
+                "requestsPerMinute": "每分鐘請求數",
+                "requestsPerMinutePlaceholder": "留空表示不限速",
                 "unlimited": "無限制",
                 "expireAt": "過期日期",
                 "selectDate": "選擇日期",
@@ -398,6 +400,7 @@
             "output": "輸出價格",
             "cacheRead": "快取讀取",
             "cacheWrite": "快取寫入",
+            "call": "單次價格",
             "submit": "建立",
             "submitting": "建立中..."
         },
@@ -421,6 +424,7 @@
             "output": "輸出",
             "cacheRead": "快取讀取",
             "cacheWrite": "快取寫入",
+            "call": "單次價格",
             "save": "儲存"
         }
     },

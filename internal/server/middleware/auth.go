@@ -67,13 +67,14 @@ func APIKeyAuth() gin.HandlerFunc {
 			return
 		}
 		statsAPIKey := op.StatsAPIKeyGet(apiKeyObj.ID)
-		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost < statsAPIKey.StatsMetrics.OutputCost+statsAPIKey.StatsMetrics.InputCost {
+		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost < statsAPIKey.StatsMetrics.OutputCost+statsAPIKey.StatsMetrics.InputCost+statsAPIKey.StatsMetrics.CallCost {
 			resp.Error(c, http.StatusUnauthorized, "API key has reached the max cost")
 			c.Abort()
 			return
 		}
 		c.Set("supported_models", apiKeyObj.SupportedModels)
 		c.Set("api_key_id", apiKeyObj.ID)
+		c.Set("api_key_requests_per_minute", apiKeyObj.RequestsPerMinute)
 		c.Next()
 	}
 }

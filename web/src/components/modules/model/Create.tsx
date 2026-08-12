@@ -22,6 +22,7 @@ export function CreateDialogContent() {
         output: '',
         cache_read: '',
         cache_write: '',
+        call: '',
     });
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -34,9 +35,10 @@ export function CreateDialogContent() {
             output: parseFloat(formData.output) || 0,
             cache_read: parseFloat(formData.cache_read) || 0,
             cache_write: parseFloat(formData.cache_write) || 0,
+            call: parseFloat(formData.call) || 0,
         }, {
             onSuccess: () => {
-                setFormData({ name: '', input: '', output: '', cache_read: '', cache_write: '' });
+                setFormData({ name: '', input: '', output: '', cache_read: '', cache_write: '', call: '' });
                 setIsOpen(false);
             }
         });
@@ -111,6 +113,17 @@ export function CreateDialogContent() {
                                     step="any"
                                     value={formData.cache_write}
                                     onChange={(e) => setFormData({ ...formData, cache_write: e.target.value })}
+                                    className="rounded-xl"
+                                />
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="model-call">{t('call')}</FieldLabel>
+                                <Input
+                                    id="model-call"
+                                    type="number"
+                                    step="any"
+                                    value={formData.call}
+                                    onChange={(e) => setFormData({ ...formData, call: e.target.value })}
                                     className="rounded-xl"
                                 />
                             </Field>

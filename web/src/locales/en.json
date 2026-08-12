@@ -215,6 +215,8 @@
                 "name": "Name",
                 "maxCost": "Max Cost",
                 "maxCostPlaceholder": "Enter amount",
+                "requestsPerMinute": "Requests per minute",
+                "requestsPerMinutePlaceholder": "Leave empty for unlimited",
                 "unlimited": "Unlimited",
                 "expireAt": "Expire Date",
                 "selectDate": "Select date",
@@ -398,6 +400,7 @@
             "output": "Output Price",
             "cacheRead": "Cache Read",
             "cacheWrite": "Cache Write",
+            "call": "Price per call",
             "submit": "Create",
             "submitting": "Creating..."
         },
@@ -421,6 +424,7 @@
             "output": "Output",
             "cacheRead": "Cache Read",
             "cacheWrite": "Cache Write",
+            "call": "Price per call",
             "save": "Save"
         }
     },

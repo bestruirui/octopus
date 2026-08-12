@@ -5,6 +5,7 @@ type LLMPrice struct {
 	Output     float64 `json:"output"`
 	CacheRead  float64 `json:"cache_read"`
 	CacheWrite float64 `json:"cache_write"`
+	Call       float64 `json:"call"` // fixed price per successful request
 }
 
 type LLMInfo struct {

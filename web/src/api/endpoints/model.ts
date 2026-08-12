@@ -10,6 +10,7 @@ export interface LLMPrice {
     output: number;
     cache_read: number;
     cache_write: number;
+    call: number;
 }
 
 /**

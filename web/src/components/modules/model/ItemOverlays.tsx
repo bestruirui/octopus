@@ -8,6 +8,7 @@ type EditValues = {
     output: string;
     cache_read: string;
     cache_write: string;
+    call: string;
 };
 
 type ModelDeleteOverlayProps = {
@@ -125,6 +126,16 @@ export function ModelEditOverlay({
                         step="any"
                         value={editValues.cache_write}
                         onChange={(e) => onChange({ ...editValues, cache_write: e.target.value })}
+                        className="h-9 text-sm rounded-xl"
+                    />
+                </label>
+                <label className="grid gap-1 text-xs text-muted-foreground">
+                    {t('call')}
+                    <Input
+                        type="number"
+                        step="any"
+                        value={editValues.call}
+                        onChange={(e) => onChange({ ...editValues, call: e.target.value })}
                         className="h-9 text-sm rounded-xl"
                     />
                 </label>

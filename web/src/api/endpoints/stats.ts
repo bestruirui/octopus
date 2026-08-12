@@ -10,6 +10,7 @@ interface StatsMetrics {
     output_token: number;
     input_cost: number;
     output_cost: number;
+    call_cost: number;
     wait_time: number;
     request_success: number;
     request_failed: number;
@@ -20,6 +21,7 @@ export interface StatsMetricsFormatted {
     output_token: ReturnType<typeof formatCount>;
     input_cost: ReturnType<typeof formatMoney>;
     output_cost: ReturnType<typeof formatMoney>;
+    call_cost: ReturnType<typeof formatMoney>;
     wait_time: ReturnType<typeof formatTime>;
     request_success: ReturnType<typeof formatCount>;
     request_failed: ReturnType<typeof formatCount>;
@@ -92,7 +94,8 @@ export function useStatsDaily() {
             total_token: formatCount(item.input_token + item.output_token),
             input_cost: formatMoney(item.input_cost),
             output_cost: formatMoney(item.output_cost),
-            total_cost: formatMoney(item.input_cost + item.output_cost),
+            call_cost: formatMoney(item.call_cost),
+            total_cost: formatMoney(item.input_cost + item.output_cost + item.call_cost),
             wait_time: formatTime(item.wait_time),
             request_success: formatCount(item.request_success),
             request_failed: formatCount(item.request_failed),
@@ -120,7 +123,8 @@ export function useStatsHourly() {
             total_token: formatCount(item.input_token + item.output_token),
             input_cost: formatMoney(item.input_cost),
             output_cost: formatMoney(item.output_cost),
-            total_cost: formatMoney(item.input_cost + item.output_cost),
+            call_cost: formatMoney(item.call_cost),
+            total_cost: formatMoney(item.input_cost + item.output_cost + item.call_cost),
             wait_time: formatTime(item.wait_time),
             request_success: formatCount(item.request_success),
             request_failed: formatCount(item.request_failed),
@@ -172,7 +176,8 @@ export function useStatsAPIKey() {
             total_token: formatCount(item.input_token + item.output_token),
             input_cost: formatMoney(item.input_cost),
             output_cost: formatMoney(item.output_cost),
-            total_cost: formatMoney(item.input_cost + item.output_cost),
+            call_cost: formatMoney(item.call_cost),
+            total_cost: formatMoney(item.input_cost + item.output_cost + item.call_cost),
             wait_time: formatTime(item.wait_time),
             request_success: formatCount(item.request_success),
             request_failed: formatCount(item.request_failed),

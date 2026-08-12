@@ -55,7 +55,7 @@ func Close() error {
 }
 
 func registerRelayRoutes(r *gin.Engine) {
-	v1 := r.Group("/v1", middleware.APIKeyAuth())
+	v1 := r.Group("/v1", middleware.APIKeyAuth(), middleware.APIKeyRateLimit())
 	v1.POST("/chat/completions", middleware.RequireJSON(), relay.Handler(llm.APIFormatOpenAIChatCompletion))
 	v1.POST("/responses", middleware.RequireJSON(), relay.Handler(llm.APIFormatOpenAIResponse))
 	v1.POST("/messages", middleware.RequireJSON(), relay.Handler(llm.APIFormatAnthropicMessage))
