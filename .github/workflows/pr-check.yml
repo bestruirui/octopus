@@ -47,10 +47,10 @@ jobs:
           cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Go tests
-        run: go test ./...
+        run: go test -mod=mod ./...
 
       - name: Go build
-        run: CGO_ENABLED=0 go build -tags=jsoniter -o build/octopus ./cmd
+        run: CGO_ENABLED=0 go build -mod=mod -tags=jsoniter -o build/octopus ./cmd
 
       - name: Frontend build
         working-directory: web
