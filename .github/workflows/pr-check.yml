@@ -19,6 +19,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Checkout axonhub dependency
+        uses: actions/checkout@v5
+        with:
+          repository: looplj/axonhub
+          path: ../axonhub
+
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
