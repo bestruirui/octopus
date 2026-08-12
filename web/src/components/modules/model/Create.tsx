@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCreateModel } from '@/api/endpoints/model';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel, FieldGroup } from '@/components/ui/field';
 import {
@@ -75,15 +76,15 @@ export function CreateDialogContent() {
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="model-pricing-mode">{t('pricingMode')}</FieldLabel>
-                            <select
-                                id="model-pricing-mode"
-                                value={formData.pricing_mode}
-                                onChange={(e) => setFormData({ ...formData, pricing_mode: e.target.value as 'token' | 'call' })}
-                                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                            >
-                                <option value="token">{t('tokenMode')}</option>
-                                <option value="call">{t('callMode')}</option>
-                            </select>
+                            <Select value={formData.pricing_mode} onValueChange={(value) => setFormData({ ...formData, pricing_mode: value as 'token' | 'call' })}>
+                                <SelectTrigger id="model-pricing-mode" className="w-full rounded-xl">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="token" className="rounded-lg">{t('tokenMode')}</SelectItem>
+                                    <SelectItem value="call" className="rounded-lg">{t('callMode')}</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </Field>
                         {formData.pricing_mode === 'token' ? <div className="grid grid-cols-2 gap-4">
                             <Field>

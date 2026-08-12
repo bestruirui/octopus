@@ -2,6 +2,7 @@ import { Check, Loader, Trash2, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'use-intl';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type EditValues = {
     pricing_mode: 'token' | 'call';
@@ -91,14 +92,15 @@ export function ModelEditOverlay({
 
             <label className="grid gap-1 text-xs text-muted-foreground mb-3">
                 {t('pricingMode')}
-                <select
-                    value={editValues.pricing_mode}
-                    onChange={(e) => onChange({ ...editValues, pricing_mode: e.target.value as 'token' | 'call' })}
-                    className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
-                >
-                    <option value="token">{t('tokenMode')}</option>
-                    <option value="call">{t('callMode')}</option>
-                </select>
+                <Select value={editValues.pricing_mode} onValueChange={(value) => onChange({ ...editValues, pricing_mode: value as 'token' | 'call' })}>
+                    <SelectTrigger className="w-full rounded-xl">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                        <SelectItem value="token" className="rounded-lg">{t('tokenMode')}</SelectItem>
+                        <SelectItem value="call" className="rounded-lg">{t('callMode')}</SelectItem>
+                    </SelectContent>
+                </Select>
             </label>
 
             {editValues.pricing_mode === 'token' ? (
