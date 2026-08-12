@@ -122,6 +122,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
             if (!target) return;
             if (editOverlayRef.current?.contains(target)) return;
             if (editButtonRef.current?.contains(target)) return;
+            if (target instanceof Element && target.closest('[data-slot="select-content"]')) return;
             closeEdit();
         };
 
