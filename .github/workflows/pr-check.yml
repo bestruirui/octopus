@@ -1,0 +1,57 @@
+name: pr-check
+
+on:
+  push:
+    branches:
+      - feat/call-price-rate-limit
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.26.x'
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - name: Go tests
+        run: go test ./...
+
+      - name: Go build
+        run: CGO_ENABLED=0 go build -tags=jsoniter -o build/octopus ./cmd
+
+      - name: Frontend build
+        working-directory: web
+        run: pnpm install --frozen-lockfile && pnpm run build
+
+      - name: Upload compiled artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: octopus-${{ github.sha }}
+          path: |
+            build/octopus
+            static/out/**
+          if-no-files-found: error
