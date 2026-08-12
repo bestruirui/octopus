@@ -396,6 +396,9 @@
         "create": {
             "title": "建立模型",
             "name": "模型名稱",
+            "pricingMode": "計費方式",
+            "tokenMode": "按量計費",
+            "callMode": "按次計費",
             "input": "輸入價格",
             "output": "輸出價格",
             "cacheRead": "快取讀取",
@@ -413,6 +416,7 @@
         "card": {
             "inputCache": "輸入/快取",
             "outputCache": "輸出/快取",
+            "callPrice": "單次價格",
             "edit": "編輯",
             "delete": "刪除"
         },
@@ -425,6 +429,9 @@
             "cacheRead": "快取讀取",
             "cacheWrite": "快取寫入",
             "call": "單次價格",
+            "pricingMode": "計費方式",
+            "tokenMode": "按量計費",
+            "callMode": "按次計費",
             "save": "儲存"
         }
     },

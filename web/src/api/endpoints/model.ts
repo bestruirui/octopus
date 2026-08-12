@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
  * LLM 价格信息
  */
 export interface LLMPrice {
+    pricing_mode?: 'token' | 'call';
     input: number;
     output: number;
     cache_read: number;

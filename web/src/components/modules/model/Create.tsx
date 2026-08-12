@@ -18,6 +18,7 @@ export function CreateDialogContent() {
 
     const [formData, setFormData] = useState({
         name: '',
+        pricing_mode: 'token' as 'token' | 'call',
         input: '',
         output: '',
         cache_read: '',
@@ -31,6 +32,7 @@ export function CreateDialogContent() {
 
         createModel.mutate({
             name: formData.name.trim(),
+            pricing_mode: formData.pricing_mode,
             input: parseFloat(formData.input) || 0,
             output: parseFloat(formData.output) || 0,
             cache_read: parseFloat(formData.cache_read) || 0,
@@ -38,7 +40,7 @@ export function CreateDialogContent() {
             call: parseFloat(formData.call) || 0,
         }, {
             onSuccess: () => {
-                setFormData({ name: '', input: '', output: '', cache_read: '', cache_write: '', call: '' });
+                setFormData({ name: '', pricing_mode: 'token', input: '', output: '', cache_read: '', cache_write: '', call: '' });
                 setIsOpen(false);
             }
         });
@@ -71,7 +73,19 @@ export function CreateDialogContent() {
                                 className="rounded-xl"
                             />
                         </Field>
-                        <div className="grid grid-cols-2 gap-4">
+                        <Field>
+                            <FieldLabel htmlFor="model-pricing-mode">{t('pricingMode')}</FieldLabel>
+                            <select
+                                id="model-pricing-mode"
+                                value={formData.pricing_mode}
+                                onChange={(e) => setFormData({ ...formData, pricing_mode: e.target.value as 'token' | 'call' })}
+                                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                            >
+                                <option value="token">{t('tokenMode')}</option>
+                                <option value="call">{t('callMode')}</option>
+                            </select>
+                        </Field>
+                        {formData.pricing_mode === 'token' ? <div className="grid grid-cols-2 gap-4">
                             <Field>
                                 <FieldLabel htmlFor="model-input">{t('input')}</FieldLabel>
                                 <Input
@@ -127,7 +141,12 @@ export function CreateDialogContent() {
                                     className="rounded-xl"
                                 />
                             </Field>
-                        </div>
+                        </div> : (
+                            <Field>
+                                <FieldLabel htmlFor="model-call">{t('call')}</FieldLabel>
+                                <Input id="model-call" type="number" step="any" value={formData.call} onChange={(e) => setFormData({ ...formData, call: e.target.value })} className="rounded-xl" />
+                            </Field>
+                        )}
                         <Button
                             type="submit"
                             disabled={createModel.isPending || !formData.name.trim()}

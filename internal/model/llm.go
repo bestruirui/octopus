@@ -1,6 +1,7 @@
 package model
 
 type LLMPrice struct {
+	PricingMode string  `json:"pricing_mode" gorm:"type:varchar(16);default:token"`
 	Input      float64 `json:"input"`
 	Output     float64 `json:"output"`
 	CacheRead  float64 `json:"cache_read"`

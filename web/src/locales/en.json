@@ -396,6 +396,9 @@
         "create": {
             "title": "Create Model",
             "name": "Model Name",
+            "pricingMode": "Pricing Mode",
+            "tokenMode": "Token-based",
+            "callMode": "Per-call",
             "input": "Input Price",
             "output": "Output Price",
             "cacheRead": "Cache Read",
@@ -413,6 +416,7 @@
         "card": {
             "inputCache": "Input/Cache",
             "outputCache": "Output/Cache",
+            "callPrice": "Per call",
             "edit": "Edit",
             "delete": "Delete"
         },
@@ -425,6 +429,9 @@
             "cacheRead": "Cache Read",
             "cacheWrite": "Cache Write",
             "call": "Price per call",
+            "pricingMode": "Pricing Mode",
+            "tokenMode": "Token-based",
+            "callMode": "Per-call",
             "save": "Save"
         }
     },

@@ -396,6 +396,9 @@
         "create": {
             "title": "创建模型",
             "name": "模型名称",
+            "pricingMode": "计费方式",
+            "tokenMode": "按量计费",
+            "callMode": "按次计费",
             "input": "输入价格",
             "output": "输出价格",
             "cacheRead": "缓存读取",
@@ -413,6 +416,7 @@
         "card": {
             "inputCache": "输入/缓存",
             "outputCache": "输出/缓存",
+            "callPrice": "单次价格",
             "edit": "编辑",
             "delete": "删除"
         },
@@ -425,6 +429,9 @@
             "cacheRead": "缓存读取",
             "cacheWrite": "缓存写入",
             "call": "单次价格",
+            "pricingMode": "计费方式",
+            "tokenMode": "按量计费",
+            "callMode": "按次计费",
             "save": "保存"
         }
     },

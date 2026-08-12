@@ -4,6 +4,7 @@ import { useTranslations } from 'use-intl';
 import { Input } from '@/components/ui/input';
 
 type EditValues = {
+    pricing_mode: 'token' | 'call';
     input: string;
     output: string;
     cache_read: string;
@@ -88,58 +89,43 @@ export function ModelEditOverlay({
                 {modelName}
             </h3>
 
-            <div className="grid grid-cols-2 gap-2">
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('input')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.input}
-                        onChange={(e) => onChange({ ...editValues, input: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('output')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.output}
-                        onChange={(e) => onChange({ ...editValues, output: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('cacheRead')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.cache_read}
-                        onChange={(e) => onChange({ ...editValues, cache_read: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
-                <label className="grid gap-1 text-xs text-muted-foreground">
-                    {t('cacheWrite')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.cache_write}
-                        onChange={(e) => onChange({ ...editValues, cache_write: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
-                </label>
+            <label className="grid gap-1 text-xs text-muted-foreground mb-3">
+                {t('pricingMode')}
+                <select
+                    value={editValues.pricing_mode}
+                    onChange={(e) => onChange({ ...editValues, pricing_mode: e.target.value as 'token' | 'call' })}
+                    className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
+                >
+                    <option value="token">{t('tokenMode')}</option>
+                    <option value="call">{t('callMode')}</option>
+                </select>
+            </label>
+
+            {editValues.pricing_mode === 'token' ? (
+                <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('input')}
+                        <Input type="number" step="any" value={editValues.input} onChange={(e) => onChange({ ...editValues, input: e.target.value })} className="h-9 text-sm rounded-xl" />
+                    </label>
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('output')}
+                        <Input type="number" step="any" value={editValues.output} onChange={(e) => onChange({ ...editValues, output: e.target.value })} className="h-9 text-sm rounded-xl" />
+                    </label>
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('cacheRead')}
+                        <Input type="number" step="any" value={editValues.cache_read} onChange={(e) => onChange({ ...editValues, cache_read: e.target.value })} className="h-9 text-sm rounded-xl" />
+                    </label>
+                    <label className="grid gap-1 text-xs text-muted-foreground">
+                        {t('cacheWrite')}
+                        <Input type="number" step="any" value={editValues.cache_write} onChange={(e) => onChange({ ...editValues, cache_write: e.target.value })} className="h-9 text-sm rounded-xl" />
+                    </label>
+                </div>
+            ) : (
                 <label className="grid gap-1 text-xs text-muted-foreground">
                     {t('call')}
-                    <Input
-                        type="number"
-                        step="any"
-                        value={editValues.call}
-                        onChange={(e) => onChange({ ...editValues, call: e.target.value })}
-                        className="h-9 text-sm rounded-xl"
-                    />
+                    <Input type="number" step="any" value={editValues.call} onChange={(e) => onChange({ ...editValues, call: e.target.value })} className="h-9 text-sm rounded-xl" />
                 </label>
-            </div>
+            )}
 
             <div className="flex gap-2 pt-2 mt-3">
                 <button

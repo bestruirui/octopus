@@ -28,6 +28,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
     const editButtonRef = useRef<HTMLButtonElement | null>(null);
     const editOverlayRef = useRef<HTMLDivElement | null>(null);
     const [editValues, setEditValues] = useState(() => ({
+        pricing_mode: model.pricing_mode === 'call' ? 'call' as const : 'token' as const,
         input: model.input.toString(),
         output: model.output.toString(),
         cache_read: model.cache_read.toString(),
@@ -59,6 +60,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
     const handleEditClick = () => {
         setConfirmDelete(false);
         setEditValues({
+            pricing_mode: model.pricing_mode === 'call' ? 'call' : 'token',
             input: model.input.toString(),
             output: model.output.toString(),
             cache_read: model.cache_read.toString(),
@@ -77,6 +79,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
     const handleSaveEdit = () => {
         updateModel.mutate({
             name: model.name,
+            pricing_mode: editValues.pricing_mode,
             input: parseFloat(editValues.input) || 0,
             output: parseFloat(editValues.output) || 0,
             cache_read: parseFloat(editValues.cache_read) || 0,
@@ -162,7 +165,11 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid' }: Mod
                     </TooltipContent>
                 </Tooltip>
 
-                {isListLayout ? (
+                {model.pricing_mode === 'call' ? (
+                    <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <span className="tabular-nums">{t('card.callPrice')}: {model.call.toFixed(2)}$</span>
+                    </p>
+                ) : isListLayout ? (
                     <p className="flex items-center gap-2 overflow-hidden text-sm text-muted-foreground whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
                             <ArrowDownToLine className="size-3.5 shrink-0" style={{ color: brandColor }} />

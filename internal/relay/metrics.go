@@ -63,11 +63,15 @@ func (m *RelayMetrics) RecordUsage(usage *llm.Usage) {
 	if nonCachedTokens < 0 {
 		nonCachedTokens = usage.PromptTokens
 	}
+	if modelPrice.PricingMode == "call" {
+		m.Stats.CallCost = modelPrice.Call
+		return
+	}
+
 	m.Stats.InputCost = (float64(tokenDetails.CachedTokens)*modelPrice.CacheRead +
 		float64(tokenDetails.WriteCachedTokens)*modelPrice.CacheWrite +
 		float64(nonCachedTokens)*modelPrice.Input) * 1e-6
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
-	m.Stats.CallCost = modelPrice.Call
 }
 
 func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attempts []model.ChannelAttempt) {
@@ -75,7 +79,7 @@ func (m *RelayMetrics) Save(ctx context.Context, success bool, err error, attemp
 	callCost := successfulCallCost(success, m.Stats.CallCost)
 	if success {
 		if callCost == 0 {
-			if modelPrice := price.GetLLMPrice(m.ActualModel); modelPrice != nil {
+			if modelPrice := price.GetLLMPrice(m.ActualModel); modelPrice != nil && modelPrice.PricingMode == "call" {
 				callCost = modelPrice.Call
 			}
 		}
