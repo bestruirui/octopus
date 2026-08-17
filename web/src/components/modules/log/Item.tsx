@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, Circle, CircleCheck, Clock, Cpu, Database, DollarSign, Loader2, Square } from 'lucide-react';
+import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, Circle, CircleCheck, Clock, Cpu, Database, DollarSign, KeyRound, Loader2, Square } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
@@ -186,6 +186,7 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
         () => getModelIcon(actualModel),
         [actualModel]
     );
+    const requestAPIKeyName = log.request_api_key_name?.trim() ?? '';
 
     useEffect(() => {
         if (!isOpen) setLeftTab('group');
@@ -218,11 +219,17 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
                                 {actualModel}
                             </span>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-7 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
-                            <div className="flex items-center gap-1.5">
-                                <Clock className="size-3.5 shrink-0" style={{ color: brandColor }} />
-                                <span>{formatTime(log.started_at)}</span>
-                            </div>
+                                <div className="grid grid-cols-2 md:grid-cols-7 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
+                                    <div className="flex items-center gap-1.5">
+                                        <Clock className="size-3.5 shrink-0" style={{ color: brandColor }} />
+                                        <span>{formatTime(log.started_at)}</span>
+                                    </div>
+                                    {requestAPIKeyName && (
+                                        <div className="flex min-w-0 items-center gap-1.5">
+                                            <KeyRound className="size-3.5 shrink-0 text-orange-500" />
+                                            <span className="truncate" title={requestAPIKeyName}>{requestAPIKeyName}</span>
+                                        </div>
+                                    )}
                             <div className="flex items-center gap-1.5">
                                 <Cpu className="size-3.5 shrink-0 text-blue-500" />
                                 <span>{duration}</span>
@@ -471,10 +478,16 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
                     </MorphingDialogDescription>
 
                     <div className="flex flex-wrap items-center gap-3 md:gap-4 pt-4 mt-auto text-xs text-muted-foreground shrink-0">
-                        <div className="flex items-center gap-1.5">
-                            <Clock className="size-3.5" style={{ color: brandColor }} />
-                            <span className="tabular-nums">{formatTime(log.started_at)}</span>
-                        </div>
+                            <div className="flex items-center gap-1.5">
+                                <Clock className="size-3.5" style={{ color: brandColor }} />
+                                <span className="tabular-nums">{formatTime(log.started_at)}</span>
+                            </div>
+                            {requestAPIKeyName && (
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                    <KeyRound className="size-3.5 shrink-0 text-orange-500" />
+                                    <span className="truncate" title={requestAPIKeyName}>{requestAPIKeyName}</span>
+                                </div>
+                            )}
                         <div className="flex items-center gap-1.5">
                             <Cpu className="size-3.5 text-blue-500" />
                             <span>{activeState !== 'running' && activeState !== 'committed' ? formatDuration(log.duration) : duration}</span>

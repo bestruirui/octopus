@@ -19,7 +19,7 @@ import (
 	"github.com/looplj/axonhub/llm/transformer/openai/responses"
 )
 
-var requestIDs atomic.Uint64 // requestIDs 分配进程内严格递增的请求 ID。
+var requestIDs atomic.Uint64                             // requestIDs 分配进程内严格递增的请求 ID。
 var errNoActiveChannel = errors.New("no active channel") // errNoActiveChannel 表示分组尚未选择活动渠道。
 
 // execution 保存单个客户端请求的全部可变执行状态。
@@ -49,7 +49,7 @@ func HandleMessages(c *gin.Context) {
 
 // execute 初始化请求，并在渠道未选择时等待、失败时重试，直至提交响应或客户端取消。
 func (e *execution) execute() {
-	e.log = LogRecord{LogOverview: LogOverview{ID: requestIDs.Add(1), State: RequestStateRunning, StartedAt: time.Now(), ClientProtocol: e.protocol.format}}
+	e.log = LogRecord{LogOverview: LogOverview{ID: requestIDs.Add(1), State: RequestStateRunning, StartedAt: time.Now(), ClientProtocol: e.protocol.format, RequestAPIKeyName: e.ctx.GetString("api_key_name")}}
 	ctx := e.ctx.Request.Context()
 	raw, err := httpclient.ReadHTTPRequest(e.ctx.Request)
 	if err != nil {

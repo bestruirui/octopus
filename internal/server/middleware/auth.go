@@ -75,6 +75,7 @@ func APIKeyAuth() gin.HandlerFunc {
 		}
 		c.Set("supported_models", apiKeyObj.SupportedModels)
 		c.Set("api_key_id", apiKeyObj.ID)
+		c.Set("api_key_name", apiKeyObj.Name)
 		c.Next()
 	}
 }

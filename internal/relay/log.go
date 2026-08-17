@@ -42,22 +42,23 @@ type LogAttempt struct {
 
 // LogOverview 表示概览流中一条可持续更新的请求日志。
 type LogOverview struct {
-	ID               uint64        `json:"id"`                 // 请求在当前进程内的唯一标识。
-	State            RequestState  `json:"state"`              // 请求当前状态。
-	StartedAt        time.Time     `json:"started_at"`         // 请求到达时间。
-	CompletedAt      time.Time     `json:"completed_at"`       // 请求完成时间。
-	Duration         time.Duration `json:"duration"`           // 请求总耗时。
-	RequestModel     string        `json:"request_model"`      // 客户端请求的模型名称。
-	ActualModel      string        `json:"actual_model"`       // 最终实际请求的模型名称。
-	ClientProtocol   llm.APIFormat `json:"client_protocol"`    // 客户端使用的请求协议。
-	Stream           bool          `json:"stream"`             // 是否为流式请求。
-	FinalChannelName string        `json:"final_channel_name"` // 成功渠道或最后尝试渠道的名称。
-	InputTokens      int64         `json:"input_tokens"`       // 请求完成后补充的输入 Token 数量。
-	OutputTokens     int64         `json:"output_tokens"`      // 请求完成后补充的输出 Token 数量。
-	CacheReadTokens  int64         `json:"cache_read_tokens"`  // 请求完成后补充的缓存读取 Token 数量。
-	CacheWriteTokens int64         `json:"cache_write_tokens"` // 请求完成后补充的缓存写入 Token 数量。
-	TotalCost        float64       `json:"total_cost"`         // 请求完成后补充的总费用。
-	Error            string        `json:"error,omitempty"`    // 请求当前或最终错误。
+	ID                uint64        `json:"id"`                             // 请求在当前进程内的唯一标识。
+	State             RequestState  `json:"state"`                          // 请求当前状态。
+	StartedAt         time.Time     `json:"started_at"`                     // 请求到达时间。
+	CompletedAt       time.Time     `json:"completed_at"`                   // 请求完成时间。
+	Duration          time.Duration `json:"duration"`                       // 请求总耗时。
+	RequestModel      string        `json:"request_model"`                  // 客户端请求的模型名称。
+	RequestAPIKeyName string        `json:"request_api_key_name,omitempty"` // 请求使用的 API Key 名称。
+	ActualModel       string        `json:"actual_model"`                   // 最终实际请求的模型名称。
+	ClientProtocol    llm.APIFormat `json:"client_protocol"`                // 客户端使用的请求协议。
+	Stream            bool          `json:"stream"`                         // 是否为流式请求。
+	FinalChannelName  string        `json:"final_channel_name"`             // 成功渠道或最后尝试渠道的名称。
+	InputTokens       int64         `json:"input_tokens"`                   // 请求完成后补充的输入 Token 数量。
+	OutputTokens      int64         `json:"output_tokens"`                  // 请求完成后补充的输出 Token 数量。
+	CacheReadTokens   int64         `json:"cache_read_tokens"`              // 请求完成后补充的缓存读取 Token 数量。
+	CacheWriteTokens  int64         `json:"cache_write_tokens"`             // 请求完成后补充的缓存写入 Token 数量。
+	TotalCost         float64       `json:"total_cost"`                     // 请求完成后补充的总费用。
+	Error             string        `json:"error,omitempty"`                // 请求当前或最终错误。
 }
 
 // LogRecord 保存一个请求的概览和正文快照。

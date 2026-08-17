@@ -21,6 +21,7 @@ export interface RelayLogOverview {
     completed_at: string;
     duration: number;
     request_model: string;
+    request_api_key_name?: string;
     actual_model: string;
     client_protocol: string;
     stream: boolean;
