@@ -53,6 +53,10 @@ func createAPIKey(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
+	if req.MaxRPM < 0 {
+		resp.Error(c, http.StatusBadRequest, "max_rpm must be non-negative")
+		return
+	}
 	req.APIKey = auth.GenerateAPIKey()
 	if err := op.APIKeyCreate(&req, c.Request.Context()); err != nil {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
@@ -74,6 +78,10 @@ func updateAPIKey(c *gin.Context) {
 	var req model.APIKey
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	if req.MaxRPM < 0 {
+		resp.Error(c, http.StatusBadRequest, "max_rpm must be non-negative")
 		return
 	}
 	if err := op.APIKeyUpdate(&req, c.Request.Context()); err != nil {

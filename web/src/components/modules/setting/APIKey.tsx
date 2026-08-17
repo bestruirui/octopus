@@ -85,10 +85,14 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         enabled: apiKey?.enabled ?? true,
         expire_at: apiKey?.expire_at,
         max_cost: apiKey?.max_cost,
+        max_rpm: apiKey?.max_rpm,
         supported_models: apiKey?.supported_models,
     }));
     const [maxCostInput, setMaxCostInput] = useState(() =>
         apiKey?.max_cost != null ? String(apiKey.max_cost) : ''
+    );
+    const [maxRPMInput, setMaxRPMInput] = useState(() =>
+        apiKey?.max_rpm != null ? String(apiKey.max_rpm) : ''
     );
     const [expireTime, setExpireTime] = useState(() => {
         if (apiKey?.expire_at) {
@@ -109,6 +113,7 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
     const expireDate = parseExpireDate(form.expire_at);
     const neverExpire = !form.expire_at;
     const isUnlimitedCost = maxCostInput.trim() === '';
+    const isUnlimitedRPM = maxRPMInput.trim() === '';
 
     const expireLabel = neverExpire
         ? t('apiKey.form.neverExpire')
@@ -157,6 +162,23 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
         updateForm({ max_cost: undefined });
     }, [updateForm]);
 
+    const handleMaxRPMChange = useCallback((value: string) => {
+        const cleaned = value.replace(/[^\d]/g, '');
+        const number = Number.parseInt(cleaned, 10);
+        if (Number.isFinite(number) && number > 0) {
+            setMaxRPMInput(cleaned);
+            updateForm({ max_rpm: number });
+        } else {
+            setMaxRPMInput('');
+            updateForm({ max_rpm: undefined });
+        }
+    }, [updateForm]);
+
+    const handleClearMaxRPM = useCallback(() => {
+        setMaxRPMInput('');
+        updateForm({ max_rpm: undefined });
+    }, [updateForm]);
+
     const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name.trim()) return;
@@ -203,6 +225,36 @@ function APIKeyForm({ apiKey, isPending, submitLabel, onSubmit, onClose }: APIKe
                                 ? 'bg-primary text-primary-foreground border-primary/30'
                                 : 'border-border bg-muted/20 text-foreground hover:bg-muted/30',
                             isPending && 'opacity-50 cursor-not-allowed'
+                        )}
+                    >
+                        {t('apiKey.form.unlimited')}
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid gap-1 text-xs text-muted-foreground">
+                {t('apiKey.form.maxRPM')}
+                <div className="flex items-center gap-2">
+                    <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder={t('apiKey.form.maxRPMPlaceholder')}
+                        value={maxRPMInput}
+                        onChange={(e) => handleMaxRPMChange(e.target.value)}
+                        className="h-9 flex-1 rounded-xl text-sm"
+                        disabled={isPending}
+                    />
+                    <button
+                        type="button"
+                        onClick={handleClearMaxRPM}
+                        disabled={isPending}
+                        aria-pressed={isUnlimitedRPM}
+                        className={cn(
+                            'h-9 shrink-0 rounded-xl border px-3 text-sm transition-colors',
+                            isUnlimitedRPM
+                                ? 'border-primary/30 bg-primary text-primary-foreground'
+                                : 'border-border bg-muted/20 text-foreground hover:bg-muted/30',
+                            isPending && 'cursor-not-allowed opacity-50'
                         )}
                     >
                         {t('apiKey.form.unlimited')}

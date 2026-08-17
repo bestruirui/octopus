@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -66,6 +67,15 @@ func APIKeyAuth() gin.HandlerFunc {
 			resp.Error(c, http.StatusUnauthorized, "API key has expired")
 			c.Abort()
 			return
+		}
+		if apiKeyObj.MaxRPM > 0 {
+			allowed, retryAfter := op.RateLimitCheck(apiKeyObj.ID, apiKeyObj.MaxRPM)
+			if !allowed {
+				c.Header("Retry-After", strconv.Itoa(retryAfter))
+				resp.Error(c, http.StatusTooManyRequests, "API key has exceeded the rate limit")
+				c.Abort()
+				return
+			}
 		}
 		statsAPIKey := op.StatsAPIKeyGet(apiKeyObj.ID)
 		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost < statsAPIKey.StatsMetrics.OutputCost+statsAPIKey.StatsMetrics.InputCost {

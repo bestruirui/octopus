@@ -72,6 +72,7 @@ func APIKeyDelete(id int, ctx context.Context) error {
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete API key: %w", result.Error)
 	}
+	RateLimitDel(id)
 	apiKeyCache.Del(k.ID)
 	apiKeyIDMap.Del(k.APIKey)
 	return nil

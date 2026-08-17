@@ -187,6 +187,8 @@
                 "name": "Name",
                 "maxCost": "Max Cost",
                 "maxCostPlaceholder": "Enter amount",
+                "maxRPM": "Requests per minute",
+                "maxRPMPlaceholder": "Enter maximum requests per minute",
                 "unlimited": "Unlimited",
                 "expireAt": "Expire Date",
                 "selectDate": "Select date",
