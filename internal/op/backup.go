@@ -143,12 +143,45 @@ func DBImportIncremental(ctx context.Context, dump *model.DBDump) (*model.DBImpo
 			}
 		}
 
+		if err := resetPostgresImportSequences(tx); err != nil {
+			return fmt.Errorf("reset postgres import sequences: %w", err)
+		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
+}
+
+var postgresImportSequenceTables = []string{
+	"channels",
+	"groups",
+	"group_items",
+	"api_keys",
+	"stats_models",
+}
+
+func resetPostgresImportSequences(tx *gorm.DB) error {
+	if tx.Dialector == nil || tx.Dialector.Name() != "postgres" {
+		return nil
+	}
+	for _, table := range postgresImportSequenceTables {
+		statement := postgresSequenceResetStatement(table)
+		if err := tx.Exec(statement).Error; err != nil {
+			return fmt.Errorf("reset %s id sequence: %w", table, err)
+		}
+	}
+	return nil
+}
+
+func postgresSequenceResetStatement(table string) string {
+	return fmt.Sprintf(
+		`SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE(MAX("id"), 1), MAX("id") IS NOT NULL) FROM "%s"`,
+		table,
+		table,
+	)
 }
 
 func createDoNothing[T any](tx *gorm.DB, rows []T) (int64, error) {
