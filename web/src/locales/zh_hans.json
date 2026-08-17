@@ -334,6 +334,7 @@
             "retryInterval": "重试间隔",
             "items": "已选模型",
             "addItem": "添加模型",
+            "copyModelName": "复制模型名称",
             "autoAdd": "自动添加",
             "clear": "清空"
         }

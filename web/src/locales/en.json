@@ -334,6 +334,7 @@
             "retryInterval": "Retry Interval",
             "items": "Selected Models",
             "addItem": "Add Model",
+            "copyModelName": "Copy model name",
             "autoAdd": "Auto Add",
             "clear": "Clear"
         }
