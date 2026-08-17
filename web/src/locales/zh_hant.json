@@ -398,6 +398,7 @@
             "noRequestContent": "(無請求內容)",
             "noResponseContent": "(無回應內容)",
             "tokens": "tokens",
+            "cacheHitRate": "快取命中率",
             "retryDetails": "重試詳情",
             "stopAttempt": "停止本次嘗試",
             "stopFailed": "停止失敗",

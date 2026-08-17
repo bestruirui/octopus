@@ -13,6 +13,7 @@ import { useModelChannelList } from '@/api/model';
 import { getModelIcon } from '@/lib/model-icons';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { CopyIconButton } from '@/components/common/CopyButton';
 import { toast } from 'sonner';
@@ -51,6 +52,13 @@ function formatMilliseconds(value: number) {
 // formatDuration 将 Go time.Duration 的纳秒值转换为显示文本。
 function formatDuration(value: number) {
     return formatMilliseconds(value / 1_000_000);
+}
+
+function cacheHitRate(inputTokens: number, cacheReadTokens: number) {
+    const total = Math.max(0, inputTokens);
+    const cached = Math.max(0, cacheReadTokens);
+    if (total === 0) return 0;
+    return Math.min(100, (cached / total) * 100);
 }
 
 // useOverviewDuration 返回运行中请求的实时耗时或完成请求的固定耗时。
@@ -178,6 +186,7 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
     const errorText = log.error ?? '';
     const requestFailed = activeState === 'failed' || activeState === 'canceled';
     const responseCommitted = isCommitted || activeState === 'committed';
+    const cacheRate = cacheHitRate(log.input_tokens, log.cache_read_tokens);
     const isWaiting = activeState === 'running' && !responseCommitted;
     const activeGroup = groups.find((group) => group.name === log.request_model);
     const isWaitingForSelection = isWaiting && activeGroup?.active_item_id === 0; // isWaitingForSelection 表示请求正等待分组选择渠道。
@@ -234,6 +243,20 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
                             <div className="flex items-center gap-1.5">
                                 <Database className="size-3.5 shrink-0 text-cyan-500" />
                                 <span>{log.cache_read_tokens.toLocaleString()}</span>
+                                {log.cache_read_tokens > 0 && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge
+                                                variant="secondary"
+                                                className="cursor-help px-1.5 py-0 text-[11px] text-emerald-600 dark:text-emerald-400"
+                                                aria-label={`${t('cacheHitRate')} ${cacheRate.toFixed(1)}%`}
+                                            >
+                                                {cacheRate.toFixed(1)}%
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>{t('cacheHitRate')}</TooltipContent>
+                                    </Tooltip>
+                                )}
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <ArrowUpFromLine className="size-3.5 shrink-0 text-purple-500" />
@@ -486,6 +509,20 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
                         <div className="flex items-center gap-1.5">
                             <Database className="size-3.5 text-cyan-500" />
                             <span>{log.cache_read_tokens.toLocaleString()}</span>
+                            {log.cache_read_tokens > 0 && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Badge
+                                            variant="secondary"
+                                            className="cursor-help px-1.5 py-0 text-[11px] text-emerald-600 dark:text-emerald-400"
+                                            aria-label={`${t('cacheHitRate')} ${cacheRate.toFixed(1)}%`}
+                                        >
+                                            {cacheRate.toFixed(1)}%
+                                        </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{t('cacheHitRate')}</TooltipContent>
+                                </Tooltip>
+                            )}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <ArrowUpFromLine className="size-3.5 text-purple-500" />

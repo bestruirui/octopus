@@ -398,6 +398,7 @@
             "noRequestContent": "(无请求内容)",
             "noResponseContent": "(无响应内容)",
             "tokens": "tokens",
+            "cacheHitRate": "缓存命中率",
             "retryDetails": "重试详情",
             "stopAttempt": "停止本次尝试",
             "stopFailed": "停止失败",

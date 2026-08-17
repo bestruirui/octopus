@@ -398,6 +398,7 @@
             "noRequestContent": "(No request content)",
             "noResponseContent": "(No response content)",
             "tokens": "tokens",
+            "cacheHitRate": "Cache hit rate",
             "retryDetails": "Retry Details",
             "stopAttempt": "Stop Attempt",
             "stopFailed": "Failed to stop attempt",
