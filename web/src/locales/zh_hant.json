@@ -224,6 +224,11 @@
                 "label": "自動更新間隔（小時）",
                 "placeholder": "請輸入間隔（小時）"
             },
+            "sourceUrl": {
+                "label": "價格資料地址",
+                "placeholder": "https://example.com/api.json",
+                "description": "留空時使用 models.dev 官方介面"
+            },
             "manualUpdate": {
                 "label": "手動更新價格",
                 "button": "立即更新",

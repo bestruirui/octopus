@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, type MutableRefObject } from 'react';
 import { useTranslations } from 'use-intl';
-import { DollarSign, Clock, RefreshCw } from 'lucide-react';
+import { DollarSign, Clock, Link, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useSettingList, useSetSetting, SettingKey } from '@/api/setting';
@@ -15,7 +15,9 @@ export function SettingLLMPrice() {
     const { data: lastUpdateTime } = useLastUpdateTime();
 
     const [updateInterval, setUpdateInterval] = useState('');
+    const [modelPriceUrl, setModelPriceUrl] = useState('');
     const initialUpdateInterval = useRef('');
+    const initialModelPriceUrl = useRef('');
 
     useEffect(() => {
         if (settings) {
@@ -24,16 +26,21 @@ export function SettingLLMPrice() {
                 queueMicrotask(() => setUpdateInterval(interval.value));
                 initialUpdateInterval.current = interval.value;
             }
+            const priceUrl = settings.find(s => s.key === SettingKey.ModelPriceURL);
+            if (priceUrl) {
+                queueMicrotask(() => setModelPriceUrl(priceUrl.value));
+                initialModelPriceUrl.current = priceUrl.value;
+            }
         }
     }, [settings]);
 
-    const handleSave = (key: string, value: string, initialValue: string) => {
+    const handleSave = (key: string, value: string, initialValue: string, initialRef: MutableRefObject<string>) => {
         if (value === initialValue) return;
 
         setSetting.mutate({ key, value }, {
             onSuccess: () => {
                 toast.success(t('saved'));
-                initialUpdateInterval.current = value;
+                initialRef.current = value;
             }
         });
     };
@@ -73,9 +80,27 @@ export function SettingLLMPrice() {
                     type="number"
                     value={updateInterval}
                     onChange={(e) => setUpdateInterval(e.target.value)}
-                    onBlur={() => handleSave(SettingKey.ModelInfoUpdateInterval, updateInterval, initialUpdateInterval.current)}
+                    onBlur={() => handleSave(SettingKey.ModelInfoUpdateInterval, updateInterval, initialUpdateInterval.current, initialUpdateInterval)}
                     placeholder={t('llmPrice.updateInterval.placeholder')}
                     className="w-48 rounded-xl"
+                />
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div className="flex items-center gap-3">
+                    <Link className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium">{t('llmPrice.sourceUrl.label')}</span>
+                        <span className="text-xs text-muted-foreground">{t('llmPrice.sourceUrl.description')}</span>
+                    </div>
+                </div>
+                <Input
+                    type="url"
+                    value={modelPriceUrl}
+                    onChange={(e) => setModelPriceUrl(e.target.value)}
+                    onBlur={() => handleSave(SettingKey.ModelPriceURL, modelPriceUrl.trim(), initialModelPriceUrl.current, initialModelPriceUrl)}
+                    placeholder={t('llmPrice.sourceUrl.placeholder')}
+                    className="w-full rounded-xl sm:w-72"
                 />
             </div>
 

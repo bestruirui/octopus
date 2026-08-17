@@ -16,7 +16,7 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-const llmPriceUrl = "https://models.dev/api.json"
+const defaultLLMPriceURL = "https://models.dev/api.json"
 
 // developerFamilies 定义研发商及其自研模型系列前缀。
 var developerFamilies = map[string][]string{
@@ -44,7 +44,7 @@ func UpdateLLMPrice(ctx context.Context) error {
 	var body []byte
 	httpClient, err := client.GetHTTPClientSystemProxy(false)
 	if err == nil {
-		req, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, llmPriceUrl, nil)
+		req, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, configuredLLMPriceURL(), nil)
 		if requestErr != nil {
 			return requestErr
 		}
@@ -70,7 +70,7 @@ func UpdateLLMPrice(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, llmPriceUrl, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, configuredLLMPriceURL(), nil)
 		if err != nil {
 			return err
 		}
@@ -130,6 +130,22 @@ func UpdateLLMPrice(ctx context.Context) error {
 	llmPriceLock.Unlock()
 	lastUpdateTime = time.Now()
 	return nil
+}
+
+func configuredLLMPriceURL() string {
+	value, err := op.SettingGetString(model.SettingKeyModelPriceURL)
+	if err != nil {
+		return defaultLLMPriceURL
+	}
+	return selectLLMPriceURL(value)
+}
+
+func selectLLMPriceURL(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return defaultLLMPriceURL
+	}
+	return value
 }
 
 // GetLastUpdateTime 返回最近一次价格更新时间。

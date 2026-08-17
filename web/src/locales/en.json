@@ -224,6 +224,11 @@
                 "label": "Auto Update Interval (hours)",
                 "placeholder": "Enter interval in hours"
             },
+            "sourceUrl": {
+                "label": "Price data URL",
+                "placeholder": "https://example.com/api.json",
+                "description": "Leave empty to use the official models.dev endpoint"
+            },
             "manualUpdate": {
                 "label": "Manual Price Update",
                 "button": "Update Now",

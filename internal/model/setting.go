@@ -10,6 +10,7 @@ type SettingKey string
 
 const (
 	SettingKeyProxyURL                SettingKey = "proxy_url"
+	SettingKeyModelPriceURL           SettingKey = "model_price_url"            // 模型价格镜像或反向代理接口地址
 	SettingKeyStatsSaveInterval       SettingKey = "stats_save_interval"        // 将统计信息写入数据库的周期(分钟)
 	SettingKeyModelInfoUpdateInterval SettingKey = "model_info_update_interval" // 模型信息更新间隔(小时)
 	SettingKeySyncLLMInterval         SettingKey = "sync_llm_interval"          // LLM 同步间隔(小时)
@@ -24,6 +25,7 @@ type Setting struct {
 func DefaultSettings() []Setting {
 	return []Setting{
 		{Key: SettingKeyProxyURL, Value: ""},
+		{Key: SettingKeyModelPriceURL, Value: ""},
 		{Key: SettingKeyStatsSaveInterval, Value: "10"},       // 默认10分钟保存一次统计信息
 		{Key: SettingKeyCORSAllowOrigins, Value: ""},          // CORS 默认不允许跨域，设置为 "*" 才允许所有来源
 		{Key: SettingKeyModelInfoUpdateInterval, Value: "24"}, // 默认24小时更新一次模型信息
@@ -57,6 +59,21 @@ func (s *Setting) Validate() error {
 		}
 		if parsedURL.Host == "" {
 			return fmt.Errorf("proxy URL must have a host")
+		}
+		return nil
+	case SettingKeyModelPriceURL:
+		if s.Value == "" {
+			return nil
+		}
+		parsedURL, err := url.Parse(s.Value)
+		if err != nil {
+			return fmt.Errorf("model price URL is invalid: %w", err)
+		}
+		if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+			return fmt.Errorf("model price URL scheme must be http or https")
+		}
+		if parsedURL.Host == "" {
+			return fmt.Errorf("model price URL must have a host")
 		}
 		return nil
 	}
