@@ -195,28 +195,32 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
         <>
             <MorphingDialogTrigger
                 className={cn(
-                    "rounded-3xl border bg-card w-full text-left",
+                    "w-full overflow-hidden rounded-3xl border bg-card text-left",
                     requestFailed ? "border-destructive/40" : "border-border",
                 )}
             >
                 <div className={cn("p-4 grid grid-cols-[auto_1fr] gap-4", requestFailed ? "items-start" : "items-center")}>
                     <Icon aria-hidden="true" className={iconClassName} width={40} height={40} />
                     <div className="min-w-0 flex flex-col gap-3">
-                        <div className="flex items-center gap-2 min-w-0 text-sm">
-                            <span className="font-semibold text-card-foreground truncate" title={log.request_model}>
-                                {log.request_model || t('unknownModel')}
-                            </span>
-                            <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
-                            <Badge
-                                variant="secondary"
-                                className="shrink-0 text-xs px-1.5 py-0"
-                                style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
-                            >
-                                {channelName}
-                            </Badge>
-                            <span className="text-muted-foreground truncate" title={actualModel}>
-                                {actualModel}
-                            </span>
+                        <div className="flex min-w-0 flex-col gap-1 text-sm md:flex-row md:items-center md:gap-2">
+                            <div className="flex min-w-0 items-center gap-2 md:contents">
+                                <span className="min-w-0 flex-1 truncate font-semibold text-card-foreground" title={log.request_model}>
+                                    {log.request_model || t('unknownModel')}
+                                </span>
+                                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/50" />
+                            </div>
+                            <div className="flex min-w-0 items-center gap-2 md:contents">
+                                <Badge
+                                    variant="secondary"
+                                    className="max-w-[45%] min-w-0 shrink-0 px-1.5 py-0 text-xs md:max-w-[30%]"
+                                    style={{ backgroundColor: `${brandColor}15`, color: brandColor }}
+                                >
+                                    <span className="truncate">{channelName}</span>
+                                </Badge>
+                                <span className="min-w-0 flex-1 truncate text-muted-foreground" title={actualModel}>
+                                    {actualModel}
+                                </span>
+                            </div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-7 gap-x-4 gap-y-2 text-xs tabular-nums text-muted-foreground">
                             <div className="flex items-center gap-1.5">
@@ -252,7 +256,7 @@ function LogCardContent({ log }: { log: RelayLogOverview }) {
                         </div>
                         {requestFailed && errorText && (
                             <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/20 overflow-hidden">
-                                <p className="text-xs text-destructive line-clamp-2 whitespace-pre-line">{errorText}</p>
+                                <p className="line-clamp-2 break-words whitespace-pre-line text-xs text-destructive">{errorText}</p>
                             </div>
                         )}
                     </div>
