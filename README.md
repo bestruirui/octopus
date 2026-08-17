@@ -15,6 +15,7 @@
 
 - 🔀 **Multi-Channel Aggregation** - Connect multiple LLM provider channels with unified management
 - 🔄 **Protocol Conversion** - Seamless conversion between OpenAI Chat / OpenAI Responses / Anthropic API formats
+- 🖼️ **Image APIs** - OpenAI-compatible image generations, edits, and variations
 - 💰 **Price Sync** - Automatic model pricing updates
 - 🔃 **Model Sync** - Automatic synchronization of available model lists with channels
 - 📊 **Analytics** - Comprehensive request statistics, token consumption, and cost tracking

@@ -22,5 +22,17 @@ func init() {
 		AddRoute(
 			router.NewRoute("/messages", http.MethodPost).
 			Handle(relay.HandleMessages),
+		).
+		AddRoute(
+			router.NewRoute("/images/generations", http.MethodPost).
+				Handle(relay.HandleImageGenerations),
+		).
+		AddRoute(
+			router.NewRoute("/images/edits", http.MethodPost).
+				Handle(relay.HandleImageEdits),
+		).
+		AddRoute(
+			router.NewRoute("/images/variations", http.MethodPost).
+				Handle(relay.HandleImageVariations),
 		)
 }

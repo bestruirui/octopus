@@ -47,6 +47,43 @@ func HandleMessages(c *gin.Context) {
 	(&execution{ctx: c, protocol: &relayProtocol{format: llm.APIFormatAnthropicMessage, route: "/messages", authType: httpclient.AuthTypeAPIKey, inbound: anthropic.NewInboundTransformer()}}).execute()
 }
 
+// HandleImageGenerations 处理 OpenAI Images 生成请求。
+func HandleImageGenerations(c *gin.Context) {
+	(&execution{ctx: c, protocol: newImageProtocol(llm.APIFormatOpenAIImageGeneration)}).execute()
+}
+
+// HandleImageEdits 处理 OpenAI Images 编辑请求。
+func HandleImageEdits(c *gin.Context) {
+	(&execution{ctx: c, protocol: newImageProtocol(llm.APIFormatOpenAIImageEdit)}).execute()
+}
+
+// HandleImageVariations 处理 OpenAI Images 变体请求。
+func HandleImageVariations(c *gin.Context) {
+	(&execution{ctx: c, protocol: newImageProtocol(llm.APIFormatOpenAIImageVariation)}).execute()
+}
+
+func newImageProtocol(format llm.APIFormat) *relayProtocol {
+	protocol := &relayProtocol{
+		format:      format,
+		authType:    httpclient.AuthTypeBearer,
+		omitBodyLog: true,
+	}
+	switch format {
+	case llm.APIFormatOpenAIImageGeneration:
+		protocol.route = "/images/generations"
+		protocol.inbound = openai.NewImageGenerationInboundTransformer()
+	case llm.APIFormatOpenAIImageEdit:
+		protocol.route = "/images/edits"
+		protocol.inbound = openai.NewImageEditInboundTransformer()
+	case llm.APIFormatOpenAIImageVariation:
+		protocol.route = "/images/variations"
+		protocol.inbound = openai.NewImageVariationInboundTransformer()
+	default:
+		panic("unsupported image API format: " + format)
+	}
+	return protocol
+}
+
 // execute 初始化请求，并在渠道未选择时等待、失败时重试，直至提交响应或客户端取消。
 func (e *execution) execute() {
 	e.log = LogRecord{LogOverview: LogOverview{ID: requestIDs.Add(1), State: RequestStateRunning, StartedAt: time.Now(), ClientProtocol: e.protocol.format}}
@@ -58,7 +95,9 @@ func (e *execution) execute() {
 		e.protocol.writeError(e.ctx, http.StatusBadRequest, err)
 		return
 	}
-	e.log.RequestBody = string(raw.Body)
+	if !e.protocol.omitBodyLog {
+		e.log.RequestBody = string(raw.Body)
+	}
 	parsed, err := e.protocol.inbound.TransformRequest(ctx, cloneRequest(raw, ctx))
 	if err != nil {
 		e.emit(LogEventRequestStarted, nil)
@@ -305,7 +344,7 @@ func (e *execution) finish(state RequestState, err error, responseBody []byte, u
 	} else if err != nil {
 		e.log.Error = err.Error()
 	}
-	if len(responseBody) > 0 {
+	if !e.protocol.omitBodyLog && len(responseBody) > 0 {
 		e.log.ResponseBody = string(responseBody)
 	}
 	if usage != nil {

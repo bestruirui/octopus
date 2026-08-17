@@ -17,10 +17,11 @@ import (
 
 // relayProtocol 描述一个客户端协议的路由、认证和转换规则。
 type relayProtocol struct {
-	format   llm.APIFormat       // 客户端协议标识。
-	route    string              // 客户端和标准上游路径。
-	authType string              // 同协议上游认证方式。
-	inbound  transformer.Inbound // inbound 负责客户端协议转换。
+	format      llm.APIFormat       // 客户端协议标识。
+	route       string              // 客户端和标准上游路径。
+	authType    string              // 同协议上游认证方式。
+	inbound     transformer.Inbound // inbound 负责客户端协议转换。
+	omitBodyLog bool                // omitBodyLog 避免将大型或二进制正文复制到内存日志。
 }
 
 // writeError 将内部错误转换成客户端协议响应。
