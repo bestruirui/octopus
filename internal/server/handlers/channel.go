@@ -54,6 +54,14 @@ func init() {
 		AddRoute(
 			router.NewRoute("/last-sync-time", http.MethodGet).
 				Handle(getLastSyncTime),
+		).
+		AddRoute(
+			router.NewRoute("/query-balance", http.MethodPost).
+				Handle(queryBalance),
+		).
+		AddRoute(
+			router.NewRoute("/test-balance", http.MethodPost).
+				Handle(testBalance),
 		)
 }
 
@@ -170,4 +178,44 @@ func syncChannel(c *gin.Context) {
 func getLastSyncTime(c *gin.Context) {
 	time := task.GetLastSyncModelsTime()
 	resp.Success(c, time)
+}
+
+func queryBalance(c *gin.Context) {
+	var request struct {
+		ID int `json:"id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&request); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	balance, err := task.BalanceQueryChannel(request.ID, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp.Success(c, balance)
+}
+
+// testBalance 用表单提交的临时配置测试余额查询脚本,不落库。
+// 测试失败不算接口错误,返回带 Error 字段的余额快照供前端展示。
+func testBalance(c *gin.Context) {
+	var request struct {
+		BaseUrls     []model.BaseUrl    `json:"base_urls"`
+		Keys         []model.ChannelKey `json:"keys"`
+		BalanceQuery *model.BalanceQuery `json:"balance_query"`
+	}
+	if err := c.ShouldBindJSON(&request); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	channel := model.Channel{
+		BaseUrls:     request.BaseUrls,
+		Keys:         request.Keys,
+		BalanceQuery: request.BalanceQuery,
+	}
+	balance, err := helper.FetchBalance(c.Request.Context(), channel)
+	if err != nil {
+		balance = &model.Balance{Error: err.Error()}
+	}
+	resp.Success(c, balance)
 }

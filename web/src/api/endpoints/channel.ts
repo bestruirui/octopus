@@ -11,6 +11,7 @@ export enum ChannelType {
     Anthropic = 'anthropic',
     Gemini = 'gemini',
     Volcengine = 'volcengine',
+    OpenAIEmbedding = 'openai/embeddings',
 }
 
 /**
@@ -31,6 +32,39 @@ export type BaseUrl = {
 export type CustomHeader = {
     header_key: string;
     header_value: string;
+};
+
+/**
+ * 余额查询方式枚举（与后端 model.BalanceQueryType 对齐）
+ */
+export enum BalanceQueryType {
+    Custom = 'custom',      // 自定义查询脚本
+    DeepSeek = 'deepseek',  // DeepSeek 官方余额查询
+}
+
+/**
+ * 余额查询配置（与后端 model.BalanceQuery 对齐）
+ */
+export type BalanceQuery = {
+    enabled: boolean;
+    type?: BalanceQueryType; // 查询方式,默认为 custom
+    script?: string;         // 完整查询脚本:({request: {...}, extractor: function (response) {...}}),仅 custom 使用
+    timeout?: number;        // 单次查询超时(秒),默认 10
+    interval?: number;       // 自动查询间隔(分钟),0 表示不自动查询,默认 5
+};
+
+/**
+ * 余额快照（与后端 model.Balance 对齐）
+ */
+export type Balance = {
+    total: number;
+    used: number;
+    remaining: number;
+    unit: string;
+    plan_name?: string;
+    extra?: string;
+    updated_at: number;
+    error?: string;
 };
 
 export type ChannelKey = {
@@ -63,6 +97,8 @@ export type Channel = {
     param_override?: string | null;
     channel_proxy?: string | null;
     match_regex?: string | null;
+    balance_query?: BalanceQuery | null;
+    balance?: Balance | null;
     stats: StatsChannel;
 };
 
@@ -91,6 +127,7 @@ export type CreateChannelRequest = {
     channel_proxy?: string | null;
     param_override?: string | null;
     match_regex?: string | null;
+    balance_query?: BalanceQuery | null;
 };
 
 /**
@@ -111,6 +148,7 @@ export type UpdateChannelRequest = {
     channel_proxy?: string | null;
     param_override?: string | null;
     match_regex?: string | null;
+    balance_query?: BalanceQuery | null;
     // keys diff
     keys_to_add?: Array<Pick<ChannelKey, 'enabled' | 'channel_key' | 'remark'>>;
     keys_to_update?: Array<{ id: number; enabled?: boolean; channel_key?: string; remark?: string }>;
@@ -318,5 +356,39 @@ export function useSyncChannel() {
     return useMutation({
         mutationFn: () => apiRequest<null>('/api/v1/channel/sync', { method: 'POST' }),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels', 'last-sync-time'] }),
+    });
+}
+
+/**
+ * 手动查询渠道余额 Hook
+ *
+ * @example
+ * const queryBalance = useQueryBalance();
+ *
+ * queryBalance.mutate(1); // 立即查询渠道 1 的余额
+ */
+export function useQueryBalance() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) =>
+            apiRequest<Balance>('/api/v1/channel/query-balance', { method: 'POST', body: { id } }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
+        },
+    });
+}
+
+/**
+ * 测试余额查询脚本 Hook(用表单配置,不落库)
+ *
+ * @example
+ * const testBalance = useTestBalance();
+ *
+ * testBalance.mutate({ base_urls: [...], keys: [...], balance_query: {...} });
+ */
+export function useTestBalance() {
+    return useMutation({
+        mutationFn: (data: { base_urls: BaseUrl[]; keys: Array<Pick<ChannelKey, 'enabled' | 'channel_key'>>; balance_query: BalanceQuery }) =>
+            apiRequest<Balance>('/api/v1/channel/test-balance', { method: 'POST', body: data }),
     });
 }

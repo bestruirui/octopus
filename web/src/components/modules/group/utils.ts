@@ -6,6 +6,7 @@ export const MODE_LABELS: Record<GroupMode, string> = {
     [GroupMode.Random]: 'random',
     [GroupMode.Failover]: 'failover',
     [GroupMode.Weighted]: 'weighted',
+    [GroupMode.Manual]: 'manual',
 } as const;
 
 export function normalizeKey(value: string) {

@@ -1,4 +1,4 @@
-import { AutoGroupType, ChannelType, type Channel, useFetchModel } from '@/api/endpoints/channel';
+import { AutoGroupType, BalanceQueryType, ChannelType, type BalanceQuery, type Channel, useFetchModel, useTestBalance } from '@/api/endpoints/channel';
 import {
     Select,
     SelectContent,
@@ -13,7 +13,9 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/common/Toast';
 import { useTranslations } from 'use-intl';
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, X, Plus } from 'lucide-react';
+import { ChevronDown, CircleHelp, Lightbulb, RefreshCw, WandSparkles, X, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { js_beautify } from 'js-beautify';
 
 export interface ChannelKeyFormItem {
     id?: number;
@@ -40,6 +42,7 @@ export interface ChannelFormData {
     auto_sync: boolean;
     auto_group: AutoGroupType;
     match_regex: string;
+    balance_query?: BalanceQuery;
 }
 
 export interface ChannelFormProps {
@@ -60,6 +63,11 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
+
+function formatBalanceNumber(value: number): string {
+    if (Number.isInteger(value)) return String(value);
+    return value.toFixed(2);
+}
 
 export function ChannelForm({
     formData,
@@ -100,6 +108,9 @@ export function ChannelForm({
     const inputRef = useRef<HTMLInputElement>(null);
 
     const fetchModel = useFetchModel();
+    const testBalance = useTestBalance();
+    const [balanceTestResult, setBalanceTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+    const [balanceHelpOpen, setBalanceHelpOpen] = useState(false);
 
     const effectiveKey =
         formData.keys.find((k) => k.enabled && k.channel_key.trim())?.channel_key.trim() || '';
@@ -219,6 +230,71 @@ export function ChannelForm({
         const curr = formData.custom_header ?? [];
         if (curr.length <= 1) return;
         onFormDataChange({ ...formData, custom_header: curr.filter((_, i) => i !== idx) });
+    };
+
+    const handleUpdateBalanceQuery = (patch: Partial<BalanceQuery>) => {
+        const current = formData.balance_query ?? { enabled: false, type: BalanceQueryType.Custom };
+        onFormDataChange({ ...formData, balance_query: { ...current, ...patch } });
+    };
+
+    // 格式化脚本:用 js-beautify 整理缩进,方便阅读与修改。
+    const handleFormatScript = () => {
+        const script = formData.balance_query?.script ?? '';
+        if (!script.trim()) return;
+        try {
+            const formatted = js_beautify(script, { indent_size: 2, preserve_newlines: true, max_preserve_newlines: 2 });
+            handleUpdateBalanceQuery({ script: formatted });
+        } catch {
+            // 格式化失败保持原样
+        }
+    };
+
+    // 测试当前表单里的余额查询脚本:后端执行提取函数并返回结果或错误。
+    const testBalanceQuery = () => {
+        const query = formData.balance_query;
+        if (!query || !query.enabled) {
+            setBalanceTestResult({ ok: false, message: t('balanceTestIncomplete') });
+            return;
+        }
+        if ((query.type ?? BalanceQueryType.Custom) === BalanceQueryType.Custom && !query.script?.trim()) {
+            setBalanceTestResult({ ok: false, message: t('balanceTestIncomplete') });
+            return;
+        }
+        setBalanceTestResult(null);
+        testBalance.mutate(
+            {
+                base_urls: formData.base_urls ?? [],
+                keys: (formData.keys ?? []).filter((k) => k.channel_key.trim()).map((k) => ({ enabled: k.enabled, channel_key: k.channel_key.trim() })),
+                balance_query: { enabled: true, type: query.type ?? BalanceQueryType.Custom, script: query.script, timeout: query.timeout ?? 10 },
+            },
+            {
+                onSuccess: (data) => {
+                    if (data.error) {
+                        setBalanceTestResult({ ok: false, message: data.error });
+                        return;
+                    }
+                    const remainingText = `${formatBalanceNumber(data.remaining)} ${data.unit}`.trim();
+                    setBalanceTestResult({
+                        ok: true,
+                        message: data.total > 0
+                            ? t('balanceTestSuccessWithTotal', {
+                                plan: data.plan_name || '',
+                                remaining: remainingText,
+                                total: `${formatBalanceNumber(data.total)} ${data.unit}`.trim(),
+                                extra: data.extra ? `(${data.extra})` : '',
+                            })
+                            : t('balanceTestSuccess', {
+                                plan: data.plan_name || '',
+                                remaining: remainingText,
+                                extra: data.extra ? `(${data.extra})` : '',
+                            }),
+                    });
+                },
+                onError: (error) => {
+                    setBalanceTestResult({ ok: false, message: error instanceof Error ? error.message : String(error) });
+                },
+            }
+        );
     };
 
     return (
@@ -573,6 +649,146 @@ export function ChannelForm({
                                 placeholder={t('paramOverridePlaceholder')}
                                 className="min-h-28 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
+                        </div>
+
+                        <div className="space-y-3 border-t pt-4">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor={`${idPrefix}-balance-enabled`} className="text-sm font-medium text-card-foreground">
+                                    {t('balanceQuery')}
+                                </label>
+                                <Switch
+                                    id={`${idPrefix}-balance-enabled`}
+                                    checked={formData.balance_query?.enabled ?? false}
+                                    onCheckedChange={(checked) => handleUpdateBalanceQuery({ enabled: checked })}
+                                />
+                            </div>
+
+                            {(formData.balance_query?.enabled ?? false) && (
+                                <div className="space-y-3 pl-1">
+                                    <div className="space-y-2">
+                                        <label htmlFor={`${idPrefix}-balance-type`} className="text-xs font-medium text-muted-foreground">
+                                            {t('balanceQueryType')}
+                                        </label>
+                                        <Select
+                                            value={formData.balance_query?.type ?? BalanceQueryType.Custom}
+                                            onValueChange={(value) => handleUpdateBalanceQuery({ type: value as BalanceQueryType })}
+                                        >
+                                            <SelectTrigger id={`${idPrefix}-balance-type`} className="rounded-xl w-full border border-border px-4 py-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className='rounded-xl'>
+                                                <SelectItem className='rounded-xl' value={BalanceQueryType.Custom}>{t('balanceTypeCustom')}</SelectItem>
+                                                <SelectItem className='rounded-xl' value={BalanceQueryType.DeepSeek}>{t('balanceTypeDeepSeek')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                            <label htmlFor={`${idPrefix}-balance-timeout`} className="text-xs font-medium text-muted-foreground">
+                                                {t('balanceTimeout')}
+                                            </label>
+                                            <Input
+                                                id={`${idPrefix}-balance-timeout`}
+                                                type="number"
+                                                min={1}
+                                                value={formData.balance_query?.timeout ?? 10}
+                                                onChange={(e) => handleUpdateBalanceQuery({ timeout: Number(e.target.value) || 10 })}
+                                                className="rounded-xl"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label htmlFor={`${idPrefix}-balance-interval`} className="text-xs font-medium text-muted-foreground">
+                                                {t('balanceInterval')}
+                                            </label>
+                                            <Input
+                                                id={`${idPrefix}-balance-interval`}
+                                                type="number"
+                                                min={0}
+                                                value={formData.balance_query?.interval ?? 5}
+                                                onChange={(e) => handleUpdateBalanceQuery({ interval: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)) })}
+                                                className="rounded-xl"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {(formData.balance_query?.type ?? BalanceQueryType.Custom) === BalanceQueryType.Custom && (
+                                    <>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label htmlFor={`${idPrefix}-balance-script`} className="text-xs font-medium text-muted-foreground">
+                                                {t('balanceScript')}
+                                            </label>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={handleFormatScript}
+                                                className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                                            >
+                                                <WandSparkles className="h-3 w-3 mr-1" />
+                                                {t('balanceFormat')}
+                                            </Button>
+                                        </div>
+                                        <textarea
+                                            id={`${idPrefix}-balance-script`}
+                                            value={formData.balance_query?.script ?? ''}
+                                            onChange={(e) => handleUpdateBalanceQuery({ script: e.target.value })}
+                                            placeholder={t.raw('balanceScriptPlaceholder')}
+                                            className="min-h-64 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setBalanceHelpOpen((open) => !open)}
+                                            className="flex items-center gap-1 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                                        >
+                                            <CircleHelp className="h-3.5 w-3.5" />
+                                            {t('balanceHelpTitle')}
+                                            <ChevronDown className={cn('h-3 w-3 transition-transform', balanceHelpOpen && 'rotate-180')} />
+                                        </button>
+                                        {balanceHelpOpen && (
+                                            <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
+                                                <div>
+                                                    <div className="mb-1 font-medium text-foreground/80">{t('balanceHelpFormat')}</div>
+                                                    <pre className="whitespace-pre-wrap rounded-lg bg-background p-2 font-mono text-[11px] leading-relaxed">{t.raw('balanceHelpExample')}</pre>
+                                                </div>
+                                                <div>
+                                                    <div className="mb-1 font-medium text-foreground/80">{t('balanceHelpReturnTitle')}</div>
+                                                    <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed">{t('balanceHelpReturnFields')}</pre>
+                                                </div>
+                                                <div className="flex items-start gap-1">
+                                                    <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" />
+                                                    <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed">{t.raw('balanceHelpTip')}</pre>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    </>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => testBalanceQuery()}
+                                            disabled={testBalance.isPending}
+                                            className="rounded-xl"
+                                        >
+                                            <RefreshCw className={cn('h-3 w-3 mr-1', testBalance.isPending && 'animate-spin')} />
+                                            {t('balanceTest')}
+                                        </Button>
+                                        {balanceTestResult && (
+                                            <div className={cn('text-xs rounded-xl border p-3', balanceTestResult.ok ? 'text-green-700 dark:text-green-400 border-green-500/30 bg-green-500/10' : 'text-destructive border-destructive/30 bg-destructive/10')}>
+                                                {balanceTestResult.message}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </AccordionContent>
                 </AccordionItem>

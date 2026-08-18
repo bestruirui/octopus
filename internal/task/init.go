@@ -17,6 +17,7 @@ const (
 	TaskSyncLLM      = "sync_llm"
 	TaskCleanLLM     = "clean_llm"
 	TaskBaseUrlDelay = "base_url_delay"
+	TaskBalanceQuery = "balance_query"
 )
 
 func Init() {
@@ -59,4 +60,6 @@ func Init() {
 			log.Warnf("relay log save db task failed: %v", err)
 		}
 	})
+	// 注册渠道余额查询任务
+	Register(TaskBalanceQuery, BalanceQueryCheckInterval, true, BalanceQueryTask)
 }

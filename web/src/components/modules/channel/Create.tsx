@@ -61,6 +61,7 @@ export function CreateDialogContent() {
                 channel_proxy: channelProxy,
                 param_override: paramOverride,
                 match_regex: formData.match_regex.trim(),
+                balance_query: formData.balance_query ?? null,
             },
             {
                 onSuccess: () => {

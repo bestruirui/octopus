@@ -9,9 +9,11 @@ import {
     Activity,
     TrendingUp,
     Globe,
-    Key
+    Key,
+    Wallet,
+    RefreshCw
 } from 'lucide-react';
-import { useUpdateChannel, useDeleteChannel, type Channel, type UpdateChannelRequest } from '@/api/endpoints/channel';
+import { useUpdateChannel, useDeleteChannel, useQueryBalance, type Channel, type UpdateChannelRequest } from '@/api/endpoints/channel';
 import {
     MorphingDialogTitle,
     MorphingDialogDescription,
@@ -26,11 +28,18 @@ import { ChannelForm, type ChannelFormData } from './Form';
 import { formatMoney } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+
+function formatBalanceNumber(value: number): string {
+    if (Number.isInteger(value)) return String(value);
+    return value.toFixed(2);
+}
 
 export function CardContent({ channel, stats }: { channel: Channel; stats: StatsMetricsFormatted }) {
     const { setIsOpen } = useMorphingDialog();
     const updateChannel = useUpdateChannel();
     const deleteChannel = useDeleteChannel();
+    const queryBalance = useQueryBalance();
     const [isEditing, setIsEditing] = useState(false);
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     const [formData, setFormData] = useState<ChannelFormData>({
@@ -58,6 +67,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         auto_sync: channel.auto_sync,
         auto_group: channel.auto_group,
         match_regex: channel.match_regex ?? '',
+        balance_query: channel.balance_query ?? undefined,
     });
     const t = useTranslations('channel.detail');
 
@@ -113,6 +123,11 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         if (nextMatchRegex !== curMatchRegex) {
             // Empty string means "clear" for patch semantics; backend maps it to NULL.
             req.match_regex = nextMatchRegex;
+        }
+
+        const nextBalanceQuery = formData.balance_query ?? null;
+        if (JSON.stringify(nextBalanceQuery ?? null) !== JSON.stringify(channel.balance_query ?? null)) {
+            req.balance_query = nextBalanceQuery;
         }
 
         const originalKeys = channel.keys;
@@ -312,6 +327,103 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                         </div>
                                     </dl>
                                 </section>
+
+                                {/* Balance */}
+                                {channel.balance_query?.enabled && (
+                                    <section className="space-y-3">
+                                        <h4 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            <Wallet className="size-3.5" />
+                                            {t('sections.balance')}
+                                        </h4>
+                                        <div className="rounded-2xl border bg-card overflow-hidden">
+                                            {channel.balance && !channel.balance.error ? (
+                                                <div className="p-4 space-y-3">
+                                                    {channel.balance.plan_name && (
+                                                        <div className="text-xs text-muted-foreground">{channel.balance.plan_name}</div>
+                                                    )}
+                                                    {channel.balance.extra && (
+                                                        <div className="text-xs text-muted-foreground">{channel.balance.extra}</div>
+                                                    )}
+                                                    {channel.balance.total > 0 ? (
+                                                        <>
+                                                            <dl className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+                                                                <div>
+                                                                    <dt className="text-xs text-muted-foreground mb-1">{t('balance.total')}</dt>
+                                                                    <dd className="text-base font-semibold">
+                                                                        {formatBalanceNumber(channel.balance.total)}
+                                                                        <span className="text-xs font-normal ml-1 text-muted-foreground">{channel.balance.unit}</span>
+                                                                    </dd>
+                                                                </div>
+                                                                <div>
+                                                                    <dt className="text-xs text-muted-foreground mb-1">{t('balance.used')}</dt>
+                                                                    <dd className="text-base font-semibold text-orange-600 dark:text-orange-400">
+                                                                        {formatBalanceNumber(channel.balance.used)}
+                                                                        <span className="text-xs font-normal ml-1 text-muted-foreground">{channel.balance.unit}</span>
+                                                                    </dd>
+                                                                </div>
+                                                                <div>
+                                                                    <dt className="text-xs text-muted-foreground mb-1">{t('balance.remaining')}</dt>
+                                                                    <dd className="text-base font-semibold text-green-600 dark:text-green-400">
+                                                                        {formatBalanceNumber(channel.balance.remaining)}
+                                                                        <span className="text-xs font-normal ml-1 text-muted-foreground">{channel.balance.unit}</span>
+                                                                    </dd>
+                                                                </div>
+                                                            </dl>
+                                                            <Progress
+                                                                value={Math.min(100, (channel.balance.used / channel.balance.total) * 100)}
+                                                                className="h-1.5"
+                                                            />
+                                                        </>
+                                                    ) : (
+                                                        <dl className="grid gap-3 grid-cols-1">
+                                                            <div>
+                                                                <dt className="text-xs text-muted-foreground mb-1">{t('balance.remaining')}</dt>
+                                                                <dd className="text-base font-semibold text-green-600 dark:text-green-400">
+                                                                    {formatBalanceNumber(channel.balance.remaining)}
+                                                                    <span className="text-xs font-normal ml-1 text-muted-foreground">{channel.balance.unit}</span>
+                                                                </dd>
+                                                            </div>
+                                                        </dl>
+                                                    )}
+                                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock className="size-3" />
+                                                            {t('balance.updatedAt')}: {new Date(channel.balance.updated_at * 1000).toLocaleString()}
+                                                        </span>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => queryBalance.mutate(channel.id)}
+                                                            disabled={queryBalance.isPending}
+                                                            className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                                                        >
+                                                            <RefreshCw className={cn('h-3 w-3 mr-1', queryBalance.isPending && 'animate-spin')} />
+                                                            {t('balance.refresh')}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 flex items-center justify-between">
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {channel.balance?.error ?? t('balance.notQueried')}
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => queryBalance.mutate(channel.id)}
+                                                        disabled={queryBalance.isPending}
+                                                        className="h-6 px-2 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-transparent"
+                                                    >
+                                                        <RefreshCw className={cn('h-3 w-3 mr-1', queryBalance.isPending && 'animate-spin')} />
+                                                        {t('balance.refresh')}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+                                )}
 
                                 {/* Base URLs */}
                                 <section className="space-y-3">

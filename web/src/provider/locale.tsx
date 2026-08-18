@@ -12,6 +12,14 @@ const messages: Record<Locale, typeof zh_hansMessages> = { // 各语言对应的
     en: enMessages,
 };
 
+// use-intl 的格式化依赖 Intl,locale 必须是 BCP47 格式(连字符),否则带占位符的消息
+// 会解析失败并回退为 key 原文(如 "channel.form.balanceTestSuccess")。
+const bcp47Locales: Record<Locale, string> = {
+    zh_hans: 'zh-Hans',
+    zh_hant: 'zh-Hant',
+    en: 'en',
+};
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
     const { locale } = useSettingStore();
     const [currentLocale, setCurrentLocale] = useState<Locale>('zh_hans');
@@ -22,7 +30,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
     return (
         <IntlProvider
-            locale={currentLocale}
+            locale={bcp47Locales[currentLocale]}
             messages={messages[currentLocale]}
             timeZone="Asia/Shanghai"
         >

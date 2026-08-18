@@ -34,6 +34,38 @@ type Channel struct {
 	ChannelProxy  *string        `json:"channel_proxy"`
 	Stats         *StatsChannel  `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
 	MatchRegex    *string        `json:"match_regex"`
+	BalanceQuery  *BalanceQuery  `json:"balance_query,omitempty" gorm:"serializer:json"` // BalanceQuery 是余额查询配置。
+	Balance       *Balance       `json:"balance,omitempty" gorm:"serializer:json"`      // Balance 是最近一次余额查询结果。
+}
+
+// BalanceQueryType 余额查询方式。Custom 是自定义脚本;DeepSeek 是内置预设,后端按固定脚本查询。
+type BalanceQueryType string
+
+const (
+	BalanceQueryTypeCustom   BalanceQueryType = "custom"   // Custom 表示自定义查询脚本。
+	BalanceQueryTypeDeepSeek BalanceQueryType = "deepseek" // DeepSeek 表示 DeepSeek 官方余额查询。
+)
+
+// BalanceQuery 渠道余额查询配置。
+// Custom 类型的 Script 形如 ({request: {...}, extractor: function (response) {...}});预设类型无需填写脚本。
+type BalanceQuery struct {
+	Enabled  bool             `json:"enabled"`            // Enabled 表示是否启用余额查询。
+	Type     BalanceQueryType `json:"type,omitempty"`     // Type 是查询方式,为空视为 custom。
+	Script   string           `json:"script,omitempty"`   // Script 是完整查询脚本,仅 custom 类型使用。
+	Timeout  int              `json:"timeout,omitempty"`  // Timeout 是单次查询超时(秒),0 表示默认 10。
+	Interval *int             `json:"interval,omitempty"` // Interval 是自动查询间隔(分钟),未设置默认 5,0 表示不自动查询。
+}
+
+// Balance 渠道余额快照。
+type Balance struct {
+	Total     float64 `json:"total"`               // Total 是总额度/总金额。
+	Used      float64 `json:"used"`                // Used 是已用额度/已用金额。
+	Remaining float64 `json:"remaining"`           // Remaining 是剩余额度/剩余金额。
+	Unit      string  `json:"unit"`                // Unit 是单位:quota / CNY / USD 等。
+	PlanName  string  `json:"plan_name,omitempty"` // PlanName 是套餐名称(由提取函数返回)。
+	Extra     string  `json:"extra,omitempty"`     // Extra 是扩展展示文本(由提取函数返回)。
+	UpdatedAt int64   `json:"updated_at"`          // UpdatedAt 是查询时间(unix 秒)。
+	Error     string  `json:"error,omitempty"`     // Error 是最近一次查询失败原因。
 }
 
 type BaseUrl struct {
@@ -73,6 +105,7 @@ type ChannelUpdateRequest struct {
 	ChannelProxy  *string         `json:"channel_proxy,omitempty"`
 	ParamOverride *string         `json:"param_override,omitempty"`
 	MatchRegex    *string         `json:"match_regex,omitempty"`
+	BalanceQuery  *BalanceQuery   `json:"balance_query,omitempty"` // BalanceQuery 是新的余额查询配置。
 
 	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
 	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`
