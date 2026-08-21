@@ -8,10 +8,21 @@ import (
 	"github.com/bestruirui/octopus/internal/db"
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/utils/cache"
+	"github.com/charmbracelet/log"
 	"gorm.io/gorm/clause"
 )
 
 var llmModelCache = cache.New[string, model.LLMPrice](16) // llmModelCache 保存数据库中的模型价格。
+
+// channelModels 读取渠道模型列表，数据库读取失败时返回空列表以继续清理流程。
+func channelModels(ctx context.Context) []model.LLMChannel {
+	channelLLMs, err := ChannelLLMList(ctx)
+	if err != nil {
+		log.Warnf("failed to list channel models: %v", err)
+		return nil
+	}
+	return channelLLMs
+}
 
 // LLMList 返回缓存中的全部模型价格。
 func LLMList() []model.LLMInfo {
@@ -44,7 +55,7 @@ func LLMDelete(modelName string, ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("model not found")
 	}
-	for _, channelModel := range ChannelLLMList() {
+	for _, channelModel := range channelModels(ctx) {
 		if strings.ToLower(channelModel.Name) == modelName {
 			return fmt.Errorf("model is referenced by channel")
 		}
@@ -58,7 +69,7 @@ func LLMDelete(modelName string, ctx context.Context) error {
 
 // LLMCleanupGhosts 删除已经不被任何渠道引用的模型价格。
 func LLMCleanupGhosts(ctx context.Context) error {
-	channelModels := ChannelLLMList()
+	channelModels := channelModels(ctx)
 	referencedModelNames := make(map[string]struct{}, len(channelModels))
 	// 价格表使用小写模型名作为键，渠道模型名转换为相同键后再判断引用关系。
 	for _, channelModel := range channelModels {

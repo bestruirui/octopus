@@ -77,11 +77,7 @@ func SyncModelsTask() {
 			}
 		}
 	}
-	llmPrice, err := op.LLMList(ctx)
-	if err != nil {
-		log.Errorf("failed to list models price: %v", err)
-		return
-	}
+	llmPrice := op.LLMList()
 	llmPriceNames := make([]string, 0, len(llmPrice))
 	for _, price := range llmPrice {
 		llmPriceNames = append(llmPriceNames, price.Name)
