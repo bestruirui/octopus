@@ -139,24 +139,23 @@ export function Rank() {
         <div className="rounded-3xl bg-card text-card-foreground border-border border pt-2 px-4">
             <Tabs value={rankSortMode} onValueChange={(value) => setRankSortMode(value as RankSortMode)}>
                 <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-base">{t('title')}</h3>
                     <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-base">{t('title')}</h3>
                         <Tabs value={rankDimension} onValueChange={(value) => setRankDimension(value as RankDimension)}>
                             <TabsList variant="text" className="p-0">
-                                <TabsTrigger value="channel" className="pr-0">{t('channel')}</TabsTrigger>
+                                <TabsTrigger value="channel" className="pr-0 data-[state=active]:text-foreground dark:data-[state=active]:text-foreground">{t('channel')}</TabsTrigger>
                                 <span aria-hidden="true" className="mx-1 inline-flex h-full -translate-y-px items-center text-sm font-medium leading-none text-muted-foreground/50">/</span>
-                                <TabsTrigger value="group" className="pl-0">{t('group')}</TabsTrigger>
+                                <TabsTrigger value="group" className="pl-0 data-[state=active]:text-foreground dark:data-[state=active]:text-foreground">{t('group')}</TabsTrigger>
                             </TabsList>
                         </Tabs>
-                        <span aria-hidden="true" className="text-muted-foreground/30">|</span>
-                        <TabsList variant="text" className="p-0">
-                            <TabsTrigger value="cost" className="pr-0">{t('sortByCost')}</TabsTrigger>
-                            <span aria-hidden="true" className="mx-1 inline-flex h-full -translate-y-px items-center text-sm font-medium leading-none text-muted-foreground/50">/</span>
-                            <TabsTrigger value="count" className="px-0">{t('sortByCount')}</TabsTrigger>
-                            <span aria-hidden="true" className="mx-1 inline-flex h-full -translate-y-px items-center text-sm font-medium leading-none text-muted-foreground/50">/</span>
-                            <TabsTrigger value="tokens" className="pl-0">{t('sortByTokens')}</TabsTrigger>
-                        </TabsList>
                     </div>
+                    <TabsList variant="text" className="p-0">
+                        <TabsTrigger value="cost" className="pr-0 data-[state=active]:text-foreground dark:data-[state=active]:text-foreground">{t('sortByCost')}</TabsTrigger>
+                        <span aria-hidden="true" className="mx-1 inline-flex h-full -translate-y-px items-center text-sm font-medium leading-none text-muted-foreground/50">/</span>
+                        <TabsTrigger value="count" className="px-0 data-[state=active]:text-foreground dark:data-[state=active]:text-foreground">{t('sortByCount')}</TabsTrigger>
+                        <span aria-hidden="true" className="mx-1 inline-flex h-full -translate-y-px items-center text-sm font-medium leading-none text-muted-foreground/50">/</span>
+                        <TabsTrigger value="tokens" className="pl-0 data-[state=active]:text-foreground dark:data-[state=active]:text-foreground">{t('sortByTokens')}</TabsTrigger>
+                    </TabsList>
                 </div>
                 <TabsContent value="cost">
                     {renderList(rankedByCost, 'cost')}
