@@ -211,6 +211,10 @@ func fetchModel(c *gin.Context) {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	if err := addChannelModelPrices(models, c.Request.Context()); err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 	resp.Success(c, models)
 }
 

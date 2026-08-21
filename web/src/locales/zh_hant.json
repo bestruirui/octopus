@@ -127,7 +127,9 @@
             "sortByCount": "次數",
             "sortByTokens": "Tokens",
             "noData": "暫無排行數據",
-            "successRate": "成功率"
+            "successRate": "成功率",
+            "channel": "渠道",
+            "group": "分組"
         }
     },
     "setting": {

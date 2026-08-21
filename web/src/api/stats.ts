@@ -1,6 +1,6 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { apiRequest } from './client';
-import { statsDailyQueryOptions, statsHourlyQueryOptions, statsTotalQueryOptions } from './queries';
+import { statsDailyQueryOptions, statsGroupQueryOptions, statsHourlyQueryOptions, statsTotalQueryOptions } from './queries';
 import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 
 /**
@@ -71,6 +71,19 @@ export interface StatsAPIKey extends StatsMetrics {
 
 export interface StatsAPIKeyFormatted extends StatsMetricsFormatted {
     api_key_id: number;
+}
+
+/**
+ * 分组统计数据
+ */
+export interface StatsGroup extends StatsMetrics {
+    group_id: number;
+    group_name: string;
+}
+
+export interface StatsGroupFormatted extends StatsMetricsFormatted {
+    group_id: number;
+    group_name: string;
 }
 
 // statsDailyFormattedQueryOptions 统一首页每日统计查询、格式化和刷新策略。
@@ -187,4 +200,32 @@ export function useStatsAPIKey() {
         refetchInterval: 30000,
         refetchOnMount: 'always',
     });
+}
+
+// statsGroupFormattedQueryOptions 统一分组统计查询、格式化和刷新策略。
+const statsGroupFormattedQueryOptions = queryOptions({
+    ...statsGroupQueryOptions,
+    select: (data) => data.map((item): StatsGroupFormatted => ({
+        group_id: item.group_id,
+        group_name: item.group_name,
+        input_token: formatCount(item.input_token),
+        output_token: formatCount(item.output_token),
+        total_token: formatCount(item.input_token + item.output_token),
+        input_cost: formatMoney(item.input_cost),
+        output_cost: formatMoney(item.output_cost),
+        total_cost: formatMoney(item.input_cost + item.output_cost),
+        wait_time: formatTime(item.wait_time),
+        request_success: formatCount(item.request_success),
+        request_failed: formatCount(item.request_failed),
+        request_count: formatCount(item.request_success + item.request_failed),
+    })),
+    refetchInterval: 30000,
+    refetchOnMount: 'always',
+});
+
+/**
+ * 获取分组统计数据列表 Hook
+ */
+export function useStatsGroup() {
+    return useQuery(statsGroupFormattedQueryOptions);
 }
