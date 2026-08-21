@@ -33,6 +33,12 @@ type StatsModel struct {
 	StatsMetrics
 }
 
+type StatsGroup struct {
+	GroupID   int    `json:"group_id"`
+	GroupName string `json:"group_name"`
+	StatsMetrics
+}
+
 type StatsChannel struct {
 	ChannelID int `json:"channel_id" gorm:"primaryKey"`
 	StatsMetrics

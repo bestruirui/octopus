@@ -410,6 +410,38 @@ func StatsAPIKeyList() []model.StatsAPIKey {
 	return apiKeys
 }
 
+// StatsGroupList 把模型统计按分组聚合返回。
+func StatsGroupList() []model.StatsGroup {
+	itemGroup := make(map[int]int)
+	groupNames := make(map[int]string)
+	for _, group := range groupCache.GetAll() {
+		groupNames[group.ID] = group.Name
+		for _, item := range group.Items {
+			itemGroup[item.ID] = group.ID
+		}
+	}
+
+	groupStats := make(map[int]*model.StatsGroup)
+	for _, stats := range statsModelCache.GetAll() {
+		groupID, ok := itemGroup[stats.ID]
+		if !ok {
+			continue
+		}
+		sg, ok := groupStats[groupID]
+		if !ok {
+			sg = &model.StatsGroup{GroupID: groupID, GroupName: groupNames[groupID]}
+			groupStats[groupID] = sg
+		}
+		sg.StatsMetrics.Add(stats.StatsMetrics)
+	}
+
+	result := make([]model.StatsGroup, 0, len(groupStats))
+	for _, sg := range groupStats {
+		result = append(result, *sg)
+	}
+	return result
+}
+
 func StatsHourlyGet() []model.StatsHourly {
 	now := time.Now()
 	currentHour := now.Hour()
@@ -493,6 +525,20 @@ func statsRefreshCache(ctx context.Context) error {
 	statsChannelCacheNeedUpdateLock.Unlock()
 	for _, v := range loadedChannels {
 		statsChannelCache.Set(v.ChannelID, v)
+	}
+
+	var loadedModels []model.StatsModel
+	result = dbConn.Find(&loadedModels)
+	if result.Error != nil {
+		return fmt.Errorf("failed to get model stats: %v", result.Error)
+	}
+
+	statsModelCache.Clear()
+	statsModelCacheNeedUpdateLock.Lock()
+	statsModelCacheNeedUpdate = make(map[int]struct{})
+	statsModelCacheNeedUpdateLock.Unlock()
+	for _, v := range loadedModels {
+		statsModelCache.Set(v.ID, v)
 	}
 
 	var loadedAPIKeys []model.StatsAPIKey
