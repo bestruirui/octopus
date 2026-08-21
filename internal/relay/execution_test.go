@@ -59,14 +59,14 @@ func TestUpstreamErrorStatusCode(t *testing.T) {
 
 // TestNonRetryableStatusCodes 验证不可重试状态码集合的边界。
 func TestNonRetryableStatusCodes(t *testing.T) {
-	nonRetryable := []int{400, 405, 406, 413, 414, 415, 422, 501}
+	nonRetryable := []int{400, 401, 403, 405, 406, 413, 414, 415, 422, 501}
 	for _, code := range nonRetryable {
 		if !nonRetryableStatusCodes[code] {
 			t.Errorf("status %d should be non-retryable", code)
 		}
 	}
-	// 可重试：网络类无状态码、429 限流、401/403 换渠道可能恢复、5xx 服务端故障。
-	retryable := []int{401, 403, 404, 408, 429, 500, 502, 503, 504}
+	// 可重试：网络类无状态码、429 限流、404 渠道可能未部署该模型、5xx 服务端故障。
+	retryable := []int{404, 408, 429, 500, 502, 503, 504}
 	for _, code := range retryable {
 		if nonRetryableStatusCodes[code] {
 			t.Errorf("status %d should stay retryable", code)
