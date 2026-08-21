@@ -152,17 +152,17 @@ func (e *execution) resolveTarget(ctx context.Context) (model.GroupItem, *model.
 	if item.ID == 0 {
 		return model.GroupItem{}, nil, retryInterval, errors.New("active channel not found")
 	}
-	channel, err := op.ChannelGet(item.ChannelID, ctx)
+	channel, err := op.ChannelGet(item.ChannelID)
 	if err != nil {
 		return item, nil, retryInterval, errors.New("active channel not found")
 	}
 	if !channel.Enabled {
-		return item, channel, retryInterval, errors.New("active channel disabled")
+		return item, &channel, retryInterval, errors.New("active channel disabled")
 	}
 	if channel.Key == "" {
-		return item, channel, retryInterval, errors.New("active channel has no available key")
+		return item, &channel, retryInterval, errors.New("active channel has no available key")
 	}
-	return item, channel, retryInterval, nil
+	return item, &channel, retryInterval, nil
 }
 
 // executeAttempt 执行当前渠道的一次上游尝试，提交前失败时交回外层继续重试。

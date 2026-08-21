@@ -238,3 +238,67 @@ func channelRefreshCache(ctx context.Context) error {
 	}
 	return nil
 }
+
+// groupItemCleanupByChannel 在事务中删除渠道不再暴露的模型所对应的分组项及其模型统计，
+// 返回受影响的 groupIDs 与 itemIDs 供缓存清理。modelNames 为 nil 时删除该渠道全部分组项。
+func groupItemCleanupByChannel(tx *gorm.DB, channelID int, modelNames []string) ([]int, []int, error) {
+	var items []model.GroupItem
+	if err := tx.Where("channel_id = ?", channelID).Find(&items).Error; err != nil {
+		return nil, nil, fmt.Errorf("failed to find group items: %w", err)
+	}
+
+	if modelNames != nil {
+		keep := make(map[string]struct{}, len(modelNames))
+		for _, name := range modelNames {
+			keep[name] = struct{}{}
+		}
+		filtered := items[:0]
+		for _, item := range items {
+			if _, ok := keep[item.ModelName]; ok {
+				continue
+			}
+			filtered = append(filtered, item)
+		}
+		items = filtered
+	}
+
+	groupIDs := make([]int, 0, len(items))
+	itemIDs := make([]int, 0, len(items))
+	groupSeen := make(map[int]struct{}, len(items))
+	for _, item := range items {
+		itemIDs = append(itemIDs, item.ID)
+		if _, ok := groupSeen[item.GroupID]; !ok {
+			groupSeen[item.GroupID] = struct{}{}
+			groupIDs = append(groupIDs, item.GroupID)
+		}
+	}
+
+	if len(itemIDs) == 0 {
+		return groupIDs, itemIDs, nil
+	}
+
+	if err := tx.Where("id IN ?", itemIDs).Delete(&model.StatsModel{}).Error; err != nil {
+		return nil, nil, fmt.Errorf("failed to delete model stats: %w", err)
+	}
+	if err := tx.Where("id IN ?", itemIDs).Delete(&model.GroupItem{}).Error; err != nil {
+		return nil, nil, fmt.Errorf("failed to delete group items: %w", err)
+	}
+	return groupIDs, itemIDs, nil
+}
+
+// groupItemCleanupCache 清理已删除分组项对应的模型统计缓存并刷新受影响的分组缓存。
+func groupItemCleanupCache(groupIDs, itemIDs []int) {
+	if len(itemIDs) > 0 {
+		statsModelCacheNeedUpdateLock.Lock()
+		for _, id := range itemIDs {
+			statsModelCache.Del(id)
+			delete(statsModelCacheNeedUpdate, id)
+		}
+		statsModelCacheNeedUpdateLock.Unlock()
+	}
+	if len(groupIDs) > 0 {
+		if err := groupRefreshCacheByIDs(groupIDs, context.Background()); err != nil {
+			log.Warnf("failed to refresh group cache: %v", err)
+		}
+	}
+}

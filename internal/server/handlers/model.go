@@ -59,7 +59,11 @@ func init() {
 }
 
 func getModelList(c *gin.Context) {
-	models := op.GroupListModel()
+	models, err := op.GroupListModel(c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 	if supportedModelsValue := c.GetString("supported_models"); supportedModelsValue != "" {
 		supportedModels := lo.Map(strings.Split(supportedModelsValue, ","), func(s string, _ int) string {
 			return strings.TrimSpace(s)
