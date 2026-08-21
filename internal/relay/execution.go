@@ -22,6 +22,34 @@ import (
 var requestIDs atomic.Uint64 // requestIDs 分配进程内严格递增的请求 ID。
 var errNoActiveChannel = errors.New("no active channel") // errNoActiveChannel 表示分组尚未选择活动渠道。
 
+// nonRetryableStatusCodes 表示客户端侧请求错误的 HTTP 状态码。
+// 这些错误源于请求本身不合法，等待渠道恢复或人工切换渠道都无法改变结果，
+// 重试只会空耗配额并持续占用请求，应立即透传给客户端。
+// 401/403/404/429 等其余 4xx 不在此列：换渠道或等渠道恢复后仍可能成功。
+var nonRetryableStatusCodes = map[int]bool{
+	http.StatusBadRequest:            true, // 400 请求体格式或语义错误。
+	http.StatusMethodNotAllowed:      true, // 405 方法不支持。
+	http.StatusNotAcceptable:         true, // 406 Accept 头不被接受。
+	http.StatusRequestEntityTooLarge: true, // 413 请求体超限。
+	http.StatusRequestURITooLong:     true, // 414 URI 超长。
+	http.StatusUnsupportedMediaType:  true, // 415 Content-Type 不支持。
+	http.StatusUnprocessableEntity:   true, // 422 请求体语义无法处理。
+	http.StatusNotImplemented:        true, // 501 上游确实不支持该功能。
+}
+
+// upstreamErrorStatusCode 从错误链中提取上游 HTTP 状态码，非上游 HTTP 错误返回 false。
+func upstreamErrorStatusCode(err error) (int, bool) {
+	var llmErr *llm.ResponseError
+	var httpErr *httpclient.Error
+	if errors.As(err, &llmErr) && llmErr.StatusCode != 0 {
+		return llmErr.StatusCode, true
+	}
+	if errors.As(err, &httpErr) && httpErr.StatusCode != 0 {
+		return httpErr.StatusCode, true
+	}
+	return 0, false
+}
+
 // execution 保存单个客户端请求的全部可变执行状态。
 type execution struct {
 	ctx            *gin.Context       // 当前客户端请求上下文。
@@ -220,6 +248,12 @@ func (e *execution) handleAttemptFailure(ctx context.Context, item model.GroupIt
 	}
 	e.log.Error = attempt.Error
 	e.emit(LogEventAttemptFinished, attempt)
+	// 客户端侧请求错误立即透传给客户端并结束请求，不再回到重试循环。
+	if statusCode, ok := upstreamErrorStatusCode(result.err); ok && nonRetryableStatusCodes[statusCode] {
+		e.finish(RequestStateFailed, result.err, result.responseBody, result.usage)
+		e.protocol.writeError(e.ctx, statusCode, result.err)
+		return true, nil
+	}
 	return false, result.err
 }
 

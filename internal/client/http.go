@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/bestruirui/octopus/internal/model"
 	"github.com/bestruirui/octopus/internal/op"
@@ -103,12 +104,26 @@ func GetHTTPClientCustomProxy(proxyURL string) (*http.Client, error) {
 	return actual.(*http.Client), nil
 }
 
+// 上游请求超时配置。
+// 不使用 http.Client.Timeout：它覆盖从发请求到读完 body 的全程，
+// 会砍断正常的长时间流式响应。改为在 Transport 层分别限制建连
+// 和等待响应头两个阶段，body 读取（含 SSE 流）不受总时长限制。
+const (
+	upstreamDialTimeout         = 30 * time.Second // 建立 TCP/TLS 连接的超时。
+	upstreamResponseHeaderLimit = 10 * time.Minute // 从请求发出到收到响应头的超时。
+)
+
 func clonedDefaultTransport() (*http.Transport, error) {
 	transport, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
 		return nil, fmt.Errorf("default transport is not *http.Transport")
 	}
-	return transport.Clone(), nil
+	clone := transport.Clone()
+	clone.ResponseHeaderTimeout = upstreamResponseHeaderLimit
+	if clone.DialContext == nil {
+		clone.DialContext = (&net.Dialer{Timeout: upstreamDialTimeout, KeepAlive: 30 * time.Second}).DialContext
+	}
+	return clone, nil
 }
 
 func newHTTPClientNoProxy() (*http.Client, error) {
@@ -141,6 +156,12 @@ func newHTTPClientCustomProxy(proxyURLStr string) (*http.Client, error) {
 		}
 		cloned.Proxy = nil
 		cloned.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			// 建连受 ctx 超时和取消控制，并补上与直连一致的建连超时。
+			ctx, cancel := context.WithTimeout(ctx, upstreamDialTimeout)
+			defer cancel()
+			if dialer, ok := socksDialer.(proxy.ContextDialer); ok {
+				return dialer.DialContext(ctx, network, addr)
+			}
 			return socksDialer.Dial(network, addr)
 		}
 	default:
