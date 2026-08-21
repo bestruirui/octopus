@@ -527,6 +527,20 @@ func statsRefreshCache(ctx context.Context) error {
 		statsChannelCache.Set(v.ChannelID, v)
 	}
 
+	var loadedModels []model.StatsModel
+	result = dbConn.Find(&loadedModels)
+	if result.Error != nil {
+		return fmt.Errorf("failed to get model stats: %v", result.Error)
+	}
+
+	statsModelCache.Clear()
+	statsModelCacheNeedUpdateLock.Lock()
+	statsModelCacheNeedUpdate = make(map[int]struct{})
+	statsModelCacheNeedUpdateLock.Unlock()
+	for _, v := range loadedModels {
+		statsModelCache.Set(v.ID, v)
+	}
+
 	var loadedAPIKeys []model.StatsAPIKey
 	result = dbConn.Find(&loadedAPIKeys)
 	if result.Error != nil {
