@@ -151,11 +151,15 @@ func DBImportIncremental(ctx context.Context, dump *model.DBDump) (*model.DBImpo
 	return res, nil
 }
 
+// batchSize 控制每次 INSERT 的最大行数。
+// 单行字段数较多（如 stats_hourly 含 9 个字段），若一次插入过多行会超过数据库绑定参数上限（SQLite/PostgreSQL 为 65535），按行数分批写入可规避该限制。
+const batchSize = 2000
+
 func createDoNothing[T any](tx *gorm.DB, rows []T) (int64, error) {
 	if len(rows) == 0 {
 		return 0, nil
 	}
-	result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rows)
+	result := tx.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(&rows, batchSize)
 	return result.RowsAffected, result.Error
 }
 
@@ -166,7 +170,7 @@ func createUpsertAll[T any](tx *gorm.DB, rows []T, columns []clause.Column) (int
 	result := tx.Clauses(clause.OnConflict{
 		Columns:   columns,
 		UpdateAll: true,
-	}).Create(&rows)
+	}).CreateInBatches(&rows, batchSize)
 	return result.RowsAffected, result.Error
 }
 
