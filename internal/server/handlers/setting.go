@@ -150,13 +150,6 @@ func importDB(c *gin.Context) {
 		}
 		seenLLMNames[dump.LLMInfos[i].Name] = struct{}{}
 	}
-	for i := range dump.Groups {
-		model.NormalizeGroupRelayConfig(&dump.Groups[i].RelayConfig)
-		if dump.Groups[i].RelayConfig.Mode != model.GroupRelayModeManual && dump.Groups[i].RelayConfig.Mode != model.GroupRelayModeAuto {
-			resp.Error(c, http.StatusBadRequest, "invalid group relay mode")
-			return
-		}
-	}
 
 	result, err := op.DBImportIncremental(c.Request.Context(), &dump)
 	if err != nil {

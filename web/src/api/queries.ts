@@ -3,7 +3,7 @@ import type { APIKey, APIKeyStatsResponse } from './apikey';
 import type { ChannelServer } from './channel';
 import type { Group } from './group';
 import type { LLMChannel, LLMInfo } from './model';
-import type { StatsDailyResponse, StatsHourly, StatsTotal } from './stats';
+import type { StatsDailyResponse, StatsGroup, StatsHourly, StatsTotal } from './stats';
 import { apiRequest } from './client';
 
 // apiKeyDashboardStatsQueryOptions 供页面查询和启动预取共享 API Key 统计定义。
@@ -58,4 +58,10 @@ export const statsHourlyQueryOptions = queryOptions({
 export const statsTotalQueryOptions = queryOptions({
     queryKey: ['stats', 'total'],
     queryFn: () => apiRequest<StatsTotal>('/api/v1/stats/total'),
+});
+
+// statsGroupQueryOptions 供页面查询和启动预取共享分组统计定义。
+export const statsGroupQueryOptions = queryOptions({
+    queryKey: ['stats', 'group'],
+    queryFn: () => apiRequest<StatsGroup[]>('/api/v1/stats/group'),
 });

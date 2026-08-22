@@ -127,7 +127,9 @@
             "sortByCount": "Count",
             "sortByTokens": "Tokens",
             "noData": "No ranking data",
-            "successRate": "Success Rate"
+            "successRate": "Success Rate",
+            "channel": "Channel",
+            "group": "Group"
         }
     },
     "setting": {
