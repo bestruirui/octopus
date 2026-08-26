@@ -425,6 +425,8 @@
             "noRequestContent": "(无请求内容)",
             "noResponseContent": "(无响应内容)",
             "tokens": "词元",
+            "firstText": "首字耗时",
+            "outputSpeed": "输出速度",
             "retryIndex": "重试 {index}",
             "retryDetails": "重试详情",
             "stopRound": "停止当前轮次",

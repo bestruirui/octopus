@@ -25,13 +25,14 @@ const (
 
 // 客户端请求的完整进程内状态, 同时作为状态流的消息形状; 上半部分在请求到达时写入并在结束时定稿, 下半部分每轮循环覆盖。
 type RequestState struct {
-	ID        uint64        `json:"id"`         // 请求在当前进程内的唯一标识。
-	Status    Status        `json:"status"`     // 请求当前状态。
-	StartedAt time.Time     `json:"started_at"` // 请求到达时间。
-	Duration  time.Duration `json:"duration"`   // 请求总耗时, 未结束时为零。
-	Model     string        `json:"model"`      // 客户端请求的模型名称, 即分组名称。
-	Usage     llm.Usage     `json:"usage"`      // 请求结束时写入的展示用量。
-	Cost      float64       `json:"cost"`       // 请求结束时写入的累计费用。
+	ID                uint64        `json:"id"`                  // 请求在当前进程内的唯一标识。
+	Status            Status        `json:"status"`              // 请求当前状态。
+	StartedAt         time.Time     `json:"started_at"`          // 请求到达时间。
+	Duration          time.Duration `json:"duration"`            // 请求总耗时, 未结束时为零。
+	FirstTextDuration time.Duration `json:"first_text_duration"` // 首次向客户端写出有效文本的耗时。
+	Model             string        `json:"model"`               // 客户端请求的模型名称, 即分组名称。
+	Usage             llm.Usage     `json:"usage"`               // 请求结束时写入的展示用量。
+	Cost              float64       `json:"cost"`                // 请求结束时写入的累计费用。
 
 	Round         int    `json:"round"`           // 最新一轮循环的递增序号, 人工中止按此匹配以免误杀下一轮。
 	TargetChannel string `json:"target_channel"`  // 最新一轮选中的渠道名称。
@@ -49,8 +50,8 @@ const streamBuffer = 16 // 单个状态流连接的非阻塞消息缓冲容量�
 const maxFinished = 50  // 进程内最多保留的已结束请求数量。
 
 var (
-	idSeq    atomic.Uint64                     // 进程内严格递增的请求 ID。
-	mu       sync.Mutex                        // 全部共享状态的互斥锁。
+	idSeq    atomic.Uint64                          // 进程内严格递增的请求 ID。
+	mu       sync.Mutex                             // 全部共享状态的互斥锁。
 	requests = make(map[uint64]*RequestState)       // 按请求 ID 保存的全部请求状态。
 	watchers = make(map[chan RequestState]struct{}) // 全部状态流 SSE 连接。
 )
@@ -131,6 +132,18 @@ func (r *RequestState) markCommitted() {
 	defer mu.Unlock()
 
 	r.Status = StatusCommitted
+	publishRequestLocked(r)
+}
+
+// markFirstText 记录首个有效文本已经刷新给客户端; 元数据事件不算首字。
+func (r *RequestState) markFirstText() {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if r.FirstTextDuration != 0 {
+		return
+	}
+	r.FirstTextDuration = time.Since(r.StartedAt)
 	publishRequestLocked(r)
 }
 

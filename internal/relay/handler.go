@@ -261,6 +261,7 @@ func Forward(format llm.APIFormat) gin.HandlerFunc {
 			event := result.first
 			last := result.last // 已转发的最后一个事件是否已按客户端协议结束整个响应流。
 			committed := false
+			firstTextWritten := false
 			for {
 				if event != nil {
 					chunks = append(chunks, event)
@@ -282,6 +283,10 @@ func Forward(format llm.APIFormat) gin.HandlerFunc {
 						break
 					}
 					c.Writer.Flush()
+					if !firstTextWritten && streamEventHasText(format, event) {
+						request.markFirstText()
+						firstTextWritten = true
+					}
 				}
 				if last {
 					break

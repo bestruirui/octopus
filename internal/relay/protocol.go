@@ -157,6 +157,48 @@ func inspectStreamEvent(format llm.APIFormat, event *httpclient.StreamEvent) (bo
 	}
 }
 
+// streamEventHasText 判断客户端协议事件是否携带实际可见文本; 角色、ID、用量和结束事件不算首字。
+func streamEventHasText(format llm.APIFormat, event *httpclient.StreamEvent) bool {
+	if event == nil || len(event.Data) == 0 {
+		return false
+	}
+
+	switch format {
+	case llm.APIFormatOpenAIChatCompletion:
+		var parsed struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if json.Unmarshal(event.Data, &parsed) != nil {
+			return false
+		}
+		for _, choice := range parsed.Choices {
+			if choice.Delta.Content != "" {
+				return true
+			}
+		}
+	case llm.APIFormatOpenAIResponse:
+		var parsed struct {
+			Type  string `json:"type"`
+			Delta string `json:"delta"`
+		}
+		return json.Unmarshal(event.Data, &parsed) == nil && parsed.Type == "response.output_text.delta" && parsed.Delta != ""
+	case llm.APIFormatAnthropicMessage:
+		var parsed struct {
+			Type  string `json:"type"`
+			Delta struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"delta"`
+		}
+		return json.Unmarshal(event.Data, &parsed) == nil && parsed.Type == "content_block_delta" && parsed.Delta.Type == "text_delta" && parsed.Delta.Text != ""
+	}
+	return false
+}
+
 // validateResponse 检查统一响应中需要在提交前判定为失败的终止原因; 仅 Responses 协议会以正常响应下发这类终态。
 func validateResponse(format llm.APIFormat, response *llm.Response) error {
 	if response == nil {

@@ -22,6 +22,7 @@ export interface RelayLogOverview {
     status: RequestState;
     started_at: string;
     duration: number;
+    first_text_duration: number;
     model: string;
     usage: RelayUsage;
     cost: number;

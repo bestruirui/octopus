@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, Clock, Cpu, Database, DollarSign, Loader2, Square } from 'lucide-react';
+import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, Clock, Cpu, Database, DollarSign, Gauge, Loader2, Square, Timer } from 'lucide-react';
 import { useTranslations } from 'use-intl';
 import JsonView from '@uiw/react-json-view';
 import { githubDarkTheme } from '@uiw/react-json-view/githubDark';
@@ -47,14 +47,24 @@ function formatMilliseconds(value: number) {
 
 // LogMetrics 渲染耗时, 费用和 Token 指标; card 变体用于卡片栅格, footer 变体用于弹窗底部。
 function LogMetrics({ log, now, brandColor, variant }: { log: RelayLogOverview; now: number; brandColor: string; variant: 'card' | 'footer' }) {
+    const t = useTranslations('log.card');
     const cachedTokens = log.usage.prompt_tokens_details?.cached_tokens ?? 0;
     // 进行中的请求按共享时钟推算耗时, 结束后改用后端记录的最终耗时。
     const duration = log.status === 'running' || log.status === 'committed'
         ? formatMilliseconds(now - new Date(log.started_at).getTime())
         : formatMilliseconds(log.duration / 1_000_000);
+    const firstTextDuration = log.first_text_duration > 0
+        ? formatMilliseconds(log.first_text_duration / 1_000_000)
+        : '--';
+    const generationSeconds = (log.duration - log.first_text_duration) / 1_000_000_000;
+    const outputSpeed = log.first_text_duration > 0 && log.usage.completion_tokens > 0 && generationSeconds > 0
+        ? `${(log.usage.completion_tokens / generationSeconds).toFixed(1)} t/s`
+        : '--';
     const metrics = [
         { key: 'time', Icon: Clock, iconClassName: 'size-3.5 shrink-0', iconStyle: { color: brandColor } as CSSProperties, value: formatTime(log.started_at), valueClassName: 'tabular-nums', cellClassName: 'col-span-4 whitespace-nowrap md:col-span-1' },
         { key: 'duration', Icon: Cpu, iconClassName: 'size-3.5 shrink-0 text-blue-500', value: duration, cellClassName: 'col-span-4 md:col-span-1' },
+        { key: 'firstText', Icon: Timer, iconClassName: 'size-3.5 shrink-0 text-amber-500', value: firstTextDuration, cellClassName: 'col-span-4 md:col-span-1' },
+        { key: 'outputSpeed', Icon: Gauge, iconClassName: 'size-3.5 shrink-0 text-violet-500', value: outputSpeed, cellClassName: 'col-span-4 md:col-span-1' },
         { key: 'cost', Icon: DollarSign, iconClassName: 'size-3.5 shrink-0 text-emerald-500', value: log.cost.toFixed(6), valueClassName: 'font-medium text-emerald-600 dark:text-emerald-400', cellClassName: 'col-span-4 md:col-span-1' },
         { key: 'prompt', Icon: ArrowDownToLine, iconClassName: 'size-3.5 shrink-0 text-green-500', value: (log.usage.prompt_tokens - cachedTokens).toLocaleString(), cellClassName: 'col-span-3 md:col-span-1' },
         { key: 'cached', Icon: Database, iconClassName: 'size-3.5 shrink-0 text-cyan-500', value: cachedTokens.toLocaleString(), cellClassName: 'col-span-3 md:col-span-1' },
@@ -63,7 +73,7 @@ function LogMetrics({ log, now, brandColor, variant }: { log: RelayLogOverview; 
     ];
 
     return metrics.map((metric) => (
-        <div key={metric.key} className={cn('flex items-center gap-1.5', variant === 'card' && metric.cellClassName)}>
+        <div key={metric.key} title={metric.key === 'firstText' ? t('firstText') : metric.key === 'outputSpeed' ? t('outputSpeed') : undefined} className={cn('flex items-center gap-1.5', variant === 'card' && metric.cellClassName)}>
             <metric.Icon className={metric.iconClassName} style={metric.iconStyle} />
             <span className={metric.valueClassName}>{metric.value}</span>
         </div>
