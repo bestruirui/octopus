@@ -18,6 +18,8 @@ import (
 	"github.com/looplj/axonhub/llm/transformer/anthropic"
 	"github.com/looplj/axonhub/llm/transformer/openai"
 	"github.com/looplj/axonhub/llm/transformer/openai/responses"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 // upstreamResponse 是已验证但尚未写给客户端的上游成功响应; events 为 nil 表示非流式响应。
@@ -119,7 +121,34 @@ type conversionMiddleware struct {
 
 // OnOutboundRawRequest 在转换后的上游请求上应用渠道参数和自定义 Header。
 func (m *conversionMiddleware) OnOutboundRawRequest(_ context.Context, request *httpclient.Request) (*httpclient.Request, error) {
+	normalizeDeveloperRole(m.format, request)
 	return request, applyChannelConfig(m.channel, request)
+}
+
+// normalizeDeveloperRole 把转换后 chat completions 请求里 messages 的 developer 角色归一化为 system。
+// developer 是 OpenAI Responses 协议对 system 的替代角色, 客户端 (如 Codex) 会用它携带指令;
+// 部分 OpenAI 兼容上游不接受该角色而直接报错, 归一化后语义等价且兼容性更好。
+func normalizeDeveloperRole(format llm.APIFormat, request *httpclient.Request) {
+	if format != llm.APIFormatOpenAIChatCompletion {
+		return
+	}
+	messages := gjson.GetBytes(request.Body, "messages")
+	if !messages.IsArray() {
+		return
+	}
+	for i, message := range messages.Array() {
+		if message.Get("role").String() != "developer" {
+			continue
+		}
+		body, err := sjson.SetBytes(request.Body, fmt.Sprintf("messages.%d.role", i), "system")
+		if err != nil {
+			return
+		}
+		request.Body = body
+	}
+	if len(request.JSONBody) > 0 {
+		request.JSONBody = slices.Clone(request.Body)
+	}
 }
 
 // OnOutboundRawError 保留上游错误状态码携带的原始正文。
