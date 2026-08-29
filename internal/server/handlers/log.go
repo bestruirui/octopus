@@ -87,6 +87,13 @@ func streamOverview(c *gin.Context) {
 	prepareSSE(c)
 	snapshot, updates := relay.OpenRequestStream()
 	defer relay.CloseRequestStream(updates)
+	if len(snapshot) == 0 {
+		// Flush a real SSE comment so proxies forward the empty-state response immediately.
+		if _, err := c.Writer.Write([]byte(": connected\n\n")); err != nil {
+			return
+		}
+		c.Writer.Flush()
+	}
 	for _, request := range snapshot {
 		if err := sse.Encode(c.Writer, sse.Event{Event: "log", Data: request}); err != nil {
 			return
