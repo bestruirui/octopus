@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -246,6 +247,26 @@ func fetchModel(c *gin.Context) {
 		return
 	}
 
+	// /v1/models 只是目录接口, 列得出模型不代表对话端点真的实现了该协议;
+	// 不少聚合网关 (new-api 系) 的 /v1/models 全量放行, 而 /v1/responses 返回 500 not implemented。
+	// 故两侧列表拉取成功后, 逐个取列表中的模型对对话端点发最小真实请求, 任一模型拿到 2xx 即打协议位;
+	// 用多个模型验证是因为列表里可能混有 rerank / embedding 等非对话模型, 首个模型失败不代表端点不支持。
+	// 某一端点全部失败时该侧保留模型列表但不打对应协议位, 由用户在界面上参照报错自行勾选。
+	var endpointProtocols model.Protocol
+	if openaiErr == nil && len(openaiModels) > 0 {
+		if anyModelSucceeds(httpClient, ctx, target, request.Key, target.BaseURL+target.OpenAIChatCompletionPath, openAIStyleChat, openaiModels) {
+			endpointProtocols |= model.ProtocolOpenAIChatCompletion
+		}
+		if anyModelSucceeds(httpClient, ctx, target, request.Key, target.BaseURL+target.OpenAIResponsePath, openAIStyleResponses, openaiModels) {
+			endpointProtocols |= model.ProtocolOpenAIResponse
+		}
+	}
+	if anthropicErr == nil && len(anthropicModels) > 0 {
+		if anyModelSucceeds(httpClient, ctx, target, request.Key, target.BaseURL+target.AnthropicMessagePath, "anthropic", anthropicModels) {
+			endpointProtocols |= model.ProtocolAnthropicMessage
+		}
+	}
+
 	var re, reGlobal *regexp2.Regexp
 	if target.MatchRegex != "" {
 		if re, err = regexp2.Compile(target.MatchRegex, regexp2.ECMAScript); err != nil {
@@ -289,6 +310,8 @@ func fetchModel(c *gin.Context) {
 	// 两侧结果按名称合并成一份有序集合: 同名模型在两侧都出现时, 协议位取并集。
 	// 保持首次出现的顺序, 界面上模型的排列才与上游返回的一致;
 	// 先并入 OpenAI 再并入 Anthropic, 顺序写死而不用 map 遍历, 否则界面上的模型排列会随每次刷新变化。
+	// 协议位不再仅由列表接口的存在推断: 上述对话端点验证通过才会打对应的位,
+	// 避免 /v1/models 通而 /v1/responses 实际 500 的网关被误标为支持 Responses。
 	protocolsByModel := make(map[string]model.Protocol, len(openaiModels)+len(anthropicModels))
 	order := make([]string, 0, len(openaiModels)+len(anthropicModels))
 	for _, name := range openaiModels {
@@ -303,7 +326,7 @@ func fetchModel(c *gin.Context) {
 		if _, ok := protocolsByModel[name]; !ok {
 			order = append(order, name)
 		}
-		protocolsByModel[name] |= model.ProtocolOpenAIResponse
+		protocolsByModel[name] |= endpointProtocols & (model.ProtocolOpenAIChatCompletion | model.ProtocolOpenAIResponse)
 	}
 	for _, name := range anthropicModels {
 		matched, err := matches(name)
@@ -317,7 +340,7 @@ func fetchModel(c *gin.Context) {
 		if _, ok := protocolsByModel[name]; !ok {
 			order = append(order, name)
 		}
-		protocolsByModel[name] |= model.ProtocolAnthropicMessage
+		protocolsByModel[name] |= endpointProtocols & model.ProtocolAnthropicMessage
 	}
 
 	models := make([]model.ChannelFetchModel, 0, len(order))
@@ -368,6 +391,77 @@ func fetchOpenAIModels(httpClient *http.Client, ctx context.Context, target mode
 		models = append(models, m.ID)
 	}
 	return models, nil
+}
+
+// 对话端点探测的请求形态: OpenAI 的两个端点请求体不同, Chat 用 messages, Responses 用 input。
+const (
+	openAIStyleChat      = "openai-chat"
+	openAIStyleResponses = "openai-responses"
+)
+
+// anyModelSucceeds 逐个模型尝试对话端点, 任一模型返回 2xx 即认为端点可用。
+// 列表里混入非对话模型 (rerank / embedding) 时跳过它继续试; 连续 3 个都失败
+// 基本可断定端点未实现或凭据无权访问, 不必扫完全列表。
+func anyModelSucceeds(httpClient *http.Client, ctx context.Context, target model.ChannelConfig, key, url, style string, modelNames []string) bool {
+	attempts := 0
+	for _, name := range modelNames {
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+		}
+		if attempts >= 3 {
+			return false
+		}
+		attempts++
+		if probeDialogEndpoint(httpClient, ctx, target, key, url, style, name) {
+			return true
+		}
+	}
+	return false
+}
+
+// probeDialogEndpoint 对对话端点发一次最小真实请求, 验证它确实被上游实现。
+// 大量聚合网关的 /v1/models 全量放行而部分对话端点并未实现, 列表接口的存在不能作为协议支持的证据。
+// style 区分三种请求形态: OpenAI Chat 发 messages 体, OpenAI Responses 发 input 体, Anthropic 发 Messages 体;
+// 返回 2xx 即视为端点可用; 4xx/5xx 说明路径不存在或协议未实现。
+func probeDialogEndpoint(httpClient *http.Client, ctx context.Context, target model.ChannelConfig, key, url, style, modelName string) bool {
+	body := map[string]any{"model": modelName}
+	switch style {
+	case openAIStyleChat:
+		body["max_tokens"] = 1
+		body["messages"] = []map[string]string{{"role": "user", "content": "ping"}}
+	case openAIStyleResponses:
+		body["input"] = "ping"
+		body["max_output_tokens"] = 1
+	default: // anthropic
+		body["max_tokens"] = 1
+		body["messages"] = []map[string]string{{"role": "user", "content": "ping"}}
+	}
+	payload, _ := json.Marshal(body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if style == "anthropic" {
+		req.Header.Set("x-api-key", key)
+		req.Header.Set("anthropic-version", "2023-06-01")
+	} else {
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
+	for _, header := range target.CustomHeader {
+		if header.HeaderKey != "" {
+			req.Header.Set(header.HeaderKey, header.HeaderValue)
+		}
+	}
+	response, err := httpClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 512))
+	return response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices
 }
 
 // refer: https://platform.claude.com/docs
