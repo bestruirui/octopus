@@ -1,21 +1,19 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
-import { Check, ChevronDownIcon, HelpCircle, Plus, Search, Sparkles, Trash2 } from 'lucide-react';
+import { HelpCircle, Trash2 } from 'lucide-react';
 import { useTranslations } from 'use-intl';
-import * as AccordionPrimitive from '@radix-ui/react-accordion';
-import { Protocol, useChannelGrantList } from '@/api/channel';
+import { useChannelGrantList } from '@/api/channel';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { getModelIcon } from '@/lib/model-icons';
 import type { GroupMode, GroupRelayConfig } from '@/api/group';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
-import { matchesGroupName, memberKey, normalizeKey } from './utils';
+import { appendUniqueMembers, normalizeKey } from './utils';
+import { ModelPickerSection } from './ModelPicker';
 
 export type GroupEditorValues = {
     name: string;
@@ -34,14 +32,6 @@ const defaultRelayConfig: GroupRelayConfig = {
     member_affinity_seconds: 0,
 };
 
-// PROTOCOL_TAGS 是凭据行上的协议标识。
-// 此处写全称: 凭据行只有名称一列, 横向有余量; 渠道表单的授权矩阵是三列复选框, 列宽紧张才用缩写。
-const PROTOCOL_TAGS = [
-    { bit: Protocol.OpenAIChatCompletion, label: 'Chat' },
-    { bit: Protocol.OpenAIResponse, label: 'Response' },
-    { bit: Protocol.AnthropicMessage, label: 'Message' },
-];
-
 // FieldHelp 渲染配置字段的简短帮助提示。
 function FieldHelp({ text }: { text: string }) {
     return (
@@ -53,193 +43,6 @@ function FieldHelp({ text }: { text: string }) {
                 {text}
             </TooltipContent>
         </Tooltip>
-    );
-}
-
-function ModelPickerSection({
-    grantMembers,
-    selectedMembers,
-    onAdd,
-    onAutoAdd,
-    autoAddDisabled,
-}: {
-    grantMembers: SelectedMember[];
-    selectedMembers: SelectedMember[];
-    onAdd: (channel: SelectedMember) => void;
-    onAutoAdd: () => void;
-    autoAddDisabled: boolean;
-}) {
-    const t = useTranslations('group');
-    const [searchKeyword, setSearchKeyword] = useState('');
-
-    const selectedKeys = useMemo(() => new Set(selectedMembers.map(memberKey)), [selectedMembers]);
-    const normalizedSearch = searchKeyword.trim().toLowerCase();
-
-    // 候选按渠道 -> 模型 -> 凭据三级组织: 一个模型可有多份凭据, 各自是独立授权, 需再展开一级才能分别选取。
-    // 三级顺序沿用后端给出的候选顺序: Map 保留插入顺序, 后端已按渠道, 模型, 凭据排好, 此处无需再排。
-    const channels = useMemo(() => {
-        const byChannel = new Map<number, {
-            id: number;
-            name: string;
-            models: Map<string, SelectedMember[]>;
-        }>();
-        grantMembers.forEach((mc) => {
-            let channel = byChannel.get(mc.channel_id);
-            if (!channel) {
-                channel = { id: mc.channel_id, name: mc.channel_name, models: new Map() };
-                byChannel.set(mc.channel_id, channel);
-            }
-            const grants = channel.models.get(mc.name);
-            if (grants) grants.push(mc);
-            else channel.models.set(mc.name, [mc]);
-        });
-
-        return Array.from(byChannel.values()).map((channel) => ({
-            id: channel.id,
-            name: channel.name,
-            models: Array.from(channel.models, ([name, grants]) => ({ name, grants })),
-        }));
-    }, [grantMembers]);
-
-    const filteredChannels = useMemo(() => {
-        if (!normalizedSearch) return channels;
-        return channels.reduce<typeof channels>((acc, channel) => {
-            if (channel.name.toLowerCase().includes(normalizedSearch)) {
-                acc.push(channel);
-                return acc;
-            }
-
-            const models = channel.models.filter((model) => model.name.toLowerCase().includes(normalizedSearch));
-            if (models.length > 0) acc.push({ ...channel, models });
-            return acc;
-        }, []);
-    }, [channels, normalizedSearch]);
-
-    return (
-        <div className="rounded-xl border border-border/50 bg-muted/30 flex flex-col min-h-0">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-2 border-b border-border/30 bg-muted/50">
-                <span className="min-w-0 justify-self-start text-sm font-medium text-foreground">
-                    {t('form.addItem')}
-                </span>
-
-                <div className="relative justify-self-center w-30">
-                    <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        value={searchKeyword}
-                        onChange={(event) => setSearchKeyword(event.target.value)}
-                        className="h-6 rounded-lg border-border/60 bg-background/70 pl-7 pr-2 text-xs shadow-none focus-visible:border-border/60 focus-visible:ring-0"
-                        aria-label="search"
-                    />
-                </div>
-
-                <button
-                    type="button"
-                    onClick={onAutoAdd}
-                    className={cn(
-                        'justify-self-end shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
-                        autoAddDisabled
-                            ? 'text-muted-foreground/50 cursor-not-allowed'
-                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                    )}
-                    disabled={autoAddDisabled}
-                >
-                    <Sparkles className="size-3.5" />
-                    <span>{t('form.autoAdd')}</span>
-                </button>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto p-2">
-                <Accordion type="multiple" className="w-full space-y-2">
-                    {filteredChannels.map((channel) => {
-                        // 计数按授权算而非按模型: 展开后每份凭据都是一个可选项。
-                        const grants = channel.models.flatMap((model) => model.grants);
-                        const total = grants.length;
-                        const selectedCount = grants.reduce(
-                            (acc, m) => acc + (selectedKeys.has(memberKey(m)) ? 1 : 0),
-                            0
-                        );
-                        const available = total - selectedCount;
-
-                        return (
-                            <AccordionItem key={channel.id} value={`channel-${channel.id}`}>
-                                <AccordionPrimitive.Header className="rounded-lg bg-muted sticky top-0 z-10 flex px-2 overflow-hidden">
-                                    <AccordionPrimitive.Trigger className="flex flex-1 min-w-0 items-center gap-4 py-4 text-left text-sm transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180">
-                                        <span className="truncate">{channel.name}</span>
-                                        <span className="text-xs text-muted-foreground shrink-0">
-                                            {available}/{total}
-                                        </span>
-                                        <ChevronDownIcon className="text-muted-foreground pointer-events-none size-4 shrink-0 transition-transform duration-200" />
-                                    </AccordionPrimitive.Trigger>
-                                </AccordionPrimitive.Header>
-                                <AccordionContent className="px-2 pt-2">
-                                    <div className="flex flex-col gap-1.5">
-                                        {channel.models.map((model) => {
-                                            const { Icon, className: iconClassName } = getModelIcon(model.name);
-                                            const modelSelected = model.grants.reduce(
-                                                (acc, m) => acc + (selectedKeys.has(memberKey(m)) ? 1 : 0),
-                                                0
-                                            );
-                                            return (
-                                                <div key={model.name} className="rounded-lg border border-border/50 bg-background">
-                                                    {/* 模型行只作分组标题, 不可点选: 可选的是它下面的凭据, 一份凭据一条授权。 */}
-                                                    <div className="flex items-center justify-between gap-2 px-2.5 py-2">
-                                                        <span className="flex items-center gap-2 min-w-0">
-                                                            <Icon aria-hidden="true" className={iconClassName} width={16} height={16} />
-                                                            <span className="text-sm font-medium truncate">{model.name}</span>
-                                                        </span>
-                                                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                                                            {model.grants.length - modelSelected}/{model.grants.length}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="flex flex-col border-t border-border/50">
-                                                        {model.grants.map((m) => {
-                                                            const isSelected = selectedKeys.has(memberKey(m));
-                                                            return (
-                                                                <button
-                                                                    key={memberKey(m)}
-                                                                    type="button"
-                                                                    onClick={() => !isSelected && onAdd(m)}
-                                                                    disabled={isSelected}
-                                                                    className={cn(
-                                                                        'flex w-full items-center justify-between gap-2 px-2.5 py-1.5 pl-8 text-left transition-colors',
-                                                                        isSelected ? 'opacity-60 cursor-not-allowed' : 'hover:bg-muted'
-                                                                    )}
-                                                                >
-                                                                    <span className="flex min-w-0 items-center gap-2">
-                                                                        <span className="truncate text-xs text-muted-foreground">{m.key_name}</span>
-                                                                        {/* 标出该凭据讲得通的协议: 同一模型的不同凭据可能只支持其中一部分, 选之前就要能看出来。 */}
-                                                                        {PROTOCOL_TAGS.map(({ bit, label }) => (m.protocols & bit) !== 0 && (
-                                                                            <span
-                                                                                key={bit}
-                                                                                className="shrink-0 rounded border border-border/60 px-1 text-[10px] leading-4 text-muted-foreground"
-                                                                            >
-                                                                                {label}
-                                                                            </span>
-                                                                        ))}
-                                                                    </span>
-                                                                    <span className="shrink-0 text-muted-foreground">
-                                                                        {isSelected ? (
-                                                                            <Check className="size-4 text-primary" />
-                                                                        ) : (
-                                                                            <Plus className="size-4" />
-                                                                        )}
-                                                                    </span>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        );
-                    })}
-                </Accordion>
-            </div>
-        </div>
     );
 }
 
@@ -319,7 +122,7 @@ export function GroupEditor({
     onCancel?: () => void;
 }) {
     const t = useTranslations('group');
-    const { data: grantCandidates = [] } = useChannelGrantList();
+    const { data: grantCandidates = [], isPending: grantsLoading, isError: grantsError, isFetching: grantsFetching, refetch: refetchGrants } = useChannelGrantList();
     const grantMembers = useMemo<SelectedMember[]>(() => grantCandidates.map((grant) => ({
         id: String(grant.id),
         channel_grant_id: grant.id,
@@ -342,35 +145,9 @@ export function GroupEditor({
 
     const groupKey = normalizeKey(groupName);
 
-    const matchedModelChannels = useMemo(() => {
-        if (!groupKey) return [];
-        return grantMembers.filter((mc) => matchesGroupName(mc.name, groupKey));
-    }, [groupKey, grantMembers]);
-
-    const handleAddMember = useCallback((channel: SelectedMember) => {
-        const key = memberKey(channel);
-        setSelectedMembers((prev) => {
-            if (prev.some((m) => m.id === key)) return prev;
-            return [...prev, { ...channel, id: key }];
-        });
+    const handleAddMembers = useCallback((members: SelectedMember[]) => {
+        setSelectedMembers((prev) => appendUniqueMembers(prev, members));
     }, []);
-
-    const autoAddDisabled = useMemo(() => {
-        if (!groupKey || matchedModelChannels.length === 0) return true;
-        const existing = new Set(selectedMembers.map((m) => m.id));
-        return matchedModelChannels.every((mc) => existing.has(memberKey(mc)));
-    }, [groupKey, matchedModelChannels, selectedMembers]);
-
-    const handleAutoAdd = useCallback(() => {
-        if (matchedModelChannels.length === 0) return;
-        setSelectedMembers((prev) => {
-            const existing = new Set(prev.map((m) => m.id));
-            const toAdd = matchedModelChannels
-                .filter((mc) => !existing.has(memberKey(mc)))
-                .map((mc) => ({ ...mc, id: memberKey(mc) }));
-            return toAdd.length ? [...prev, ...toAdd] : prev;
-        });
-    }, [matchedModelChannels]);
 
     const handleRemoveMember = useCallback((id: string) => {
         setRemovingIds((prev) => new Set(prev).add(id));
@@ -444,9 +221,13 @@ export function GroupEditor({
                                 <ModelPickerSection
                                     grantMembers={grantMembers}
                                     selectedMembers={selectedMembers}
-                                    onAdd={handleAddMember}
-                                    onAutoAdd={handleAutoAdd}
-                                    autoAddDisabled={autoAddDisabled}
+                                    groupName={groupName}
+                                    onAddMembers={handleAddMembers}
+                                    loading={grantsLoading}
+                                    loadError={grantsError}
+                                    retrying={grantsFetching}
+                                    onRetry={() => { void refetchGrants(); }}
+                                    disabled={isSubmitting}
                                 />
                                 <SortSection
                                     members={selectedMembers}
