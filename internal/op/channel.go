@@ -2,6 +2,8 @@ package op
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -165,7 +167,99 @@ func normalizeChannelConfig(config model.ChannelConfig) (model.ChannelConfig, er
 	config.ChannelProxy = strings.TrimSpace(config.ChannelProxy)
 	config.ParamOverride = strings.TrimSpace(config.ParamOverride)
 	config.MatchRegex = strings.TrimSpace(config.MatchRegex)
+	if err := validateParamOverride(config.ParamOverride); err != nil {
+		return config, err
+	}
+	for _, header := range config.CustomHeader {
+		if err := validateCustomHeader(header); err != nil {
+			return config, err
+		}
+	}
 	return config, nil
+}
+
+// validateCustomHeader 校验单条自定义 Header; op 为空按 set 处理, 与历史数据兼容。
+// delete 只需头名, 值不参与也不校验; set 与 rename/copy 还需要值(rename/copy 的值是目标头名)。
+func validateCustomHeader(header model.CustomHeader) error {
+	if err := model.ValidateOverrideTemplate(header.Condition); err != nil {
+		return fmt.Errorf("custom header %q condition: %w", header.HeaderKey, err)
+	}
+	switch header.Op {
+	case "", model.OverrideOpSet, model.OverrideOpDelete, model.OverrideOpRename, model.OverrideOpCopy:
+	default:
+		return fmt.Errorf("custom header %q: unknown op %q", header.HeaderKey, header.Op)
+	}
+	if strings.TrimSpace(header.HeaderKey) == "" {
+		return errors.New("custom header: header_key is required")
+	}
+	if header.Op == model.OverrideOpDelete {
+		return nil // 值不参与。
+	}
+	if err := model.ValidateOverrideTemplate(header.HeaderValue); err != nil {
+		return fmt.Errorf("custom header %q value: %w", header.HeaderKey, err)
+	}
+	if strings.TrimSpace(header.HeaderValue) == "" {
+		return fmt.Errorf("custom header %q: header_value is required", header.HeaderKey)
+	}
+	return nil
+}
+
+// validateParamOverride 校验参数覆盖配置: {...} 为旧的平铺对象, [...] 为操作数组。
+// 非法配置在保存时即被拒绝, 避免留到每次转发时报错; 旧格式仅校验 JSON 合法性, 键的约束沿用转发时的静默跳过。
+func validateParamOverride(config string) error {
+	if config == "" {
+		return nil
+	}
+	switch config[0] {
+	case '{':
+		var overrides map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(config), &overrides); err != nil {
+			return fmt.Errorf("invalid param override: %w", err)
+		}
+		return nil
+	case '[':
+		var ops []model.OverrideOperation
+		if err := json.Unmarshal([]byte(config), &ops); err != nil {
+			return fmt.Errorf("invalid param override: %w", err)
+		}
+		for i, op := range ops {
+			if err := validateOverrideOperation(i+1, op); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return errors.New("param override must be a JSON object or array")
+	}
+}
+
+// validateOverrideOperation 校验单条覆盖操作的完整性; index 从 1 起, 用于报错定位。
+func validateOverrideOperation(index int, op model.OverrideOperation) error {
+	switch op.Op {
+	case model.OverrideOpSet, model.OverrideOpSetIfAbsent:
+		if op.Path == "" {
+			return fmt.Errorf("param override %d: path is required", index)
+		}
+		if strings.TrimSpace(op.Value) == "" {
+			return fmt.Errorf("param override %d: value is required", index)
+		}
+	case model.OverrideOpDelete:
+		if op.Path == "" {
+			return fmt.Errorf("param override %d: path is required", index)
+		}
+	default:
+		return fmt.Errorf("param override %d: unknown op %q", index, op.Op)
+	}
+	if op.Path == "model" || op.Path == "stream" {
+		return fmt.Errorf("param override %d: path %q is managed by relay", index, op.Path)
+	}
+	if err := model.ValidateOverrideTemplate(op.Condition); err != nil {
+		return fmt.Errorf("param override %d condition: %w", index, err)
+	}
+	if err := model.ValidateOverrideTemplate(op.Value); err != nil {
+		return fmt.Errorf("param override %d value: %w", index, err)
+	}
+	return nil
 }
 
 // normalizeChannelDetail 规范化整份提交配置; 渠道自身的字段交由 normalizeChannelConfig 处理。

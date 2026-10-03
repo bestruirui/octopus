@@ -21,10 +21,11 @@ import (
 // 经 MergeInboundRequest 透传给上游, 其中认证类, 库自管类和逐跳类请求头会被丢弃以免覆盖渠道凭据。
 // 地址与认证取自出站转换器对一个占位请求的转换结果, 使透传与跨协议转换共用同一套地址拼接, 避免两处规则分歧;
 // openai 与 anthropic 出站转换器会校验模型名非空, 故占位请求必须带本轮真实的上游模型名。
-func buildPassthroughRequest(format llm.APIFormat, raw *httpclient.Request, channel model.Channel, outbound transformer.Outbound, modelName string) (*httpclient.Request, error) {
+// oc 提供参数覆盖与自定义 Header 条件渲染所需的请求上下文。
+func buildPassthroughRequest(format llm.APIFormat, raw *httpclient.Request, channel model.Channel, outbound transformer.Outbound, oc *overrideContext) (*httpclient.Request, error) {
 	probeText := "probe"
 	probe, err := outbound.TransformRequest(context.Background(), &llm.Request{
-		Model:    modelName,
+		Model:    oc.Model,
 		Messages: []llm.Message{{Role: "user", Content: llm.MessageContent{Content: &probeText}}},
 	})
 	if err != nil {
@@ -49,7 +50,7 @@ func buildPassthroughRequest(format llm.APIFormat, raw *httpclient.Request, chan
 	if err != nil {
 		return nil, err
 	}
-	if err := applyChannelConfig(channel, request); err != nil {
+	if err := applyChannelConfig(channel, oc, request); err != nil {
 		return nil, err
 	}
 	return request, nil

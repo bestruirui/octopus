@@ -54,24 +54,36 @@ func buildOutbound(channel model.Channel, grant model.ChannelGrant, channelKey m
 var clientHeaderPlaceholder = regexp.MustCompile(`\{client_header:[^}]+\}`)
 
 // applyChannelConfig 按渠道配置覆盖上游请求的参数并追加自定义 Header; model 与 stream 由转发流程决定, 不允许覆盖。
-func applyChannelConfig(channel model.Channel, request *httpclient.Request) error {
-	if channel.ParamOverride != "" {
-		var overrides map[string]json.RawMessage
-		if err := json.Unmarshal([]byte(channel.ParamOverride), &overrides); err != nil {
-			return fmt.Errorf("invalid channel parameter override: %w", err)
-		}
-		body := request.Body
-		// 覆盖键可能自带点号或冒号, 转义后再作为 sjson 路径使用, 避免被解析成嵌套路径。
-		escape := strings.NewReplacer("\\", "\\\\", ".", "\\.", ":", "\\:")
-		for key, value := range overrides {
-			if key == "model" || key == "stream" {
-				continue
+// oc 为条件与值模板提供本轮请求上下文, 为 nil 时所有带条件的配置一律不生效。
+// 参数覆盖支持两种格式, 以首个非空白字符区分: {...} 为旧的平铺对象(顶层键), [...] 为操作数组(支持条件)。
+func applyChannelConfig(channel model.Channel, oc *overrideContext, request *httpclient.Request) error {
+	if trimmed := strings.TrimSpace(channel.ParamOverride); trimmed != "" {
+		var body []byte
+		switch trimmed[0] {
+		case '[':
+			var ops []model.OverrideOperation
+			if err := json.Unmarshal([]byte(channel.ParamOverride), &ops); err != nil {
+				return fmt.Errorf("invalid channel parameter override: %w", err)
 			}
-			next, err := sjson.SetRawBytes(body, ":"+escape.Replace(key), value)
-			if err != nil {
-				return fmt.Errorf("apply channel parameter %q: %w", key, err)
+			body = applyOverrideOperations(request.Body, ops, oc)
+		default:
+			var overrides map[string]json.RawMessage
+			if err := json.Unmarshal([]byte(channel.ParamOverride), &overrides); err != nil {
+				return fmt.Errorf("invalid channel parameter override: %w", err)
 			}
-			body = next
+			body = request.Body
+			// 覆盖键可能自带点号或冒号, 转义后再作为 sjson 路径使用, 避免被解析成嵌套路径。
+			escape := strings.NewReplacer("\\", "\\\\", ".", "\\.", ":", "\\:")
+			for key, value := range overrides {
+				if key == "model" || key == "stream" {
+					continue
+				}
+				next, err := sjson.SetRawBytes(body, ":"+escape.Replace(key), value)
+				if err != nil {
+					return fmt.Errorf("apply channel parameter %q: %w", key, err)
+				}
+				body = next
+			}
 		}
 		request.Body = body
 		if len(request.JSONBody) > 0 {
@@ -79,16 +91,60 @@ func applyChannelConfig(channel model.Channel, request *httpclient.Request) erro
 		}
 	}
 
-	// 转换器已经写入的认证等敏感 Header 不允许被自定义配置覆盖。
+	// 自定义 Header 按配置行序执行: set 覆盖, delete 删除, rename 改名(保留全部值), copy 复制。
+	// 转换器已写入的认证等敏感 Header 不允许被任何操作改动; 值支持模板与 {client_header:xxx} 占位。
 	for _, header := range channel.CustomHeader {
-		if request.Headers.Get(header.HeaderKey) != "" && httpclient.IsSensitiveHeader(header.HeaderKey) {
+		if !evaluateOverrideCondition(header.Condition, oc) {
 			continue
 		}
-		// 值中的 {client_header:xxx} 片段替换为客户端请求头 xxx 的实际值。
-		value := clientHeaderPlaceholder.ReplaceAllStringFunc(header.HeaderValue, func(placeholder string) string {
-			return request.Headers.Get(placeholder[len("{client_header:") : len(placeholder)-1])
-		})
-		request.Headers.Set(header.HeaderKey, value)
+		if header.HeaderKey == "" {
+			continue
+		}
+		op := header.Op
+		if op == "" {
+			op = model.OverrideOpSet
+		}
+		target := strings.TrimSpace(header.HeaderValue)
+		switch op {
+		case model.OverrideOpSet:
+			if guardedHeader(request, header.HeaderKey) {
+				continue
+			}
+			request.Headers.Set(header.HeaderKey, renderHeaderValue(header.HeaderValue, request, oc))
+		case model.OverrideOpDelete:
+			if guardedHeader(request, header.HeaderKey) {
+				continue
+			}
+			request.Headers.Del(header.HeaderKey)
+		case model.OverrideOpRename, model.OverrideOpCopy:
+			// rename/copy 面向已有头, 目标名缺失时跳过; 源头不存在则无事可做。
+			if target == "" || guardedHeader(request, header.HeaderKey) || guardedHeader(request, target) {
+				continue
+			}
+			values := request.Headers.Values(header.HeaderKey)
+			if len(values) == 0 {
+				continue
+			}
+			if op == model.OverrideOpRename {
+				request.Headers.Del(header.HeaderKey)
+			}
+			for _, value := range values {
+				request.Headers.Add(target, value)
+			}
+		}
 	}
 	return nil
+}
+
+// guardedHeader 判断敏感 Header 是否已被转换器写入: 已写入的不允许被自定义配置改动或删除。
+func guardedHeader(request *httpclient.Request, key string) bool {
+	return key != "" && request.Headers.Get(key) != "" && httpclient.IsSensitiveHeader(key)
+}
+
+// renderHeaderValue 渲染 Header 值: 先按 Go template 渲染 {{...}}, 再把 {client_header:xxx} 片段替换为客户端请求头。
+func renderHeaderValue(value string, request *httpclient.Request, oc *overrideContext) string {
+	rendered := renderOverrideValue(value, oc)
+	return clientHeaderPlaceholder.ReplaceAllStringFunc(rendered, func(placeholder string) string {
+		return request.Headers.Get(placeholder[len("{client_header:") : len(placeholder)-1])
+	})
 }
