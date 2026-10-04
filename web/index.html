@@ -23,10 +23,113 @@
       const root = document.documentElement;
       root.classList.toggle('dark', isDark);
       root.style.colorScheme = isDark ? 'dark' : 'light';
-      document.querySelector('meta[name="theme-color"]')?.setAttribute(
-        'content',
-        isDark ? '#413a2c' : '#eae9e3',
-      );
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        meta.setAttribute('content', isDark ? '#413a2c' : '#eae9e3');
+      }
+    </script>
+    <script>
+      // 旧版 Safari 等环境缺少的运行时 API 兜底。
+      // 以内联经典脚本执行，保证早于所有 ES Module 依赖块生效。
+      (function () {
+        if (typeof globalThis === 'undefined') {
+          window.globalThis = window;
+        }
+        var define = function (target, key, value) {
+          Object.defineProperty(target, key, {
+            value: value,
+            writable: true,
+            configurable: true,
+            enumerable: false,
+          });
+        };
+        if (typeof Object.hasOwn !== 'function') {
+          define(Object, 'hasOwn', function (object, key) {
+            return Object.prototype.hasOwnProperty.call(object, key);
+          });
+        }
+        if (typeof Object.fromEntries !== 'function') {
+          define(Object, 'fromEntries', function (iterable) {
+            var result = {};
+            var iterator = iterable[Symbol.iterator]();
+            var step;
+            while (!(step = iterator.next()).done) {
+              result[step.value[0]] = step.value[1];
+            }
+            return result;
+          });
+        }
+        var indexAt = function (length, index) {
+          var k = Math.trunc(index) || 0;
+          var i = k < 0 ? length + k : k;
+          return i >= 0 && i < length ? i : -1;
+        };
+        if (typeof Array.prototype.at !== 'function') {
+          define(Array.prototype, 'at', function (index) {
+            var i = indexAt(this.length, index);
+            return i === -1 ? undefined : this[i];
+          });
+        }
+        if (typeof String.prototype.at !== 'function') {
+          define(String.prototype, 'at', function (index) {
+            var i = indexAt(this.length, index);
+            return i === -1 ? undefined : this.charAt(i);
+          });
+        }
+        var findLastIndex = function (predicate, thisArg) {
+          for (var i = this.length - 1; i >= 0; i--) {
+            if (predicate.call(thisArg, this[i], i, this)) {
+              return i;
+            }
+          }
+          return -1;
+        };
+        if (typeof Array.prototype.findLast !== 'function') {
+          define(Array.prototype, 'findLast', function (predicate, thisArg) {
+            var i = findLastIndex.call(this, predicate, thisArg);
+            return i === -1 ? undefined : this[i];
+          });
+        }
+        if (typeof Array.prototype.findLastIndex !== 'function') {
+          define(Array.prototype, 'findLastIndex', findLastIndex);
+        }
+        if (typeof String.prototype.replaceAll !== 'function') {
+          define(String.prototype, 'replaceAll', function (search, replacement) {
+            if (search instanceof RegExp) {
+              if (!search.global) {
+                throw new TypeError('replaceAll must be called with a global RegExp');
+              }
+              return this.replace(search, replacement);
+            }
+            return this.split(String(search)).join(String(replacement));
+          });
+        }
+        if (typeof Promise.allSettled !== 'function') {
+          define(Promise, 'allSettled', function (promises) {
+            return Promise.all(
+              Array.prototype.map.call(promises, function (promise) {
+                return Promise.resolve(promise).then(
+                  function (value) {
+                    return { status: 'fulfilled', value: value };
+                  },
+                  function (reason) {
+                    return { status: 'rejected', reason: reason };
+                  },
+                );
+              }),
+            );
+          });
+        }
+        if (typeof queueMicrotask !== 'function') {
+          define(window, 'queueMicrotask', function (callback) {
+            Promise.resolve().then(callback);
+          });
+        }
+        if (typeof String.prototype.trimStart !== 'function') {
+          define(String.prototype, 'trimStart', String.prototype.trimLeft);
+          define(String.prototype, 'trimEnd', String.prototype.trimRight);
+        }
+      })();
     </script>
     <style>
       #initial-loader {
