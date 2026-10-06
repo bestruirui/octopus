@@ -163,6 +163,12 @@
             "placeholder": "请输入过滤表达式",
             "hint": "渠道获取模型时与渠道自身的过滤表达式同时生效（AND），留空不过滤"
         },
+        "testPrompt": {
+            "title": "测试提示词",
+            "placeholder": "请输入测试提示词",
+            "hint": "用于测试模型响应的提示词",
+            "saveFailed": "保存失败"
+        },
         "saved": "已保存",
         "backup": {
             "title": "备份 / 恢复",
@@ -489,7 +495,19 @@
             "backToStats": "返回统计",
             "grantClearAll": "清空全部模型",
             "modelRemove": "移除模型",
-            "grantRemove": "移除该凭据的授权"
+            "grantRemove": "移除该凭据的授权",
+            "modelTest": "测试",
+            "modelTestPending": "测试中",
+            "modelTestRetest": "重测",
+            "modelTestSuccess": "测试成功",
+            "modelTestFailed": "测试失败",
+            "modelTestKey": "凭据",
+            "modelTestProtocol": "协议",
+            "modelTestEmpty": "（空响应）",
+            "modelTestNoKey": "该凭据未填写 Key，无法测试",
+            "modelTestNoGrant": "该凭据未授权此模型的协议，无法测试",
+            "modelTestBatch": "批量测试",
+            "modelTestBatchPending": "批量测试中"
         }
     }
 }

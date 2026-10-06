@@ -228,6 +228,10 @@ All configuration options can be overridden via environment variables using the 
 
 Channels are the basic configuration units for connecting to LLM providers.
 
+**Model testing:** In the channel editor's **Models** tab, click the test icon before a model's delete button to send a real request using the selected credential, current unsaved channel configuration, and the **Test Prompt** setting. The model row displays the reply, latency, or error and supports retesting. The selected credential needs a key and an authorized protocol; when multiple protocols are enabled, priority is Responses, Messages, then Chat, without automatic fallback. Testing does not save the channel, but makes an actual upstream request that may incur charges.
+
+The **Test all selected** button before the header's clear button tests every model with an enabled protocol for the selected credential, sequentially. Unselected models are skipped, and failures do not stop subsequent tests. Duplicate tests are blocked during the batch; targets and configuration are captured when the batch starts.
+
 **Base URL Guide:**
 
 The program automatically appends the API version and endpoint path based on the channel type. You only need to provide the service root URL:
@@ -280,6 +284,10 @@ Manage model pricing information in the system.
 ### ⚙️ Settings
 
 Global system configuration.
+
+**Test Prompt:**
+
+Edit the multiline text in the **Test Prompt** card. Changes are saved to the server when the field loses focus and retained after refreshing. The default is: `请简洁回答：17 × 23 等于多少？给出计算过程。`
 
 **Statistics Save Interval (minutes):**
 

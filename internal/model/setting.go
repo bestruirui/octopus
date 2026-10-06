@@ -16,7 +16,11 @@ const (
 	SettingKeyModelInfoUpdateInterval SettingKey = "model_info_update_interval" // 模型信息更新间隔(小时)
 	SettingKeyCORSAllowOrigins        SettingKey = "cors_allow_origins"         // 跨域白名单(逗号分隔, 如 "example.com,example2.com"). 为空不允许跨域, "*"允许所有
 	SettingKeyModelFilter             SettingKey = "model_filter"              // 渠道获取模型时的全局过滤表达式; 留空表示不过滤
+	SettingKeyTestPrompt              SettingKey = "test_prompt"               // 测试提示词; 用于渠道/模型连通性测试等场景, 默认给出一条简短示例
 )
+
+// DefaultTestPrompt 测试提示词的默认值, 对所有语言相同。
+const DefaultTestPrompt = "请简洁回答：17 × 23 等于多少？给出计算过程。"
 
 type Setting struct {
 	Key   SettingKey `json:"key" gorm:"primaryKey"`
@@ -30,6 +34,7 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyCORSAllowOrigins, Value: ""},          // CORS 默认不允许跨域，设置为 "*" 才允许所有来源
 		{Key: SettingKeyModelInfoUpdateInterval, Value: "24"}, // 默认24小时更新一次模型信息
 		{Key: SettingKeyModelFilter, Value: ""},               // 默认不过滤模型
+		{Key: SettingKeyTestPrompt, Value: DefaultTestPrompt}, // 测试提示词默认值
 	}
 }
 

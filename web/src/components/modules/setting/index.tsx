@@ -1,5 +1,6 @@
 import { SettingAppearance } from './Appearance';
 import { SettingSystem } from './System';
+import { SettingTestPrompt } from './TestPrompt';
 import { SettingAPIKey } from './APIKey';
 import { SettingLLMPrice } from './LLMPrice';
 import { SettingAccount } from './Account';
@@ -16,6 +17,7 @@ export function Setting() {
                 <SettingAppearance />
                 <SettingAccount />
                 <SettingSystem />
+                <SettingTestPrompt />
                 <SettingLog />
                 <SettingLLMPrice />
                 <SettingAPIKey />

@@ -163,6 +163,12 @@
             "placeholder": "Enter filter regex",
             "hint": "Applied along with the channel's own filter when fetching models (AND); empty means no filter"
         },
+        "testPrompt": {
+            "title": "Test Prompt",
+            "placeholder": "Enter test prompt",
+            "hint": "Prompt used to test model responses",
+            "saveFailed": "Failed to save"
+        },
         "saved": "Saved",
         "backup": {
             "title": "Backup / Restore",
@@ -489,7 +495,19 @@
             "backToStats": "Back to Stats",
             "grantClearAll": "Clear all models",
             "modelRemove": "Remove model",
-            "grantRemove": "Remove this key’s grant"
+            "grantRemove": "Remove this key’s grant",
+            "modelTest": "Test",
+            "modelTestPending": "Testing",
+            "modelTestRetest": "Test again",
+            "modelTestSuccess": "Test passed",
+            "modelTestFailed": "Test failed",
+            "modelTestKey": "Credential",
+            "modelTestProtocol": "Protocol",
+            "modelTestEmpty": "(empty response)",
+            "modelTestNoKey": "No key set for this credential, cannot test",
+            "modelTestNoGrant": "This credential has no grant for this model, cannot test",
+            "modelTestBatch": "Test all selected",
+            "modelTestBatchPending": "Testing all selected"
         }
     }
 }

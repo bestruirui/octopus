@@ -126,6 +126,24 @@ export type FetchModel = {
     protocols: number; // Protocol 位掩码。
 };
 
+// ChannelTestModelRequest 用当前编辑中的渠道配置与指定凭据真实请求一次上游模型。
+// 配置字段与保存后生效的完全一致，与探测同一口径；不带 prompt：提示词由后端读取全局 test_prompt 设置。
+// protocol 只取 Protocol 里的某一位，一次测试只走一个协议。
+type ChannelTestModelRequest = {
+    channel: Omit<ChannelDetail, 'id' | 'keys' | 'models' | 'grants'>;
+    key: string;
+    model: string;
+    protocol: number;
+};
+
+// ChannelTestModelResponse 是一次模型测试的结果：上游回复正文、端到端耗时与后端实际使用的协议。
+// 正文原样返回，前端按纯文本渲染；失败不走这里，由 ApiError 抛出。
+export type ChannelTestModelResponse = {
+    content: string;
+    latency_ms: number;
+    protocol: number; // Protocol 位掩码的单一位。
+};
+
 // channelGrantListQueryOptions 供分组页查询可选授权。
 // 与渠道列表分开: 选取成员只需名称与可用性, 拉整份渠道会连带路径, 代理与凭据明文。
 export const channelGrantListQueryOptions = queryOptions({
@@ -295,5 +313,27 @@ export function useFetchModel() {
     return useMutation({
         mutationFn: (data: FetchModelRequest) =>
             apiRequest<FetchModel[]>('/api/v1/channel/fetch-model', { method: 'POST', body: data }),
+    });
+}
+
+/**
+ * 测试渠道模型 Hook；用未保存的当前配置与指定凭据真实请求一次上游。
+ * 提示词由后端读取全局 test_prompt 设置，前端不传；失败以 ApiError 抛出，由调用方展示。
+ * 只做一次请求，不重试也不回落到其他协议。
+ *
+ * @example
+ * const testModel = useTestModel();
+ *
+ * testModel.mutate({
+ *   channel: { base_url: 'https://api.openai.com', openai_response_path: '/v1/responses', ... },
+ *   key: 'sk-xxx',
+ *   model: 'gpt-4o',
+ *   protocol: Protocol.OpenAIResponse,
+ * });
+ */
+export function useTestModel() {
+    return useMutation({
+        mutationFn: (data: ChannelTestModelRequest) =>
+            apiRequest<ChannelTestModelResponse>('/api/v1/channel/test-model', { method: 'POST', body: data }),
     });
 }
