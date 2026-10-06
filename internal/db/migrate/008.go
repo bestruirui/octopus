@@ -227,7 +227,7 @@ func migrateLegacyChannelStats(db *gorm.DB) error {
 
 	type legacyChannelStats struct {
 		ChannelID int `gorm:"column:channel_id"` // 所属渠道主键。
-		snapshotStatsMetrics
+		SnapshotStatsMetrics
 	}
 	stats := make([]legacyChannelStats, 0)
 	if err := db.Table("stats_channels").Order("channel_id ASC").Find(&stats).Error; err != nil {

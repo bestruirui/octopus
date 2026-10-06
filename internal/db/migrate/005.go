@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/model"
 	"gorm.io/gorm"
 )
 
 func init() {
-	RegisterAfterAutoMigration(Migration{
+	// 必须在迁移 11 转存并删除 channels.key 之前收敛旧地址与凭据。
+	RegisterBeforeAutoMigration(Migration{
 		Version: 5,
 		Up:      migrateChannelToSingleURLAndKey,
 	})
@@ -21,14 +21,21 @@ func migrateChannelToSingleURLAndKey(db *gorm.DB) error {
 	if db == nil {
 		return fmt.Errorf("db is nil")
 	}
-	if !db.Migrator().HasTable("channels") {
+	// 迁移 11 最后删除 type 列；新库和已迁移的库不再使用渠道级 key。
+	if !db.Migrator().HasTable("channels") || !hasPhysicalColumn(db, "channels", "type") {
 		return nil
 	}
-	if !db.Migrator().HasColumn("channels", "base_url") || !db.Migrator().HasColumn("channels", "key") {
-		return fmt.Errorf("channels.base_url or channels.key not found")
+	// 在 AutoMigrate 前执行，按历史结构补齐回填列，不能依赖当前 Channel 模型。
+	for _, column := range []string{"base_url", "key"} {
+		if hasPhysicalColumn(db, "channels", column) {
+			continue
+		}
+		if err := db.Migrator().AddColumn(&channelsV5{}, column); err != nil {
+			return fmt.Errorf("failed to add channels.%s: %w", column, err)
+		}
 	}
 
-	if db.Migrator().HasColumn("channels", "base_urls") {
+	if hasPhysicalColumn(db, "channels", "base_urls") {
 		type legacyBaseURL struct {
 			URL string `json:"url"` // 旧地址值。
 		}
@@ -58,7 +65,8 @@ func migrateChannelToSingleURLAndKey(db *gorm.DB) error {
 		}
 	}
 
-	if db.Migrator().HasTable("channel_keys") && hasPhysicalColumn(db, "channel_keys", "channel_key") {
+	hasLegacyKeys := db.Migrator().HasTable("channel_keys") && hasPhysicalColumn(db, "channel_keys", "channel_key")
+	if hasLegacyKeys {
 		type legacyChannelKey struct {
 			ChannelID  int    `gorm:"column:channel_id"`  // 所属渠道主键。
 			ChannelKey string `gorm:"column:channel_key"` // 旧凭据值。
@@ -88,21 +96,11 @@ func migrateChannelToSingleURLAndKey(db *gorm.DB) error {
 		}
 	}
 
-	// Migration 11 重新引入了 channel_keys 表用于多凭据架构，只有在旧架构（channels.type 存在）时才删除该表。
-	// Migration 11 会删除 channels.type 列，若该列不存在说明 Migration 11 已执行，channel_keys 表不应删除。
-	if db.Migrator().HasTable("channel_keys") && hasPhysicalColumn(db, "channels", "type") {
+	// 仅删除已转存的旧凭据表，保留迁移 11 创建的同名新表。
+	if hasLegacyKeys {
 		if err := db.Migrator().DropTable("channel_keys"); err != nil {
 			return fmt.Errorf("failed to drop channel_keys: %w", err)
 		}
 	}
-	if db.Migrator().HasColumn("channels", "base_urls") {
-		if db.Dialector.Name() == "sqlite" {
-			if err := db.Exec(`ALTER TABLE "channels" DROP COLUMN "base_urls"`).Error; err != nil {
-				return fmt.Errorf("failed to drop channels.base_urls: %w", err)
-			}
-		} else if err := db.Migrator().DropColumn(&model.Channel{}, "base_urls"); err != nil {
-			return fmt.Errorf("failed to drop channels.base_urls: %w", err)
-		}
-	}
-	return nil
+	return dropColumnIfExists(db, &channelsV5{}, "channels", "base_urls")
 }

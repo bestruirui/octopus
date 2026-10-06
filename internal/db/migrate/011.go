@@ -75,6 +75,13 @@ func migrateChannelGrants(db *gorm.DB) error {
 			return fmt.Errorf("failed to add channels.%s: %w", column.name, err)
 		}
 	}
+	// 迁移 8/10 的历史快照创建的 channel_models 没有渠道外键，先补齐再写入授权。
+	// 否则后续 AutoMigrate 补外键时会重建 channel_models，级联删除刚写入的授权。
+	if !db.Migrator().HasConstraint(&model.Channel{}, "Models") {
+		if err := db.Migrator().CreateConstraint(&model.Channel{}, "Models"); err != nil {
+			return fmt.Errorf("failed to create channel_models foreign key: %w", err)
+		}
+	}
 	// 用 CreateTable 而非 AutoMigrate: AutoMigrate 会顺着 ChannelKey 的外键回溯到父表 Channel 并一并迁移,
 	// 从而重建 channels, 其 DROP TABLE 会级联清空 channel_models。CreateTable 只建这两张表, 且同样带上外键。
 	for _, table := range []any{&model.ChannelKey{}, &model.ChannelGrant{}} {
