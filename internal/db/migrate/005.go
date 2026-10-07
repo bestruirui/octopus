@@ -24,11 +24,14 @@ func migrateChannelToSingleURLAndKey(db *gorm.DB) error {
 	if !db.Migrator().HasTable("channels") {
 		return nil
 	}
-	if !db.Migrator().HasColumn("channels", "base_url") || !db.Migrator().HasColumn("channels", "key") {
-		return fmt.Errorf("channels.base_url or channels.key not found")
-	}
+	// channels.key 在当前架构中已不存在: 凭据已收敛到 channel_keys.key, 由 Migration 11 迁移。
+	// 因此两列的有无只决定对应回填是否执行, 不再视为错误。
+	// 用 hasPhysicalColumn 而非 Migrator().HasColumn: 后者在 SQLite 下按建表语句模糊匹配,
+	// channels 的 "id integer PRIMARY KEY AUTOINCREMENT" 会被误判成存在 key 列。
+	hasBaseURL := hasPhysicalColumn(db, "channels", "base_url")
+	hasKey := hasPhysicalColumn(db, "channels", "key")
 
-	if db.Migrator().HasColumn("channels", "base_urls") {
+	if hasBaseURL && hasPhysicalColumn(db, "channels", "base_urls") {
 		type legacyBaseURL struct {
 			URL string `json:"url"` // 旧地址值。
 		}
@@ -58,7 +61,8 @@ func migrateChannelToSingleURLAndKey(db *gorm.DB) error {
 		}
 	}
 
-	if db.Migrator().HasTable("channel_keys") && hasPhysicalColumn(db, "channel_keys", "channel_key") {
+	// 目标列 channels.key 不存在时必须跳过: 该列已由 Migration 11 删除, 凭据改由 channel_keys 承载。
+	if hasKey && db.Migrator().HasTable("channel_keys") && hasPhysicalColumn(db, "channel_keys", "channel_key") {
 		type legacyChannelKey struct {
 			ChannelID  int    `gorm:"column:channel_id"`  // 所属渠道主键。
 			ChannelKey string `gorm:"column:channel_key"` // 旧凭据值。
@@ -95,7 +99,7 @@ func migrateChannelToSingleURLAndKey(db *gorm.DB) error {
 			return fmt.Errorf("failed to drop channel_keys: %w", err)
 		}
 	}
-	if db.Migrator().HasColumn("channels", "base_urls") {
+	if hasPhysicalColumn(db, "channels", "base_urls") {
 		if db.Dialector.Name() == "sqlite" {
 			if err := db.Exec(`ALTER TABLE "channels" DROP COLUMN "base_urls"`).Error; err != nil {
 				return fmt.Errorf("failed to drop channels.base_urls: %w", err)
