@@ -15,9 +15,15 @@ export const Protocol = {
 // 地址与路径不属于方言范畴，由前端按服务商预填到渠道字段上。
 export type Dialect = 'generic';
 
-type CustomHeader = {
+// HeaderOp 是自定义 Header 的操作类型，取值与后端 model 一致；留空等价 set，仅对即将发往上游的请求生效。
+export type HeaderOp = 'set' | 'delete' | 'rename' | 'copy';
+
+// CustomHeader 是单条自定义 Header 操作；rename/copy 的 header_key 是源头、header_value 是目标头。
+export type CustomHeader = {
+    op?: HeaderOp;
     header_key: string;
     header_value: string;
+    condition?: string; // 生效条件；留空恒生效，否则 Go template 渲染为 "true" 才生效。
 };
 
 // ChannelKey 是渠道下的一份上游凭据；名称在渠道内唯一，读写都按它引用。

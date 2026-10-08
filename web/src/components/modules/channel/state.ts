@@ -1,4 +1,23 @@
-import type { ChannelDetail } from '@/api/channel';
+import type { ChannelDetail, HeaderOp } from '@/api/channel';
+
+// OverrideOp 是参数覆盖的操作类型, 取值与后端 model.OverrideOp* 一致。
+export type OverrideOp = 'set' | 'set_if_absent' | 'delete';
+
+// OverrideRow 是参数覆盖单条操作的编辑形状; 提交时序列化为 JSON 操作数组。
+export type OverrideRow = {
+    op: OverrideOp;
+    path: string;
+    value: string;
+    condition: string;
+};
+
+// HeaderRow 是自定义 Header 单条操作的编辑形状, HeaderOp 取值与后端一致。
+export type HeaderRow = {
+    op: HeaderOp;
+    key: string;
+    value: string;
+    condition: string;
+};
 
 // ChannelFormState 是渠道表单的全部可编辑内容。
 // 全按名称组织而不存主键: 后端凭据与模型都按名称匹配增删改, 而新建渠道和新加模型时主键尚不存在。
@@ -14,9 +33,10 @@ export type ChannelFormState = {
     keys: { name: string; key: string; enabled: boolean }[];
     models: string[];
     grants: Map<string, number>; // 键为 grantKey(模型名, 凭据名), 值为 Protocol 位掩码。
-    custom_header: ChannelDetail['custom_header'];
+    custom_header: HeaderRow[]; // 自定义 Header 的行编辑内容。
     channel_proxy: string;
-    param_override: string;
+    param_overrides: OverrideRow[]; // 参数覆盖的行编辑内容。
+    param_override_legacy: string; // 无法无损转行的旧格式原文; 非空时以 textarea 原样编辑并提交。
     match_regex: string;
 };
 
@@ -39,12 +59,70 @@ export const emptyFormState: ChannelFormState = {
     grants: new Map(),
     custom_header: [],
     channel_proxy: '',
-    param_override: '',
+    param_overrides: [],
+    param_override_legacy: '',
     match_regex: '',
 };
 
+// parseParamOverride 把落库的参数覆盖配置还原为编辑状态。
+// 操作数组直接转行; 旧平铺对象在键不含点号与冒号时无损转成 set 行(值序列化为紧凑 JSON, 语义不变),
+// 否则退回原文由 textarea 原样编辑 —— 键中的点冒号在新格式里是嵌套路径语义, 转行会改变行为。
+function parseParamOverride(config: string): { rows: OverrideRow[]; legacy: string } {
+    const trimmed = config.trim();
+    if (!trimmed) return { rows: [], legacy: '' };
+    try {
+        if (trimmed.startsWith('[')) {
+            const parsed = JSON.parse(trimmed) as { op?: string; path?: string; value?: string; condition?: string }[];
+            const rows = parsed.map((item): OverrideRow => ({
+                op: item.op === 'set_if_absent' || item.op === 'delete' ? item.op : 'set',
+                path: item.path ?? '',
+                value: item.value ?? '',
+                condition: item.condition ?? '',
+            }));
+            return { rows, legacy: '' };
+        }
+        if (trimmed.startsWith('{')) {
+            const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+            const keys = Object.keys(parsed);
+            // model 与 stream 由转发流程管理, 旧配置里即使写了也不生效, 转行时同样丢弃。
+            const convertible = keys.every((key) => !key.includes('.') && !key.includes(':') && key !== 'model' && key !== 'stream');
+            if (convertible) {
+                return {
+                    rows: keys.map((key) => ({
+                        op: 'set' as const,
+                        path: key,
+                        value: JSON.stringify(parsed[key]),
+                        condition: '',
+                    })),
+                    legacy: '',
+                };
+            }
+        }
+    } catch {
+        // 解析失败按原文兜底, 提交时由后端校验兜住。
+    }
+    return { rows: [], legacy: trimmed };
+}
+
+// serializeParamOverride 把编辑状态序列化回落库格式。
+// 未填完的行(path 为空, set 类缺值)直接丢弃, 与 custom_header 过滤半成品行的口径一致。
+function serializeParamOverride(rows: OverrideRow[], legacy: string): string {
+    const raw = legacy.trim();
+    if (raw !== '') return raw;
+    const ops = rows
+        .filter((row) => row.path.trim() !== '' && (row.op === 'delete' || row.value.trim() !== ''))
+        .map((row) => {
+            const op: Record<string, string> = { op: row.op, path: row.path.trim() };
+            if (row.op !== 'delete') op.value = row.value;
+            if (row.condition.trim() !== '') op.condition = row.condition.trim();
+            return op;
+        });
+    return ops.length > 0 ? JSON.stringify(ops) : '';
+}
+
 // fromChannel 把渠道完整配置还原为表单状态; 授权读写都按名称, 直接建索引即可。
 export function fromChannel(channel: ChannelDetail): ChannelFormState {
+    const { rows, legacy } = parseParamOverride(channel.param_override);
     return {
         name: channel.name,
         dialect: channel.dialect,
@@ -57,9 +135,15 @@ export function fromChannel(channel: ChannelDetail): ChannelFormState {
         keys: channel.keys.map(({ name, key, enabled }) => ({ name, key, enabled })),
         models: [...channel.models],
         grants: new Map(channel.grants.map((g) => [grantKey(g.model_name, g.key_name), g.protocols])),
-        custom_header: channel.custom_header,
+        custom_header: channel.custom_header.map((header) => ({
+            op: header.op || 'set', // 历史数据无 op 字段或为空串, 均等价 set。
+            key: header.header_key,
+            value: header.header_value,
+            condition: header.condition ?? '',
+        })),
         channel_proxy: channel.channel_proxy,
-        param_override: channel.param_override,
+        param_overrides: rows,
+        param_override_legacy: legacy,
         match_regex: channel.match_regex,
     };
 }
@@ -76,9 +160,18 @@ export function toChannelConfig(state: ChannelFormState) {
         openai_response_path: state.openai_response_path.trim(),
         anthropic_message_path: state.anthropic_message_path.trim(),
         proxy: state.proxy,
-        custom_header: state.custom_header.filter((h) => h.header_key.trim() && h.header_value !== ''),
+        // delete 只需头名; 其余 op 需要值(rename/copy 的值是目标头名), 半成品行丢弃。
+        custom_header: state.custom_header
+            .filter((row) => row.key.trim() !== '')
+            .filter((row) => row.op === 'delete' || row.value.trim() !== '')
+            .map((row) => ({
+                op: row.op,
+                header_key: row.key,
+                header_value: row.op === 'delete' ? '' : row.value,
+                ...(row.condition.trim() !== '' ? { condition: row.condition } : {}),
+            })),
         channel_proxy: state.channel_proxy.trim(),
-        param_override: state.param_override.trim(),
+        param_override: serializeParamOverride(state.param_overrides, state.param_override_legacy),
         match_regex: state.match_regex.trim(),
     };
 }

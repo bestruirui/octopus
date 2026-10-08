@@ -54,8 +54,9 @@ func resolveUpstreamClient(channel model.Channel) (*http.Client, func(), error) 
 }
 
 // sendPassthrough 以同协议透传方式请求上游, 取得的响应无需转换即可回给客户端。
-func sendPassthrough(ctx context.Context, format llm.APIFormat, raw *httpclient.Request, channel model.Channel, outbound transformer.Outbound, streaming bool, modelName string) (*upstreamResponse, error) {
-	request, err := buildPassthroughRequest(format, raw, channel, outbound, modelName)
+// oc 提供参数覆盖与自定义 Header 条件渲染所需的请求上下文。
+func sendPassthrough(ctx context.Context, format llm.APIFormat, raw *httpclient.Request, channel model.Channel, outbound transformer.Outbound, streaming bool, oc *overrideContext) (*upstreamResponse, error) {
+	request, err := buildPassthroughRequest(format, raw, channel, outbound, oc)
 	if err != nil {
 		return nil, err
 	}
@@ -146,15 +147,16 @@ func sendPassthroughStream(ctx context.Context, format llm.APIFormat, request *h
 // conversionMiddleware 保存跨协议 pipeline 单次调用需要应用和取得的状态。
 type conversionMiddleware struct {
 	pipeline.DummyMiddleware // 提供本次无需处理的其余 pipeline 中间件方法。
-	channel model.Channel // 本轮上游请求使用的渠道配置。
-	format  llm.APIFormat // 上游渠道协议, 用于校验统一响应终态。
-	rawBody []byte        // 上游非流式响应或错误的原始正文。
-	usage   *llm.Usage    // 非流式统一响应中确认的用量。
+	channel model.Channel    // 本轮上游请求使用的渠道配置。
+	format  llm.APIFormat    // 上游渠道协议, 用于校验统一响应终态。
+	oc      *overrideContext // 参数覆盖与自定义 Header 条件渲染所需的请求上下文。
+	rawBody []byte           // 上游非流式响应或错误的原始正文。
+	usage   *llm.Usage       // 非流式统一响应中确认的用量。
 }
 
 // OnOutboundRawRequest 在转换后的上游请求上应用渠道参数和自定义 Header。
 func (m *conversionMiddleware) OnOutboundRawRequest(_ context.Context, request *httpclient.Request) (*httpclient.Request, error) {
-	return request, applyChannelConfig(m.channel, request)
+	return request, applyChannelConfig(m.channel, m.oc, request)
 }
 
 // OnOutboundRawError 保留上游错误状态码携带的原始正文。
@@ -181,7 +183,8 @@ func (m *conversionMiddleware) OnOutboundLlmResponse(_ context.Context, response
 }
 
 // sendConverted 经 axonhub pipeline 把客户端请求转换成渠道协议后请求上游, 响应再转换回客户端协议。
-func sendConverted(ctx context.Context, format llm.APIFormat, raw *httpclient.Request, channel model.Channel, outbound transformer.Outbound, streaming bool) (*upstreamResponse, error) {
+// oc 提供参数覆盖与自定义 Header 条件渲染所需的请求上下文。
+func sendConverted(ctx context.Context, format llm.APIFormat, raw *httpclient.Request, channel model.Channel, outbound transformer.Outbound, streaming bool, oc *overrideContext) (*upstreamResponse, error) {
 	var inbound transformer.Inbound
 	switch format {
 	case llm.APIFormatOpenAIResponse:
@@ -205,7 +208,7 @@ func sendConverted(ctx context.Context, format llm.APIFormat, raw *httpclient.Re
 			}
 		}()
 	}
-	middleware := &conversionMiddleware{channel: channel, format: outbound.APIFormat()}
+	middleware := &conversionMiddleware{channel: channel, format: outbound.APIFormat(), oc: oc}
 	processor := pipeline.NewFactory(httpclient.NewHttpClientWithClient(httpClient)).Pipeline(
 		inbound,
 		outbound,
