@@ -23,6 +23,9 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, '../static/out'),
     emptyOutDir: true,
+    // 降到 es2018，让旧版 Safari（<16.4）也能解析产物；
+    // 运行时 API 缺口由 index.html 内联兜底补齐。
+    target: 'es2018',
   },
   server: {
     hmr: process.env.DISABLE_HMR !== 'true',
