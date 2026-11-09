@@ -478,9 +478,15 @@
             "matchRegex": "匹配正则",
             "paramOverride": "参数覆盖",
             "customHeader": "自定义 Header",
-            "customHeaderKey": "Header Key",
-            "customHeaderValue": "Header Value",
             "customHeaderAdd": "添加 Header",
+            "overrideAdd": "添加覆盖",
+            "overrideOpSet": "设置",
+            "overrideOpSetIfAbsent": "不存在时设置",
+            "overrideOpDelete": "删除",
+            "overridePathPlaceholder": "字段路径, 如 thinking.type",
+            "overrideValuePlaceholder": "值, 如 0.7 或 {{.Model}}",
+            "overrideCondition": "条件",
+            "paramOverrideLegacyHint": "旧格式配置(键含点号或冒号), 无法转为行编辑, 以原文修改",
             "edit": "编辑",
             "delete": "删除",
             "submit": "创建",
@@ -489,7 +495,14 @@
             "backToStats": "返回统计",
             "grantClearAll": "清空全部模型",
             "modelRemove": "移除模型",
-            "grantRemove": "移除该凭据的授权"
+            "grantRemove": "移除该凭据的授权",
+            "overrideOpRename": "重命名",
+            "overrideOpCopy": "复制",
+            "headerKeyPlaceholder": "Header 名, 如 X-Custom-Model",
+            "headerValuePlaceholder": "值, 如 {{.Model}} 或 {client_header:x-trace-id}",
+            "headerFromPlaceholder": "旧头名, 如 X-Old",
+            "headerToPlaceholder": "新头名, 如 X-New",
+            "overrideHelp": "条件与值支持 Go template, 条件渲染为 \"true\" 才执行。\n可用变量:\n{{.Model}} 映射后发给上游的模型名\n{{.RequestModel}} 客户端请求的模型名\n{{.ReasoningEffort}} 思考等级\n{{.RequestHeader \"x-trace-id\"}} 客户端请求头\n{{.Metadata \"user_id\"}} 请求体 metadata 字段\n{{toJSON ...}} 把值转义为 JSON 字符串\nHeader 值另支持 {client_header:xxx} 引用客户端请求头。"
         }
     }
 }

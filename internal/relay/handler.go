@@ -147,6 +147,9 @@ func Forward(format llm.APIFormat) gin.HandlerFunc {
 				}
 			}
 
+			// 为本轮参数覆盖与自定义 Header 的条件渲染构建上下文; 每轮渠道与模型都可能不同, 故逐轮构建。
+			overrideCtx := buildOverrideContext(metadata.Model, channelModel.Name, reasoningEffort, raw.Headers, raw.Body)
+
 			// 在渠道授权支持的协议内选出本轮上游协议, 按该协议的路径与授权绑定的凭据构造出站转换器。
 			// 先于登记本轮目标: 选中的协议是本轮目标的一部分, 需与渠道和模型一并推给界面。
 			outbound, targetProtocol, passthrough, err := buildOutbound(channel, grant, *channelKey, requestProtocol)
@@ -177,9 +180,9 @@ func Forward(format llm.APIFormat) gin.HandlerFunc {
 				})
 				// 客户端与渠道协议一致时直接透传, 其余组合通过 pipeline 转换。
 				if passthrough {
-					result, err = sendPassthrough(roundCtx, format, raw, channel, outbound, metadata.Streaming, channelModel.Name)
+					result, err = sendPassthrough(roundCtx, format, raw, channel, outbound, metadata.Streaming, overrideCtx)
 				} else {
-					result, err = sendConverted(roundCtx, format, raw, channel, outbound, metadata.Streaming)
+					result, err = sendConverted(roundCtx, format, raw, channel, outbound, metadata.Streaming, overrideCtx)
 				}
 				// 上游调用返回即结束首响应等待; Stop 失败说明已到期, 主动取消可避免等待异步回调完成。
 				if !timeoutTimer.Stop() {

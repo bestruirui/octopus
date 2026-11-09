@@ -1,5 +1,11 @@
 package model
 
+import (
+	"encoding/json"
+	"strings"
+	"text/template"
+)
+
 // 渠道支持的上游线协议, 以位掩码存储, 一条渠道授权可同时支持多个协议。
 type Protocol uint8
 
@@ -42,7 +48,7 @@ type ChannelConfig struct {
 
 // 单个上游渠道的共享配置; 路径按协议分别配置, 凭据由 ChannelKey 提供。
 type Channel struct {
-	ID            int            `json:"id" gorm:"primaryKey"`                                      // 渠道主键。
+	ID            int            `json:"id" gorm:"primaryKey"` // 渠道主键。
 	ChannelConfig                // 可编辑配置, 平铺为 channels 的各列。
 	Keys          []ChannelKey   `json:"-" gorm:"foreignKey:ChannelID;constraint:OnDelete:CASCADE"` // 渠道下的上游凭据; 不出 JSON, 读取走 ChannelDetail。
 	Models        []ChannelModel `json:"-" gorm:"foreignKey:ChannelID;constraint:OnDelete:CASCADE"` // 渠道提供的模型; 不出 JSON, 读取走 ChannelDetail。
@@ -89,7 +95,7 @@ type ChannelGrant struct {
 // 凭据与模型只给界面用得上的字段: 两者在渠道内按名称唯一, 提交时也按名称引用, 主键与统计都无从使用。
 // 集合字段恒为数组, 读取侧承诺不为 null。
 type ChannelDetail struct {
-	ID            int                  `json:"id"`     // 渠道主键; 创建时提交 0, 由数据库分配。
+	ID            int                  `json:"id"` // 渠道主键; 创建时提交 0, 由数据库分配。
 	ChannelConfig                      // 渠道自身的可编辑配置。
 	Keys          []ChannelKeyConfig   `json:"keys"`   // 渠道下的上游凭据。
 	Models        []string             `json:"models"` // 渠道提供的上游模型名称。
@@ -137,10 +143,51 @@ type ChannelGrantCandidate struct {
 	Available   bool     `json:"available"`    // 渠道与凭据均启用且模型, 凭据均存在时为真。
 }
 
-// 追加到上游请求的单个 Header。
+// 追加到上游请求的单个 Header 操作; Op 为 rename/copy 时 HeaderKey 是源头、HeaderValue 是目标头, delete 时值不参与。
 type CustomHeader struct {
-	HeaderKey   string `json:"header_key"`   // Header 名称。
-	HeaderValue string `json:"header_value"` // Header 值。
+	Op          string `json:"op,omitempty"`        // set | delete | rename | copy; 留空等价 set, 与历史数据兼容。
+	HeaderKey   string `json:"header_key"`          // Header 名称; rename/copy 的源名称。
+	HeaderValue string `json:"header_value"`        // Header 值, 支持 {{...}} 模板与 {client_header:xxx}; rename/copy 的目标名称。
+	Condition   string `json:"condition,omitempty"` // 生效条件; 留空恒生效, 否则 Go template 渲染为 "true" 才生效。
+}
+
+// 参数覆盖操作类型。
+const (
+	OverrideOpSet         = "set"           // 强制写入, 存在则替换, 不存在则新增。
+	OverrideOpSetIfAbsent = "set_if_absent" // 仅当路径不存在时写入。
+	OverrideOpDelete      = "delete"        // 删除路径。
+	OverrideOpRename      = "rename"        // Header 专用: 把 HeaderKey 改名为 HeaderValue, 保留全部值。
+	OverrideOpCopy        = "copy"          // Header 专用: 把 HeaderKey 复制一份为 HeaderValue, 保留原头。
+)
+
+// 参数覆盖的单条操作; 覆盖配置为 JSON 数组时逐条执行。
+type OverrideOperation struct {
+	Op        string `json:"op"`                  // set | set_if_absent | delete。
+	Path      string `json:"path,omitempty"`      // 目标字段路径; 新格式下点号按嵌套路径解析。
+	Value     string `json:"value,omitempty"`     // set/set_if_absent 的值, 支持 {{...}} 模板。
+	Condition string `json:"condition,omitempty"` // 留空恒真; 否则渲染结果为 "true" 才执行。
+}
+
+// OverrideTemplateFuncs 是条件与值模板共用的函数集, 保存校验与转发渲染须用同一份以保持一致。
+var OverrideTemplateFuncs = template.FuncMap{
+	"toJSON": marshalTemplateValue,
+}
+
+func marshalTemplateValue(v any) string {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// ValidateOverrideTemplate 校验一段可选的 Go template 文本; 不含 {{ 视为静态文本直接通过。
+func ValidateOverrideTemplate(text string) error {
+	if !strings.Contains(text, "{{") {
+		return nil
+	}
+	_, err := template.New("override").Funcs(OverrideTemplateFuncs).Parse(text)
+	return err
 }
 
 // 按凭据拉取上游模型列表的请求; 渠道尚未保存时也可试拉, 故随请求携带拉取所需的渠道配置。
