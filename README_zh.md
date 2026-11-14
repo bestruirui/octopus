@@ -44,6 +44,13 @@ docker compose up -d
 ```
 
 
+### 🚄 Railway 一键部署
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/octopus-llm-api-gateway)
+
+使用官方 `bestrui/octopus` 镜像一键部署，自动挂载 `/app/data` 持久化卷（SQLite 数据库与配置文件），并生成公网 HTTPS 域名和健康检查。部署后请使用下方默认账户登录，并立即修改密码。
+
+
 ### 📦 从 Release 下载
 
 从 [Releases](https://github.com/bestruirui/octopus/releases) 下载对应平台的二进制文件，然后运行：
