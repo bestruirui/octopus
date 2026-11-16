@@ -44,6 +44,13 @@ docker compose up -d
 ```
 
 
+### 🚄 Deploy on Railway
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/octopus-llm-api-gateway)
+
+One-click deploy of the official `bestrui/octopus` image with a persistent volume at `/app/data` (SQLite database + config), a public HTTPS domain and a healthcheck. Log in with the [default credentials](#-default-credentials) and change the password right away.
+
+
 ### 📦 Download from Release
 
 Download the binary for your platform from [Releases](https://github.com/bestruirui/octopus/releases), then run:
