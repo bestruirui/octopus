@@ -10,6 +10,17 @@
 
 </div>
 
+## ❤️赞助商
+
+<table>
+
+<tr>
+<td width="180"><a href="https://mozhenzhen.com/go/octopus"><img src="assets\partners\logos\mozhenzhen_zh.png" alt="模真真" width="150"></a></td>
+<td>感谢 模真真 赞助了本项目! 买 AI 别花冤枉钱！比价、验真、查降智，免费查：<a href="https://mozhenzhen.com/go/octopus">mozhenzhen.com</a></td>
+</tr>
+
+</table>
+
 
 ## ✨ 特性
 

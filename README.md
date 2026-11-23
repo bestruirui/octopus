@@ -10,6 +10,17 @@
 
 </div>
 
+## ❤️ Sponsors
+
+<table>
+
+<tr>
+<td width="180"><a href="https://mozhenzhen.com/go/octopus"><img src="assets/partners/logos/mozhenzhen_zh.png" alt="Mozhenzhen" width="150"></a></td>
+<td>Thanks to Mozhenzhen for sponsoring this project! Don't overpay for AI: compare prices, verify authenticity, and check for degraded performance for free at <a href="https://mozhenzhen.com/go/octopus">mozhenzhen.com</a>.</td>
+</tr>
+
+</table>
+
 
 ## ✨ Features
 
