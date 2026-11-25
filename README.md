@@ -19,6 +19,16 @@
 <td>Thanks to Mozhenzhen for sponsoring this project! Don't overpay for AI: compare prices, verify authenticity, and check for degraded performance for free at <a href="https://mozhenzhen.com/go/octopus">mozhenzhen.com</a>.</td>
 </tr>
 
+<tr>
+<td width="180"><a href="https://www.qiniu.com/ai/free-models/conatus-2026?utm_source=octopus&utm_medium=oss&utm_campaign=comatus_202611&utm_content=readme"><img src="assets/partners/logos/qiniu.png" alt="Qiniu Cloud" width="150"></a></td>
+<td><strong>Thank you to Qiniu Cloud for sponsoring this project!</strong><br>Qiniu Cloud (02567.HK) offers an enterprise MaaS platform that gives you one-stop access to over 150 leading models worldwide. It supports major model providers' protocols and handles text, images, audio, video, and files, serving more than 1.8 million enterprise developers. <strong>New enterprise users can claim 20 million tokens for free. With the year-end offer, new users can get <a href="https://www.qiniu.com/ai/free-models/conatus-2026?utm_source=octopus&utm_medium=oss&utm_campaign=comatus_202611&utm_content=readme">up to 1 billion free tokens per day</a>.</strong></td>
+</tr>
+
+<tr>
+<td width="180"><a href="https://api.fenno.ai/?utm_source=octopus&utm_medium=oss&utm_campaign=fenno_202611&utm_content=readme"><img src="assets/partners/logos/fenno.png" alt="Fenno.ai" width="150"></a></td>
+<td><strong>Thank you to Fenno.ai for sponsoring this project!</strong><br>Fenno.ai is an API gateway for coding, with a focus on Codex. Use one API key for coding models such as GPT, Claude, and Grok. It supports both OpenAI and Anthropic protocols and connects directly to tools such as Codex, Claude Code, Cline, and OpenCode. Business-to-business payments and invoicing are available for entities in China and overseas. <strong>New users can <a href="https://api.fenno.ai/?utm_source=octopus&utm_medium=oss&utm_campaign=fenno_202611&utm_content=readme">try $50 in credits for $1.99</a>; invite friends to earn up to 20% in referral commissions.</strong></td>
+</tr>
+
 </table>
 
 
