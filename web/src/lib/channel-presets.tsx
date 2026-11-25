@@ -12,6 +12,7 @@ import MoonshotIcon from '@thesvg/react/moonshot-ai';
 import ZhipuIcon from '@thesvg/react/zhipu';
 import XAIIcon from '@thesvg/react/xai-grok';
 import SiliconFlowIcon from '@thesvg/react/siliconcloud-siliconflow';
+import { QiniuIcon, FennoIcon } from '@/components/icons/sponsors';
 import AzureIcon from '@thesvg/react/azure-azure-openai';
 import type { Dialect } from '@/api/channel';
 import type { Locale } from '@/stores/setting';
@@ -171,6 +172,24 @@ export const CHANNEL_PRESETS: ChannelPreset[] = [
         },
         dialect: 'generic',
         base_url: 'https://api.x.ai',
+        openai_chat_completion_path: CHAT, openai_response_path: RESP, anthropic_message_path: ANTH,
+    },
+    {
+        id: 'qiniu', label: '七牛云', Icon: QiniuIcon,
+        description: {
+            zh_hans: '七牛云大模型推理 API', zh_hant: '七牛雲大模型推理 API', en: 'Qiniu Cloud AI inference API',
+        },
+        dialect: 'generic',
+        base_url: 'https://api.qnaigc.com',
+        openai_chat_completion_path: CHAT, openai_response_path: RESP, anthropic_message_path: ANTH,
+    },
+    {
+        id: 'fenno', label: 'Fenno.ai', Icon: FennoIcon,
+        description: {
+            zh_hans: '面向编程场景的 Codex / Claude Code API 中转', zh_hant: '面向編程場景的 Codex / Claude Code API 中轉', en: 'Coding API gateway for Codex & Claude Code',
+        },
+        dialect: 'generic',
+        base_url: 'https://api.fenno.ai',
         openai_chat_completion_path: CHAT, openai_response_path: RESP, anthropic_message_path: ANTH,
     },
     {
