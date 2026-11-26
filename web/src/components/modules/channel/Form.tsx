@@ -16,6 +16,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { FormGrants } from './FormGrants';
 import { FormKeys } from './FormKeys';
+import { FormOverrides } from './FormOverrides';
+import { FormHeaders } from './FormHeaders';
 import { IconButton } from '@/components/common/IconButton';
 import { useSettingStore } from '@/stores/setting';
 import {
@@ -236,65 +238,9 @@ function ChannelFormFields({ channel, onBack }: { channel?: ChannelDetail; onBac
                                     />
                                 </div>
                             ))}
-                            <div className="space-y-2">
-                                <Label htmlFor={`${idPrefix}-param-override`}>{t('paramOverride')}</Label>
-                                <textarea
-                                    id={`${idPrefix}-param-override`}
-                                    value={state.param_override}
-                                    onChange={(e) => setState({ ...state, param_override: e.target.value })}
-                                    className="min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                />
-                            </div>
+                            <FormOverrides state={state} setState={setState} />
 
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <Label>{t('customHeader')}</Label>
-                                    <IconButton
-                                        onClick={() => setState({
-                                            ...state,
-                                            custom_header: [...state.custom_header, { header_key: '', header_value: '' }],
-                                        })}
-                                        className="size-9"
-                                        tip={t('customHeaderAdd')}
-                                    >
-                                        <Plus className="size-4" />
-                                    </IconButton>
-                                </div>
-                                {/* 列名只在有行时出现, 两列各占一半, 与下方输入框对齐; 末尾留出删除按钮的宽度。 */}
-                                {state.custom_header.length > 0 && (
-                                    <div className="flex items-center gap-2">
-                                        <Label className="flex-1 text-muted-foreground">{t('customHeaderKey')}</Label>
-                                        <Label className="flex-1 text-muted-foreground">{t('customHeaderValue')}</Label>
-                                        <span className="size-9 shrink-0" />
-                                    </div>
-                                )}
-                                {state.custom_header.map((header, idx) => (
-                                    <div key={idx} className="flex items-center gap-2">
-                                        {(['header_key', 'header_value'] as const).map((field) => (
-                                            <Input
-                                                key={field}
-                                                value={header[field]}
-                                                onChange={(e) => setState({
-                                                    ...state,
-                                                    custom_header: state.custom_header.map((h, i) =>
-                                                        i === idx ? { ...h, [field]: e.target.value } : h),
-                                                })}
-                                                className="rounded-xl flex-1"
-                                            />
-                                        ))}
-                                        <IconButton
-                                            onClick={() => setState({
-                                                ...state,
-                                                custom_header: state.custom_header.filter((_, i) => i !== idx),
-                                            })}
-                                            className="size-9 hover:text-destructive"
-                                            tip={t('delete')}
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </IconButton>
-                                    </div>
-                                ))}
-                            </div>
+                            <FormHeaders state={state} setState={setState} />
                         </div>
                     )}
                 </div>

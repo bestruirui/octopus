@@ -478,9 +478,15 @@
             "matchRegex": "Match regex",
             "paramOverride": "Param override",
             "customHeader": "Custom headers",
-            "customHeaderKey": "Header key",
-            "customHeaderValue": "Header value",
             "customHeaderAdd": "Add header",
+            "overrideAdd": "Add override",
+            "overrideOpSet": "Set",
+            "overrideOpSetIfAbsent": "Set if absent",
+            "overrideOpDelete": "Delete",
+            "overridePathPlaceholder": "Field path, e.g. thinking.type",
+            "overrideValuePlaceholder": "Value, e.g. 0.7 or {{.Model}}",
+            "overrideCondition": "Condition",
+            "paramOverrideLegacyHint": "Legacy config (keys contain . or :), edit as raw text",
             "edit": "Edit",
             "delete": "Delete",
             "submit": "Create",
@@ -489,7 +495,14 @@
             "backToStats": "Back to Stats",
             "grantClearAll": "Clear all models",
             "modelRemove": "Remove model",
-            "grantRemove": "Remove this key’s grant"
+            "grantRemove": "Remove this key’s grant",
+            "overrideOpRename": "Rename",
+            "overrideOpCopy": "Copy",
+            "headerKeyPlaceholder": "Header name, e.g. X-Custom-Model",
+            "headerValuePlaceholder": "Value, e.g. {{.Model}} or {client_header:x-trace-id}",
+            "headerFromPlaceholder": "Old header name, e.g. X-Old",
+            "headerToPlaceholder": "New header name, e.g. X-New",
+            "overrideHelp": "Conditions and values support Go templates; an operation runs only when its condition renders to \"true\".\nAvailable variables:\n{{.Model}} upstream model after mapping\n{{.RequestModel}} model name from the client request\n{{.ReasoningEffort}} reasoning effort\n{{.RequestHeader \"x-trace-id\"}} inbound request header\n{{.Metadata \"user_id\"}} metadata field of the request body\n{{toJSON ...}} escape a value as a JSON string\nHeader values also support {client_header:xxx} to reference client headers."
         }
     }
 }

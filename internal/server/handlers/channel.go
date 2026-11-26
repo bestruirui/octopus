@@ -348,8 +348,15 @@ func fetchOpenAIModels(httpClient *http.Client, ctx context.Context, target mode
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+key)
+	// 探测没有请求上下文, 带条件的 Header 一律不生效; rename/copy 面向已有头, 探测同样跳过。
 	for _, header := range target.CustomHeader {
-		if header.HeaderKey != "" {
+		if header.HeaderKey == "" || header.Condition != "" {
+			continue
+		}
+		switch header.Op {
+		case model.OverrideOpDelete:
+			req.Header.Del(header.HeaderKey)
+		case "", model.OverrideOpSet:
 			req.Header.Set(header.HeaderKey, header.HeaderValue)
 		}
 	}
